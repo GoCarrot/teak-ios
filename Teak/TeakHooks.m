@@ -21,6 +21,8 @@
 
 - (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 
+- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
+
 - (BOOL)application:(UIApplication*)application
             openURL:(NSURL*)url
   sourceApplication:(NSString*)sourceApplication
@@ -36,6 +38,7 @@
 @end
 
 static BOOL (*sHostAppWillFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
+static BOOL (*sHostAppDidFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 static BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id) = NULL;
 static void (*sHostDBAIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostAppPushRegIMP)(id, SEL, UIApplication*, NSData*) = NULL;
@@ -52,6 +55,12 @@ void Teak_Plant(Class appDelegateClass, NSString* appSecret)
 
    Method ctWillFinishLaunching = class_getInstanceMethod([TeakAppDelegateHooks class], appWillFinishLaunchingMethod.name);
    sHostAppWillFinishLaunching = (BOOL (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appWillFinishLaunchingMethod.name, method_getImplementation(ctWillFinishLaunching), appWillFinishLaunchingMethod.types);
+
+   // application:didFinishLaunchingWithOptions:
+   struct objc_method_description appDidFinishLaunchingMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didFinishLaunchingWithOptions:), NO, YES);
+   
+   Method ctDidFinishLaunching = class_getInstanceMethod([TeakAppDelegateHooks class], appDidFinishLaunchingMethod.name);
+   sHostAppDidFinishLaunching = (BOOL (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appDidFinishLaunchingMethod.name, method_getImplementation(ctDidFinishLaunching), appDidFinishLaunchingMethod.types);
 
    // application:openURL:sourceApplication:annotation:
    struct objc_method_description appOpenURLMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:openURL:sourceApplication:annotation:), NO, YES);
@@ -92,6 +101,16 @@ void Teak_Plant(Class appDelegateClass, NSString* appSecret)
    if(sHostAppWillFinishLaunching)
    {
       ret |= sHostAppWillFinishLaunching(self, @selector(application:willFinishLaunchingWithOptions:), application, launchOptions);
+   }
+   return ret;
+}
+
+- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
+{
+   BOOL ret = [[Teak sharedInstance] application:application didFinishLaunchingWithOptions:launchOptions];
+   if(sHostAppDidFinishLaunching)
+   {
+      ret |= sHostAppDidFinishLaunching(self, @selector(application:didFinishLaunchingWithOptions:), application, launchOptions);
    }
    return ret;
 }

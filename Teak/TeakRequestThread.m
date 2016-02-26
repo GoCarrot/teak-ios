@@ -28,9 +28,6 @@
 @property (assign, nonatomic) Teak* teak;
 @property (nonatomic) BOOL keepThreadRunning;
 @property (strong, nonatomic) NSCondition* requestQueuePause;
-@property (strong, nonatomic) NSString* postHostname;
-@property (strong, nonatomic) NSString* metricsHostname;
-@property (strong, nonatomic) NSString* authHostname;
 
 @end
 
@@ -92,9 +89,9 @@
 {
    switch(serviceType)
    {
-      case TeakRequestServiceAuth:    return self.authHostname;
-      case TeakRequestServiceMetrics: return self.metricsHostname;
-      case TeakRequestServicePost:    return self.postHostname;
+      case TeakRequestServiceAuth:    return self.teak.authHostname;
+      case TeakRequestServiceMetrics: return self.teak.metricsHostname;
+      case TeakRequestServicePost:    return self.teak.postHostname;
    }
 }
 
@@ -205,7 +202,7 @@
          NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
          if(error)
          {
-            NSLog(@"Error converting %@ to JSON: %@", value, error);
+            NSLog(@"[Teak] Error converting %@ to JSON: %@", value, error);
             valueString = [value description];
          }
          else
@@ -243,7 +240,7 @@
          NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
          if(error)
          {
-            NSLog(@"Error converting %@ to JSON: %@", value, error);
+            NSLog(@"[Teak] Error converting %@ to JSON: %@", value, error);
             valueString = [value description];
          }
          else
@@ -366,7 +363,7 @@
    // Handle response
    if(error && error.code != NSURLErrorUserCancelledAuthentication)
    {
-      NSLog(@"Error submitting Teak request: %@", error);
+      NSLog(@"[Teak] Error submitting Teak request: %@", error);
    }
    else if(request.callback)
    {

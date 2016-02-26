@@ -86,28 +86,8 @@
    NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
    long httpCode = response != nil ? response.statusCode : 401;
 
-   if(self.serviceType == TeakRequestServiceMetrics)
-   {
-      switch(httpCode)
-      {
-         case 200:
-         case 201:
-         {
-            [requestThread.cache removeRequestFromCache:self];
-         }
-         break;
-
-         default:
-         {
-            [requestThread.cache addRetryInCacheForRequest:self];
-         }
-         break;
-      }
-   }
-   else
-   {
-      [requestThread.cache removeRequestFromCache:self];
-   }
+   // TODO: Make sure the server recorded it, check with Alex
+   [requestThread.cache removeRequestFromCache:self];
 }
 
 @end

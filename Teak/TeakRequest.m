@@ -58,11 +58,6 @@ NSString* const TeakRequestTypePOST = @"POST";
    NSMutableDictionary* finalPayload = [NSMutableDictionary dictionaryWithDictionary:commonPayload];
    [finalPayload addEntriesFromDictionary:payload];
 
-   if([Teak sharedInstance].sessionId != nil)
-   {
-      [finalPayload setObject:[Teak sharedInstance].sessionId forKey:@"session_id"];
-   }
-
    return finalPayload;
 }
 

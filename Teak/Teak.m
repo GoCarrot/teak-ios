@@ -20,13 +20,12 @@
 #import "Teak+Internal.h"
 #import "TeakIAPMetric.h"
 #import "TeakCache.h"
+#import "TeakRequestThread.h"
 
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
 #define kTeakVersion @"1.0"
 
-NSString* const TeakServicesConfiguredNotification = @"TeakServicesConfiguredNotification";
 NSString* const TeakPushTokenReceived = @"TeakPushTokenReceived";
-NSString* const TeakUserIdAvailableNotification = @"TeakUserIdAvailableNotification";
 NSString* const TeakAccessTokenAvailableNotification = @"TeakAccessTokenAvailableNotification";
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
@@ -47,15 +46,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    static Teak* sharedInstance = nil;
    static dispatch_once_t onceToken;
    dispatch_once(&onceToken, ^{
-      /*
-      if(![NSError instancesRespondToSelector:@selector(fberrorShouldNotifyUser)])
-      {
-         NSException *exception = [NSException exceptionWithName:@"AdditionalLinkerFlagRequired"
-                                                          reason:@"Use of the Carrot SDK requires adding '-ObjC' to the 'Other Linker Flags' setting of your Xcode Project. See: https://gocarrot.com/docs/ios for more information."
-                                                        userInfo:nil];
-         @throw exception;
-      }*/
-
       sharedInstance = [[Teak alloc] init];
    });
    return sharedInstance;
@@ -71,36 +61,16 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 - (void)identifyUser:(NSString*)userId
 {
    self.userId = userId;
-   [[NSNotificationCenter defaultCenter] postNotificationName:TeakUserIdAvailableNotification object:self];
+   [self.dependentOperationQueue addOperation:self.userIdOperation];
 }
 
 - (void)setFacebookAccessToken:(NSString*)accessToken
 {
    self.fbAccessToken = accessToken;
-   [[NSNotificationCenter defaultCenter] postNotificationName:TeakAccessTokenAvailableNotification object:self];
+   // TODO: promise thingy
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-- (void)onTeakServicesAvailable
-{
-   // We need the User Id in order to do the next thing
-   if(self.enableDebugOutput)
-   {
-      NSLog(@"onTeakServicesAvailable");
-   }
-}
-
-- (void)onUserIdAvailable
-{
-   // It would be great to have the FB Access Token and/or the Push Token
-   if(self.enableDebugOutput)
-   {
-      NSLog(@"onUserIdAvailable");
-   }
-
-   [self identifyUser];
-}
 
 - (id)init
 {
@@ -128,7 +98,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
                                                                        error:&error];
       if(!succeeded)
       {
-         NSLog(@"Unable to create Teak data path: %@.", error);
+         NSLog(@"[Teak] Unable to create Teak data path: %@.", error);
          return nil;
       }
 
@@ -136,7 +106,15 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       self.cache = [TeakCache cacheWithPath:self.dataPath];
       if(!self.cache)
       {
-         NSLog(@"Unable to create Teak cache.");
+         NSLog(@"[Teak] Unable to create Teak cache.");
+         return nil;
+      }
+
+      // Request thread
+      self.requestThread = [[TeakRequestThread alloc] initWithTeak:self];
+      if(!self.requestThread)
+      {
+         NSLog(@"Unable to create Carrot request thread.");
          return nil;
       }
 
@@ -154,6 +132,9 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
       self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
       dispatch_source_set_event_handler(self.heartbeat, ^{ [weakSelf sendHeartbeat]; });
+
+      // Dependent operations
+      self.dependentOperationQueue = [[NSOperationQueue alloc] init];
    }
    return self;
 }
@@ -198,18 +179,16 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    // Happy path logging
    if(self.enableDebugOutput)
    {
-      NSLog(@"Identifying user: %@", payload);
+      NSLog(@"[Teak] Identifying user: %@", payload);
    }
 
    // User identified
    self.userIdentifiedThisSession = YES;
 
-   // Do the thing
-   {
-      // When successful
-      dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), 60ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
-      dispatch_resume(self.heartbeat);
-   }
+   [self.requestThread addRequestForService:TeakRequestServiceAuth
+                                 atEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appId]
+                                usingMethod:TeakRequestTypePOST
+                                withPayload:payload];
 }
 
 - (void)sendHeartbeat
@@ -226,7 +205,9 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
                                             cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
                                         timeoutInterval:120];
-   [[[NSURLSession sharedSession] dataTaskWithRequest:request] resume];
+   [NSURLConnection sendSynchronousRequest:request
+                         returningResponse:nil
+                                     error:nil];
 }
 
 - (BOOL)handleOpenURL:(NSURL*)url
@@ -236,17 +217,31 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions
 {
+   return NO;
+}
+
+- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
+{
    // Set up listeners
    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
-   
-   [[NSNotificationCenter defaultCenter] addObserver:self
-                                            selector:@selector(onTeakServicesAvailable)
-                                                name:TeakServicesConfiguredNotification
-                                              object:nil];
-   [[NSNotificationCenter defaultCenter] addObserver:self
-                                            selector:@selector(onUserIdAvailable)
-                                                name:TeakUserIdAvailableNotification
-                                              object:nil];
+
+   // User input dependent operations
+   if(self.userIdOperation == nil)
+   {
+      if(self.userId == nil)
+      {
+         self.userIdOperation = [NSBlockOperation blockOperationWithBlock:^{
+            if(self.enableDebugOutput)
+            {
+               NSLog(@"[Teak] User Id is ready: %@", self.userId);
+            }
+         }];
+      }
+      else
+      {
+         NSLog(@"[Teak] User Id is ready: %@", self.userId);
+      }
+   }
 
    return NO;
 }
@@ -257,7 +252,53 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    self.advertisingTrackingLimited = [NSNumber numberWithBool:![ASIdentifierManager sharedManager].advertisingTrackingEnabled];
    self.advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
 
-   [[Teak sharedInstance] configure];
+   // Reset session-based things
+   self.userIdentifiedThisSession = NO;
+
+   // Configure NSOperation chains
+   self.serviceConfigurationOperation = [NSBlockOperation blockOperationWithBlock:^{
+      [[Teak sharedInstance] configure];
+   }];
+
+   // User Id has no dependencies
+   if(self.userIdOperation == nil)
+   {
+      if(self.userId == nil)
+      {
+         self.userIdOperation = [NSBlockOperation blockOperationWithBlock:^{
+            if(self.enableDebugOutput)
+            {
+               NSLog(@"[Teak] User Id is ready: %@", self.userId);
+            }
+         }];
+      }
+      else
+      {
+         NSLog(@"[Teak] User Id is ready: %@", self.userId);
+      }
+   }
+
+   // Heartbeat needs services and user id, same with request thread
+   self.liveConnectionOperation = [NSBlockOperation blockOperationWithBlock:^{
+      // TODO: Check if online
+      [self.requestThread start];
+
+      dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), 60ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
+      dispatch_resume(self.heartbeat);
+   }];
+   [self.liveConnectionOperation addDependency:self.userIdOperation];
+   [self.liveConnectionOperation addDependency:self.serviceConfigurationOperation];
+   [self.dependentOperationQueue addOperation:self.liveConnectionOperation];
+
+   // Identify user needs user id
+   self.identifyUserOperation = [NSBlockOperation blockOperationWithBlock:^{
+      [self identifyUser];
+   }];
+   [self.identifyUserOperation addDependency:self.userIdOperation];
+   [self.dependentOperationQueue addOperation:self.identifyUserOperation];
+
+   // Kick off services configuration
+   [self.dependentOperationQueue addOperation:self.serviceConfigurationOperation];
 }
 
 - (void)endApplicationSession:(UIApplication*)application
@@ -265,8 +306,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    // Cancel the heartbeat
    dispatch_source_cancel(self.heartbeat);
 
-   // Need to start a new session metric
-   self.userIdentifiedThisSession = NO;
+   // Stop request thread
+   [self.requestThread stop];
+
+   // Clear out operations dependent on user input
+   self.userIdOperation = nil;
 }
 
 - (void)setDevicePushToken:(NSData*)deviceToken
@@ -300,34 +344,34 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
                                             cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
                                         timeoutInterval:120];
-   [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+   NSError* error = nil;
+   NSData* data = [NSURLConnection sendSynchronousRequest:request
+                                        returningResponse:nil
+                                                    error:&error];
+   if(error)
+   {
+      NSLog(@"[Teak] Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
+   }
+   else
+   {
+      NSDictionary* services = [NSJSONSerialization JSONObjectWithData:data
+                                                               options:kNilOptions
+                                                                 error:&error];
       if(error)
       {
-         NSLog(@"Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
+         NSLog(@"[Teak] Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
       }
       else
       {
-         NSDictionary* services = [NSJSONSerialization JSONObjectWithData:data
-                                                                  options:kNilOptions
-                                                                    error:&error];
-         if(error)
+         self.postHostname = [services objectForKey:@"post"] == [NSNull null] ? nil : [services objectForKey:@"post"];
+         self.authHostname = [services objectForKey:@"auth"] == [NSNull null] ? nil : [services objectForKey:@"auth"];
+         self.metricsHostname = [services objectForKey:@"metrics"] == [NSNull null] ? nil : [services objectForKey:@"metrics"];
+         if(self.enableDebugOutput)
          {
-            NSLog(@"Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
-         }
-         else
-         {/*
-            self.postHostname = [services objectForKey:@"post"] == [NSNull null] ? nil : [services objectForKey:@"post"];
-            self.authHostname = [services objectForKey:@"auth"] == [NSNull null] ? nil : [services objectForKey:@"auth"];
-            self.metricsHostname = [services objectForKey:@"metrics"] == [NSNull null] ? nil : [services objectForKey:@"metrics"];
-            self.sessionId = [services objectForKey:@"session_id"] == [NSNull null] ? nil : [services objectForKey:@"session_id"];*/
-            if(self.enableDebugOutput)
-            {
-               NSLog(@"Services discovery complete: %@", services);
-            }
-            [[NSNotificationCenter defaultCenter] postNotificationName:TeakServicesConfiguredNotification object:self];
+            NSLog(@"[Teak] Services discovery complete: %@", services);
          }
       }
-   }] resume];
+   }
 }
 
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction

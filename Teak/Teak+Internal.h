@@ -16,13 +16,12 @@
 #import <Teak/Teak.h>
 
 @class TeakCache;
+@class TeakRequestThread;
 
 #define kTeakServicesHostname @"services.gocarrot.com"
 #define kDefaultHostUrlScheme @"https"
 
-extern NSString* const TeakServicesConfiguredNotification;
 extern NSString* const TeakPushTokenReceived;
-extern NSString* const TeakUserIdAvailableNotification;
 extern NSString* const TeakAccessTokenAvailableNotification;
 
 extern NSString* URLEscapedString(NSString* inString);
@@ -40,16 +39,27 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) NSString* advertisingIdentifier;
 @property (strong, nonatomic) NSString* launchedFromTeakNotifId;
 @property (strong, nonatomic) NSString* fbAccessToken;
-@property (strong, nonatomic) NSString* sessionId;
+
+@property (strong, nonatomic) NSString* postHostname;
+@property (strong, nonatomic) NSString* metricsHostname;
+@property (strong, nonatomic) NSString* authHostname;
 
 @property (strong, nonatomic) NSString*  dataPath;
 @property (strong, nonatomic) TeakCache* cache;
+@property (strong, nonatomic) TeakRequestThread* requestThread;
 @property (atomic)            BOOL       userIdentifiedThisSession;
+
+@property (strong, nonatomic) NSOperationQueue* dependentOperationQueue;
+@property (strong, nonatomic) NSOperation* serviceConfigurationOperation;
+@property (strong, nonatomic) NSOperation* userIdOperation;
+@property (strong, nonatomic) NSOperation* liveConnectionOperation;
+@property (strong, nonatomic) NSOperation* identifyUserOperation;
 
 - (BOOL)handleOpenURL:(NSURL*)url;
 - (void)beginApplicationSession:(UIApplication*)application;
 - (void)endApplicationSession:(UIApplication*)application;
 - (void)setDevicePushToken:(NSData*)deviceToken;
 - (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
+- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 
 @end

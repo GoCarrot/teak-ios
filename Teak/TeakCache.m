@@ -25,7 +25,7 @@
 // v0
 #define kCacheCreateV0SQL "CREATE TABLE IF NOT EXISTS cache(request_service INTEGER, request_endpoint TEXT, request_payload TEXT, request_id TEXT, request_date REAL, retry_count INTEGER)"
 
-#define kCacheReadSQL "SELECT rowid, request_service, request_endpoint, request_payload, request_id, request_date, retry_count FROM cache WHERE request_servicetype<=%d ORDER BY retry_count LIMIT 10"
+#define kCacheReadSQL "SELECT rowid, request_service, request_endpoint, request_payload, request_id, request_date, retry_count FROM cache ORDER BY retry_count LIMIT 10"
 #define kCacheInsertSQL "INSERT INTO cache (request_service, request_endpoint, request_payload, request_id, request_date, retry_count) VALUES (%d, %Q, %Q, %Q, %f, %d)"
 #define kCacheUpdateSQL "UPDATE cache SET retry_count=%d WHERE rowid=%lld"
 #define kCacheDeleteSQL "DELETE FROM cache WHERE rowid=%lld"
@@ -55,7 +55,7 @@ static BOOL teakcache_commit(sqlite3* cache);
                               &sqliteDb);
    if(sql3Err != SQLITE_OK)
    {
-      NSLog(@"Error creating Teak data store at: %@", path);
+      NSLog(@"[Teak] Error creating Teak data store at: %@", path);
       return nil;
    }
 
@@ -82,7 +82,7 @@ static BOOL teakcache_commit(sqlite3* cache);
    NSData* payloadJSONData = [NSJSONSerialization dataWithJSONObject:[TeakRequest finalPayloadForPayload:request.payload] options:0 error:&error];
    if(error)
    {
-      NSLog(@"Error converting payload to JSON: %@", error);
+      NSLog(@"[Teak] Error converting payload to JSON: %@", error);
       return 0;
    }
    else
@@ -108,13 +108,13 @@ static BOOL teakcache_commit(sqlite3* cache);
          }
          else
          {
-            NSLog(@"Failed to write request to Teak cache. Error: '%s'",
+            NSLog(@"[Teak] Failed to write request to Teak cache. Error: '%s'",
                   sqlite3_errmsg(self.sqliteDb));
          }
       }
       else
       {
-         NSLog(@"Failed to create Teak cache statement for request. Error: '%s'",
+         NSLog(@"[Teak] Failed to create Teak cache statement for request. Error: '%s'",
                sqlite3_errmsg(self.sqliteDb));
       }
       sqlite3_finalize(sqlStatement);
@@ -136,14 +136,14 @@ static BOOL teakcache_commit(sqlite3* cache);
       {
          if(sqlite3_step(sqlStatement) != SQLITE_DONE)
          {
-            NSLog(@"Failed to delete Teak request id %lld from cache. Error: '%s'",
+            NSLog(@"[Teak] Failed to delete Teak request id %lld from cache. Error: '%s'",
                   request.cacheId, sqlite3_errmsg(self.sqliteDb));
             ret = NO;
          }
       }
       else
       {
-         NSLog(@"Failed to create cache delete statement for Teak request id %lld. "
+         NSLog(@"[Teak] Failed to create cache delete statement for Teak request id %lld. "
                "Error: '%s'", request.cacheId, sqlite3_errmsg(self.sqliteDb));
          ret = NO;
       }
@@ -166,14 +166,14 @@ static BOOL teakcache_commit(sqlite3* cache);
       {
          if(sqlite3_step(sqlStatement) != SQLITE_DONE)
          {
-            NSLog(@"Failed to update Teak request id %lld in cache. Error: '%s'",
+            NSLog(@"[Teak] Failed to update Teak request id %lld in cache. Error: '%s'",
                   request.cacheId, sqlite3_errmsg(self.sqliteDb));
             ret = NO;
          }
       }
       else
       {
-         NSLog(@"Failed to create cache update statement for Teak request id %lld. "
+         NSLog(@"[Teak] Failed to create cache update statement for Teak request id %lld. "
                "Error: '%s'", request.cacheId, sqlite3_errmsg(self.sqliteDb));
          ret = NO;
       }
@@ -208,7 +208,7 @@ static BOOL teakcache_commit(sqlite3* cache);
             // Add to array
             if(error)
             {
-               NSLog(@"Error converting JSON payload to NSDictionary: %@", error);
+               NSLog(@"[Teak] Error converting JSON payload to NSDictionary: %@", error);
             }
             else
             {
@@ -230,7 +230,7 @@ static BOOL teakcache_commit(sqlite3* cache);
       }
       else
       {
-         NSLog(@"Failed to load Teak request cache.");
+         NSLog(@"[Teak] Failed to load Teak request cache.\n\t%s", sqlite3_errmsg(self.sqliteDb));
       }
       sqlite3_finalize(sqlStatement);
    }
@@ -249,13 +249,13 @@ static BOOL teakcache_commit(sqlite3* cache);
    {
       if(sqlite3_step(sqlStatement) != SQLITE_DONE)
       {
-         NSLog(@"Failed to create Teak cache schema. Error: %s'", sqlite3_errmsg(self.sqliteDb));
+         NSLog(@"[Teak] Failed to create Teak cache schema. Error: %s'", sqlite3_errmsg(self.sqliteDb));
          ret = NO;
       }
    }
    else
    {
-      NSLog(@"Failed to create Teak cache schema statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
+      NSLog(@"[Teak] Failed to create Teak cache schema statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
       ret = NO;
    }
    sqlite3_finalize(sqlStatement);
@@ -278,13 +278,13 @@ static BOOL teakcache_commit(sqlite3* cache);
    {
       if(sqlite3_step(sqlStatement) != SQLITE_DONE)
       {
-         NSLog(@"Failed to create Teak cache. Error: %s'", sqlite3_errmsg(self.sqliteDb));
+         NSLog(@"[Teak] Failed to create Teak cache. Error: %s'", sqlite3_errmsg(self.sqliteDb));
          ret = NO;
       }
    }
    else
    {
-      NSLog(@"Failed to create Teak cache statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
+      NSLog(@"[Teak] Failed to create Teak cache statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
       ret = NO;
    }
    sqlite3_finalize(sqlStatement);
@@ -298,7 +298,7 @@ static BOOL teakcache_begin(sqlite3* cache)
 {
    if(sqlite3_exec(cache, "BEGIN TRANSACTION", 0, 0, 0) != SQLITE_OK)
    {
-      NSLog(@"Failed to begin Teak cache transaction. Error: %s'", sqlite3_errmsg(cache));
+      NSLog(@"[Teak] Failed to begin Teak cache transaction. Error: %s'", sqlite3_errmsg(cache));
       return NO;
    }
    return YES;
@@ -308,7 +308,7 @@ static BOOL teakcache_rollback(sqlite3* cache)
 {
    if(sqlite3_exec(cache, "ROLLBACK", 0, 0, 0) != SQLITE_OK)
    {
-      NSLog(@"Failed to rollback Teak cache transaction. Error: %s'", sqlite3_errmsg(cache));
+      NSLog(@"[Teak] Failed to rollback Teak cache transaction. Error: %s'", sqlite3_errmsg(cache));
       return NO;
    }
    return YES;
@@ -318,7 +318,7 @@ static BOOL teakcache_commit(sqlite3* cache)
 {
    if(sqlite3_exec(cache, "COMMIT", 0, 0, 0) != SQLITE_OK)
    {
-      NSLog(@"Failed to commit Teak cache transaction. Error: %s'", sqlite3_errmsg(cache));
+      NSLog(@"[Teak] Failed to commit Teak cache transaction. Error: %s'", sqlite3_errmsg(cache));
       return NO;
    }
    return YES;
