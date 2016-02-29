@@ -21,9 +21,6 @@
 #define kTeakServicesHostname @"services.gocarrot.com"
 #define kDefaultHostUrlScheme @"https"
 
-extern NSString* const TeakPushTokenReceived;
-extern NSString* const TeakAccessTokenAvailableNotification;
-
 extern NSString* URLEscapedString(NSString* inString);
 
 @interface Teak ()
@@ -54,6 +51,8 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) NSOperation* userIdOperation;
 @property (strong, nonatomic) NSOperation* liveConnectionOperation;
 @property (strong, nonatomic) NSOperation* identifyUserOperation;
+@property (strong, nonatomic) NSOperation* facebookAccessTokenOperation;
+@property (strong, nonatomic) NSOperation* pushTokenOperation;
 
 - (BOOL)handleOpenURL:(NSURL*)url;
 - (void)beginApplicationSession:(UIApplication*)application;

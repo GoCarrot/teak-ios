@@ -25,9 +25,6 @@
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
 #define kTeakVersion @"1.0"
 
-NSString* const TeakPushTokenReceived = @"TeakPushTokenReceived";
-NSString* const TeakAccessTokenAvailableNotification = @"TeakAccessTokenAvailableNotification";
-
 extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 @interface Teak () <SKPaymentTransactionObserver>
@@ -67,7 +64,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 - (void)setFacebookAccessToken:(NSString*)accessToken
 {
    self.fbAccessToken = accessToken;
-   // TODO: promise thingy
+   [self.dependentOperationQueue addOperation:self.facebookAccessTokenOperation];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -128,10 +125,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
 
       // Heartbeat
-      __weak typeof(self) weakSelf = self;
       self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
-      self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
-      dispatch_source_set_event_handler(self.heartbeat, ^{ [weakSelf sendHeartbeat]; });
 
       // Dependent operations
       self.dependentOperationQueue = [[NSOperationQueue alloc] init];
@@ -239,7 +233,46 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       }
       else
       {
-         NSLog(@"[Teak] User Id is ready: %@", self.userId);
+         if(self.enableDebugOutput)
+         {
+            NSLog(@"[Teak] User Id is ready: %@", self.userId);
+         }
+      }
+   }
+
+   if(self.facebookAccessTokenOperation == nil)
+   {
+      if(self.fbAccessToken == nil)
+      {
+         self.facebookAccessTokenOperation = [NSBlockOperation blockOperationWithBlock:^{
+            if(self.enableDebugOutput)
+            {
+               NSLog(@"[Teak] Facebook Access Token is ready: %@", self.fbAccessToken);
+            }
+            [self identifyUser];
+         }];
+         if(self.userIdOperation != nil)
+         {
+            [self.facebookAccessTokenOperation addDependency:self.userIdOperation];
+         }
+      }
+   }
+
+   if(self.pushTokenOperation == nil)
+   {
+      if(self.pushToken == nil)
+      {
+         self.pushTokenOperation = [NSBlockOperation blockOperationWithBlock:^{
+            if(self.enableDebugOutput)
+            {
+               NSLog(@"[Teak] Push Token is ready: %@", self.pushToken);
+            }
+            [self identifyUser];
+         }];
+         if(self.userIdOperation)
+         {
+            [self.pushTokenOperation addDependency:self.userIdOperation];
+         }
       }
    }
 
@@ -274,7 +307,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       }
       else
       {
-         NSLog(@"[Teak] User Id is ready: %@", self.userId);
+         if(self.enableDebugOutput)
+         {
+            NSLog(@"[Teak] User Id is ready: %@", self.userId);
+         }
       }
    }
 
@@ -283,10 +319,17 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       // TODO: Check if online
       [self.requestThread start];
 
+      // Heartbeat
+      __weak typeof(self) weakSelf = self;
+      self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
+      dispatch_source_set_event_handler(self.heartbeat, ^{ [weakSelf sendHeartbeat]; });
       dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), 60ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
       dispatch_resume(self.heartbeat);
    }];
-   [self.liveConnectionOperation addDependency:self.userIdOperation];
+   if(self.userIdOperation != nil)
+   {
+      [self.liveConnectionOperation addDependency:self.userIdOperation];
+   }
    [self.liveConnectionOperation addDependency:self.serviceConfigurationOperation];
    [self.dependentOperationQueue addOperation:self.liveConnectionOperation];
 
@@ -294,8 +337,49 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    self.identifyUserOperation = [NSBlockOperation blockOperationWithBlock:^{
       [self identifyUser];
    }];
-   [self.identifyUserOperation addDependency:self.userIdOperation];
+   if(self.userIdOperation != nil)
+   {
+      [self.identifyUserOperation addDependency:self.userIdOperation];
+   }
    [self.dependentOperationQueue addOperation:self.identifyUserOperation];
+
+   // Facebook access token needs user id
+   if(self.facebookAccessTokenOperation == nil)
+   {
+      if(self.fbAccessToken == nil)
+      {
+         self.facebookAccessTokenOperation = [NSBlockOperation blockOperationWithBlock:^{
+            if(self.enableDebugOutput)
+            {
+               NSLog(@"[Teak] Facebook Access Token is ready: %@", self.fbAccessToken);
+            }
+            [self identifyUser];
+         }];
+         if(self.userIdOperation != nil)
+         {
+            [self.facebookAccessTokenOperation addDependency:self.userIdOperation];
+         }
+      }
+   }
+
+   // Push token needs user id
+   if(self.pushTokenOperation == nil)
+   {
+      if(self.pushToken == nil)
+      {
+         self.pushTokenOperation = [NSBlockOperation blockOperationWithBlock:^{
+            if(self.enableDebugOutput)
+            {
+               NSLog(@"[Teak] Push Token is ready: %@", self.pushToken);
+            }
+            [self identifyUser];
+         }];
+         if(self.userIdOperation != nil)
+         {
+            [self.facebookAccessTokenOperation addDependency:self.userIdOperation];
+         }
+      }
+   }
 
    // Kick off services configuration
    [self.dependentOperationQueue addOperation:self.serviceConfigurationOperation];
@@ -311,11 +395,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
    // Clear out operations dependent on user input
    self.userIdOperation = nil;
+   self.facebookAccessTokenOperation = nil;
 }
 
 - (void)setDevicePushToken:(NSData*)deviceToken
 {
-   // TODO: Double check formatting for SNS
    NSString* deviceTokenString = [[[[deviceToken description]
                                     stringByReplacingOccurrencesOfString:@"<" withString:@""]
                                     stringByReplacingOccurrencesOfString:@">" withString:@""]
@@ -329,7 +413,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
                        forKey:kPushTokenUserDefaultsKey];
       [userDefaults synchronize];
 
-      [[NSNotificationCenter defaultCenter] postNotificationName:TeakPushTokenReceived object:self];
+      [self.dependentOperationQueue addOperation:self.pushTokenOperation];
    }
 }
 

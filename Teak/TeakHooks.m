@@ -157,6 +157,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appSecret)
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo
 {
    // TODO: Handle push
+   NSLog(@"Push received: %@", userInfo);
    if(sHostDRRNIMP)
    {
       sHostDRRNIMP(self, @selector(application:didReceiveRemoteNotification:), application, userInfo);
