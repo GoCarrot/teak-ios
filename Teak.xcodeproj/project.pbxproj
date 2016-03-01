@@ -25,8 +25,6 @@
 		431C97FE1C7E609800B19DD5 /* Teak.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 431C97FD1C7E609800B19DD5 /* Teak.h */; };
 		431C98001C7E609800B19DD5 /* Teak.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C97FF1C7E609800B19DD5 /* Teak.m */; };
 		431C98081C7E612400B19DD5 /* Teak.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C97FD1C7E609800B19DD5 /* Teak.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		431C98161C7E678A00B19DD5 /* AmazonSDKUtil.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C98121C7E678A00B19DD5 /* AmazonSDKUtil.h */; };
-		431C98171C7E678A00B19DD5 /* AmazonSDKUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C98131C7E678A00B19DD5 /* AmazonSDKUtil.m */; };
 		431C981E1C7E679900B19DD5 /* Teak+Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C981A1C7E679900B19DD5 /* Teak+Internal.h */; };
 		431C981F1C7E679900B19DD5 /* TeakHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C981B1C7E679900B19DD5 /* TeakHooks.m */; };
 		431C98201C7E679900B19DD5 /* TeakRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C981C1C7E679900B19DD5 /* TeakRequest.h */; };
@@ -68,8 +66,6 @@
 		431C97FA1C7E609800B19DD5 /* libTeak.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libTeak.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		431C97FD1C7E609800B19DD5 /* Teak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Teak.h; sourceTree = "<group>"; };
 		431C97FF1C7E609800B19DD5 /* Teak.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Teak.m; sourceTree = "<group>"; };
-		431C98121C7E678A00B19DD5 /* AmazonSDKUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AmazonSDKUtil.h; sourceTree = "<group>"; };
-		431C98131C7E678A00B19DD5 /* AmazonSDKUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AmazonSDKUtil.m; sourceTree = "<group>"; };
 		431C981A1C7E679900B19DD5 /* Teak+Internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "Teak+Internal.h"; sourceTree = "<group>"; };
 		431C981B1C7E679900B19DD5 /* TeakHooks.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakHooks.m; sourceTree = "<group>"; };
 		431C981C1C7E679900B19DD5 /* TeakRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRequest.h; sourceTree = "<group>"; };
@@ -114,7 +110,6 @@
 		431C97FC1C7E609800B19DD5 /* Teak */ = {
 			isa = PBXGroup;
 			children = (
-				431C98111C7E678A00B19DD5 /* Thirdparty */,
 				431C97FD1C7E609800B19DD5 /* Teak.h */,
 				431C97FF1C7E609800B19DD5 /* Teak.m */,
 				431C981A1C7E679900B19DD5 /* Teak+Internal.h */,
@@ -133,15 +128,6 @@
 			path = Teak;
 			sourceTree = "<group>";
 		};
-		431C98111C7E678A00B19DD5 /* Thirdparty */ = {
-			isa = PBXGroup;
-			children = (
-				431C98121C7E678A00B19DD5 /* AmazonSDKUtil.h */,
-				431C98131C7E678A00B19DD5 /* AmazonSDKUtil.m */,
-			);
-			path = Thirdparty;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -154,7 +140,6 @@
 				431C988C1C7FA30200B19DD5 /* TeakCache.h in Headers */,
 				431C981E1C7E679900B19DD5 /* Teak+Internal.h in Headers */,
 				431C98901C7FA44C00B19DD5 /* TeakCachedRequest.h in Headers */,
-				431C98161C7E678A00B19DD5 /* AmazonSDKUtil.h in Headers */,
 				431C98881C7E87C800B19DD5 /* TeakIAPMetric.h in Headers */,
 				431C98941C7FA4F300B19DD5 /* TeakRequestThread.h in Headers */,
 			);
@@ -254,7 +239,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				431C98211C7E679900B19DD5 /* TeakRequest.m in Sources */,
-				431C98171C7E678A00B19DD5 /* AmazonSDKUtil.m in Sources */,
 				431C98001C7E609800B19DD5 /* Teak.m in Sources */,
 				431C981F1C7E679900B19DD5 /* TeakHooks.m in Sources */,
 				431C98951C7FA4F300B19DD5 /* TeakRequestThread.m in Sources */,

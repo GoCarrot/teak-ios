@@ -17,7 +17,6 @@
 #import "Teak+Internal.h"
 #import "TeakRequestThread.h"
 #import "TeakCachedRequest.h"
-#import "AmazonSDKUtil.h"
 
 #include <CommonCrypto/CommonHMAC.h>
 
@@ -153,9 +152,6 @@
    {
       NSString* key = [queryKeysSorted objectAtIndex:i];
 
-      // Skip signing "image_bytes" if it exists
-      if([key compare:@"image_bytes"] == NSOrderedSame) continue;
-
       id value = [queryParamDict objectForKey:key];
       NSString* valueString = value;
       if([value isKindOfClass:[NSDictionary class]] ||
@@ -187,7 +183,7 @@
           [dataToSign bytes], [dataToSign length], &digestBytes);
 
    NSData* digestData = [NSData dataWithBytes:digestBytes length:CC_SHA256_DIGEST_LENGTH];
-   NSString* sigString = [NSDataWithBase64 base64EncodedStringFromData:digestData];
+   NSString* sigString = [digestData base64EncodedStringWithOptions:0];
 
    // Build params dictionary with JSON object representations
    NSMutableDictionary* retParams = [[NSMutableDictionary alloc] init];
@@ -278,24 +274,10 @@
 
    for(NSString* key in payload)
    {
-      // Skip image bytes here.
-      if([key compare:@"image_bytes"] == NSOrderedSame) continue;
-
       [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
       [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key,[payload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
    }
 
-   NSString* imageBytes = [payload objectForKey:@"image_bytes"];
-   if(imageBytes)
-   {
-      // Attach image
-      [payload removeObjectForKey:@"image_bytes"];
-      [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[@"Content-Disposition: form-data; name=\"image_bytes\"; filename=\"file.png\"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[@"Content-Type: image/png\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[NSDataWithBase64 dataWithBase64EncodedString:imageBytes]];
-      [postData appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
-   }
    [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
    NSMutableURLRequest* preppedRequest = nil;
