@@ -494,13 +494,16 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
 
+   NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
+   NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
+
    NSDictionary* payload = @{
       @"app_id" : self.appId,
       @"user_id" : self.userId,
       @"network_id" : [NSNumber numberWithInt:2],
       @"happened_at" : [formatter stringFromDate:transaction.transactionDate],
       @"product_name" : transaction.payment.productIdentifier,
-      @"platform_id" : transaction.transactionIdentifier
+      @"platform_id" : [receipt base64EncodedStringWithOptions:0]
    };
 
    [TeakIAPMetric sendTransaction:transaction withPayload:payload];
