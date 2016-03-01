@@ -18,7 +18,6 @@
 
 #import <Teak/Teak.h>
 #import "Teak+Internal.h"
-#import "TeakIAPMetric.h"
 #import "TeakCache.h"
 #import "TeakRequestThread.h"
 
@@ -506,7 +505,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       @"platform_id" : [receipt base64EncodedStringWithOptions:0]
    };
 
-   [TeakIAPMetric sendTransaction:transaction withPayload:payload];
+   [self.requestThread addRequestForService:TeakRequestServiceMetrics
+                                 atEndpoint:@"/purchase.json"
+                                usingMethod:TeakRequestTypePOST
+                                withPayload:payload];
 }
 
 - (void)transactionFailed:(SKPaymentTransaction*)transaction
@@ -537,17 +539,23 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
          break;
    }
 
+   NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
+   NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
+
    NSDictionary* payload = @{
       @"app_id" : self.appId,
       @"user_id" : self.userId,
       @"network_id" : [NSNumber numberWithInt:2],
       @"happened_at" : [formatter stringFromDate:transaction.transactionDate],
       @"product_name" : transaction.payment.productIdentifier,
-      @"platform_id" : transaction.transactionIdentifier,
+      @"platform_id" : [receipt base64EncodedStringWithOptions:0],
       @"purchase_status" : errorString
    };
 
-   [TeakIAPMetric sendTransaction:transaction withPayload:payload];
+   [self.requestThread addRequestForService:TeakRequestServiceMetrics
+                                 atEndpoint:@"/purchase.json"
+                                usingMethod:TeakRequestTypePOST
+                                withPayload:payload];
 }
 
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions
