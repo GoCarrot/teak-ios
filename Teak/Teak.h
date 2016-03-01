@@ -15,6 +15,16 @@
 
 #include <Foundation/Foundation.h>
 
+/**
+ * Use this named notification to listen for Teak events about push notifications. Ex:
+ *
+ * [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                          selector:@selector(handleTeakNotification)
+ *                                               name:TeakNotificationAvailable
+ *                                             object:nil];
+ */
+extern NSString* const TeakNotificationAvailable;
+
 #ifdef __OBJC__
 
 #import <UIKit/UIKit.h>
@@ -50,10 +60,28 @@
  */
 + (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andSecret:(NSString*)appSecret;
 
+/**
+ * Teak singleton.
+ */
 + (Teak*)sharedInstance;
 
+/**
+ * Tell Teak how to identify the current user.
+ *
+ * This should be how you identify the user in your back-end.
+ *
+ * @param userId           The string Teak should use to identify the current user.
+ */
 - (void)identifyUser:(NSString*)userId;
 
+/**
+ * Assign a Facebook Access Token for the current user.
+ *
+ * Facebook Access Tokens expire hourly, so this should always be called with the
+ * most recent Facebook Access Token you have for the user.
+ *
+ * @param accessToken      The most recent Facebook Access Token for the current user.
+ */
 - (void)setFacebookAccessToken:(NSString*)accessToken;
 
 @end

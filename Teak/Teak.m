@@ -25,6 +25,8 @@
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
 #define kTeakVersion @"1.0"
 
+NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
+
 extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 @interface Teak () <SKPaymentTransactionObserver>
@@ -135,8 +137,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)dealloc
 {
-   // Unregister all listeners
-   [[NSNotificationCenter defaultCenter] removeObserver:self];
+
 }
 
 - (void)identifyUser
@@ -144,11 +145,21 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    NSTimeZone* timeZone = [NSTimeZone localTimeZone];//[NSTimeZone timeZoneWithName:@"Europe/Berlin"];
    float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
 
+   NSString* language = [[NSLocale preferredLanguages] objectAtIndex:0];
+   NSDictionary* languageDic = [NSLocale componentsFromLocaleIdentifier:language];
+   NSString* countryCode = [languageDic objectForKey:@"kCFLocaleCountryCodeKey"];
+   NSString* languageCode = [languageDic objectForKey:@"kCFLocaleLanguageCodeKey"];
+
+   NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+   [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
+   [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
+
    NSDictionary* knownPayload = @{
-      @"api_key" : self.userId,
+      @"locale" : [NSString stringWithFormat:@"%@_%@", languageCode, countryCode],
       @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset],
       @"ios_ad_id" : self.advertisingIdentifier,
       @"ios_limit_ad_tracking" : self.advertisingTrackingLimited,
+      @"happened_at" : [formatter stringFromDate:[[NSDate alloc] init]]
    };
 
    // Build dependent payload.
@@ -456,6 +467,25 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
          }
       }
    }
+}
+
+- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo
+{
+   if(application.applicationState == UIApplicationStateInactive ||
+      application.applicationState == UIApplicationStateBackground)
+   {
+      // App was opened via push notification
+      NSLog(@"App opened via push: %@", userInfo);
+   }
+   else
+   {
+      // Push notification received while app was in foreground
+      NSLog(@"Foreground push received: %@", userInfo);
+   }
+
+   [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAvailable
+                                                       object:self
+                                                     userInfo:userInfo];
 }
 
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction

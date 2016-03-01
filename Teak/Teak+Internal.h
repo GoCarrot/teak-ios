@@ -58,6 +58,7 @@ extern NSString* URLEscapedString(NSString* inString);
 - (void)beginApplicationSession:(UIApplication*)application;
 - (void)endApplicationSession:(UIApplication*)application;
 - (void)setDevicePushToken:(NSData*)deviceToken;
+- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
 - (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 

@@ -28,14 +28,8 @@
 - (id)initWithTeak:(Teak*)teak;
 
 - (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload;
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint  usingMethod:(NSString*)method withPayload:(NSDictionary*)payload callback:(TeakRequestResponse)callback;
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint  usingMethod:(NSString*)method withPayload:(NSDictionary*)payload callback:(TeakRequestResponse)callback atFront:(BOOL)atFront;
 
 - (void)start;
 - (void)stop;
-- (void)signal;
-- (void)processRequest:(TeakRequest*)request;
-
-- (void)addRequestInQueue:(TeakRequest*)request atFront:(BOOL)atFront;
 
 @end

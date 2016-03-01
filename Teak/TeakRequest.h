@@ -27,7 +27,6 @@ typedef enum {
 
 typedef void (^TeakRequestResponse)(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread);
 
-extern NSString* const TeakRequestTypeGET;
 extern NSString* const TeakRequestTypePOST;
 
 @interface TeakRequest : NSObject

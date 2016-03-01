@@ -16,7 +16,6 @@
 #import "TeakRequest.h"
 #import "Teak+Internal.h"
 
-NSString* const TeakRequestTypeGET = @"GET";
 NSString* const TeakRequestTypePOST = @"POST";
 
 @interface TeakRequest ()

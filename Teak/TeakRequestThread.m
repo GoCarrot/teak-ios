@@ -97,64 +97,28 @@
 
 - (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload
 {
-   return [self addRequestForService:serviceType atEndpoint:endpoint usingMethod:method withPayload:payload callback:nil atFront:NO];
-}
+   TeakCachedRequest* cachedRequest =
+   [TeakCachedRequest requestForService:serviceType
+                             atEndpoint:endpoint
+                            withPayload:payload
+                                inCache:self.cache];
 
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint  usingMethod:(NSString*)method withPayload:(NSDictionary*)payload callback:(TeakRequestResponse)callback
-{
-   return [self addRequestForService:serviceType atEndpoint:endpoint usingMethod:method withPayload:payload callback:callback atFront:NO];
-}
-
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint  usingMethod:(NSString*)method withPayload:(NSDictionary*)payload callback:(TeakRequestResponse)callback atFront:(BOOL)atFront
-{
-   BOOL ret = YES;
-   if(method == TeakRequestTypeGET)
+   if(cachedRequest)
    {
-
-      TeakRequest* request = [TeakRequest requestForService:serviceType
-                                                 atEndpoint:endpoint
-                                                usingMethod:method
-                                                withPayload:payload
-                                                   callback:callback];
-      if(request)
-      {
-         [self addRequestInQueue:request atFront:atFront];
-      }
-   }
-   else
-   {
-      TeakCachedRequest* cachedRequest =
-      [TeakCachedRequest requestForService:serviceType
-                                atEndpoint:endpoint
-                               withPayload:payload
-                                   inCache:self.cache];
-
-      if(cachedRequest)
-      {
-         [self addRequestInQueue:cachedRequest atFront:atFront];
-      }
-
-      ret = (cachedRequest != nil);
+      [self addRequestInQueue:cachedRequest];
    }
 
-   return ret;
+   return (cachedRequest != nil);
 }
 
-- (void)addRequestInQueue:(TeakRequest*)request atFront:(BOOL)atFront
+- (void)addRequestInQueue:(TeakRequest*)request
 {
    if(request != nil)
    {
       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
          @synchronized(self.requestQueue)
          {
-            if(atFront)
-            {
-               [self.requestQueue insertObject:request atIndex:0];
-            }
-            else
-            {
-               [self.requestQueue addObject:request];
-            }
+            [self.requestQueue addObject:request];
          }
          [self signal];
       });

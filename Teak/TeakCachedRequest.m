@@ -84,7 +84,6 @@
 {
    NSError* error = nil;
    NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
-   long httpCode = response != nil ? response.statusCode : 401;
 
    // TODO: Make sure the server recorded it, check with Alex
    [requestThread.cache removeRequestFromCache:self];
