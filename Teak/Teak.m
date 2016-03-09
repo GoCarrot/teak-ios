@@ -326,7 +326,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
    // Heartbeat needs services and user id, same with request thread
    self.liveConnectionOperation = [NSBlockOperation blockOperationWithBlock:^{
-      // TODO: Check if online
       [self.requestThread start];
 
       // Heartbeat

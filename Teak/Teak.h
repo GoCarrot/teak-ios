@@ -77,7 +77,7 @@ extern NSString* const TeakNotificationAvailable;
 /**
  * Assign a Facebook Access Token for the current user.
  *
- * Facebook Access Tokens expire hourly, so this should always be called with the
+ * Facebook Access Tokens expire, so this should always be called with the
  * most recent Facebook Access Token you have for the user.
  *
  * @param accessToken      The most recent Facebook Access Token for the current user.
