@@ -130,15 +130,16 @@ void Teak_Plant(Class appDelegateClass, NSString* appSecret)
 
 - (void)applicationDidBecomeActive:(UIApplication*)application
 {
-   [[Teak sharedInstance] beginApplicationSession:application];
+   [[Teak sharedInstance] applicationDidBecomeActive:application];
    if(sHostDBAIMP)
    {
       sHostDBAIMP(self, @selector(applicationDidBecomeActive:), application);
    }
 }
 
-- (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
-   [[Teak sharedInstance] setDevicePushToken:deviceToken];
+- (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken
+{
+   [[Teak sharedInstance] application:application didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
    if(sHostAppPushRegIMP)
    {
       sHostAppPushRegIMP(self, @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:), application, deviceToken);
@@ -147,7 +148,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appSecret)
 
 - (void)applicationWillResignActive:(UIApplication*)application
 {
-   [[Teak sharedInstance] endApplicationSession:application];
+   [[Teak sharedInstance] applicationWillResignActive:application];
    if(sHostWREIMP)
    {
       sHostWREIMP(self, @selector(applicationWillResignActive:), application);

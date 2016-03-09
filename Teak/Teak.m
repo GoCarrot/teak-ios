@@ -289,7 +289,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    return NO;
 }
 
-- (void)beginApplicationSession:(UIApplication*)application
+- (void)applicationDidBecomeActive:(UIApplication*)application
 {
    // Get advertising info
    self.advertisingTrackingLimited = [NSNumber numberWithBool:![ASIdentifierManager sharedManager].advertisingTrackingEnabled];
@@ -394,7 +394,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    [self.dependentOperationQueue addOperation:self.serviceConfigurationOperation];
 }
 
-- (void)endApplicationSession:(UIApplication*)application
+- (void)applicationWillResignActive:(UIApplication*)application
 {
    // Cancel the heartbeat
    dispatch_source_cancel(self.heartbeat);
@@ -407,7 +407,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    self.facebookAccessTokenOperation = nil;
 }
 
-- (void)setDevicePushToken:(NSData*)deviceToken
+- (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken
 {
    NSString* deviceTokenString = [[[[deviceToken description]
                                     stringByReplacingOccurrencesOfString:@"<" withString:@""]
@@ -474,6 +474,8 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    {
       // App was opened via push notification
       NSLog(@"App opened via push: %@", userInfo);
+
+      // TODO: launchedFromTeakNotifId
    }
    else
    {
