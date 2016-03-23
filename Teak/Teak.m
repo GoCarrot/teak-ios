@@ -26,6 +26,15 @@
 
 NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
 
+// FB SDK 3.x
+NSString *const FBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
+
+// FB SDK 4.x
+NSString *const FBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
+NSString *const FBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
+NSString *const FBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
+NSString *const FBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
+
 extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 @interface Teak () <SKPaymentTransactionObserver>
@@ -60,12 +69,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 {
    self.userId = userId;
    [self.dependentOperationQueue addOperation:self.userIdOperation];
-}
-
-- (void)setFacebookAccessToken:(NSString*)accessToken
-{
-   self.fbAccessToken = accessToken;
-   [self.dependentOperationQueue addOperation:self.facebookAccessTokenOperation];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -136,7 +139,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)dealloc
 {
-
+   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (void)identifyUser
@@ -193,6 +196,33 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
                                  atEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appId]
                                 usingMethod:TeakRequestTypePOST
                                 withPayload:payload];
+}
+
+- (void)fbAccessTokenChanged_4x:(NSNotification*)notification
+{
+   id newAccessToken = [notification.userInfo objectForKey:FBSDKAccessTokenChangeNewKey];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+   self.fbAccessToken = [newAccessToken performSelector:sel_getUid("tokenString")];
+#pragma clang diagnostic pop
+
+   [self.dependentOperationQueue addOperation:self.facebookAccessTokenOperation];
+}
+
+- (void)fbAccessTokenChanged_3x:(NSNotification*)notification
+{
+   Class fbSession = NSClassFromString(@"FBSession");
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+   id activeSession = [fbSession performSelector:sel_getUid("activeSession")];
+   id accessTokenData = [activeSession performSelector:sel_getUid("accessTokenData")];
+   self.fbAccessToken = [accessTokenData performSelector:sel_getUid("accessToken")];
+#pragma clang diagnostic pop
+
+   if(self.fbAccessToken != nil)
+   {
+      [self.dependentOperationQueue addOperation:self.facebookAccessTokenOperation];
+   }
 }
 
 - (void)sendHeartbeat
@@ -266,6 +296,33 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
             [self.facebookAccessTokenOperation addDependency:self.userIdOperation];
          }
       }
+   }
+
+   // Facebook SDKs
+   Class fb4xClass = NSClassFromString(@"FBSDKProfile");
+   Class fb3xClass = NSClassFromString(@"FBSession");
+   if(fb4xClass != nil)
+   {
+      BOOL arg = YES;
+      SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange");
+      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fb4xClass methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
+      [inv setSelector:enableUpdatesOnAccessTokenChange];
+      [inv setTarget:fb4xClass];
+      [inv setArgument:&arg atIndex:2];
+      [inv invoke];
+
+      [[NSNotificationCenter defaultCenter] addObserver:self
+                                               selector:@selector(fbAccessTokenChanged_4x:)
+                                                   name:FBSDKAccessTokenDidChangeNotification
+                                                 object:nil];
+   }
+   else if(fb3xClass != nil)
+   {
+      // accessTokenData
+      [[NSNotificationCenter defaultCenter] addObserver:self
+                                               selector:@selector(fbAccessTokenChanged_3x:)
+                                                   name:FBSessionDidBecomeOpenActiveSessionNotification
+                                                 object:nil];
    }
 
    if(self.pushTokenOperation == nil)
