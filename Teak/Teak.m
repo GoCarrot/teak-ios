@@ -115,7 +115,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       self.requestThread = [[TeakRequestThread alloc] initWithTeak:self];
       if(!self.requestThread)
       {
-         NSLog(@"Unable to create Carrot request thread.");
+         NSLog(@"Unable to create Teak request thread.");
          return nil;
       }
 
@@ -346,6 +346,14 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       }
    }
 
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Lifecycle - application:didFinishLaunchingWithOptions:");
+      if(fb4xClass != nil) NSLog(@"[Teak] Using Facebook SDK v4.x");
+      else if(fb3xClass != nil) NSLog(@"[Teak] Using Facebook SDK v3.x");
+      else NSLog(@"[Teak] Facebook SDK not detected");
+   }
+
    return NO;
 }
 
@@ -452,6 +460,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
    // Kick off services configuration
    [self.dependentOperationQueue addOperation:self.serviceConfigurationOperation];
+
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Lifecycle - applicationDidBecomeActive:");
+   }
 }
 
 - (void)applicationWillResignActive:(UIApplication*)application
@@ -465,10 +478,20 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    // Clear out operations dependent on user input
    self.userIdOperation = nil;
    self.facebookAccessTokenOperation = nil;
+
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Lifecycle - applicationWillResignActive:");
+   }
 }
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken
 {
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Lifecycle - application:didRegisterForRemoteNotificationsWithDeviceToken:");
+   }
+
    NSString* deviceTokenString = [[[[deviceToken description]
                                     stringByReplacingOccurrencesOfString:@"<" withString:@""]
                                     stringByReplacingOccurrencesOfString:@">" withString:@""]
@@ -483,6 +506,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       [userDefaults synchronize];
 
       [self.dependentOperationQueue addOperation:self.pushTokenOperation];
+
+      if(self.enableDebugOutput)
+      {
+         NSLog(@"[Teak] Got new access token: %@", deviceTokenString);
+      }
    }
 }
 
@@ -532,6 +560,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo
 {
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Lifecycle - application:didReceiveRemoteNotification:");
+   }
+
    if(application.applicationState == UIApplicationStateInactive ||
       application.applicationState == UIApplicationStateBackground)
    {
@@ -624,6 +657,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions
 {
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Lifecycle - paymentQueue:updatedTransactions:");
+   }
+
    for(SKPaymentTransaction* transaction in transactions)
    {
       switch(transaction.transactionState)
