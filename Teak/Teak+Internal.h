@@ -37,9 +37,7 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) NSString* launchedFromTeakNotifId;
 @property (strong, nonatomic) NSString* fbAccessToken;
 
-@property (strong, nonatomic) NSString* postHostname;
-@property (strong, nonatomic) NSString* metricsHostname;
-@property (strong, nonatomic) NSString* authHostname;
+@property (strong, nonatomic) NSString* hostname;
 
 @property (strong, nonatomic) NSString*  dataPath;
 @property (strong, nonatomic) TeakCache* cache;

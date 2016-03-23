@@ -32,4 +32,6 @@
 - (void)start;
 - (void)stop;
 
+- (void)processRequest:(TeakRequest*)request onHost:(NSString*)host;
+
 @end

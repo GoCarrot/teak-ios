@@ -367,9 +367,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    self.userIdentifiedThisSession = NO;
 
    // Configure NSOperation chains
-   self.serviceConfigurationOperation = [NSBlockOperation blockOperationWithBlock:^{
-      [[Teak sharedInstance] configure];
-   }];
 
    // User Id has no dependencies
    if(self.userIdOperation == nil)
@@ -390,6 +387,15 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
             NSLog(@"[Teak] User Id is ready: %@", self.userId);
          }
       }
+   }
+
+   // Services configuration needs user id
+   self.serviceConfigurationOperation = [NSBlockOperation blockOperationWithBlock:^{
+      [[Teak sharedInstance] configure];
+   }];
+   if(self.userIdOperation != nil)
+   {
+      [self.serviceConfigurationOperation addDependency:self.userIdOperation];
    }
 
    // Heartbeat needs services and user id, same with request thread
@@ -516,46 +522,33 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)configure
 {
-   NSString* urlString = [NSString stringWithFormat:@"https://%@/services.json?sdk_version=%@&sdk_platform=%@&game_id=%@&app_version=%@",
-                          kTeakServicesHostname,
-                          URLEscapedString(self.sdkVersion),
-                          URLEscapedString(self.sdkPlatform),
-                          URLEscapedString(self.appId),
-                          URLEscapedString(self.appVersion)];
-   NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
-                                            cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
-                                        timeoutInterval:120];
-   NSError* error = nil;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-   NSData* data = [NSURLConnection sendSynchronousRequest:request
-                                        returningResponse:nil
-                                                    error:&error];
-#pragma clang diagnostic pop
-   if(error)
-   {
-      NSLog(@"[Teak] Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
-   }
-   else
-   {
-      NSDictionary* services = [NSJSONSerialization JSONObjectWithData:data
-                                                               options:kNilOptions
-                                                                 error:&error];
-      if(error)
-      {
-         NSLog(@"[Teak] Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
-      }
-      else
-      {
-         self.postHostname = [services objectForKey:@"post"] == [NSNull null] ? nil : [services objectForKey:@"post"];
-         self.authHostname = [services objectForKey:@"auth"] == [NSNull null] ? nil : [services objectForKey:@"auth"];
-         self.metricsHostname = [services objectForKey:@"metrics"] == [NSNull null] ? nil : [services objectForKey:@"metrics"];
-         if(self.enableDebugOutput)
-         {
-            NSLog(@"[Teak] Services discovery complete: %@", services);
-         }
-      }
-   }
+   TeakRequest* request = [TeakRequest requestForService:TeakRequestServiceAuth
+                                              atEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", self.appId]
+                                             usingMethod:TeakRequestTypePOST
+                                             withPayload:@{@"id" : self.appId}
+                                                callback:
+                           ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
+                              NSLog(@"Response: %@", response);
+
+                              NSError* error = nil;
+                              NSDictionary* config = [NSJSONSerialization JSONObjectWithData:data
+                                                                                     options:kNilOptions
+                                                                                       error:&error];
+                              if(error)
+                              {
+                                 NSLog(@"[Teak] Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
+                              }
+                              else
+                              {
+                                 self.hostname = @"gocarrot.com";
+                                 if(self.enableDebugOutput)
+                                 {
+                                    NSLog(@"[Teak] Services configuration complete: %@", config);
+                                 }
+                              }
+                           }];
+
+   [self.requestThread processRequest:request onHost:@"gocarrot.com"];
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo

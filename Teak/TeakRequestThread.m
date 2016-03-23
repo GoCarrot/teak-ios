@@ -86,12 +86,7 @@
 
 - (NSString*)hostForServiceType:(TeakRequestServiceType)serviceType
 {
-   switch(serviceType)
-   {
-      case TeakRequestServiceAuth:    return self.teak.authHostname;
-      case TeakRequestServiceMetrics: return self.teak.metricsHostname;
-      case TeakRequestServicePost:    return self.teak.postHostname;
-   }
+   return self.teak.hostname;
 }
 
 - (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload
@@ -263,7 +258,11 @@
 - (void)processRequest:(TeakRequest*)request
 {
    NSString* host = [self hostForServiceType:request.serviceType];
+   [self processRequest:request onHost:host];
+}
 
+- (void)processRequest:(TeakRequest*)request onHost:(NSString*)host
+{
    // If host is nil or empty, the server said "don't send me these now"
    if(!(host && host.length)) return;
 
