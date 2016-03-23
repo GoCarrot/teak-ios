@@ -239,9 +239,12 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
                                             cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
                                         timeoutInterval:120];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
    [NSURLConnection sendSynchronousRequest:request
                          returningResponse:nil
                                      error:nil];
+#pragma clang diagnostic pop
 }
 
 - (BOOL)handleOpenURL:(NSURL*)url
@@ -495,9 +498,12 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
                                             cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
                                         timeoutInterval:120];
    NSError* error = nil;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
    NSData* data = [NSURLConnection sendSynchronousRequest:request
                                         returningResponse:nil
                                                     error:&error];
+#pragma clang diagnostic pop
    if(error)
    {
       NSLog(@"[Teak] Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
@@ -638,5 +644,8 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 NSString* URLEscapedString(NSString* inString)
 {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
    return (NSString*)CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(NULL, (__bridge CFStringRef)inString, NULL, (CFStringRef)@"!*'();:@&=+$,/?%#[]", kCFStringEncodingUTF8));
+#pragma clang diagnostic pop
 }

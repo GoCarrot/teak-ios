@@ -302,9 +302,12 @@
    NSError* error = nil;
 
    // Issue request
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
    NSData* data = [NSURLConnection sendSynchronousRequest:preppedRequest
                                         returningResponse:&response
                                                     error:&error];
+#pragma clang diagnostic pop
 
    // Handle response
    if(error && error.code != NSURLErrorUserCancelledAuthentication)
