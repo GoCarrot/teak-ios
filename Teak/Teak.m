@@ -144,7 +144,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)identifyUser
 {
-   NSTimeZone* timeZone = [NSTimeZone localTimeZone];//[NSTimeZone timeZoneWithName:@"Europe/Berlin"];
+   NSTimeZone* timeZone = [NSTimeZone localTimeZone];
    float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
 
    NSString* language = [[NSLocale preferredLanguages] objectAtIndex:0];
@@ -595,6 +595,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       @"platform_id" : [receipt base64EncodedStringWithOptions:0]
    };
 
+   // TODO: Endpoint
    [self.requestThread addRequestForService:TeakRequestServiceMetrics
                                  atEndpoint:@"/purchase.json"
                                 usingMethod:TeakRequestTypePOST
@@ -642,6 +643,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       @"purchase_status" : errorString
    };
 
+   // TODO: Endpoint
    [self.requestThread addRequestForService:TeakRequestServiceMetrics
                                  atEndpoint:@"/purchase.json"
                                 usingMethod:TeakRequestTypePOST
