@@ -183,7 +183,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       [payload setObject:self.fbAccessToken forKey:@"access_token"];
    }
 
-   // Happy path logging
    if(self.enableDebugOutput)
    {
       NSLog(@"[Teak] Identifying user: %@", payload);
@@ -227,6 +226,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)sendHeartbeat
 {
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Sending heartbeat for user: %@", self.userId);
+   }
+
    NSString* urlString = [NSString stringWithFormat:
                           @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@&buster=%@",
                           URLEscapedString(self.appId),
@@ -270,7 +274,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
          self.userIdOperation = [NSBlockOperation blockOperationWithBlock:^{
             if(self.enableDebugOutput)
             {
-               NSLog(@"[Teak] User Id is ready: %@", self.userId);
+               NSLog(@"[Teak] User Id ready: %@", self.userId);
             }
          }];
       }
@@ -278,7 +282,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       {
          if(self.enableDebugOutput)
          {
-            NSLog(@"[Teak] User Id is ready: %@", self.userId);
+            NSLog(@"[Teak] User Id ready: %@", self.userId);
          }
       }
    }
@@ -470,6 +474,13 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    if(self.enableDebugOutput)
    {
       NSLog(@"[Teak] Lifecycle - applicationDidBecomeActive:");
+      NSLog(@"         App Id: %@", self.appId);
+      NSLog(@"        Api Key: %@", self.appSecret);
+      NSLog(@"    App Version: %@", self.appVersion);
+      if(self.launchedFromTeakNotifId != nil)
+      {
+         NSLog(@"  Teak Notif Id: %@", self.launchedFromTeakNotifId);
+      }
    }
 }
 
@@ -484,6 +495,9 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    // Clear out operations dependent on user input
    self.userIdOperation = nil;
    self.facebookAccessTokenOperation = nil;
+
+   // Clear launched-by
+   self.launchedFromTeakNotifId = nil;
 
    if(self.enableDebugOutput)
    {
@@ -515,7 +529,14 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
       if(self.enableDebugOutput)
       {
-         NSLog(@"[Teak] Got new access token: %@", deviceTokenString);
+         NSLog(@"[Teak] Got new push token: %@", deviceTokenString);
+      }
+   }
+   else
+   {
+      if(self.enableDebugOutput)
+      {
+         NSLog(@"[Teak] Using cached push token: %@", self.pushToken);
       }
    }
 }
@@ -528,7 +549,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
                                              withPayload:@{@"id" : self.appId}
                                                 callback:
                            ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
-                              NSLog(@"Response: %@", response);
 
                               NSError* error = nil;
                               NSDictionary* config = [NSJSONSerialization JSONObjectWithData:data
@@ -536,7 +556,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
                                                                                        error:&error];
                               if(error)
                               {
-                                 NSLog(@"[Teak] Unable to perform services discovery for Teak. Teak is in offline mode.\n%@", error);
+                                 NSLog(@"[Teak] Unable to perform services configuration for Teak. Teak is in offline mode.\n%@", error);
                               }
                               else
                               {
@@ -555,26 +575,45 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 {
    if(self.enableDebugOutput)
    {
-      NSLog(@"[Teak] Lifecycle - application:didReceiveRemoteNotification:");
+      NSLog(@"[Teak] Lifecycle - application:didReceiveRemoteNotification: %@", userInfo);
    }
 
-   if(application.applicationState == UIApplicationStateInactive ||
-      application.applicationState == UIApplicationStateBackground)
-   {
-      // App was opened via push notification
-      NSLog(@"App opened via push: %@", userInfo);
+   NSDictionary* aps = [userInfo objectForKey:@"aps"];
+   NSString* teakNotifId = [aps objectForKey:@"teakNotifId"];
 
-      // TODO: launchedFromTeakNotifId
+   if(teakNotifId != nil)
+   {
+      if(application.applicationState == UIApplicationStateInactive ||
+         application.applicationState == UIApplicationStateBackground)
+      {
+         // App was opened via push notification
+         if(self.enableDebugOutput)
+         {
+            NSLog(@"[Teak] App opened: %@", teakNotifId);
+         }
+
+         self.launchedFromTeakNotifId = teakNotifId;
+      }
+      else
+      {
+         // Push notification received while app was in foreground
+         if(self.enableDebugOutput)
+         {
+            NSLog(@"[Teak] App in foreground: %@", teakNotifId);
+         }
+      }
+
+      [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAvailable
+                                                          object:self
+                                                        userInfo:userInfo];
    }
    else
    {
-      // Push notification received while app was in foreground
-      NSLog(@"Foreground push received: %@", userInfo);
+      if(self.enableDebugOutput)
+      {
+         NSLog(@"[Teak] Non-Teak push notification, ignored.");
+      }
    }
-
-   [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAvailable
-                                                       object:self
-                                                     userInfo:userInfo];
 }
 
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction
