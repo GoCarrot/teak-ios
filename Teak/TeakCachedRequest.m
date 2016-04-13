@@ -85,8 +85,14 @@
    NSError* error = nil;
    NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
 
-   // TODO: Make sure the server recorded it, check with Alex
-   [requestThread.cache removeRequestFromCache:self];
+   if(response.statusCode < 500)
+   {
+      [requestThread.cache removeRequestFromCache:self];
+   }
+   else
+   {
+      [requestThread.cache addRetryInCacheForRequest:self];
+   }
 }
 
 @end
