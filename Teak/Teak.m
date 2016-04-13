@@ -636,17 +636,14 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
    NSDictionary* payload = @{
-      @"app_id" : self.appId,
-      @"user_id" : self.userId,
-      @"network_id" : [NSNumber numberWithInt:2],
-      @"happened_at" : [formatter stringFromDate:transaction.transactionDate],
-      @"product_name" : transaction.payment.productIdentifier,
-      @"platform_id" : [receipt base64EncodedStringWithOptions:0]
+      @"appstore_name" : @"apple",
+      @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
+      @"product_id" : transaction.payment.productIdentifier,
+      @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
    };
 
-   // TODO: Endpoint
    [self.requestThread addRequestForService:TeakRequestServiceMetrics
-                                 atEndpoint:@"/purchase.json"
+                                 atEndpoint:@"/me/purchase"
                                 usingMethod:TeakRequestTypePOST
                                 withPayload:payload];
 }
@@ -683,18 +680,14 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
    NSDictionary* payload = @{
-      @"app_id" : self.appId,
-      @"user_id" : self.userId,
-      @"network_id" : [NSNumber numberWithInt:2],
-      @"happened_at" : [formatter stringFromDate:transaction.transactionDate],
-      @"product_name" : transaction.payment.productIdentifier,
-      @"platform_id" : [receipt base64EncodedStringWithOptions:0],
-      @"purchase_status" : errorString
+      @"appstore_name" : @"apple",
+      @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
+      @"product_id" : transaction.payment.productIdentifier,
+      @"error_string" : errorString
    };
 
-   // TODO: Endpoint
    [self.requestThread addRequestForService:TeakRequestServiceMetrics
-                                 atEndpoint:@"/purchase.json"
+                                 atEndpoint:@"/me/purchase"
                                 usingMethod:TeakRequestTypePOST
                                 withPayload:payload];
 }
