@@ -367,6 +367,9 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)applicationDidBecomeActive:(UIApplication*)application
 {
+   // Zero out badge count (for now)
+   [application setApplicationIconBadgeNumber:0];
+
    // Get advertising info
    self.advertisingTrackingLimited = [NSNumber numberWithBool:![ASIdentifierManager sharedManager].advertisingTrackingEnabled];
    self.advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
