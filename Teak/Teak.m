@@ -144,6 +144,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)identifyUser
 {
+   // If last session ended recently, don't re-identify
+   NSTimeInterval lastSessionDelta = [[[NSDate alloc] init] timeIntervalSinceDate:self.lastSessionEndedAt];
+   if(lastSessionDelta < kMergeLastSessionDeltaSeconds) return;
+
    NSTimeZone* timeZone = [NSTimeZone localTimeZone];
    float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
 
@@ -498,6 +502,9 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
    // Clear launched-by
    self.launchedFromTeakNotifId = nil;
+
+   // Set last-session ended at
+   self.lastSessionEndedAt = [[NSDate alloc] init];
 
    if(self.enableDebugOutput)
    {

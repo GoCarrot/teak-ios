@@ -20,6 +20,7 @@
 
 #define kTeakServicesHostname @"services.gocarrot.com"
 #define kDefaultHostUrlScheme @"https"
+#define kMergeLastSessionDeltaSeconds 120
 
 extern NSString* URLEscapedString(NSString* inString);
 
@@ -36,6 +37,7 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) NSString* advertisingIdentifier;
 @property (strong, nonatomic) NSString* launchedFromTeakNotifId;
 @property (strong, nonatomic) NSString* fbAccessToken;
+@property (strong, nonatomic) NSDate*   lastSessionEndedAt;
 
 @property (strong, nonatomic) NSString* hostname;
 
