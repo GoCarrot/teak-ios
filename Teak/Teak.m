@@ -20,6 +20,7 @@
 #import "Teak+Internal.h"
 #import "TeakCache.h"
 #import "TeakRequestThread.h"
+#import <sys/utsname.h>
 
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
 #define kTeakVersion @"1.0"
@@ -192,6 +193,18 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       NSLog(@"[Teak] Identifying user: %@", payload);
    }
 
+   if(self.enableDebugOutput && self.pushToken != nil)
+   {
+      NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_account?api_key=%@&device_id=%@&apns_push_key=%@&device_model=%@",
+                             self.appId,
+                             URLEscapedString(self.userId),
+                             URLEscapedString(self.advertisingIdentifier),
+                             URLEscapedString(self.pushToken),
+                             URLEscapedString(self.deviceModel)];
+      NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
+      NSLog(urlString);
+   }
+
    // User identified
    self.userIdentifiedThisSession = YES;
 
@@ -269,6 +282,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 {
    // Set up listeners
    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+
+   struct utsname systemInfo;
+   uname(&systemInfo);
+   self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
 
    // User input dependent operations
    if(self.userIdOperation == nil)

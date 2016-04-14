@@ -15,7 +15,6 @@
 
 #import "TeakRequest.h"
 #import "Teak+Internal.h"
-#import <sys/utsname.h>
 
 NSString* const TeakRequestTypePOST = @"POST";
 
@@ -46,16 +45,14 @@ NSString* const TeakRequestTypePOST = @"POST";
    static dispatch_once_t onceToken;
 
    dispatch_once(&onceToken, ^{
-      struct utsname systemInfo;
-      uname(&systemInfo);
-
       commonPayload = @{
          @"api_key" : [Teak sharedInstance].userId,
          @"game_id" : [Teak sharedInstance].appId,
          @"sdk_version" : [Teak sharedInstance].sdkVersion,
          @"sdk_platform" : [Teak sharedInstance].sdkPlatform,
          @"app_version" : [Teak sharedInstance].appVersion,
-         @"device_model" : [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding]
+         @"device_model" : [Teak sharedInstance].deviceModel,
+         @"device_id" : [Teak sharedInstance].advertisingIdentifier
       };
    });
 
