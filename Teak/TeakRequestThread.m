@@ -266,6 +266,12 @@
    // If host is nil or empty, the server said "don't send me these now"
    if(!(host && host.length)) return;
 
+   if([Teak sharedInstance].enableDebugOutput)
+   {
+      NSLog(@"Submitting request to: %@", request.endpoint);
+      NSLog(@"Data: %@", request.payload);
+   }
+
    NSMutableDictionary* payload = [self signedPostPayload:request forHost:host];
    NSString* boundry = @"-===-httpB0unDarY-==-";
 
