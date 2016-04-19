@@ -1,0 +1,57 @@
+/* Teak -- Copyright (C) 2016 GoCarrot Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#import "Teak+Internal.h"
+#import <Teak/TeakNotification.h>
+
+void TeakIdentifyUser(const char* userId)
+{
+   [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]];
+}
+
+const char* TeakLaunchedFromTeakNotifId()
+{
+   return [[Teak sharedInstance].launchedFromTeakNotifId UTF8String];
+}
+
+TeakNotification* TeakNotificationFromTeakNotifId(const char* teakNotifId)
+{
+   return [TeakNotification notificationFromTeakNotifId:[NSString stringWithUTF8String:teakNotifId]];
+}
+
+TeakReward* TeakNotificationConsume(TeakNotification* notif)
+{
+   return [notif consume];
+}
+
+BOOL TeakNotificationHasReward(TeakNotification* notif)
+{
+   return ([notif.originalJson objectForKey:@"teakRewardId"] != nil);
+}
+
+BOOL TeakRewardIsCompleted(TeakReward* reward)
+{
+   return reward.completed;
+}
+
+int TeakRewardGetStatus(TeakReward* reward)
+{
+   return reward.rewardStatus;
+}
+
+const char* TeakRewardGetJson(TeakReward* reward)
+{
+   return [reward.json UTF8String];
+}

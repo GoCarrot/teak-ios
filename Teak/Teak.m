@@ -20,6 +20,7 @@
 #import "Teak+Internal.h"
 #import "TeakCache.h"
 #import "TeakRequestThread.h"
+#import "TeakNotification.h"
 #import <sys/utsname.h>
 
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
@@ -624,6 +625,8 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
    if(teakNotifId != nil)
    {
+      TeakNotification* notif = [TeakNotification notificationFromDictionary:aps];
+
       if(application.applicationState == UIApplicationStateInactive ||
          application.applicationState == UIApplicationStateBackground)
       {
