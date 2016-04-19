@@ -72,6 +72,20 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    [self.dependentOperationQueue addOperation:self.userIdOperation];
 }
 
+- (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId
+{
+   NSDictionary* payload = @{
+      @"action_type" : actionId,
+      @"object_type" : objectTypeId,
+      @"object_instance_id" : objectInstanceId
+   };
+
+   [self.requestThread addRequestForService:TeakRequestServiceMetrics
+                                 atEndpoint:@"/me/events"
+                                usingMethod:TeakRequestTypePOST
+                                withPayload:payload];
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 - (id)init

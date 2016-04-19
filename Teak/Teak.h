@@ -74,6 +74,15 @@ extern NSString* const TeakNotificationAvailable;
  */
 - (void)identifyUser:(NSString*)userId;
 
+/**
+ * Track an arbitrary event in Teak.
+ *
+ * @param actionId         The identifier for the action, e.g. 'complete'.
+ * @param objectTypeId     The type of object that is being posted, e.g. 'quest'.
+ * @param objectInstanceId The specific instance of the object, e.g. 'gather-quest-1'
+ */
+- (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId;
+
 @end
 
 #endif /* __OBJC__ */
