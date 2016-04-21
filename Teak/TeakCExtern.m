@@ -21,6 +21,13 @@ void TeakIdentifyUser(const char* userId)
    [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]];
 }
 
+void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId)
+{
+   [[Teak sharedInstance] trackEventWithActionId:[NSString stringWithUTF8String:actionId]
+                                 forObjectTypeId:[NSString stringWithUTF8String:objectTypeId]
+                             andObjectInstanceId:[NSString stringWithUTF8String:objectInstanceId]];
+}
+
 const char* TeakLaunchedFromTeakNotifId()
 {
    return [[Teak sharedInstance].launchedFromTeakNotifId UTF8String];
