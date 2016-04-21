@@ -63,6 +63,11 @@
    return [[TeakNotification notifications] objectForKey:teakNotifId];
 }
 
+- (NSString*)description
+{
+   return [NSString stringWithFormat: @"Teak Notification %@", self.originalJson];
+}
+
 - (TeakReward*)consume
 {
    if([Teak sharedInstance].enableDebugOutput)

@@ -82,8 +82,8 @@
 
 - (void)requestCallbackStatus:(NSHTTPURLResponse*)response data:(NSData*)data thread:(TeakRequestThread*)requestThread
 {
-   NSError* error = nil;
-   NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+   //NSError* error = nil;
+   //NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
 
    if(response.statusCode < 500)
    {

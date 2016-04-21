@@ -217,7 +217,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
                              URLEscapedString(self.pushToken),
                              URLEscapedString(self.deviceModel)];
       NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
-      NSLog(urlString);
+      NSLog(@"%@", urlString);
    }
 
    // User identified
@@ -633,7 +633,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
          // App was opened via push notification
          if(self.enableDebugOutput)
          {
-            NSLog(@"[Teak] App opened: %@", teakNotifId);
+            NSLog(@"[Teak] App opened: %@", notif);
          }
 
          self.launchedFromTeakNotifId = teakNotifId;
@@ -643,7 +643,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
          // Push notification received while app was in foreground
          if(self.enableDebugOutput)
          {
-            NSLog(@"[Teak] App in foreground: %@", teakNotifId);
+            NSLog(@"[Teak] App in foreground: %@", notif);
          }
       }
 
@@ -709,9 +709,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       default:
          break;
    }
-
-   NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
-   NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
    NSDictionary* payload = @{
       @"appstore_name" : @"apple",
