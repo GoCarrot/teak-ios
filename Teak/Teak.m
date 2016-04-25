@@ -194,6 +194,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    {
       [payload setObject:self.pushToken forKey:@"apns_push_key"];
    }
+   else
+   {
+      [payload setObject:@"" forKey:@"apns_push_key"];
+   }
    if(self.launchedFromTeakNotifId != nil)
    {
       [payload setObject:self.launchedFromTeakNotifId forKey:@"teak_notif_id"];
