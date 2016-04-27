@@ -12,7 +12,7 @@
 
 int main(int argc, char * argv[]) {
    @autoreleasepool {
-      [Teak initForApplicationId:@"284742164932592" withClass:[AppDelegate class] andSecret:@"0a1244665e7adcd8a4106a055795952a"];
+      [Teak initForApplicationId:@"1136371193060244" withClass:[AppDelegate class] andSecret:@"1f3850f794b9093864a0778009744d03"];
       return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
    }
 }
