@@ -551,6 +551,11 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    }
 }
 
+- (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings
+{
+   [application registerForRemoteNotifications];
+}
+
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken
 {
    if(self.enableDebugOutput)
@@ -584,6 +589,14 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       {
          NSLog(@"[Teak] Using cached push token: %@", self.pushToken);
       }
+   }
+}
+
+- (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error
+{
+   if(self.enableDebugOutput)
+   {
+      NSLog(@"[Teak] Failed to register for push notifications: %@", [error localizedDescription]);
    }
 }
 

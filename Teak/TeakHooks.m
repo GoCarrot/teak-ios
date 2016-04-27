@@ -32,6 +32,10 @@
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
 
+- (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings;
+
+- (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error;
+
 - (void)applicationWillResignActive:(UIApplication*)application;
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
@@ -42,6 +46,8 @@ static BOOL (*sHostAppDidFinishLaunching)(id, SEL, UIApplication*, NSDictionary*
 static BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id) = NULL;
 static void (*sHostDBAIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostAppPushRegIMP)(id, SEL, UIApplication*, NSData*) = NULL;
+static void (*sHostAppPushDidRegIMP)(id, SEL, UIApplication*, UIUserNotificationSettings*) = NULL;
+static void (*sHostAppPushRegFailIMP)(id, SEL, UIApplication*, NSError*) = NULL;
 static void (*sHostWREIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostDRRNIMP)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 
@@ -51,46 +57,76 @@ void Teak_Plant(Class appDelegateClass, NSString* appSecret)
    Protocol* uiAppDelegateProto = objc_getProtocol("UIApplicationDelegate");
 
    // application:willFinishLaunchingWithOptions:
-   struct objc_method_description appWillFinishLaunchingMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:willFinishLaunchingWithOptions:), NO, YES);
+   {
+      struct objc_method_description appWillFinishLaunchingMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:willFinishLaunchingWithOptions:), NO, YES);
 
-   Method ctWillFinishLaunching = class_getInstanceMethod([TeakAppDelegateHooks class], appWillFinishLaunchingMethod.name);
-   sHostAppWillFinishLaunching = (BOOL (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appWillFinishLaunchingMethod.name, method_getImplementation(ctWillFinishLaunching), appWillFinishLaunchingMethod.types);
+      Method ctWillFinishLaunching = class_getInstanceMethod([TeakAppDelegateHooks class], appWillFinishLaunchingMethod.name);
+      sHostAppWillFinishLaunching = (BOOL (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appWillFinishLaunchingMethod.name, method_getImplementation(ctWillFinishLaunching), appWillFinishLaunchingMethod.types);
+   }
 
    // application:didFinishLaunchingWithOptions:
-   struct objc_method_description appDidFinishLaunchingMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didFinishLaunchingWithOptions:), NO, YES);
-   
-   Method ctDidFinishLaunching = class_getInstanceMethod([TeakAppDelegateHooks class], appDidFinishLaunchingMethod.name);
-   sHostAppDidFinishLaunching = (BOOL (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appDidFinishLaunchingMethod.name, method_getImplementation(ctDidFinishLaunching), appDidFinishLaunchingMethod.types);
+   {
+      struct objc_method_description appDidFinishLaunchingMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didFinishLaunchingWithOptions:), NO, YES);
+
+      Method ctDidFinishLaunching = class_getInstanceMethod([TeakAppDelegateHooks class], appDidFinishLaunchingMethod.name);
+      sHostAppDidFinishLaunching = (BOOL (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appDidFinishLaunchingMethod.name, method_getImplementation(ctDidFinishLaunching), appDidFinishLaunchingMethod.types);
+   }
 
    // application:openURL:sourceApplication:annotation:
-   struct objc_method_description appOpenURLMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:openURL:sourceApplication:annotation:), NO, YES);
+   {
+      struct objc_method_description appOpenURLMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:openURL:sourceApplication:annotation:), NO, YES);
 
-   Method ctAppOpenURL = class_getInstanceMethod([TeakAppDelegateHooks class], appOpenURLMethod.name);
-   sHostAppOpenURLIMP = (BOOL (*)(id, SEL, UIApplication*, NSURL*, NSString*, id))class_replaceMethod(appDelegateClass, appOpenURLMethod.name, method_getImplementation(ctAppOpenURL), appOpenURLMethod.types);
+      Method ctAppOpenURL = class_getInstanceMethod([TeakAppDelegateHooks class], appOpenURLMethod.name);
+      sHostAppOpenURLIMP = (BOOL (*)(id, SEL, UIApplication*, NSURL*, NSString*, id))class_replaceMethod(appDelegateClass, appOpenURLMethod.name, method_getImplementation(ctAppOpenURL), appOpenURLMethod.types);
+   }
 
    // applicationDidBecomeActive:
-   struct objc_method_description appDBAMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationDidBecomeActive:), NO, YES);
+   {
+      struct objc_method_description appDBAMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationDidBecomeActive:), NO, YES);
 
-   Method ctAppDBA = class_getInstanceMethod([TeakAppDelegateHooks class], appDBAMethod.name);
-   sHostDBAIMP = (void (*)(id, SEL, UIApplication*))class_replaceMethod(appDelegateClass, appDBAMethod.name, method_getImplementation(ctAppDBA), appDBAMethod.types);
+      Method ctAppDBA = class_getInstanceMethod([TeakAppDelegateHooks class], appDBAMethod.name);
+      sHostDBAIMP = (void (*)(id, SEL, UIApplication*))class_replaceMethod(appDelegateClass, appDBAMethod.name, method_getImplementation(ctAppDBA), appDBAMethod.types);
+   }
 
    // application:didRegisterForRemoteNotificationsWithDeviceToken:
-   struct objc_method_description appPushRegMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:), NO, YES);
+   {
+      struct objc_method_description appPushRegMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:), NO, YES);
 
-   Method ctAppPushReg = class_getInstanceMethod([TeakAppDelegateHooks class], appPushRegMethod.name);
-   sHostAppPushRegIMP = (void (*)(id, SEL, UIApplication*, NSData*))class_replaceMethod(appDelegateClass, appPushRegMethod.name, method_getImplementation(ctAppPushReg), appPushRegMethod.types);
+      Method ctAppPushReg = class_getInstanceMethod([TeakAppDelegateHooks class], appPushRegMethod.name);
+      sHostAppPushRegIMP = (void (*)(id, SEL, UIApplication*, NSData*))class_replaceMethod(appDelegateClass, appPushRegMethod.name, method_getImplementation(ctAppPushReg), appPushRegMethod.types);
+   }
+
+   // application:didRegisterUserNotificationSettings:
+   {
+      struct objc_method_description appPushDidRegMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didRegisterUserNotificationSettings:), NO, YES);
+
+      Method ctAppPushDidReg = class_getInstanceMethod([TeakAppDelegateHooks class], appPushDidRegMethod.name);
+      sHostAppPushDidRegIMP = (void (*)(id, SEL, UIApplication*, UIUserNotificationSettings*))class_replaceMethod(appDelegateClass, appPushDidRegMethod.name, method_getImplementation(ctAppPushDidReg), appPushDidRegMethod.types);
+   }
+
+   // application:didFailToRegisterForRemoteNotificationsWithError:
+   {
+      struct objc_method_description appPushRegFailMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didFailToRegisterForRemoteNotificationsWithError:), NO, YES);
+
+      Method ctAppPushRegFail = class_getInstanceMethod([TeakAppDelegateHooks class], appPushRegFailMethod.name);
+      sHostAppPushRegFailIMP = (void (*)(id, SEL, UIApplication*, NSError*))class_replaceMethod(appDelegateClass, appPushRegFailMethod.name, method_getImplementation(ctAppPushRegFail), appPushRegFailMethod.types);
+   }
 
    // applicationWillResignActive:
-   struct objc_method_description appWREMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationWillResignActive:), NO, YES);
+   {
+      struct objc_method_description appWREMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationWillResignActive:), NO, YES);
 
-   Method ctAppWRE = class_getInstanceMethod([TeakAppDelegateHooks class], appWREMethod.name);
-   sHostWREIMP = (void (*)(id, SEL, UIApplication*))class_replaceMethod(appDelegateClass, appWREMethod.name, method_getImplementation(ctAppWRE), appWREMethod.types);
+      Method ctAppWRE = class_getInstanceMethod([TeakAppDelegateHooks class], appWREMethod.name);
+      sHostWREIMP = (void (*)(id, SEL, UIApplication*))class_replaceMethod(appDelegateClass, appWREMethod.name, method_getImplementation(ctAppWRE), appWREMethod.types);
+   }
 
    // application:didReceiveRemoteNotification:
-   struct objc_method_description appDRRNMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didReceiveRemoteNotification:), NO, YES);
+   {
+      struct objc_method_description appDRRNMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didReceiveRemoteNotification:), NO, YES);
 
-   Method ctAppDRRN = class_getInstanceMethod([TeakAppDelegateHooks class], appDRRNMethod.name);
-   sHostDRRNIMP = (void (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appDRRNMethod.name, method_getImplementation(ctAppDRRN), appDRRNMethod.types);
+      Method ctAppDRRN = class_getInstanceMethod([TeakAppDelegateHooks class], appDRRNMethod.name);
+      sHostDRRNIMP = (void (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appDRRNMethod.name, method_getImplementation(ctAppDRRN), appDRRNMethod.types);
+   }
 }
 
 @implementation TeakAppDelegateHooks
@@ -143,6 +179,24 @@ void Teak_Plant(Class appDelegateClass, NSString* appSecret)
    if(sHostAppPushRegIMP)
    {
       sHostAppPushRegIMP(self, @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:), application, deviceToken);
+   }
+}
+
+- (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings
+{
+   [[Teak sharedInstance] application:application didRegisterUserNotificationSettings:notificationSettings];
+   if(sHostAppPushDidRegIMP)
+   {
+      sHostAppPushDidRegIMP(self, @selector(application:didRegisterUserNotificationSettings:), application, notificationSettings);
+   }
+}
+
+- (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error
+{
+   [[Teak sharedInstance] application:application didFailToRegisterForRemoteNotificationsWithError:error];
+   if(sHostAppPushRegFailIMP)
+   {
+      sHostAppPushRegFailIMP(self, @selector(application:didFailToRegisterForRemoteNotificationsWithError:), application, error);
    }
 }
 

@@ -60,6 +60,8 @@ extern NSString* URLEscapedString(NSString* inString);
 - (void)applicationDidBecomeActive:(UIApplication*)application;
 - (void)applicationWillResignActive:(UIApplication*)application;
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
+- (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings;
+- (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error;
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
 - (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
