@@ -530,7 +530,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 - (void)applicationWillResignActive:(UIApplication*)application
 {
    // Cancel the heartbeat
-   dispatch_source_cancel(self.heartbeat);
+   if(self.heartbeat != nil) dispatch_source_cancel(self.heartbeat);
 
    // Stop request thread
    [self.requestThread stop];
