@@ -29,13 +29,13 @@
 NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
 
 // FB SDK 3.x
-NSString *const FBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
+NSString *const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
 
 // FB SDK 4.x
-NSString *const FBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
-NSString *const FBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
-NSString *const FBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
-NSString *const FBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
+NSString *const TeakFBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
+NSString *const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
+NSString *const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
+NSString *const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
@@ -235,7 +235,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 - (void)fbAccessTokenChanged_4x:(NSNotification*)notification
 {
-   id newAccessToken = [notification.userInfo objectForKey:FBSDKAccessTokenChangeNewKey];
+   id newAccessToken = [notification.userInfo objectForKey:TeakFBSDKAccessTokenChangeNewKey];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
    self.fbAccessToken = [newAccessToken performSelector:sel_getUid("tokenString")];
@@ -360,7 +360,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
       [[NSNotificationCenter defaultCenter] addObserver:self
                                                selector:@selector(fbAccessTokenChanged_4x:)
-                                                   name:FBSDKAccessTokenDidChangeNotification
+                                                   name:TeakFBSDKAccessTokenDidChangeNotification
                                                  object:nil];
    }
    else if(fb3xClass != nil)
@@ -368,7 +368,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       // accessTokenData
       [[NSNotificationCenter defaultCenter] addObserver:self
                                                selector:@selector(fbAccessTokenChanged_3x:)
-                                                   name:FBSessionDidBecomeOpenActiveSessionNotification
+                                                   name:TeakFBSessionDidBecomeOpenActiveSessionNotification
                                                  object:nil];
    }
 
