@@ -47,6 +47,7 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) TeakCache* cache;
 @property (strong, nonatomic) TeakRequestThread* requestThread;
 @property (atomic)            BOOL       userIdentifiedThisSession;
+@property (atomic)            BOOL       isProduction;
 
 @property (strong, nonatomic) NSOperationQueue* dependentOperationQueue;
 @property (strong, nonatomic) NSOperation* serviceConfigurationOperation;

@@ -34,7 +34,7 @@ extern NSString* const TeakNotificationAvailable;
 /**
  * Enable/Disable NSLog Debug Output.
  *
- * Disabled by default.
+ * Disabled by default in production, enabled otherwise.
  */
 @property (nonatomic) BOOL enableDebugOutput;
 

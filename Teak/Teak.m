@@ -98,11 +98,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
       self.pushToken = [userDefaults stringForKey:kPushTokenUserDefaultsKey];
 
-#if DEBUG
-      self.enableDebugOutput = YES;
-#else
-      self.enableDebugOutput = NO;
-#endif
+      // Check if this is production mode
+      NSData* data = [NSData dataWithContentsOfFile:[NSBundle.mainBundle pathForResource:@"embedded" ofType:@"mobileprovision"]];
+      self.isProduction = (data == nil);
+      self.enableDebugOutput = self.isProduction;
 
       // Get data path
       NSArray* searchPaths = [[NSFileManager defaultManager] URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask];
@@ -193,10 +192,12 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
    if(self.pushToken != nil)
    {
       [payload setObject:self.pushToken forKey:@"apns_push_key"];
+      [payload setObject:[NSNumber numberWithBool:self.isProduction] forKey:@"is_sandbox"];
    }
    else
    {
       [payload setObject:@"" forKey:@"apns_push_key"];
+      [payload setObject:[NSNumber numberWithBool:self.isProduction] forKey:@"is_sandbox"];
    }
    if(self.launchedFromTeakNotifId != nil)
    {
