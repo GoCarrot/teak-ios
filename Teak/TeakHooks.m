@@ -51,8 +51,11 @@ static void (*sHostAppPushRegFailIMP)(id, SEL, UIApplication*, NSError*) = NULL;
 static void (*sHostWREIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostDRRNIMP)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 
-void Teak_Plant(Class appDelegateClass, NSString* appSecret)
+void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
 {
+   [Teak sharedInstance].appId = appId;
+   [Teak sharedInstance].appSecret = appSecret;
+
    // Install hooks
    Protocol* uiAppDelegateProto = objc_getProtocol("UIApplicationDelegate");
 

@@ -37,7 +37,7 @@ NSString *const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChang
 NSString *const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
 NSString *const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
-extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
+extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 
 @interface Teak () <SKPaymentTransactionObserver>
 
@@ -62,9 +62,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
 + (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andSecret:(NSString*)appSecret;
 {
-   [Teak sharedInstance].appId = appId;
-   [Teak sharedInstance].appSecret = appSecret;
-   Teak_Plant(appDelegateClass, appSecret);
+   Teak_Plant(appDelegateClass, appId, appSecret);
 }
 
 - (void)identifyUser:(NSString*)userId
