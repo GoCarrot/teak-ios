@@ -22,9 +22,9 @@
 #import "TeakRequestThread.h"
 #import "TeakNotification.h"
 #import <sys/utsname.h>
+#import "TeakVersion.h"
 
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
-#define kTeakVersion @"1.0"
 
 NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
 
@@ -136,7 +136,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
       // Set up some parameters
       NSOperatingSystemVersion systemVersion = [[NSProcessInfo processInfo] operatingSystemVersion];
-      self.sdkVersion = kTeakVersion;
+      self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
       self.sdkPlatform = [NSString stringWithFormat:@"ios_%ld.%ld.%ld",
                           (long)systemVersion.majorVersion,
                           (long)systemVersion.minorVersion,
@@ -520,6 +520,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
       NSLog(@"         App Id: %@", self.appId);
       NSLog(@"        Api Key: %@", self.appSecret);
       NSLog(@"    App Version: %@", self.appVersion);
+      NSLog(@"   Teak Version: %@", self.sdkVersion);
       if(self.launchedFromTeakNotifId != nil)
       {
          NSLog(@"  Teak Notif Id: %@", self.launchedFromTeakNotifId);
