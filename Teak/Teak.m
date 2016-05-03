@@ -215,11 +215,13 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appSecret);
 
    if(self.enableDebugOutput && self.pushToken != nil)
    {
-      NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_account?api_key=%@&apns_push_key=%@&device_model=%@",
+      NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@",
                              self.appId,
                              URLEscapedString(self.userId),
                              URLEscapedString(self.pushToken),
-                             URLEscapedString(self.deviceModel)];
+                             URLEscapedString(self.deviceModel),
+                             URLEscapedString([[NSBundle mainBundle] bundleIdentifier]),
+                             self.isProduction ? @"false" : @"true"];
       NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
       NSLog(@"%@", urlString);
    }
