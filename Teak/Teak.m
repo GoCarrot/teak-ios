@@ -201,6 +201,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
    {
       [payload setObject:self.launchedFromTeakNotifId forKey:@"teak_notif_id"];
    }
+   if(self.launchedFromDeepLink != nil)
+   {
+      [payload setObject:[self.launchedFromDeepLink absoluteString] forKey:@"deep_link"];
+   }
    if(self.fbAccessToken != nil)
    {
       [payload setObject:self.fbAccessToken forKey:@"access_token"];
@@ -289,6 +293,20 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
 
 - (BOOL)handleOpenURL:(NSURL*)url
 {
+   if(url != nil)
+   {
+      if(self.enableDebugOutput)
+      {
+         NSLog(@"[Teak] Deep link received: %@", url);
+      }
+
+      // Talk to Unity, et. al. to see if we can handle this deep link
+      if(YES)
+      {
+         self.launchedFromDeepLink = url;
+         return YES;
+      }
+   }
    return NO;
 }
 
@@ -396,6 +414,17 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
       if(fb4xClass != nil) NSLog(@"[Teak] Using Facebook SDK v4.x");
       else if(fb3xClass != nil) NSLog(@"[Teak] Using Facebook SDK v3.x");
       else NSLog(@"[Teak] Facebook SDK not detected");
+   }
+
+   // If the app was not running, we need to check these and invoke them afterwards
+   if(launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey])
+   {
+      [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
+   }
+
+   if(launchOptions[UIApplicationLaunchOptionsURLKey])
+   {
+      [self handleOpenURL:launchOptions[UIApplicationLaunchOptionsURLKey]];
    }
 
    return NO;
@@ -525,6 +554,10 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
       {
          NSLog(@"  Teak Notif Id: %@", self.launchedFromTeakNotifId);
       }
+      if(self.launchedFromDeepLink != nil)
+      {
+         NSLog(@"  Deep Link URL: %@", self.launchedFromDeepLink);
+      }
    }
 }
 
@@ -542,6 +575,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
 
    // Clear launched-by
    self.launchedFromTeakNotifId = nil;
+   self.launchedFromDeepLink = nil;
 
    // Set last-session ended at
    self.lastSessionEndedAt = [[NSDate alloc] init];
@@ -651,17 +685,22 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
          // App was opened via push notification
          if(self.enableDebugOutput)
          {
-            NSLog(@"[Teak] App opened: %@", notif);
+            NSLog(@"[Teak] App Opened from Teak Notification %@", notif);
          }
 
          self.launchedFromTeakNotifId = teakNotifId;
+
+         if(notif.deepLink != nil)
+         {
+            [self handleOpenURL:notif.deepLink];
+         }
       }
       else
       {
          // Push notification received while app was in foreground
          if(self.enableDebugOutput)
          {
-            NSLog(@"[Teak] App in foreground: %@", notif);
+            NSLog(@"[Teak] Teak Notification received in foreground %@", notif);
          }
       }
 

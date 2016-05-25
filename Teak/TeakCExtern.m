@@ -33,6 +33,11 @@ const char* TeakLaunchedFromTeakNotifId()
    return [[Teak sharedInstance].launchedFromTeakNotifId UTF8String];
 }
 
+const char* TeakLaunchedFromDeepLink()
+{
+   return [[[Teak sharedInstance].launchedFromDeepLink absoluteString] UTF8String];
+}
+
 TeakNotification* TeakNotificationFromTeakNotifId(const char* teakNotifId)
 {
    return [TeakNotification notificationFromTeakNotifId:[NSString stringWithUTF8String:teakNotifId]];

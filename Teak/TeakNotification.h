@@ -20,6 +20,7 @@
 
 @property (nonatomic, readonly) NSString*     teakNotifId;
 @property (nonatomic, readonly) NSDictionary* originalJson;
+@property (nonatomic, readonly) NSURL*        deepLink;
 
 - (TeakReward*)consume;
 

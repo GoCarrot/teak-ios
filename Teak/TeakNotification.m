@@ -32,6 +32,7 @@
 
 @property (nonatomic, readwrite) NSString* teakNotifId;
 @property (nonatomic, readwrite) NSString* teakRewardId;
+@property (nonatomic, readwrite) NSURL* deepLink;
 @property (nonatomic, readwrite) NSDictionary* originalJson;
 
 @end
@@ -53,6 +54,7 @@
    TeakNotification* ret = [[TeakNotification alloc] init];
    ret.teakNotifId = [dictionary objectForKey:@"teakNotifId"];
    ret.teakRewardId = [dictionary objectForKey:@"teakRewardId"];
+   ret.deepLink = [NSURL URLWithString:[dictionary objectForKey:@"deepLink"]];
    ret.originalJson = dictionary;
    [[TeakNotification notifications] setValue:ret forKey:ret.teakNotifId];
    return ret;
@@ -65,14 +67,14 @@
 
 - (NSString*)description
 {
-   return [NSString stringWithFormat: @"Teak Notification %@", self.originalJson];
+   return [NSString stringWithFormat: @"%@", self.originalJson];
 }
 
 - (TeakReward*)consume
 {
    if([Teak sharedInstance].enableDebugOutput)
    {
-      NSLog(@"Claming reward id: %@", self.teakRewardId);
+      NSLog(@"[Teak] Claming reward id: %@", self.teakRewardId);
    }
 
    TeakReward* ret = [[TeakReward alloc] init];

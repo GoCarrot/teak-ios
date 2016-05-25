@@ -36,6 +36,7 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) NSNumber* advertisingTrackingLimited;
 @property (strong, nonatomic) NSString* advertisingIdentifier;
 @property (strong, nonatomic) NSString* launchedFromTeakNotifId;
+@property (strong, nonatomic) NSURL* launchedFromDeepLink;
 @property (strong, nonatomic) NSString* deviceModel;
 @property (strong, nonatomic) NSString* fbAccessToken;
 
