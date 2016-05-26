@@ -159,14 +159,11 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
   sourceApplication:(NSString*)sourceApplication
          annotation:(id)annotation
 {
-   BOOL ret = NO;
+   BOOL ret = [[Teak sharedInstance] handleOpenURL:url];
+
    if(sHostAppOpenURLIMP)
    {
       ret |= sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, url, sourceApplication, annotation);
-   }
-   if(!ret)
-   {
-      ret |= [[Teak sharedInstance] handleOpenURL:url];
    }
 
    return ret;
