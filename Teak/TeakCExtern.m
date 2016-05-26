@@ -16,6 +16,11 @@
 #import "Teak+Internal.h"
 #import <Teak/TeakNotification.h>
 
+void TeakSetDebugOutputEnabled(int enabled)
+{
+   [Teak sharedInstance].enableDebugOutput = (enabled > 0);
+}
+
 void TeakIdentifyUser(const char* userId)
 {
    [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]];
