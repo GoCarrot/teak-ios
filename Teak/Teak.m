@@ -733,7 +733,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
       @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
    };
 
-   [self.requestThread addRequestForService:TeakRequestServiceMetrics
+   [self.requestThread addRequestForService:TeakRequestServicePost
                                  atEndpoint:@"/me/purchase"
                                 usingMethod:TeakRequestTypePOST
                                 withPayload:payload];
