@@ -52,7 +52,8 @@ NSString* const TeakRequestTypePOST = @"POST";
          @"sdk_platform" : [Teak sharedInstance].sdkPlatform,
          @"app_version" : [Teak sharedInstance].appVersion,
          @"device_model" : [Teak sharedInstance].deviceModel,
-         @"bundle_id" : [[NSBundle mainBundle] bundleIdentifier]
+         @"bundle_id" : [[NSBundle mainBundle] bundleIdentifier],
+         @"device_id" : [Teak sharedInstance].advertisingIdentifier
       };
    });
 
