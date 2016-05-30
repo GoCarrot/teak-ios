@@ -133,12 +133,8 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
       }
 
       // Set up some parameters
-      NSOperatingSystemVersion systemVersion = [[NSProcessInfo processInfo] operatingSystemVersion];
       self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
-      self.sdkPlatform = [NSString stringWithFormat:@"ios_%ld.%ld.%ld",
-                          (long)systemVersion.majorVersion,
-                          (long)systemVersion.minorVersion,
-                          (long)systemVersion.patchVersion];
+      self.sdkPlatform = [NSString stringWithFormat:@"ios_%f",[[[UIDevice currentDevice] systemVersion] floatValue]];
       self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
 
       // Heartbeat
