@@ -428,9 +428,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
 
 - (void)applicationDidBecomeActive:(UIApplication*)application
 {
-   // Zero out badge count (for now)
-   [application setApplicationIconBadgeNumber:0];
-
    // Get advertising info
    self.advertisingTrackingLimited = [NSNumber numberWithBool:![ASIdentifierManager sharedManager].advertisingTrackingEnabled];
    self.advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
@@ -589,6 +586,9 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken
 {
+   // Zero out badge count (for now) must be done after permissions are granted in iOS8+
+   [application setApplicationIconBadgeNumber:0];
+
    if(self.enableDebugOutput)
    {
       NSLog(@"[Teak] Lifecycle - application:didRegisterForRemoteNotificationsWithDeviceToken:");
