@@ -685,7 +685,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
    NSDictionary* aps = [userInfo objectForKey:@"aps"];
    id teakNotifIdRaw = [aps objectForKey:@"teakNotifId"];
-   NSString* teakNotifId = [teakNotifIdRaw isKindOfClass:[NSString class]] ? teakNotifIdRaw : [teakNotifIdRaw stringValue];
+   NSString* teakNotifId = (teakNotifIdRaw == nil || [teakNotifIdRaw isKindOfClass:[NSString class]]) ? teakNotifIdRaw : [teakNotifIdRaw stringValue];
 
    if(teakNotifId != nil)
    {
