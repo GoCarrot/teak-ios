@@ -39,6 +39,8 @@ NSString *const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 
+extern BOOL isProductionProvisioningProfile(NSString* profilePath);
+
 @interface Teak () <SKPaymentTransactionObserver>
 
 @property (nonatomic) dispatch_queue_t heartbeatQueue;
@@ -96,9 +98,8 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
       NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
       self.pushToken = [userDefaults stringForKey:kPushTokenUserDefaultsKey];
 
-      // Check if this is production mode
-      NSData* data = [NSData dataWithContentsOfFile:[NSBundle.mainBundle pathForResource:@"embedded" ofType:@"mobileprovision"]];
-      self.isProduction = (data == nil);
+      // Check if this is production mode (default YES)
+      self.isProduction = isProductionProvisioningProfile([[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]);
       self.enableDebugOutput = self.isProduction;
 
       // Get data path
