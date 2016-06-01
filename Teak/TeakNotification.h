@@ -21,12 +21,16 @@
 @property (nonatomic, readonly) NSString*     teakNotifId;
 @property (nonatomic, readonly) NSDictionary* originalJson;
 @property (nonatomic, readonly) NSURL*        deepLink;
+@property (atomic, readonly)    BOOL completed;
 
 - (TeakReward*)consume;
 
 + (TeakNotification*)notificationFromDictionary:(NSDictionary*)dictionary;
 + (TeakNotification*)notificationFromTeakNotifId:(NSString*)teakNotifId;
 
++ (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay;
+
++ (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId;
 @end
 
 typedef enum : int

@@ -34,6 +34,7 @@
 @property (nonatomic, readwrite) NSString* teakRewardId;
 @property (nonatomic, readwrite) NSURL* deepLink;
 @property (nonatomic, readwrite) NSDictionary* originalJson;
+@property (atomic, readwrite)    BOOL completed;
 
 @end
 
@@ -56,6 +57,7 @@
    ret.teakRewardId = [dictionary objectForKey:@"teakRewardId"];
    ret.deepLink = [NSURL URLWithString:[dictionary objectForKey:@"deepLink"]];
    ret.originalJson = dictionary;
+   ret.completed = YES;
    [[TeakNotification notifications] setValue:ret forKey:ret.teakNotifId];
    return ret;
 }
@@ -145,6 +147,114 @@
                               ret.completed = YES;
                            }];
    [[Teak sharedInstance].requestThread processRequest:request onHost:@"rewards.gocarrot.com"];
+
+   return ret;
+}
+
++ (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay
+{
+   if([Teak sharedInstance].enableDebugOutput)
+   {
+      NSLog(@"[Teak] Scheduling notification with delay %@: (%@) %@", [NSNumber numberWithUnsignedLongLong:delay], creativeId, message);
+   }
+
+   TeakNotification* ret = [[TeakNotification alloc] init];
+   ret.completed = NO;
+
+   NSDictionary* payload = @{
+      @"message" : message,
+      @"identifier" : creativeId,
+      @"offset" : [NSNumber numberWithUnsignedLongLong:delay]
+   };
+   TeakRequest* request = [TeakRequest requestForService:TeakRequestServicePost
+                                              atEndpoint:@"/me/local_notify"
+                                             usingMethod:TeakRequestTypePOST
+                                             withPayload:payload
+                                                callback:
+                           ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
+
+                              NSError* error = nil;
+                              NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data
+                                                                                        options:kNilOptions
+                                                                                          error:&error];
+                              if(error)
+                              {
+                                 NSLog(@"[Teak] Error scheduling notification %@", error);
+                              }
+                              else
+                              {
+                                 if([Teak sharedInstance].enableDebugOutput)
+                                 {
+                                    NSLog(@"Teak notification schedule reply: %@", jsonReply);
+                                 }
+
+                                 NSString* status = [jsonReply objectForKey:@"status"];
+                                 if([status isEqualToString:@"ok"])
+                                 {
+                                    NSDictionary* event = [jsonReply objectForKey:@"event"];
+                                    ret.teakNotifId = [[event objectForKey:@"id"] stringValue];
+                                 }
+                                 else
+                                 {
+                                    ret.teakNotifId = nil;
+                                 }
+                              }
+
+                              // Ready
+                              ret.completed = YES;
+                           }];
+   [[Teak sharedInstance].requestThread processRequest:request onHost:@"gocarrot.com"];
+
+   return ret;
+}
+
++ (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId
+{
+   if([Teak sharedInstance].enableDebugOutput)
+   {
+      NSLog(@"[Teak] Canceling notification: %@", scheduleId);
+   }
+
+   TeakNotification* ret = [[TeakNotification alloc] init];
+   ret.completed = NO;
+
+   TeakRequest* request = [TeakRequest requestForService:TeakRequestServicePost
+                                              atEndpoint:@"/me/cancel_local_notify"
+                                             usingMethod:TeakRequestTypePOST
+                                             withPayload:@{@"id" : scheduleId}
+                                                callback:
+                           ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
+
+                              NSError* error = nil;
+                              NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data
+                                                                                        options:kNilOptions
+                                                                                          error:&error];
+                              if(error)
+                              {
+                                 NSLog(@"[Teak] Error canceling notification %@", error);
+                              }
+                              else
+                              {
+                                 if([Teak sharedInstance].enableDebugOutput)
+                                 {
+                                    NSLog(@"Teak notification cancel reply: %@", jsonReply);
+                                 }
+
+                                 NSString* status = [jsonReply objectForKey:@"status"];
+                                 if([status isEqualToString:@"ok"])
+                                 {
+                                    ret.teakNotifId = scheduleId;
+                                 }
+                                 else
+                                 {
+                                    ret.teakNotifId = nil;
+                                 }
+                              }
+
+                              // Ready
+                              ret.completed = YES;
+                           }];
+   [[Teak sharedInstance].requestThread processRequest:request onHost:@"gocarrot.com"];
 
    return ret;
 }

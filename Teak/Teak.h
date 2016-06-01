@@ -28,6 +28,7 @@ extern NSString* const TeakNotificationAvailable;
 #ifdef __OBJC__
 
 #import <UIKit/UIKit.h>
+#import <Teak/TeakNotification.h>
 
 @interface Teak : NSObject
 

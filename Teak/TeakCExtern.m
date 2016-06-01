@@ -48,6 +48,18 @@ TeakNotification* TeakNotificationFromTeakNotifId(const char* teakNotifId)
    return [TeakNotification notificationFromTeakNotifId:[NSString stringWithUTF8String:teakNotifId]];
 }
 
+TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, uint64_t delay)
+{
+   return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
+                                                withMessage:[NSString stringWithUTF8String:message]
+                                             secondsFromNow:delay];
+}
+
+TeakNotification* TeakNotificationCancel(const char* scheduleId)
+{
+   return [TeakNotification cancelScheduledNotification:[NSString stringWithUTF8String:scheduleId]];
+}
+
 TeakReward* TeakNotificationConsume(TeakNotification* notif)
 {
    return [notif consume];
@@ -56,6 +68,16 @@ TeakReward* TeakNotificationConsume(TeakNotification* notif)
 BOOL TeakNotificationHasReward(TeakNotification* notif)
 {
    return ([notif.originalJson objectForKey:@"teakRewardId"] != nil);
+}
+
+BOOL TeakNotificationIsCompleted(TeakNotification* notif)
+{
+   return notif.completed;
+}
+
+const char* TeakNotificationGetTeakNotifId(TeakNotification* notif)
+{
+   return [notif.teakNotifId UTF8String];
 }
 
 BOOL TeakRewardIsCompleted(TeakReward* reward)
