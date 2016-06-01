@@ -156,7 +156,9 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 {
    // If last session ended recently, don't re-identify
    NSTimeInterval lastSessionDelta = [[[NSDate alloc] init] timeIntervalSinceDate:self.lastSessionEndedAt];
-   if(lastSessionDelta < kMergeLastSessionDeltaSeconds) return;
+   if(lastSessionDelta < kMergeLastSessionDeltaSeconds &&
+      self.launchedFromTeakNotifId == nil && self.launchedFromDeepLink == nil &&
+      (self.pushTokenOperation == nil || !self.pushTokenOperation.isReady)) return;
 
    NSTimeZone* timeZone = [NSTimeZone localTimeZone];
    float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
