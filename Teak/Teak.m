@@ -187,12 +187,12 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    if(self.pushToken != nil)
    {
       [payload setObject:self.pushToken forKey:@"apns_push_key"];
-      [payload setObject:[NSNumber numberWithBool:self.isProduction] forKey:@"is_sandbox"];
+      [payload setObject:[NSNumber numberWithBool:!self.isProduction] forKey:@"is_sandbox"];
    }
    else
    {
       [payload setObject:@"" forKey:@"apns_push_key"];
-      [payload setObject:[NSNumber numberWithBool:self.isProduction] forKey:@"is_sandbox"];
+      [payload setObject:[NSNumber numberWithBool:!self.isProduction] forKey:@"is_sandbox"];
    }
    if(self.launchedFromTeakNotifId != nil)
    {
