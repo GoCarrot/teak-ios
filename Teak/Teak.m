@@ -100,7 +100,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
       // Check if this is production mode (default YES)
       self.isProduction = isProductionProvisioningProfile([[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]);
-      self.enableDebugOutput = self.isProduction;
+      self.enableDebugOutput = !self.isProduction;
 
       // Get data path
       NSArray* searchPaths = [[NSFileManager defaultManager] URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask];
