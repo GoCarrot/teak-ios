@@ -25,6 +25,11 @@
  */
 extern NSString* const TeakNotificationAvailable;
 
+/**
+ * Use this named notification to listen for when your app gets launched from a Teak notification.
+ */
+extern NSString* const TeakNotificationAppLaunch;
+
 #ifdef __OBJC__
 
 #import <UIKit/UIKit.h>

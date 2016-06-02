@@ -27,6 +27,7 @@
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
 
 NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
+NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 
 // FB SDK 3.x
 NSString *const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
@@ -706,6 +707,10 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
          {
             [self handleOpenURL:notif.deepLink];
          }
+
+         [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                             object:self
+                                                           userInfo:userInfo];
       }
       else
       {
