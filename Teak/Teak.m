@@ -167,17 +167,13 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    NSTimeZone* timeZone = [NSTimeZone localTimeZone];
    float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
 
-   NSString* language = [[NSLocale preferredLanguages] objectAtIndex:0];
-   NSDictionary* languageDic = [NSLocale componentsFromLocaleIdentifier:language];
-   NSString* countryCode = [languageDic objectForKey:@"kCFLocaleCountryCodeKey"];
-   NSString* languageCode = [languageDic objectForKey:@"kCFLocaleLanguageCodeKey"];
 
    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
    [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
 
    NSDictionary* knownPayload = @{
-      @"locale" : [NSString stringWithFormat:@"%@_%@", languageCode, countryCode],
+      @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0],
       @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset],
       @"ios_ad_id" : self.advertisingIdentifier,
       @"ios_limit_ad_tracking" : self.advertisingTrackingLimited,
@@ -215,7 +211,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
    NSLog(@"[Teak] Identifying user: %@", self.userId);
    NSLog(@"[Teak]         Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
-   NSLog(@"[Teak]           Locale: %@", [NSString stringWithFormat:@"%@_%@", languageCode, countryCode]);
+   NSLog(@"[Teak]           Locale: %@", [[NSLocale preferredLanguages] objectAtIndex:0]);
 
    if(self.enableDebugOutput && self.pushToken != nil)
    {
