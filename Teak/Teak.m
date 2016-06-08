@@ -95,6 +95,10 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    self = [super init];
    if(self)
    {
+      // Output version first thing
+      self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
+      NSLog(@"[Teak] iOS SDK Version: %@", self.sdkVersion);
+
       // Load settings
       NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
       self.pushToken = [userDefaults stringForKey:kPushTokenUserDefaultsKey];
@@ -135,7 +139,6 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       }
 
       // Set up some parameters
-      self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
       self.sdkPlatform = [NSString stringWithFormat:@"ios_%f",[[[UIDevice currentDevice] systemVersion] floatValue]];
       self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
 
@@ -210,10 +213,9 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       [payload setObject:self.fbAccessToken forKey:@"access_token"];
    }
 
-   if(self.enableDebugOutput)
-   {
-      NSLog(@"[Teak] Identifying user: %@", payload);
-   }
+   NSLog(@"[Teak] Identifying user: %@", self.userId);
+   NSLog(@"[Teak]         Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
+   NSLog(@"[Teak]           Locale: %@", [NSString stringWithFormat:@"%@_%@", languageCode, countryCode]);
 
    if(self.enableDebugOutput && self.pushToken != nil)
    {
@@ -561,7 +563,6 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       NSLog(@"         App Id: %@", self.appId);
       NSLog(@"        Api Key: %@", self.appSecret);
       NSLog(@"    App Version: %@", self.appVersion);
-      NSLog(@"   Teak Version: %@", self.sdkVersion);
       if(self.launchedFromTeakNotifId != nil)
       {
          NSLog(@"  Teak Notif Id: %@", self.launchedFromTeakNotifId);
