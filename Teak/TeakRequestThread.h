@@ -27,7 +27,7 @@
 
 - (id)initWithTeak:(Teak*)teak;
 
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload;
+- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload andCallback:(TeakRequestResponse)callback;
 
 - (void)start;
 - (void)stop;

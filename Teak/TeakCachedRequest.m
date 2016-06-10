@@ -28,7 +28,7 @@
 
 @implementation TeakCachedRequest
 
-+ (id)requestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint withPayload:(NSDictionary*)payload inCache:(TeakCache*)cache
++ (id)requestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint withPayload:(NSDictionary*)payload inCache:(TeakCache*)cache callback:(TeakRequestResponse)callback
 {
    NSUInteger retryCount = 0;
    TeakCachedRequest* ret = nil;
@@ -45,7 +45,8 @@
                                          requestId:requestId
                                         dateIssued:dateIssued
                                            cacheId:0
-                                        retryCount:retryCount];
+                                        retryCount:retryCount
+                                          callback:callback];
    ret.cacheId = [cache cacheRequest:ret];
 
    // Clean up
@@ -54,7 +55,7 @@
    return ret;
 }
 
-- (id)initForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint payload:(NSDictionary*)payload requestId:(NSString*)requestId dateIssued:(NSDate*)dateIssued cacheId:(sqlite3_uint64)cacheId retryCount:(NSUInteger)retryCount
+- (id)initForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint payload:(NSDictionary*)payload requestId:(NSString*)requestId dateIssued:(NSDate*)dateIssued cacheId:(sqlite3_uint64)cacheId retryCount:(NSUInteger)retryCount callback:(TeakRequestResponse)callback
 {
    NSMutableDictionary* finalPayload = [payload mutableCopy];
    [finalPayload setObject:requestId forKey:@"request_id"];
@@ -63,6 +64,7 @@
    self = [super initForService:serviceType atEndpoint:endpoint usingMethod:TeakRequestTypePOST payload:finalPayload callback:^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
       TeakCachedRequest* cachedRequest = (TeakCachedRequest*)request;
       [cachedRequest requestCallbackStatus:response data:data thread:requestThread];
+      if(callback != nil) callback(request, response, data, requestThread);
    }];
 
    if(self)

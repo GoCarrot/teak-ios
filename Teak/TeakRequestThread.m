@@ -89,13 +89,14 @@
    return self.teak.hostname;
 }
 
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload
+- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload andCallback:(TeakRequestResponse)callback
 {
    TeakCachedRequest* cachedRequest =
    [TeakCachedRequest requestForService:serviceType
                              atEndpoint:endpoint
                             withPayload:payload
-                                inCache:self.cache];
+                                inCache:self.cache
+                               callback:callback];
 
    if(cachedRequest)
    {

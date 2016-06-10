@@ -85,7 +85,8 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    [self.requestThread addRequestForService:TeakRequestServiceMetrics
                                  atEndpoint:@"/me/events"
                                 usingMethod:TeakRequestTypePOST
-                                withPayload:payload];
+                                withPayload:payload
+                                andCallback:nil];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -232,7 +233,19 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    [self.requestThread addRequestForService:TeakRequestServiceAuth
                                  atEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appId]
                                 usingMethod:TeakRequestTypePOST
-                                withPayload:payload];
+                                withPayload:payload
+                                andCallback:^(TeakRequest *request, NSHTTPURLResponse *response, NSData *data, TeakRequestThread *requestThread) {
+                                   NSError* error = nil;
+                                   NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+                                   if(error == nil)
+                                   {
+                                      self.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
+                                      if([[jsonReply valueForKey:@"verbose_logging"] boolValue])
+                                      {
+                                         NSLog(@"[Teak] Enabling verbose logging via identifyUser()");
+                                      }
+                                   }
+    }];
 }
 
 - (void)fbAccessTokenChanged_4x:(NSNotification*)notification
@@ -750,7 +763,8 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    [self.requestThread addRequestForService:TeakRequestServicePost
                                  atEndpoint:@"/me/purchase"
                                 usingMethod:TeakRequestTypePOST
-                                withPayload:payload];
+                                withPayload:payload
+                                andCallback:nil];
 }
 
 - (void)transactionFailed:(SKPaymentTransaction*)transaction
@@ -791,7 +805,8 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    [self.requestThread addRequestForService:TeakRequestServiceMetrics
                                  atEndpoint:@"/me/purchase"
                                 usingMethod:TeakRequestTypePOST
-                                withPayload:payload];
+                                withPayload:payload
+                                andCallback:nil];
 }
 
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions
