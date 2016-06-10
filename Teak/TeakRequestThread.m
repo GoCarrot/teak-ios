@@ -269,8 +269,7 @@
 
    if([Teak sharedInstance].enableDebugOutput)
    {
-      NSLog(@"Submitting request to: %@", request.endpoint);
-      NSLog(@"Data: %@", request.payload);
+      NSLog(@"[Teak] Submitting request to '%@': %@", request.endpoint, request.payload);
    }
 
    NSMutableDictionary* payload = [self signedPostPayload:request forHost:host];
@@ -323,6 +322,13 @@
    else if(request.callback)
    {
       request.callback(request, response, data, self);
+   }
+
+   error = nil;
+   NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+   if([Teak sharedInstance].enableDebugOutput && error == nil)
+   {
+      NSLog(@"[Teak] Reply from '%@': %@", request.endpoint, jsonReply);
    }
 }
 

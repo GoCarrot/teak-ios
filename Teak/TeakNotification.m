@@ -74,11 +74,6 @@
 
 - (TeakReward*)consume
 {
-   if([Teak sharedInstance].enableDebugOutput)
-   {
-      NSLog(@"[Teak] Claming reward id: %@", self.teakRewardId);
-   }
-
    TeakReward* ret = [[TeakReward alloc] init];
    ret.completed = NO;
    ret.rewardStatus = kTeakRewardStatusUnknown;
@@ -101,11 +96,6 @@
                               }
                               else
                               {
-                                 if([Teak sharedInstance].enableDebugOutput)
-                                 {
-                                    NSLog(@"Teak reward claim reply: %@", jsonReply);
-                                 }
-
                                  NSDictionary* rewardResponse = [jsonReply objectForKey:@"response"];
                                  ret.json = [rewardResponse objectForKey:@"reward"];
 
@@ -153,11 +143,6 @@
 
 + (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay
 {
-   if([Teak sharedInstance].enableDebugOutput)
-   {
-      NSLog(@"[Teak] Scheduling notification with delay %@: (%@) %@", [NSNumber numberWithUnsignedLongLong:delay], creativeId, message);
-   }
-
    TeakNotification* ret = [[TeakNotification alloc] init];
    ret.completed = NO;
 
@@ -183,11 +168,6 @@
                               }
                               else
                               {
-                                 if([Teak sharedInstance].enableDebugOutput)
-                                 {
-                                    NSLog(@"Teak notification schedule reply: %@", jsonReply);
-                                 }
-
                                  NSString* status = [jsonReply objectForKey:@"status"];
                                  if([status isEqualToString:@"ok"])
                                  {
@@ -210,11 +190,6 @@
 
 + (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId
 {
-   if([Teak sharedInstance].enableDebugOutput)
-   {
-      NSLog(@"[Teak] Canceling notification: %@", scheduleId);
-   }
-
    TeakNotification* ret = [[TeakNotification alloc] init];
    ret.completed = NO;
 
@@ -235,11 +210,6 @@
                               }
                               else
                               {
-                                 if([Teak sharedInstance].enableDebugOutput)
-                                 {
-                                    NSLog(@"Teak notification cancel reply: %@", jsonReply);
-                                 }
-
                                  NSString* status = [jsonReply objectForKey:@"status"];
                                  if([status isEqualToString:@"ok"])
                                  {
