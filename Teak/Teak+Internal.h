@@ -39,6 +39,7 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) NSURL* launchedFromDeepLink;
 @property (strong, nonatomic) NSString* deviceModel;
 @property (strong, nonatomic) NSString* fbAccessToken;
+@property (strong, nonatomic) NSString* teakCountryCode;
 
 @property (strong, nonatomic) NSDate*   lastSessionEndedAt;
 

@@ -244,6 +244,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
                                       {
                                          NSLog(@"[Teak] Enabling verbose logging via identifyUser()");
                                       }
+                                      self.teakCountryCode = [jsonReply valueForKey:@"country_code"];
                                    }
     }];
 }
@@ -283,12 +284,13 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    }
 
    NSString* urlString = [NSString stringWithFormat:
-                          @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@&buster=%@",
+                          @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%@",
                           URLEscapedString(self.appId),
                           URLEscapedString(self.userId),
                           URLEscapedString(self.sdkVersion),
                           URLEscapedString(self.sdkPlatform),
                           URLEscapedString(self.appVersion),
+                          self.teakCountryCode == nil ? @"" : [NSString stringWithFormat:@"&country_code=%@", self.teakCountryCode],
                           URLEscapedString([NSUUID UUID].UUIDString)];
 
    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
