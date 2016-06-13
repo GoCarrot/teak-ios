@@ -756,7 +756,6 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
    NSDictionary* payload = @{
-      @"appstore_name" : @"apple",
       @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
       @"product_id" : transaction.payment.productIdentifier,
       @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
@@ -798,7 +797,6 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    }
 
    NSDictionary* payload = @{
-      @"appstore_name" : @"apple",
       @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
       @"product_id" : transaction.payment.productIdentifier,
       @"error_string" : errorString

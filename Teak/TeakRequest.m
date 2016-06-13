@@ -46,6 +46,7 @@ NSString* const TeakRequestTypePOST = @"POST";
 
    dispatch_once(&onceToken, ^{
       commonPayload = @{
+         @"appstore_name" : @"apple",
          @"api_key" : [Teak sharedInstance].userId,
          @"game_id" : [Teak sharedInstance].appId,
          @"sdk_version" : [Teak sharedInstance].sdkVersion,
