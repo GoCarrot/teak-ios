@@ -219,7 +219,8 @@ static BOOL teakcache_commit(sqlite3* cache);
                                              requestId:requestId
                                              dateIssued:requestDate
                                              cacheId:cacheId
-                                             retryCount:retryCount];
+                                             retryCount:retryCount
+                                             callback:nil];
                if(request)
                {
                   [cacheArray addObject:request];
