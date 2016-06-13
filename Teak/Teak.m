@@ -816,7 +816,6 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    }
 
    NSDictionary* payload = @{
-      @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
       @"product_id" : transaction.payment.productIdentifier,
       @"error_string" : errorString
    };
