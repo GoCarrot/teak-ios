@@ -43,7 +43,7 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
 
 extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
-@interface Teak () <SKPaymentTransactionObserver>
+@interface Teak () <SKPaymentTransactionObserver, SKProductsRequestDelegate>
 
 @property (nonatomic) dispatch_queue_t heartbeatQueue;
 @property (nonatomic) dispatch_source_t heartbeat;
@@ -139,6 +139,10 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
          NSLog(@"Unable to create Teak request thread.");
          return nil;
       }
+
+      // Allocations
+      self.priceInfoCompleteDictionary = [[NSMutableDictionary alloc] init];
+      self.priceInfoDictionary = [[NSMutableDictionary alloc] init];
 
       // Set up some parameters
       self.sdkPlatform = [NSString stringWithFormat:@"ios_%f",[[[UIDevice currentDevice] systemVersion] floatValue]];
@@ -780,19 +784,54 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
    };
 
-   [self.requestThread addRequestForService:TeakRequestServicePost
-                                 atEndpoint:@"/me/purchase"
-                                usingMethod:TeakRequestTypePOST
-                                withPayload:payload
-                                andCallback:nil];
+   // TODO: What should really happen here is an object that implements SKProductsRequestDelegate
+   //       that has all the context for the purchase, instead of using the NSDictionaries.
+   [self.priceInfoCompleteDictionary setValue:[NSNumber numberWithBool:NO]
+                                       forKey:transaction.payment.productIdentifier];
+
+   SKProductsRequest* req = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:transaction.payment.productIdentifier]];
+   req.delegate = self;
+   [req start];
+
+   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+      BOOL stillWaiting = YES;
+      do
+      {
+         sleep(1);
+         NSNumber* b = [self.priceInfoCompleteDictionary valueForKey:transaction.payment.productIdentifier];
+         stillWaiting = ![b boolValue];
+      } while(stillWaiting);
+
+      NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:payload];
+      [fullPayload addEntriesFromDictionary:[self.priceInfoDictionary valueForKey:transaction.payment.productIdentifier]];
+      [self.requestThread addRequestForService:TeakRequestServicePost
+                                    atEndpoint:@"/me/purchase"
+                                   usingMethod:TeakRequestTypePOST
+                                   withPayload:fullPayload
+                                   andCallback:nil];
+   });
+}
+
+- (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response
+{
+   if(response.products.count > 0)
+   {
+      SKProduct* product = [response.products objectAtIndex:0];
+      NSLocale* priceLocale = product.priceLocale;
+      NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
+      NSDecimalNumber* price = product.price;
+      [self.priceInfoDictionary setValue:@{
+                                           @"price_currency_code" : currencyCode,
+                                           @"price_float" : price
+                                           }
+                                  forKey:product.productIdentifier];
+      [self.priceInfoCompleteDictionary setValue:[NSNumber numberWithBool:YES]
+                                          forKey:product.productIdentifier];
+   }
 }
 
 - (void)transactionFailed:(SKPaymentTransaction*)transaction
 {
-   NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-   [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
-   [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
-
    NSString* errorString = @"unknown";
    switch(transaction.error.code)
    {

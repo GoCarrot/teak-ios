@@ -58,6 +58,9 @@ extern NSString* URLEscapedString(NSString* inString);
 @property (strong, nonatomic) NSOperation* facebookAccessTokenOperation;
 @property (strong, nonatomic) NSOperation* pushTokenOperation;
 
+@property (strong, nonatomic) NSMutableDictionary* priceInfoDictionary;
+@property (strong, atomic)    NSMutableDictionary* priceInfoCompleteDictionary;
+
 - (BOOL)handleOpenURL:(NSURL*)url;
 - (void)applicationDidBecomeActive:(UIApplication*)application;
 - (void)applicationWillResignActive:(UIApplication*)application;
