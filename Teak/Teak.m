@@ -25,6 +25,7 @@
 #import "TeakVersion.h"
 
 #define kPushTokenUserDefaultsKey @"TeakPushToken"
+#define kDeviceIdKey @"TeakDeviceId"
 
 NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
@@ -176,13 +177,25 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    NSDictionary* knownPayload = @{
       @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0],
       @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset],
-      @"ios_ad_id" : self.advertisingIdentifier,
-      @"ios_limit_ad_tracking" : self.advertisingTrackingLimited,
       @"happened_at" : [formatter stringFromDate:[[NSDate alloc] init]]
    };
 
+   NSDictionary* adPayload = nil;
+   NSString* advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
+   if(advertisingIdentifier != nil)
+   {
+      adPayload = @{
+         @"ios_ad_id" : advertisingIdentifier,
+         @"ios_limit_ad_tracking" : [NSNumber numberWithBool:![ASIdentifierManager sharedManager].advertisingTrackingEnabled]
+      };
+   }
+
    // Build dependent payload.
    NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:knownPayload];
+   if(adPayload != nil)
+   {
+      [payload addEntriesFromDictionary:adPayload];
+   }
    if(self.userIdentifiedThisSession)
    {
       [payload setObject:[NSNumber numberWithBool:YES] forKey:@"do_not_track_event"];
@@ -330,8 +343,15 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
 {
-   // Set up listeners
-   [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+   // Get/create device id
+   NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+   self.deviceId = [userDefaults objectForKey:kDeviceIdKey];
+   if(self.deviceId == nil)
+   {
+      self.deviceId = [[NSUUID UUID] UUIDString];
+      [userDefaults setObject:self.deviceId forKey:kDeviceIdKey];
+      [userDefaults synchronize];
+   }
 
    struct utsname systemInfo;
    uname(&systemInfo);
@@ -440,6 +460,9 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       [self handleOpenURL:launchOptions[UIApplicationLaunchOptionsURLKey]];
    }
 
+   // Set up listeners
+   [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+
    return NO;
 }
 
@@ -459,10 +482,6 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    {
       [application setApplicationIconBadgeNumber:0];
    }
-
-   // Get advertising info
-   self.advertisingTrackingLimited = [NSNumber numberWithBool:![ASIdentifierManager sharedManager].advertisingTrackingEnabled];
-   self.advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
 
    // Reset session-based things
    self.userIdentifiedThisSession = NO;
