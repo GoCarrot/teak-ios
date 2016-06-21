@@ -53,8 +53,10 @@
 + (TeakNotification*)notificationFromDictionary:(NSDictionary*)dictionary
 {
    TeakNotification* ret = [[TeakNotification alloc] init];
-   ret.teakNotifId = [dictionary objectForKey:@"teakNotifId"];
-   ret.teakRewardId = [dictionary objectForKey:@"teakRewardId"];
+   id teakNotifIdRaw = [dictionary objectForKey:@"teakNotifId"];
+   id teakRewardIdRaw = [dictionary objectForKey:@"teakRewardId"];
+   ret.teakNotifId = [teakNotifIdRaw isKindOfClass:[NSString class]] ? teakNotifIdRaw : [teakNotifIdRaw stringValue];
+   ret.teakRewardId = [teakRewardIdRaw isKindOfClass:[NSString class]] ? teakRewardIdRaw : [teakRewardIdRaw stringValue];
    ret.deepLink = [NSURL URLWithString:[dictionary objectForKey:@"deepLink"]];
    ret.originalJson = dictionary;
    ret.completed = YES;

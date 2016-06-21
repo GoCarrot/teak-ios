@@ -325,8 +325,16 @@
    }
 
    error = nil;
-   NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
-   if([Teak sharedInstance].enableDebugOutput && error == nil)
+   NSDictionary* jsonReply = @{};
+   @try
+   {
+      jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+   }
+   @catch (NSException* ignored)
+   {
+   }
+
+   if([Teak sharedInstance].enableDebugOutput)
    {
       NSLog(@"[Teak] Reply from '%@': %@", request.endpoint, jsonReply);
    }
