@@ -295,6 +295,10 @@ static BOOL teakcache_commit(sqlite3* cache);
 
 @end
 
+/*
+ * Preserving the following for future use:
+*/
+/*
 static BOOL teakcache_begin(sqlite3* cache)
 {
    if(sqlite3_exec(cache, "BEGIN TRANSACTION", 0, 0, 0) != SQLITE_OK)
@@ -324,3 +328,4 @@ static BOOL teakcache_commit(sqlite3* cache)
    }
    return YES;
 }
+*/
