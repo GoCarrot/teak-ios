@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+xcodebuild -project Teak.xcodeproj -sdk iphoneos -scheme Teak -configuration Release CONFIGURATION_BUILD_DIR=./build
