@@ -1,5 +1,6 @@
 .DS_Store
 Teak.xcodeproj/project.xcworkspace/
 Teak.xcodeproj/xcuserdata/
-build/
+build/*
+!build/.gitkeep
 Sample/
