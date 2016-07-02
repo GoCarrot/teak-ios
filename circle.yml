@@ -1,3 +1,5 @@
 machine:
   environment:
     XCODE_SCHEME: Teak
+  xcode:
+    version: 7.3
