@@ -25,6 +25,12 @@ NSString *const TeakSentryClient = @"teak-ios/1.0.0";
 NSString* const TeakRavenLevelError = @"error";
 NSString* const TeakRavenLevelFatal = @"fatal";
 
+@interface TeakRavenLocationHelper ()
+@property (strong, nonatomic) NSString* file;
+@property (strong, nonatomic) NSNumber* line;
+@property (strong, nonatomic) NSString* function;
+@end
+
 @interface TeakRaven ()
 @property (strong, nonatomic) NSURL* endpoint;
 @property (strong, nonatomic) NSString* appId;
@@ -32,6 +38,9 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
 @property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
+
+- (void)reportUncaughtException:(nonnull NSException*)exception;
+- (void)reportSignal:(nonnull NSString*)name;
 @end
 
 @interface TeakRavenReport : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
@@ -51,13 +60,66 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error;
 @end
 
+TeakRaven* uncaughtExceptionHandlerRaven;
+void TeakUncaughtExceptionHandler(NSException* exception)
+{
+   NSLog(@"[Teak:Raven] Uncaught exception: %@", exception);
+   [uncaughtExceptionHandlerRaven reportUncaughtException:exception];
+}
+
+void TeakSignalHandler(int signal)
+{
+   NSLog(@"[Teak:Raven] Fatal signal: %d", signal);
+   [uncaughtExceptionHandlerRaven reportSignal:@"SIGSOMETHING"];
+}
+
 @implementation TeakRaven
 
-- (void)reportSignal:(nonnull NSString*)name;
+- (void)setAsUncaughtExceptionHandler
+{
+   uncaughtExceptionHandlerRaven = self;
+   NSSetUncaughtExceptionHandler(&TeakUncaughtExceptionHandler);
+   signal(SIGABRT, TeakSignalHandler);
+   signal(SIGILL, TeakSignalHandler);
+   signal(SIGSEGV, TeakSignalHandler);
+   signal(SIGFPE, TeakSignalHandler);
+   signal(SIGBUS, TeakSignalHandler);
+   signal(SIGPIPE, TeakSignalHandler);
+}
+
+- (void)reportWithHelper:(TeakRavenLocationHelper*)helper
+{
+   NSMutableArray* stacktrace = [NSMutableArray arrayWithArray:[TeakRaven stacktraceSkippingFrames:2]];
+   NSMutableDictionary* lastFrame = [NSMutableDictionary dictionaryWithDictionary:[stacktrace lastObject]];
+   [lastFrame setObject:helper.file forKey:@"filename"];
+   [lastFrame setObject:helper.line forKey:@"lineno"];
+   [lastFrame setObject:helper.function forKey:@"function"];
+   [stacktrace replaceObjectAtIndex:stacktrace.count - 1 withObject:lastFrame];
+
+   NSDictionary* additions = @{
+      @"exception" : @[
+         @{
+            @"value" : helper.exception.reason,
+            @"type" : helper.exception.name,
+            @"stacktrace" : @{
+               @"frames" : stacktrace
+            }
+         }
+      ]
+   };
+
+   TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
+                                                             level:TeakRavenLevelError
+                                                           message:[NSString stringWithFormat:@"%@: %@", helper.exception.name, helper.exception.reason]
+                                                         additions:additions];
+   [report send];
+}
+
+- (void)reportSignal:(nonnull NSString*)name
 {
    NSDictionary* additions = @{
       @"stacktrace" : @{
-         @"frames" : [TeakRaven stacktraceFrames]
+         @"frames" : [TeakRaven stacktraceSkippingFrames:4]
       }
    };
 
@@ -65,14 +127,9 @@ NSString* const TeakRavenLevelFatal = @"fatal";
    [report send];
 }
 
-- (void)reportUncaughtException:(nonnull NSException*)exception;
+- (void)reportUncaughtException:(nonnull NSException*)exception
 {
-   [self reportException:exception level:TeakRavenLevelFatal];
-}
-
-- (void)reportException:(nonnull NSException*)exception level:(nonnull NSString*)level
-{
-   NSArray* stacktrace = [TeakRaven stacktraceFrames];
+   NSArray* stacktrace = [TeakRaven stacktraceSkippingFrames:3];
 
    NSDictionary* additions = @{
       @"exception" : @[
@@ -87,7 +144,7 @@ NSString* const TeakRavenLevelFatal = @"fatal";
    };
 
    TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
-                                                             level:level
+                                                             level:TeakRavenLevelFatal
                                                            message:[NSString stringWithFormat:@"%@: %@", exception.name, exception.reason]
                                                          additions:additions];
    [report send];
@@ -209,9 +266,8 @@ NSString* const TeakRavenLevelFatal = @"fatal";
    return [[TeakRaven alloc] initForApp:appId];
 }
 
-+ (NSArray*)stacktraceFrames
++ (NSArray*)stacktraceSkippingFrames:(int)skipFrames
 {
-   int skipFrames = 4;
    void* callstack[128];
    int frames = backtrace(callstack, 128);
    char **strs = backtrace_symbols(callstack, frames);
@@ -348,6 +404,30 @@ NSString* const TeakRavenLevelFatal = @"fatal";
       [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss"];
    });
    return dateFormatter;
+}
+
+@end
+
+@implementation TeakRavenLocationHelper
+
++ (TeakRavenLocationHelper*)helperForFile:(const char*)file line:(int)line function:(const char*)function
+{
+   NSString* nsFile = [NSString stringWithUTF8String:(strrchr(file, '/') ?: file - 1) + 1];
+   NSNumber* nsLine = [NSNumber numberWithInt:line];
+   NSString* nsFunction = [NSString stringWithUTF8String:function];
+   return [[TeakRavenLocationHelper alloc] initForFile:nsFile line:nsLine function:nsFunction];
+}
+
+- (id)initForFile:(NSString*)file line:(NSNumber*)line function:(NSString*)function
+{
+   self = [super init];
+   if(self)
+   {
+      self.file = file;
+      self.line = line;
+      self.function = function;
+   }
+   return self;
 }
 
 @end

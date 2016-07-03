@@ -18,12 +18,23 @@
 extern NSString* const TeakRavenLevelError;
 extern NSString* const TeakRavenLevelFatal;
 
+@interface TeakRavenLocationHelper : NSObject
+
+@property (strong, nonatomic) NSException* exception;
+
++ (TeakRavenLocationHelper*)helperForFile:(const char*)file line:(int)line function:(const char*)function;
+
+@end
+
 @interface TeakRaven : NSObject
 
 + (TeakRaven*)ravenForApp:(nonnull NSString*)appId;
+
 - (BOOL)setDSN:(NSString*)dsn;
 - (void)setUserValue:(id)value forKey:(nonnull NSString*)key;
+- (void)setAsUncaughtExceptionHandler;
 
 - (void)reportException:(nonnull NSException*)exception level:(nonnull NSString*)level;
+- (void)reportWithHelper:(TeakRavenLocationHelper*)helper;
 
 @end
