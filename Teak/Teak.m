@@ -72,6 +72,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 - (void)identifyUser:(NSString*)userId
 {
    self.userId = userId;
+   [self.sdkRaven setUserValue:userId forKey:@"id"];
    [self.dependentOperationQueue addOperation:self.userIdOperation];
 }
 
@@ -359,6 +360,9 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    struct utsname systemInfo;
    uname(&systemInfo);
    self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
+
+   // Set up SDK Raven
+   self.sdkRaven = [TeakRaven ravenForApp:@"sdk"];
 
    // User input dependent operations
    if(self.userIdOperation == nil)
@@ -701,6 +705,13 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
                               else
                               {
                                  self.hostname = @"gocarrot.com";
+
+                                 NSString* sdkSentryDsn = [config valueForKey:@"sdk_sentry_dsn"];
+                                 if(sdkSentryDsn)
+                                 {
+                                    [self.sdkRaven setDSN:sdkSentryDsn];
+                                 }
+
                                  if(self.enableDebugOutput)
                                  {
                                     NSLog(@"[Teak] Services configuration complete: %@", config);
