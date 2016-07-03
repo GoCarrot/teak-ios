@@ -24,7 +24,11 @@ extern NSString* const TeakRavenLevelFatal;
 
 @property (strong, nonatomic) NSException* exception;
 
-+ (TeakRavenLocationHelper*)helperForFile:(const char*)file line:(int)line function:(const char*)function;
++ (TeakRavenLocationHelper*)pushHelperForFile:(const char*)file line:(int)line function:(const char*)function;
++ (TeakRavenLocationHelper*)popHelper;
++ (TeakRavenLocationHelper*)peekHelper;
+
+- (void)addBreadcrumb:(nonnull NSString*)category message:(NSString*)message data:(NSDictionary*)data file:(const char*)file line:(int)line;
 
 @end
 
@@ -40,3 +44,9 @@ extern NSString* const TeakRavenLevelFatal;
 - (void)reportWithHelper:(TeakRavenLocationHelper*)helper;
 
 @end
+
+#define teak_try           [TeakRavenLocationHelper pushHelperForFile:__FILE__ line:__LINE__ function:__FUNCTION__]; @try
+#define teak_catch_report  @catch(NSException* exception) { [TeakRavenLocationHelper peekHelper].exception = exception; [[Teak sharedInstance].sdkRaven reportWithHelper:[TeakRavenLocationHelper peekHelper]]; } @finally { [TeakRavenLocationHelper popHelper]; }
+
+#define teak_log_breadcrumb(message_nsstr) [[TeakRavenLocationHelper peekHelper] addBreadcrumb:@"log" message:message_nsstr data:nil file:__FILE__ line:__LINE__]
+#define teak_log_data_breadcrumb(message_nsstr, data_nsdict) [[TeakRavenLocationHelper peekHelper] addBreadcrumb:@"log" message:message_nsstr data:data_nsdict file:__FILE__ line:__LINE__]

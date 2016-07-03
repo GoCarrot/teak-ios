@@ -29,6 +29,7 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 @property (strong, nonatomic) NSString* file;
 @property (strong, nonatomic) NSNumber* line;
 @property (strong, nonatomic) NSString* function;
+@property (strong, nonatomic) NSMutableArray* breadcrumbs;
 @end
 
 @interface TeakRaven ()
@@ -137,7 +138,7 @@ void TeakSignalHandler(int signal)
    [lastFrame setObject:helper.function forKey:@"function"];
    [stacktrace replaceObjectAtIndex:stacktrace.count - 1 withObject:lastFrame];
 
-   NSDictionary* additions = @{
+   NSMutableDictionary* additions = [NSMutableDictionary dictionaryWithDictionary:@{
       @"exception" : @[
          @{
             @"value" : helper.exception.reason,
@@ -147,7 +148,8 @@ void TeakSignalHandler(int signal)
             }
          }
       ]
-   };
+   }];
+   if(helper.breadcrumbs != nil) [additions setObject:helper.breadcrumbs forKey:@"breadcrumbs"];
 
    TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
                                                              level:TeakRavenLevelError
@@ -170,15 +172,13 @@ void TeakSignalHandler(int signal)
 
 - (void)reportUncaughtException:(nonnull NSException*)exception
 {
-   NSArray* stacktrace = [TeakRaven stacktraceSkippingFrames:3];
-
    NSDictionary* additions = @{
       @"exception" : @[
          @{
             @"value" : exception.reason,
             @"type" : exception.name,
             @"stacktrace" : @{
-               @"frames" : stacktrace
+               @"frames" : [TeakRaven stacktraceSkippingFrames:3]
             }
          }
       ]
@@ -307,42 +307,52 @@ void TeakSignalHandler(int signal)
    return [[TeakRaven alloc] initForTeak:teak];
 }
 
++ (NSDictionary*)backtraceStrToSentryFrame:(const char*)str
+{
+   static NSString* progname;
+   static dispatch_once_t onceToken;
+   dispatch_once(&onceToken, ^{
+      progname = [NSString stringWithUTF8String:getprogname()];
+   });
+
+   NSString* raw = [NSString stringWithUTF8String:str];
+   NSScanner* scanner = [NSScanner scannerWithString:raw];
+
+   // Frame #
+   [scanner scanInt:nil];
+
+   // Module name
+   NSString* moduleName;
+   [scanner scanUpToString:@" 0x" intoString:&moduleName];
+   moduleName = [moduleName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+
+   // Hex address
+   unsigned long long address;
+   [scanner scanHexLongLong:&address];
+
+   // Function + offset is remainder of string
+   NSString* function;
+   [scanner scanUpToString:@"\n" intoString:&function];
+
+   return @{
+      @"function" : function,
+      @"module" : moduleName,
+      @"in_app" : [moduleName isEqualToString:progname] ? @YES : @NO,
+      @"address" : [NSString stringWithFormat:@"0x%016llx", address],
+      @"raw" : raw
+   };
+}
+
 + (NSArray*)stacktraceSkippingFrames:(int)skipFrames
 {
    void* callstack[128];
    int frames = backtrace(callstack, 128);
    char **strs = backtrace_symbols(callstack, frames);
-   NSString* progname = [NSString stringWithUTF8String:getprogname()];
 
    NSMutableArray* stacktrace = [NSMutableArray arrayWithCapacity:frames];
    for(int i = frames - 1; i >= skipFrames; i--)
    {
-      NSString* raw = [NSString stringWithUTF8String:strs[i]];
-      NSScanner* scanner = [NSScanner scannerWithString:raw];
-
-      // Frame #
-      [scanner scanInt:nil];
-
-      // Module name
-      NSString* moduleName;
-      [scanner scanUpToString:@" 0x" intoString:&moduleName];
-      moduleName = [moduleName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-
-      // Hex address
-      unsigned long long address;
-      [scanner scanHexLongLong:&address];
-
-      // Function + offset is remainder of string
-      NSString* function;
-      [scanner scanUpToString:@"\n" intoString:&function];
-
-      [stacktrace addObject:@{
-         @"function" : function,
-         @"module" : moduleName,
-         @"in_app" : [moduleName isEqualToString:progname] ? @YES : @NO,
-         @"address" : [NSString stringWithFormat:@"0x%016llx", address],
-         @"raw" : raw
-      }];
+      [stacktrace addObject:[TeakRaven backtraceStrToSentryFrame:strs[i]]];
    }
    free(strs);
 
@@ -451,12 +461,36 @@ void TeakSignalHandler(int signal)
 
 @implementation TeakRavenLocationHelper
 
-+ (TeakRavenLocationHelper*)helperForFile:(const char*)file line:(int)line function:(const char*)function
++ (NSMutableArray*)helperStack
+{
+   static NSMutableArray* helperStack;
+   static dispatch_once_t onceToken;
+   dispatch_once(&onceToken, ^{
+      helperStack = [[NSMutableArray alloc] init];
+   });
+   return helperStack;
+}
+
++ (TeakRavenLocationHelper*)pushHelperForFile:(const char*)file line:(int)line function:(const char*)function
 {
    NSString* nsFile = [NSString stringWithUTF8String:(strrchr(file, '/') ?: file - 1) + 1];
    NSNumber* nsLine = [NSNumber numberWithInt:line];
    NSString* nsFunction = [NSString stringWithUTF8String:function];
-   return [[TeakRavenLocationHelper alloc] initForFile:nsFile line:nsLine function:nsFunction];
+   TeakRavenLocationHelper* helper = [[TeakRavenLocationHelper alloc] initForFile:nsFile line:nsLine function:nsFunction];
+   [[TeakRavenLocationHelper helperStack] addObject:helper];
+   return helper;
+}
+
++ (TeakRavenLocationHelper*)popHelper
+{
+   TeakRavenLocationHelper* helper = [[TeakRavenLocationHelper helperStack] lastObject];
+   [[TeakRavenLocationHelper helperStack] removeLastObject];
+   return helper;
+}
+
++ (TeakRavenLocationHelper*)peekHelper
+{
+   return [[TeakRavenLocationHelper helperStack] lastObject];
 }
 
 - (id)initForFile:(NSString*)file line:(NSNumber*)line function:(NSString*)function
@@ -469,6 +503,27 @@ void TeakSignalHandler(int signal)
       self.function = function;
    }
    return self;
+}
+
+- (void)addBreadcrumb:(nonnull NSString*)category message:(NSString*)message data:(NSDictionary*)data file:(const char*)file line:(int)line
+{
+   if(self.breadcrumbs == nil) self.breadcrumbs = [[NSMutableArray alloc] init];
+
+   NSMutableDictionary* fullData = [NSMutableDictionary dictionaryWithDictionary:@{
+      @"file" : [NSString stringWithUTF8String:(strrchr(file, '/') ?: file - 1) + 1],
+      @"line" : [NSNumber numberWithInt:line]
+   }];
+   if(data != nil) [fullData addEntriesFromDictionary:data];
+
+   NSMutableDictionary* breadcrumb = [NSMutableDictionary dictionaryWithDictionary:@{
+      @"timestamp" : [NSNumber numberWithDouble:[[[NSDate alloc] init] timeIntervalSince1970]],
+      @"category" : category,
+      @"data" : fullData
+   }];
+
+   if(message != nil) [breadcrumb setValue:message forKey:@"message"];
+
+   [self.breadcrumbs addObject:breadcrumb];
 }
 
 @end
