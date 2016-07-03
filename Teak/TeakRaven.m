@@ -38,9 +38,11 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
 @property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
+@property (strong, nonatomic) NSArray* runLoopModes;
 
 - (void)reportUncaughtException:(nonnull NSException*)exception;
 - (void)reportSignal:(nonnull NSString*)name;
+- (void)pumpRunLoops;
 @end
 
 @interface TeakRavenReport : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
@@ -63,20 +65,59 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 TeakRaven* uncaughtExceptionHandlerRaven;
 void TeakUncaughtExceptionHandler(NSException* exception)
 {
-   NSLog(@"[Teak:Raven] Uncaught exception: %@", exception);
    [uncaughtExceptionHandlerRaven reportUncaughtException:exception];
+   [uncaughtExceptionHandlerRaven pumpRunLoops];
 }
 
 void TeakSignalHandler(int signal)
 {
-   NSLog(@"[Teak:Raven] Fatal signal: %d", signal);
-   [uncaughtExceptionHandlerRaven reportSignal:@"SIGSOMETHING"];
+   NSDictionary* sigToString = @{
+      [NSNumber numberWithInt:SIGABRT] : @"SIGABRT",
+      [NSNumber numberWithInt:SIGILL] : @"SIGILL",
+      [NSNumber numberWithInt:SIGSEGV] : @"SIGSEGV",
+      [NSNumber numberWithInt:SIGFPE] : @"SIGFPE",
+      [NSNumber numberWithInt:SIGBUS] : @"SIGBUS",
+      [NSNumber numberWithInt:SIGPIPE] : @"SIGPIPE"
+   };
+   [uncaughtExceptionHandlerRaven reportSignal:[sigToString objectForKey:[NSNumber numberWithInt:signal]]];
+   [uncaughtExceptionHandlerRaven pumpRunLoops];
 }
 
 @implementation TeakRaven
 
+- (void)pumpRunLoops
+{
+   // Dim the window
+   UIViewController* dimView = [[UIViewController alloc] initWithNibName:nil bundle:nil];
+   [[dimView view] setAlpha:0.5f];
+   [[dimView view] setOpaque:NO];
+   [[dimView view] setBackgroundColor:[UIColor blackColor]];
+
+   UIWindow* mainWindow = [[UIApplication sharedApplication] keyWindow];
+   UIViewController* presenter = [[UIViewController alloc] init];
+   [[presenter view] setBackgroundColor:[UIColor clearColor]];
+   [[presenter view] setOpaque:NO];
+   [mainWindow addSubview:[presenter view]];
+   [presenter presentViewController:dimView animated:NO completion:^{
+   }];
+
+   // Try and spin to allow for event to send
+   NSDate* spinStart = [[NSDate alloc] init];
+   while([[[NSDate alloc] init] timeIntervalSinceDate:spinStart] < 3) // Spin for max of # seconds
+   {
+      for(NSString* mode in uncaughtExceptionHandlerRaven.runLoopModes)
+      {
+         CFRunLoopRunInMode((CFStringRef)mode, 0.001, false);
+      }
+   }
+}
+
 - (void)setAsUncaughtExceptionHandler
 {
+   CFRunLoopRef runLoop = CFRunLoopGetMain();
+   CFArrayRef allModes = CFRunLoopCopyAllModes(runLoop);
+   self.runLoopModes = CFBridgingRelease(allModes);
+
    uncaughtExceptionHandlerRaven = self;
    NSSetUncaughtExceptionHandler(&TeakUncaughtExceptionHandler);
    signal(SIGABRT, TeakSignalHandler);
