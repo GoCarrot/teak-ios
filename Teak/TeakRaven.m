@@ -204,36 +204,36 @@ void TeakSignalHandler(int signal)
    }
 }
 
-- (id)initForApp:(nonnull NSString*)appId
+- (id)initForTeak:(Teak*)teak
 {
    self = [super init];
    if(self)
    {
-      self.appId = appId;
+      self.appId = @"sdk";
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary: @{
          @"logger" : @"teak",
          @"platform" : @"objc",
-         @"release" : [Teak sharedInstance].sdkVersion,
+         @"release" : teak.sdkVersion,
          @"server_name" : [[NSBundle mainBundle] bundleIdentifier],
          @"tags" : @{
-            @"app_id" : [Teak sharedInstance].appId,
-            @"app_version" : [Teak sharedInstance].appVersion
+            @"app_id" : teak.appId,
+            @"app_version" : teak.appVersion
          },
          @"sdk" : @{
             @"name" : @"teak",
             @"version" : TeakSentryVersion
          },
          @"device" : @{
-            @"name" : [Teak sharedInstance].deviceModel,
+            @"name" : teak.deviceModel,
             @"version" : [NSString stringWithFormat:@"%f",[[[UIDevice currentDevice] systemVersion] floatValue]],
             @"build" : @""
          },
          @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
-            @"device_id" : [Teak sharedInstance].deviceId
+            @"device_id" : teak.deviceId
          }]
       }];
 
-      NSString* sessionIdentifier = [NSString stringWithFormat:@"raven.%@.background", appId];
+      NSString* sessionIdentifier = [NSString stringWithFormat:@"raven.%@.background", self.appId];
       if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)])
       {
          self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
@@ -302,9 +302,9 @@ void TeakSignalHandler(int signal)
    return ret;
 }
 
-+ (TeakRaven*)ravenForApp:(nonnull NSString*)appId
++ (TeakRaven*)ravenForTeak:(nonnull Teak*)teak
 {
-   return [[TeakRaven alloc] initForApp:appId];
+   return [[TeakRaven alloc] initForTeak:teak];
 }
 
 + (NSArray*)stacktraceSkippingFrames:(int)skipFrames

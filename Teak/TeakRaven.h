@@ -18,6 +18,8 @@
 extern NSString* const TeakRavenLevelError;
 extern NSString* const TeakRavenLevelFatal;
 
+@class Teak;
+
 @interface TeakRavenLocationHelper : NSObject
 
 @property (strong, nonatomic) NSException* exception;
@@ -28,7 +30,7 @@ extern NSString* const TeakRavenLevelFatal;
 
 @interface TeakRaven : NSObject
 
-+ (TeakRaven*)ravenForApp:(nonnull NSString*)appId;
++ (TeakRaven*)ravenForTeak:(nonnull Teak*)teak;
 
 - (BOOL)setDSN:(NSString*)dsn;
 - (void)setUserValue:(id)value forKey:(nonnull NSString*)key;

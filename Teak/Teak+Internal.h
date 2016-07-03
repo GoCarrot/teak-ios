@@ -64,6 +64,8 @@ extern NSString* URLEscapedString(NSString* inString);
 
 @property (strong, nonatomic) TeakRaven* sdkRaven;
 
+- (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret;
+
 - (BOOL)handleOpenURL:(NSURL*)url;
 - (void)applicationDidBecomeActive:(UIApplication*)application;
 - (void)applicationWillResignActive:(UIApplication*)application;

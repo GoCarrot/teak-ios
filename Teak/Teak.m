@@ -43,6 +43,8 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
 
 extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
+Teak* _teakSharedInstance;
+
 @interface Teak () <SKPaymentTransactionObserver, SKProductsRequestDelegate>
 
 @property (nonatomic) dispatch_queue_t heartbeatQueue;
@@ -56,12 +58,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
 + (Teak*)sharedInstance
 {
-   static Teak* sharedInstance = nil;
-   static dispatch_once_t onceToken;
-   dispatch_once(&onceToken, ^{
-      sharedInstance = [[Teak alloc] init];
-   });
-   return sharedInstance;
+   return _teakSharedInstance;
 }
 
 + (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andSecret:(NSString*)appSecret;
@@ -93,7 +90,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-- (id)init
+- (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret
 {
    self = [super init];
    if(self)
@@ -102,13 +99,36 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
       NSLog(@"[Teak] iOS SDK Version: %@", self.sdkVersion);
 
+      // App Id/Secret
+      self.appId = appId;
+      self.appSecret = appSecret;
+
       // Load settings
       NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
       self.pushToken = [userDefaults stringForKey:kPushTokenUserDefaultsKey];
 
+      // Get/create device id
+      self.deviceId = [userDefaults objectForKey:kDeviceIdKey];
+      if(self.deviceId == nil)
+      {
+         self.deviceId = [[NSUUID UUID] UUIDString];
+         [userDefaults setObject:self.deviceId forKey:kDeviceIdKey];
+         [userDefaults synchronize];
+      }
+
       // Check if this is production mode (default YES)
       self.isProduction = isProductionProvisioningProfile([[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]);
       self.enableDebugOutput = !self.isProduction;
+
+      // Get device/app information
+      struct utsname systemInfo;
+      uname(&systemInfo);
+      self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
+      self.sdkPlatform = [NSString stringWithFormat:@"ios_%f",[[[UIDevice currentDevice] systemVersion] floatValue]];
+      self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
+
+      // Set up SDK Raven
+      self.sdkRaven = [TeakRaven ravenForTeak:self];
 
       // Get data path
       NSArray* searchPaths = [[NSFileManager defaultManager] URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask];
@@ -137,17 +157,13 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       self.requestThread = [[TeakRequestThread alloc] initWithTeak:self];
       if(!self.requestThread)
       {
-         NSLog(@"Unable to create Teak request thread.");
+         NSLog(@"[Teak] Unable to create Teak request thread.");
          return nil;
       }
 
       // Allocations
       self.priceInfoCompleteDictionary = [[NSMutableDictionary alloc] init];
       self.priceInfoDictionary = [[NSMutableDictionary alloc] init];
-
-      // Set up some parameters
-      self.sdkPlatform = [NSString stringWithFormat:@"ios_%f",[[[UIDevice currentDevice] systemVersion] floatValue]];
-      self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
 
       // Heartbeat
       self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
@@ -347,23 +363,6 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
 {
-   // Get/create device id
-   NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-   self.deviceId = [userDefaults objectForKey:kDeviceIdKey];
-   if(self.deviceId == nil)
-   {
-      self.deviceId = [[NSUUID UUID] UUIDString];
-      [userDefaults setObject:self.deviceId forKey:kDeviceIdKey];
-      [userDefaults synchronize];
-   }
-
-   struct utsname systemInfo;
-   uname(&systemInfo);
-   self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
-
-   // Set up SDK Raven
-   self.sdkRaven = [TeakRaven ravenForApp:@"sdk"];
-
    // User input dependent operations
    if(self.userIdOperation == nil)
    {
