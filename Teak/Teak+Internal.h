@@ -14,6 +14,7 @@
  */
 
 #import <Teak/Teak.h>
+#import "TeakRaven.h"
 
 @class TeakCache;
 @class TeakRequestThread;
@@ -60,6 +61,8 @@ extern NSString* URLEscapedString(NSString* inString);
 
 @property (strong, nonatomic) NSMutableDictionary* priceInfoDictionary;
 @property (strong, atomic)    NSMutableDictionary* priceInfoCompleteDictionary;
+
+@property (strong, nonatomic) TeakRaven* sdkRaven;
 
 - (BOOL)handleOpenURL:(NSURL*)url;
 - (void)applicationDidBecomeActive:(UIApplication*)application;
