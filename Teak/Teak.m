@@ -31,13 +31,13 @@ NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 
 // FB SDK 3.x
-NSString *const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
+NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
 
 // FB SDK 4.x
-NSString *const TeakFBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
-NSString *const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
-NSString *const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
-NSString *const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
+NSString* const TeakFBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
+NSString* const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
+NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
+NSString* const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 
