@@ -25,6 +25,7 @@ NSString *const TeakSentryClient = @"teak-ios/1.0.0";
 NSString* const TeakRavenLevelError = @"error";
 NSString* const TeakRavenLevelFatal = @"fatal";
 
+<<<<<<< HEAD
 @interface TeakRavenLocationHelper ()
 @property (strong, nonatomic) NSString* file;
 @property (strong, nonatomic) NSNumber* line;
@@ -32,6 +33,8 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 @property (strong, nonatomic) NSMutableArray* breadcrumbs;
 @end
 
+=======
+>>>>>>> master
 @interface TeakRaven ()
 @property (strong, nonatomic) NSURL* endpoint;
 @property (strong, nonatomic) NSString* appId;
@@ -39,11 +42,14 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
 @property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
+<<<<<<< HEAD
 @property (strong, nonatomic) NSArray* runLoopModes;
 
 - (void)reportUncaughtException:(nonnull NSException*)exception;
 - (void)reportSignal:(nonnull NSString*)name;
 - (void)pumpRunLoops;
+=======
+>>>>>>> master
 @end
 
 @interface TeakRavenReport : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
@@ -63,6 +69,7 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error;
 @end
 
+<<<<<<< HEAD
 TeakRaven* uncaughtExceptionHandlerRaven;
 void TeakUncaughtExceptionHandler(NSException* exception)
 {
@@ -163,6 +170,15 @@ void TeakSignalHandler(int signal)
    NSDictionary* additions = @{
       @"stacktrace" : @{
          @"frames" : [TeakRaven stacktraceSkippingFrames:4]
+=======
+@implementation TeakRaven
+
+- (void)reportSignal:(nonnull NSString*)name;
+{
+   NSDictionary* additions = @{
+      @"stacktrace" : @{
+         @"frames" : [TeakRaven stacktraceFrames]
+>>>>>>> master
       }
    };
 
@@ -170,22 +186,42 @@ void TeakSignalHandler(int signal)
    [report send];
 }
 
+<<<<<<< HEAD
 - (void)reportUncaughtException:(nonnull NSException*)exception
 {
+=======
+- (void)reportUncaughtException:(nonnull NSException*)exception;
+{
+   [self reportException:exception level:TeakRavenLevelFatal];
+}
+
+- (void)reportException:(nonnull NSException*)exception level:(nonnull NSString*)level
+{
+   NSArray* stacktrace = [TeakRaven stacktraceFrames];
+
+>>>>>>> master
    NSDictionary* additions = @{
       @"exception" : @[
          @{
             @"value" : exception.reason,
             @"type" : exception.name,
             @"stacktrace" : @{
+<<<<<<< HEAD
                @"frames" : [TeakRaven stacktraceSkippingFrames:3]
+=======
+               @"frames" : stacktrace
+>>>>>>> master
             }
          }
       ]
    };
 
    TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
+<<<<<<< HEAD
                                                              level:TeakRavenLevelFatal
+=======
+                                                             level:level
+>>>>>>> master
                                                            message:[NSString stringWithFormat:@"%@: %@", exception.name, exception.reason]
                                                          additions:additions];
    [report send];
@@ -204,11 +240,16 @@ void TeakSignalHandler(int signal)
    }
 }
 
+<<<<<<< HEAD
 - (id)initForTeak:(Teak*)teak
+=======
+- (id)initForApp:(nonnull NSString*)appId
+>>>>>>> master
 {
    self = [super init];
    if(self)
    {
+<<<<<<< HEAD
       self.appId = @"sdk";
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary: @{
          @"logger" : @"teak",
@@ -218,22 +259,45 @@ void TeakSignalHandler(int signal)
          @"tags" : @{
             @"app_id" : teak.appId,
             @"app_version" : teak.appVersion
+=======
+      self.appId = appId;
+      self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary: @{
+         @"logger" : @"teak",
+         @"platform" : @"objc",
+         @"release" : [Teak sharedInstance].sdkVersion,
+         @"server_name" : [[NSBundle mainBundle] bundleIdentifier],
+         @"tags" : @{
+            @"app_id" : [Teak sharedInstance].appId,
+            @"app_version" : [Teak sharedInstance].appVersion
+>>>>>>> master
          },
          @"sdk" : @{
             @"name" : @"teak",
             @"version" : TeakSentryVersion
          },
          @"device" : @{
+<<<<<<< HEAD
             @"name" : teak.deviceModel,
+=======
+            @"name" : [Teak sharedInstance].deviceModel,
+>>>>>>> master
             @"version" : [NSString stringWithFormat:@"%f",[[[UIDevice currentDevice] systemVersion] floatValue]],
             @"build" : @""
          },
          @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
+<<<<<<< HEAD
             @"device_id" : teak.deviceId
          }]
       }];
 
       NSString* sessionIdentifier = [NSString stringWithFormat:@"raven.%@.background", self.appId];
+=======
+            @"device_id" : [Teak sharedInstance].deviceId
+         }]
+      }];
+
+      NSString* sessionIdentifier = [NSString stringWithFormat:@"raven.%@.background", appId];
+>>>>>>> master
       if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)])
       {
          self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
@@ -302,6 +366,7 @@ void TeakSignalHandler(int signal)
    return ret;
 }
 
+<<<<<<< HEAD
 + (TeakRaven*)ravenForTeak:(nonnull Teak*)teak
 {
    return [[TeakRaven alloc] initForTeak:teak];
@@ -348,11 +413,54 @@ void TeakSignalHandler(int signal)
    void* callstack[128];
    int frames = backtrace(callstack, 128);
    char **strs = backtrace_symbols(callstack, frames);
+=======
++ (TeakRaven*)ravenForApp:(nonnull NSString*)appId
+{
+   return [[TeakRaven alloc] initForApp:appId];
+}
+
++ (NSArray*)stacktraceFrames
+{
+   int skipFrames = 4;
+   void* callstack[128];
+   int frames = backtrace(callstack, 128);
+   char **strs = backtrace_symbols(callstack, frames);
+   NSString* progname = [NSString stringWithUTF8String:getprogname()];
+>>>>>>> master
 
    NSMutableArray* stacktrace = [NSMutableArray arrayWithCapacity:frames];
    for(int i = frames - 1; i >= skipFrames; i--)
    {
+<<<<<<< HEAD
       [stacktrace addObject:[TeakRaven backtraceStrToSentryFrame:strs[i]]];
+=======
+      NSString* raw = [NSString stringWithUTF8String:strs[i]];
+      NSScanner* scanner = [NSScanner scannerWithString:raw];
+
+      // Frame #
+      [scanner scanInt:nil];
+
+      // Module name
+      NSString* moduleName;
+      [scanner scanUpToString:@" 0x" intoString:&moduleName];
+      moduleName = [moduleName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+
+      // Hex address
+      unsigned long long address;
+      [scanner scanHexLongLong:&address];
+
+      // Function + offset is remainder of string
+      NSString* function;
+      [scanner scanUpToString:@"\n" intoString:&function];
+
+      [stacktrace addObject:@{
+         @"function" : function,
+         @"module" : moduleName,
+         @"in_app" : [moduleName isEqualToString:progname] ? @YES : @NO,
+         @"address" : [NSString stringWithFormat:@"0x%016llx", address],
+         @"raw" : raw
+      }];
+>>>>>>> master
    }
    free(strs);
 
@@ -458,6 +566,7 @@ void TeakSignalHandler(int signal)
 }
 
 @end
+<<<<<<< HEAD
 
 @implementation TeakRavenLocationHelper
 
@@ -527,3 +636,5 @@ void TeakSignalHandler(int signal)
 }
 
 @end
+=======
+>>>>>>> master
