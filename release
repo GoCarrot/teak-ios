@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
 
 err=0
 
@@ -31,4 +33,4 @@ if ! [ $? -eq 0 ]; then
     exit 1
 fi
 
-xcodebuild -project Teak.xcodeproj -sdk iphoneos -scheme Teak -configuration Release CONFIGURATION_BUILD_DIR=./build
+./compile
