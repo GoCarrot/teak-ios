@@ -25,6 +25,8 @@ NSString *const TeakSentryClient = @"teak-ios/1.0.0";
 NSString* const TeakRavenLevelError = @"error";
 NSString* const TeakRavenLevelFatal = @"fatal";
 
+extern bool AmIBeingDebugged(void);
+
 @interface TeakRavenLocationHelper ()
 @property (strong, nonatomic) NSString* file;
 @property (strong, nonatomic) NSNumber* line;
@@ -66,8 +68,15 @@ NSString* const TeakRavenLevelFatal = @"fatal";
 TeakRaven* uncaughtExceptionHandlerRaven;
 void TeakUncaughtExceptionHandler(NSException* exception)
 {
-   [uncaughtExceptionHandlerRaven reportUncaughtException:exception];
-   [uncaughtExceptionHandlerRaven pumpRunLoops];
+   if(AmIBeingDebugged())
+   {
+      NSLog(@"[Teak:Sentry] Build running in debugger, not reporting exception: %@", exception);
+   }
+   else
+   {
+      [uncaughtExceptionHandlerRaven reportUncaughtException:exception];
+      [uncaughtExceptionHandlerRaven pumpRunLoops];
+   }
 }
 
 void TeakSignalHandler(int signal)
@@ -80,8 +89,16 @@ void TeakSignalHandler(int signal)
       [NSNumber numberWithInt:SIGBUS] : @"SIGBUS",
       [NSNumber numberWithInt:SIGPIPE] : @"SIGPIPE"
    };
-   [uncaughtExceptionHandlerRaven reportSignal:[sigToString objectForKey:[NSNumber numberWithInt:signal]]];
-   [uncaughtExceptionHandlerRaven pumpRunLoops];
+
+   if(AmIBeingDebugged())
+   {
+      NSLog(@"[Teak:Sentry] Build running in debugger, not reporting signal: %@", [sigToString objectForKey:[NSNumber numberWithInt:signal]]);
+   }
+   else
+   {
+      [uncaughtExceptionHandlerRaven reportSignal:[sigToString objectForKey:[NSNumber numberWithInt:signal]]];
+      [uncaughtExceptionHandlerRaven pumpRunLoops];
+   }
 }
 
 @implementation TeakRaven
