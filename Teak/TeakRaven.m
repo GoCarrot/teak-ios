@@ -162,7 +162,7 @@ void TeakSignalHandler(int signal)
 {
    NSDictionary* additions = @{
       @"stacktrace" : @{
-         @"frames" : [TeakRaven stacktraceSkippingFrames:4]
+         @"frames" : [TeakRaven reverseStacktraceSkippingFrames:3]
       }
    };
 
@@ -349,7 +349,7 @@ void TeakSignalHandler(int signal)
    int frames = backtrace(callstack, 128);
    char **strs = backtrace_symbols(callstack, frames);
 
-   NSMutableArray* stacktrace = [NSMutableArray arrayWithCapacity:frames];
+   NSMutableArray* stacktrace = [NSMutableArray arrayWithCapacity:frames - skipFrames];
    for(int i = frames - 1; i >= skipFrames; i--)
    {
       [stacktrace addObject:[TeakRaven backtraceStrToSentryFrame:strs[i]]];
@@ -358,6 +358,23 @@ void TeakSignalHandler(int signal)
 
    return stacktrace;
 }
+
++ (NSArray*)reverseStacktraceSkippingFrames:(int)skipFrames
+{
+   void* callstack[128];
+   int frames = backtrace(callstack, 128);
+   char **strs = backtrace_symbols(callstack, frames);
+
+   NSMutableArray* stacktrace = [NSMutableArray arrayWithCapacity:frames - skipFrames];
+   for(int i = skipFrames; i < frames; i++)
+   {
+      [stacktrace addObject:[TeakRaven backtraceStrToSentryFrame:strs[i]]];
+   }
+   free(strs);
+
+   return stacktrace;
+}
+
 
 @end
 
