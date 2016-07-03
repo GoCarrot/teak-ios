@@ -245,6 +245,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    // User identified
    self.userIdentifiedThisSession = YES;
 
+   __block Teak* blockSelf = self;
    [self.requestThread addRequestForService:TeakRequestServiceAuth
                                  atEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appId]
                                 usingMethod:TeakRequestTypePOST
@@ -254,12 +255,12 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
                                    NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
                                    if(error == nil)
                                    {
-                                      self.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
+                                      blockSelf.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
                                       if([[jsonReply valueForKey:@"verbose_logging"] boolValue])
                                       {
                                          NSLog(@"[Teak] Enabling verbose logging via identifyUser()");
                                       }
-                                      self.teakCountryCode = [jsonReply valueForKey:@"country_code"];
+                                      blockSelf.teakCountryCode = [jsonReply valueForKey:@"country_code"];
                                    }
     }];
 }
