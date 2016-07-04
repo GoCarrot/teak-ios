@@ -780,27 +780,37 @@ Teak* _teakSharedInstance;
 
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction
 {
-   NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
-   [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
-   [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
+   NSDictionary* payload;
+   teak_try
+   {
+      teak_log_breadcrumb(@"Building date formatter");
+      NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+      [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
+      [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
 
-   NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
-   NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
+      teak_log_breadcrumb(@"Getting info from App Store receipt");
+      NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
+      NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
-   NSDictionary* payload = @{
-      @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
-      @"product_id" : transaction.payment.productIdentifier,
-      @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
-   };
+      teak_log_breadcrumb(@"Building payload");
+      payload = @{
+         @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
+         @"product_id" : transaction.payment.productIdentifier,
+         @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
+      };
 
-   // TODO: What should really happen here is an object that implements SKProductsRequestDelegate
-   //       that has all the context for the purchase, instead of using the NSDictionaries.
-   [self.priceInfoCompleteDictionary setValue:[NSNumber numberWithBool:NO]
-                                       forKey:transaction.payment.productIdentifier];
+      teak_log_data_breadcrumb(@"Payload built, submitting SKProductsRequest", payload);
 
-   SKProductsRequest* req = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:transaction.payment.productIdentifier]];
-   req.delegate = self;
-   [req start];
+      // TODO: What should really happen here is an object that implements SKProductsRequestDelegate
+      //       that has all the context for the purchase, instead of using the NSDictionaries.
+      [self.priceInfoCompleteDictionary setValue:[NSNumber numberWithBool:NO]
+                                          forKey:transaction.payment.productIdentifier];
+
+      SKProductsRequest* req = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:transaction.payment.productIdentifier]];
+      req.delegate = self;
+      [req start];
+   }
+   teak_catch_report
 
    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       BOOL stillWaiting = YES;
@@ -825,54 +835,68 @@ Teak* _teakSharedInstance;
 {
    if(response.products.count > 0)
    {
-      SKProduct* product = [response.products objectAtIndex:0];
-      NSLocale* priceLocale = product.priceLocale;
-      NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
-      NSDecimalNumber* price = product.price;
-      [self.priceInfoDictionary setValue:@{
-                                           @"price_currency_code" : currencyCode,
-                                           @"price_float" : price
-                                           }
-                                  forKey:product.productIdentifier];
-      [self.priceInfoCompleteDictionary setValue:[NSNumber numberWithBool:YES]
-                                          forKey:product.productIdentifier];
+      teak_try
+      {
+         teak_log_breadcrumb(@"Collecting product response info");
+         SKProduct* product = [response.products objectAtIndex:0];
+         NSLocale* priceLocale = product.priceLocale;
+         NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
+         NSDecimalNumber* price = product.price;
+
+         teak_log_data_breadcrumb(@"Assigning product info", @{@"sku" : product.productIdentifier});
+         [self.priceInfoDictionary setValue:@{
+                                              @"price_currency_code" : currencyCode,
+                                              @"price_float" : price
+                                              }
+                                     forKey:product.productIdentifier];
+         [self.priceInfoCompleteDictionary setValue:[NSNumber numberWithBool:YES]
+                                             forKey:product.productIdentifier];
+      }
+      teak_catch_report
    }
 }
 
 - (void)transactionFailed:(SKPaymentTransaction*)transaction
 {
-   NSString* errorString = @"unknown";
-   switch(transaction.error.code)
+   teak_try
    {
-      case SKErrorClientInvalid:
-         errorString = @"client_invalid";
-         break;
-      case SKErrorPaymentCancelled:
-         errorString = @"payment_canceled";
-         break;
-      case SKErrorPaymentInvalid:
-         errorString = @"payment_invalid";
-         break;
-      case SKErrorPaymentNotAllowed:
-         errorString = @"payment_not_allowed";
-         break;
-      case SKErrorStoreProductNotAvailable:
-         errorString = @"store_product_not_available";
-         break;
-      default:
-         break;
+      teak_log_breadcrumb(@"Determining status");
+      NSString* errorString = @"unknown";
+      switch(transaction.error.code)
+      {
+         case SKErrorClientInvalid:
+            errorString = @"client_invalid";
+            break;
+         case SKErrorPaymentCancelled:
+            errorString = @"payment_canceled";
+            break;
+         case SKErrorPaymentInvalid:
+            errorString = @"payment_invalid";
+            break;
+         case SKErrorPaymentNotAllowed:
+            errorString = @"payment_not_allowed";
+            break;
+         case SKErrorStoreProductNotAvailable:
+            errorString = @"store_product_not_available";
+            break;
+         default:
+            break;
+      }
+      teak_log_data_breadcrumb(@"Got transaction error code", @{@"transaction.error.code" : errorString});
+
+      NSDictionary* payload = @{
+         @"product_id" : transaction.payment.productIdentifier,
+         @"error_string" : errorString
+      };
+
+      teak_log_data_breadcrumb(@"Reporting purchase failed", payload);
+      [self.requestThread addRequestForService:TeakRequestServiceMetrics
+                                    atEndpoint:@"/me/purchase"
+                                   usingMethod:TeakRequestTypePOST
+                                   withPayload:payload
+                                   andCallback:nil];
    }
-
-   NSDictionary* payload = @{
-      @"product_id" : transaction.payment.productIdentifier,
-      @"error_string" : errorString
-   };
-
-   [self.requestThread addRequestForService:TeakRequestServiceMetrics
-                                 atEndpoint:@"/me/purchase"
-                                usingMethod:TeakRequestTypePOST
-                                withPayload:payload
-                                andCallback:nil];
+   teak_catch_report
 }
 
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions
