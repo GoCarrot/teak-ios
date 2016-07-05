@@ -39,6 +39,7 @@ extern NSString* const TeakRavenLevelFatal;
 - (BOOL)setDSN:(NSString*)dsn;
 - (void)setUserValue:(id)value forKey:(nonnull NSString*)key;
 - (void)setAsUncaughtExceptionHandler;
+- (void)unsetAsUncaughtExceptionHandler;
 
 - (void)reportException:(nonnull NSException*)exception level:(nonnull NSString*)level;
 - (void)reportWithHelper:(TeakRavenLocationHelper*)helper;

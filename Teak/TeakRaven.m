@@ -25,6 +25,8 @@ NSString *const TeakSentryClient = @"teak-ios/1.0.0";
 NSString* const TeakRavenLevelError = @"error";
 NSString* const TeakRavenLevelFatal = @"fatal";
 
+typedef void(*TeakRavenSignalHandler)(int);
+
 extern bool AmIBeingDebugged(void);
 
 @interface TeakRavenLocationHelper ()
@@ -41,7 +43,15 @@ extern bool AmIBeingDebugged(void);
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
 @property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
+
 @property (strong, nonatomic) NSArray* runLoopModes;
+@property (nonatomic) NSUncaughtExceptionHandler* hException;
+@property (nonatomic) TeakRavenSignalHandler hSIGABRT;
+@property (nonatomic) TeakRavenSignalHandler hSIGILL;
+@property (nonatomic) TeakRavenSignalHandler hSIGSEGV;
+@property (nonatomic) TeakRavenSignalHandler hSIGFPE;
+@property (nonatomic) TeakRavenSignalHandler hSIGBUS;
+@property (nonatomic) TeakRavenSignalHandler hSIGPIPE;
 
 - (void)reportUncaughtException:(nonnull NSException*)exception;
 - (void)reportSignal:(nonnull NSString*)name;
@@ -68,6 +78,8 @@ extern bool AmIBeingDebugged(void);
 TeakRaven* uncaughtExceptionHandlerRaven;
 void TeakUncaughtExceptionHandler(NSException* exception)
 {
+   [uncaughtExceptionHandlerRaven unsetAsUncaughtExceptionHandler];
+
    if(AmIBeingDebugged())
    {
       NSLog(@"[Teak:Sentry] Build running in debugger, not reporting exception: %@", exception);
@@ -81,6 +93,8 @@ void TeakUncaughtExceptionHandler(NSException* exception)
 
 void TeakSignalHandler(int signal)
 {
+   [uncaughtExceptionHandlerRaven unsetAsUncaughtExceptionHandler];
+
    NSDictionary* sigToString = @{
       [NSNumber numberWithInt:SIGABRT] : @"SIGABRT",
       [NSNumber numberWithInt:SIGILL] : @"SIGILL",
@@ -136,14 +150,35 @@ void TeakSignalHandler(int signal)
    CFArrayRef allModes = CFRunLoopCopyAllModes(runLoop);
    self.runLoopModes = CFBridgingRelease(allModes);
 
-   uncaughtExceptionHandlerRaven = self;
+   if(uncaughtExceptionHandlerRaven != nil) [uncaughtExceptionHandlerRaven unsetAsUncaughtExceptionHandler];
+
+   self.hException = NSGetUncaughtExceptionHandler();
    NSSetUncaughtExceptionHandler(&TeakUncaughtExceptionHandler);
-   signal(SIGABRT, TeakSignalHandler);
-   signal(SIGILL, TeakSignalHandler);
-   signal(SIGSEGV, TeakSignalHandler);
-   signal(SIGFPE, TeakSignalHandler);
-   signal(SIGBUS, TeakSignalHandler);
-   signal(SIGPIPE, TeakSignalHandler);
+
+   struct sigaction previousSignalAction;
+#define ASSIGN_SIGNAL_HANDLER(_sig) sigaction(_sig, NULL, &previousSignalAction); self.h##_sig = previousSignalAction.sa_sigaction; signal(_sig,TeakSignalHandler);
+   ASSIGN_SIGNAL_HANDLER(SIGABRT);
+   ASSIGN_SIGNAL_HANDLER(SIGILL);
+   ASSIGN_SIGNAL_HANDLER(SIGSEGV);
+   ASSIGN_SIGNAL_HANDLER(SIGFPE);
+   ASSIGN_SIGNAL_HANDLER(SIGBUS);
+   ASSIGN_SIGNAL_HANDLER(SIGPIPE);
+#undef ASSIGN_SIGNAL_HANDLER
+
+   uncaughtExceptionHandlerRaven = self;
+}
+
+- (void)unsetAsUncaughtExceptionHandler
+{
+   NSSetUncaughtExceptionHandler(self.hException);
+#define RESET_SIGNAL_HANDLER(_sig) signal(_sig,self.h##_sig);
+   RESET_SIGNAL_HANDLER(SIGABRT);
+   RESET_SIGNAL_HANDLER(SIGILL);
+   RESET_SIGNAL_HANDLER(SIGSEGV);
+   RESET_SIGNAL_HANDLER(SIGFPE);
+   RESET_SIGNAL_HANDLER(SIGBUS);
+   RESET_SIGNAL_HANDLER(SIGPIPE);
+#undef RESET_SIGNAL_HANDLER
 }
 
 - (void)reportWithHelper:(TeakRavenLocationHelper*)helper
