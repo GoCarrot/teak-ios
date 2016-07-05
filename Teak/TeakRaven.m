@@ -578,7 +578,7 @@ void TeakSignalHandler(int signal)
 
    NSMutableDictionary* breadcrumb = [NSMutableDictionary dictionaryWithDictionary:@{
       @"timestamp" : [NSNumber numberWithDouble:[[[NSDate alloc] init] timeIntervalSince1970]],
-      @"category" : category,
+      @"category" : category == nil ? @"unknown" : category,
       @"data" : fullData
    }];
 
