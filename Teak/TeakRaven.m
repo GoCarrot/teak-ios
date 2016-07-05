@@ -212,6 +212,8 @@ void TeakSignalHandler(int signal)
 
 - (void)reportSignal:(nonnull NSString*)name
 {
+   [self unsetAsUncaughtExceptionHandler];
+
    NSDictionary* additions = @{
       @"stacktrace" : @{
          @"frames" : [TeakRaven reverseStacktraceSkippingFrames:3]
@@ -224,6 +226,8 @@ void TeakSignalHandler(int signal)
 
 - (void)reportUncaughtException:(nonnull NSException*)exception
 {
+   [self unsetAsUncaughtExceptionHandler];
+
    NSDictionary* additions = @{
       @"exception" : @[
          @{
