@@ -331,7 +331,7 @@ void TeakSignalHandler(int signal)
    }
    @catch(NSException* exception)
    {
-      NSLog(@"TODO: method name automagic: %@", exception);
+      NSLog(@"[Teak:Raven] Error assigning DSN: %@", exception);
    }
 
    return ret;
