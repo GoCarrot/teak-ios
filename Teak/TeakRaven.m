@@ -226,40 +226,58 @@ void TeakSignalHandler(int signal)
    self = [super init];
    if(self)
    {
-      self.appId = @"sdk";
-      self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary: @{
-         @"logger" : @"teak",
-         @"platform" : @"objc",
-         @"release" : teak.sdkVersion,
-         @"server_name" : [[NSBundle mainBundle] bundleIdentifier],
-         @"tags" : @{
-            @"app_id" : teak.appId,
-            @"app_version" : teak.appVersion
-         },
-         @"sdk" : @{
-            @"name" : @"teak",
-            @"version" : TeakSentryVersion
-         },
-         @"device" : @{
-            @"name" : teak.deviceModel,
-            @"version" : [NSString stringWithFormat:@"%f",[[[UIDevice currentDevice] systemVersion] floatValue]],
-            @"build" : @""
-         },
-         @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
-            @"device_id" : teak.deviceId
-         }]
-      }];
+      @try
+      {
+         self.appId = @"sdk";
+         self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary: @{
+            @"logger" : @"teak",
+            @"platform" : @"objc",
+            @"release" : teak.sdkVersion,
+            @"server_name" : [[NSBundle mainBundle] bundleIdentifier],
+            @"tags" : @{
+               @"app_id" : teak.appId,
+               @"app_version" : teak.appVersion
+            },
+            @"sdk" : @{
+               @"name" : @"teak",
+               @"version" : TeakSentryVersion
+            },
+            @"device" : @{
+               @"name" : teak.deviceModel,
+               @"version" : [NSString stringWithFormat:@"%f",[[[UIDevice currentDevice] systemVersion] floatValue]],
+               @"build" : @""
+            },
+            @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
+               @"device_id" : teak.deviceId
+            }]
+         }];
+      }
+      @catch(NSException* exception)
+      {
+         NSLog(@"[Teak:Raven] Error creating payload template: %@", exception);
+         return nil;
+      }
 
-      NSString* sessionIdentifier = [NSString stringWithFormat:@"raven.%@.background", self.appId];
-      if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)])
+      @try
       {
-         self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
+         NSString* sessionIdentifier = [NSString stringWithFormat:@"raven.%@.background", self.appId];
+         if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)])
+         {
+            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
+         }
+         else
+         {
+            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfiguration:sessionIdentifier];
+         }
+         self.urlSessionConfig.discretionary = NO;
+         self.urlSessionConfig.allowsCellularAccess = YES;
       }
-      else
+      @catch(NSException* exception)
       {
-         self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfiguration:sessionIdentifier];
+         // TODO: Don't return nil, instead cache the things
+         NSLog(@"[Teak:Raven] Error creating background NSURLSessionConfiguration: %@", exception);
+         return nil;
       }
-      self.urlSessionConfig.allowsCellularAccess = YES;
    }
    return self;
 }
