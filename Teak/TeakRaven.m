@@ -351,31 +351,40 @@ void TeakSignalHandler(int signal)
    });
 
    NSString* raw = [NSString stringWithUTF8String:str];
-   NSScanner* scanner = [NSScanner scannerWithString:raw];
+   @try
+   {
+      NSScanner* scanner = [NSScanner scannerWithString:raw];
 
-   // Frame #
-   [scanner scanInt:nil];
+      // Frame #
+      [scanner scanInt:nil];
 
-   // Module name
-   NSString* moduleName;
-   [scanner scanUpToString:@" 0x" intoString:&moduleName];
-   moduleName = [moduleName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+      // Module name
+      NSString* moduleName;
+      [scanner scanUpToString:@" 0x" intoString:&moduleName];
+      moduleName = [moduleName stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
-   // Hex address
-   unsigned long long address;
-   [scanner scanHexLongLong:&address];
+      // Hex address
+      unsigned long long address;
+      [scanner scanHexLongLong:&address];
 
-   // Function + offset is remainder of string
-   NSString* function;
-   [scanner scanUpToString:@"\n" intoString:&function];
+      // Function + offset is remainder of string
+      NSString* function;
+      [scanner scanUpToString:@"\n" intoString:&function];
 
-   return @{
-      @"function" : function,
-      @"module" : moduleName,
-      @"in_app" : [moduleName isEqualToString:progname] ? @YES : @NO,
-      @"address" : [NSString stringWithFormat:@"0x%016llx", address],
-      @"raw" : raw
-   };
+      return @{
+         @"function" : function,
+         @"module" : moduleName,
+         @"in_app" : [moduleName isEqualToString:progname] ? @YES : @NO,
+         @"address" : [NSString stringWithFormat:@"0x%016llx", address],
+         @"raw" : raw
+      };
+   }
+   @catch(NSException* exception)
+   {
+      return @{
+         @"function" : raw == nil ? [NSNull null] : raw
+      };
+   }
 }
 
 + (NSArray*)stacktraceSkippingFrames:(int)skipFrames
