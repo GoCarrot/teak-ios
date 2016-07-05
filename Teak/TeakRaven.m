@@ -469,29 +469,37 @@ void TeakSignalHandler(int signal)
    self = [super init];
    if(self)
    {
-      self.timestamp = [[NSDate alloc] init];
-      self.raven = raven;
-      self.receivedData = [[NSMutableData alloc] init];
-      [self.receivedData setLength:0];
-      self.urlSession = [NSURLSession sessionWithConfiguration:self.raven.urlSessionConfig delegate:self delegateQueue:nil];
+      @try
+      {
+         self.timestamp = [[NSDate alloc] init];
+         self.raven = raven;
+         self.receivedData = [[NSMutableData alloc] init];
+         [self.receivedData setLength:0];
+         self.urlSession = [NSURLSession sessionWithConfiguration:self.raven.urlSessionConfig delegate:self delegateQueue:nil];
 
-      self.payload = [NSMutableDictionary dictionaryWithDictionary:self.raven.payloadTemplate];
+         self.payload = [NSMutableDictionary dictionaryWithDictionary:self.raven.payloadTemplate];
 
-      CFUUIDRef theUUID = CFUUIDCreate(NULL);
-      CFStringRef string = CFUUIDCreateString(NULL, theUUID);
-      CFRelease(theUUID);
-      NSString *res = [(__bridge NSString *)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
-      CFRelease(string);
-      [self.payload setObject:res forKey:@"event_id"];
+         CFUUIDRef theUUID = CFUUIDCreate(NULL);
+         CFStringRef string = CFUUIDCreateString(NULL, theUUID);
+         CFRelease(theUUID);
+         NSString *res = [(__bridge NSString *)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
+         CFRelease(string);
+         [self.payload setObject:res forKey:@"event_id"];
 
-      [self.payload setObject:[[TeakRavenReport dateFormatter] stringFromDate:self.timestamp] forKey:@"timestamp"];
-      [self.payload setObject:level forKey:@"level"];
+         [self.payload setObject:[[TeakRavenReport dateFormatter] stringFromDate:self.timestamp] forKey:@"timestamp"];
+         [self.payload setObject:level forKey:@"level"];
 
-      NSRange stringRange = {0, MIN([message length], 1000)};
-      stringRange = [message rangeOfComposedCharacterSequencesForRange:stringRange];
-      [self.payload setObject:[message substringWithRange:stringRange] forKey:@"message"];
+         NSRange stringRange = {0, MIN([message length], 1000)};
+         stringRange = [message rangeOfComposedCharacterSequencesForRange:stringRange];
+         [self.payload setObject:[message substringWithRange:stringRange] forKey:@"message"];
 
-      if(additions != nil) [self.payload addEntriesFromDictionary:additions];
+         if(additions != nil) [self.payload addEntriesFromDictionary:additions];
+      }
+      @catch(NSException* exception)
+      {
+         NSLog(@"[Teak:Sentry] Error creating exception report: %@", exception);
+         return nil;
+      }
    }
    return self;
 }
