@@ -499,6 +499,8 @@ void TeakSignalHandler(int signal)
 
 - (void)send
 {
+   if(self.raven.endpoint == nil) return;
+
    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:self.raven.endpoint];
    NSData* payloadData = [NSJSONSerialization dataWithJSONObject:self.payload options:0 error:nil];
 
