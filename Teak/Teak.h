@@ -38,11 +38,16 @@ extern NSString* const TeakNotificationAppLaunch;
 @interface Teak : NSObject
 
 /**
- * Enable/Disable NSLog Debug Output.
+ * Is debug logging enabled.
  *
  * Disabled by default in production, enabled otherwise.
  */
-@property (nonatomic) BOOL enableDebugOutput;
+@property (nonatomic, readonly) BOOL enableDebugOutput;
+
+/**
+ * Teak SDK Version.
+ */
+@property (strong, nonatomic, readonly) NSString* sdkVersion;
 
 /**
  * Set up Teak in a single function call.

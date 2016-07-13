@@ -12,17 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #import <Foundation/Foundation.h>
-#include <sqlite3.h>
 
-@class TeakCachedRequest;
+@interface TeakDebugConfiguration : NSObject
+@property (nonatomic, readonly) BOOL forceDebug;
 
-@interface TeakCache : NSObject
-@property (nonatomic, readonly) sqlite3* sqliteDb;
-
-- (sqlite_uint64)cacheRequest:(TeakCachedRequest*)request;
-- (BOOL)addRetryInCacheForRequest:(TeakCachedRequest*)request;
-- (BOOL)removeRequestFromCache:(TeakCachedRequest*)request;
-- (uint64_t)addRequestsIntoArray:(NSMutableArray*)cacheArray;
-
+- (void)setForceDebugPreference:(BOOL)forceDebug;
 @end

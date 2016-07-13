@@ -12,17 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #import <Foundation/Foundation.h>
-#include <sqlite3.h>
 
-@class TeakCachedRequest;
+NSString* TeakNSStringOrNilFor(id object) {
+   if (object == nil) return nil;
 
-@interface TeakCache : NSObject
-@property (nonatomic, readonly) sqlite3* sqliteDb;
+   NSString* ret = nil;
+   @try {
+      ret = ((object == nil || [object isKindOfClass:[NSString class]]) ? object : [object stringValue]);
+   } @catch (NSException* ignored) {
+   }
+   return ret;
+}
 
-- (sqlite_uint64)cacheRequest:(TeakCachedRequest*)request;
-- (BOOL)addRetryInCacheForRequest:(TeakCachedRequest*)request;
-- (BOOL)removeRequestFromCache:(TeakCachedRequest*)request;
-- (uint64_t)addRequestsIntoArray:(NSMutableArray*)cacheArray;
-
-@end
+NSString* TeakURLEscapedString(NSString* inString) {
+   if (inString == nil) return nil;
+   return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]];
+}

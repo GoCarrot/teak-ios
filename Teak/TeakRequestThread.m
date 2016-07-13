@@ -14,17 +14,23 @@
  */
 
 #import <Teak/Teak.h>
-#import "Teak+Internal.h"
+
 #import "TeakRequestThread.h"
 #import "TeakCachedRequest.h"
 
+#import "TeakSession.h"
+#import "TeakAppConfiguration.h"
+#import "TeakRemoteConfiguration.h"
+
 #include <CommonCrypto/CommonHMAC.h>
+
+#define kDefaultHostUrlScheme @"https"
 
 @interface TeakRequestThread ()
 
 @property (strong, nonatomic) NSMutableArray* requestQueue;
 @property (strong, nonatomic, readwrite) TeakCache* cache;
-@property (assign, nonatomic) Teak* teak;
+@property (assign, nonatomic) TeakSession* session;
 @property (nonatomic) BOOL keepThreadRunning;
 @property (strong, nonatomic) NSCondition* requestQueuePause;
 
@@ -32,40 +38,32 @@
 
 @implementation TeakRequestThread
 
-- (id)initWithTeak:(Teak*)teak
-{
+- (id)initForSession:(TeakSession*)session {
    self = [super init];
-   if(self)
-   {
+   if(self) {
       self.requestQueue = [[NSMutableArray alloc] init];
-      self.teak = teak;
+      self.session = session;
       self.maxRetryCount = 0; // Infinite retries by default
       self.requestQueuePause = [[NSCondition alloc] init];
-      self.cache = teak.cache;
+      //self.cache = teak.cache;
       _isRunning = NO;
    }
    return self;
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
    [self stop];
-   self.requestQueue = nil;
 }
 
-- (void)start
-{
-   if(!self.isRunning)
-   {
+- (void)start {
+   if (!self.isRunning) {
       self.keepThreadRunning = YES;
       [NSThread detachNewThreadSelector:@selector(requestQueueProc:) toTarget:self withObject:nil];
    }
 }
 
-- (void)stop
-{
-   if(self.isRunning)
-   {
+- (void)stop {
+   if (self.isRunning) {
       // Signal thread to start up if it is waiting
       [self.requestQueuePause lock];
       self.keepThreadRunning = NO;
@@ -74,36 +72,35 @@
    }
 }
 
-- (void)signal
-{
-   if(self.isRunning)
-   {
+- (void)signal {
+   if (self.isRunning) {
       [self.requestQueuePause lock];
       [self.requestQueuePause signal];
       [self.requestQueuePause unlock];
    }
 }
 
-- (NSString*)hostForServiceType:(TeakRequestServiceType)serviceType
-{
-   return self.teak.hostname;
+- (NSString*)hostForServiceType:(TeakRequestServiceType)serviceType {
+   return self.session.remoteConfiguration.hostname;
 }
 
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload andCallback:(TeakRequestResponse)callback
+- (void)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint withPayload:(NSDictionary*)payload andCallback:(TeakRequestResponse)callback
 {
-   TeakCachedRequest* cachedRequest =
-   [TeakCachedRequest requestForService:serviceType
-                             atEndpoint:endpoint
-                            withPayload:payload
-                                inCache:self.cache
-                               callback:callback];
+   __block NSMutableDictionary* fullPayload = [[NSMutableDictionary alloc] initWithDictionary:payload];
+   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+      [fullPayload setObject:session.userId forKey:@"api_key"];
 
-   if(cachedRequest)
-   {
-      [self addRequestInQueue:cachedRequest];
-   }
-
-   return (cachedRequest != nil);
+      TeakCachedRequest* cachedRequest =
+      [TeakCachedRequest requestForService:serviceType
+                                atEndpoint:endpoint
+                               withPayload:fullPayload
+                                   inCache:self.cache
+                                  callback:callback];
+      
+      if(cachedRequest) {
+         [self addRequestInQueue:cachedRequest];
+      }
+   }];
 }
 
 - (void)addRequestInQueue:(TeakRequest*)request
@@ -175,7 +172,7 @@
 
    NSData* dataToSign = [stringToSign dataUsingEncoding:NSUTF8StringEncoding];
    uint8_t digestBytes[CC_SHA256_DIGEST_LENGTH];
-   CCHmac(kCCHmacAlgSHA256, [self.teak.appSecret UTF8String], self.teak.appSecret.length,
+   CCHmac(kCCHmacAlgSHA256, [self.session.appConfiguration.apiKey UTF8String], self.session.appConfiguration.apiKey.length,
           [dataToSign bytes], [dataToSign length], &digestBytes);
 
    NSData* digestData = [NSData dataWithBytes:digestBytes length:CC_SHA256_DIGEST_LENGTH];

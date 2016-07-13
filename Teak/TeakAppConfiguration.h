@@ -12,17 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #import <Foundation/Foundation.h>
-#include <sqlite3.h>
 
-@class TeakCachedRequest;
+@interface TeakAppConfiguration : NSObject
+@property (strong, nonatomic, readonly) NSString* appId;
+@property (strong, nonatomic, readonly) NSString* apiKey;
+@property (strong, nonatomic, readonly) NSString* bundleId;
+@property (strong, nonatomic, readonly) NSString* appVersion;
+@property (nonatomic, readonly) BOOL isProduction;
 
-@interface TeakCache : NSObject
-@property (nonatomic, readonly) sqlite3* sqliteDb;
-
-- (sqlite_uint64)cacheRequest:(TeakCachedRequest*)request;
-- (BOOL)addRetryInCacheForRequest:(TeakCachedRequest*)request;
-- (BOOL)removeRequestFromCache:(TeakCachedRequest*)request;
-- (uint64_t)addRequestsIntoArray:(NSMutableArray*)cacheArray;
-
+- (id)initWithAppId:(nonnull NSString*)appId apiKey:(nonnull NSString*)apiKey;
+- (NSDictionary*)to_h;
 @end

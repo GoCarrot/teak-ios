@@ -17,9 +17,9 @@
 #import <objc/runtime.h>
 #import "Teak+Internal.h"
 
-@interface TeakAppDelegateHooks : NSObject
+#define LOG_TAG "Teak:Hooks"
 
-- (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
+@interface TeakAppDelegateHooks : NSObject
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 
@@ -28,7 +28,7 @@
   sourceApplication:(NSString*)sourceApplication
          annotation:(id)annotation;
 
-- (void)applicationDidBecomeActive:(UIApplication*)application;
+- (void)applicationWillEnterForeground:(UIApplication*)application;
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
 
@@ -41,10 +41,9 @@
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
 @end
 
-static BOOL (*sHostAppWillFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 static BOOL (*sHostAppDidFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 static BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id) = NULL;
-static void (*sHostDBAIMP)(id, SEL, UIApplication*) = NULL;
+static void (*sHostWEFIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostAppPushRegIMP)(id, SEL, UIApplication*, NSData*) = NULL;
 static void (*sHostAppPushDidRegIMP)(id, SEL, UIApplication*, UIUserNotificationSettings*) = NULL;
 static void (*sHostAppPushRegFailIMP)(id, SEL, UIApplication*, NSError*) = NULL;
@@ -55,18 +54,16 @@ extern Teak* _teakSharedInstance;
 
 void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
 {
+   // Allocate and initialize Teak, if it returns nil no hooks will be installed
    _teakSharedInstance = [[Teak alloc] initWithApplicationId:appId andSecret:appSecret];
+   if(_teakSharedInstance == nil)
+   {
+      TeakLog(@"initWithApplicationId:andSecret returned nil, Teak is disabled.");
+      return;
+   }
 
    // Install hooks
    Protocol* uiAppDelegateProto = objc_getProtocol("UIApplicationDelegate");
-
-   // application:willFinishLaunchingWithOptions:
-   {
-      struct objc_method_description appWillFinishLaunchingMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:willFinishLaunchingWithOptions:), NO, YES);
-
-      Method ctWillFinishLaunching = class_getInstanceMethod([TeakAppDelegateHooks class], appWillFinishLaunchingMethod.name);
-      sHostAppWillFinishLaunching = (BOOL (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appWillFinishLaunchingMethod.name, method_getImplementation(ctWillFinishLaunching), appWillFinishLaunchingMethod.types);
-   }
 
    // application:didFinishLaunchingWithOptions:
    {
@@ -84,12 +81,12 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
       sHostAppOpenURLIMP = (BOOL (*)(id, SEL, UIApplication*, NSURL*, NSString*, id))class_replaceMethod(appDelegateClass, appOpenURLMethod.name, method_getImplementation(ctAppOpenURL), appOpenURLMethod.types);
    }
 
-   // applicationDidBecomeActive:
+   // applicationWillEnterForeground:
    {
-      struct objc_method_description appDBAMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationDidBecomeActive:), NO, YES);
+      struct objc_method_description appWEFMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationWillEnterForeground:), NO, YES);
 
-      Method ctAppDBA = class_getInstanceMethod([TeakAppDelegateHooks class], appDBAMethod.name);
-      sHostDBAIMP = (void (*)(id, SEL, UIApplication*))class_replaceMethod(appDelegateClass, appDBAMethod.name, method_getImplementation(ctAppDBA), appDBAMethod.types);
+      Method ctAppDBA = class_getInstanceMethod([TeakAppDelegateHooks class], appWEFMethod.name);
+      sHostWEFIMP = (void (*)(id, SEL, UIApplication*))class_replaceMethod(appDelegateClass, appWEFMethod.name, method_getImplementation(ctAppDBA), appWEFMethod.types);
    }
 
    // application:didRegisterForRemoteNotificationsWithDeviceToken:
@@ -135,64 +132,41 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
 
 @implementation TeakAppDelegateHooks
 
-- (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions
-{
-   BOOL ret = [[Teak sharedInstance] application:application willFinishLaunchingWithOptions:launchOptions];
-   if(sHostAppWillFinishLaunching)
-   {
-      ret |= sHostAppWillFinishLaunching(self, @selector(application:willFinishLaunchingWithOptions:), application, launchOptions);
-   }
-   return ret;
-}
-
-- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
-{
+- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
    BOOL ret = [[Teak sharedInstance] application:application didFinishLaunchingWithOptions:launchOptions];
-   if(sHostAppDidFinishLaunching)
-   {
+   if (sHostAppDidFinishLaunching) {
       ret |= sHostAppDidFinishLaunching(self, @selector(application:didFinishLaunchingWithOptions:), application, launchOptions);
    }
    return ret;
 }
 
-- (BOOL)application:(UIApplication*)application
-            openURL:(NSURL*)url
-  sourceApplication:(NSString*)sourceApplication
-         annotation:(id)annotation
-{
-   BOOL ret = [[Teak sharedInstance] handleOpenURL:url];
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
+   BOOL ret = [[Teak sharedInstance] application:application openURL:url sourceApplication:sourceApplication annotation:annotation];
 
-   if(sHostAppOpenURLIMP)
-   {
+   if (sHostAppOpenURLIMP) {
       ret |= sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, url, sourceApplication, annotation);
    }
 
    return ret;
 }
 
-- (void)applicationDidBecomeActive:(UIApplication*)application
-{
-   [[Teak sharedInstance] applicationDidBecomeActive:application];
-   if(sHostDBAIMP)
-   {
-      sHostDBAIMP(self, @selector(applicationDidBecomeActive:), application);
+- (void)applicationWillEnterForeground:(UIApplication*)application {
+   [[Teak sharedInstance] applicationWillEnterForeground:application];
+   if (sHostWEFIMP) {
+      sHostWEFIMP(self, @selector(applicationWillEnterForeground:), application);
    }
 }
 
-- (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken
-{
+- (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
    [[Teak sharedInstance] application:application didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
-   if(sHostAppPushRegIMP)
-   {
+   if (sHostAppPushRegIMP) {
       sHostAppPushRegIMP(self, @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:), application, deviceToken);
    }
 }
 
-- (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings
-{
+- (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {
    [[Teak sharedInstance] application:application didRegisterUserNotificationSettings:notificationSettings];
-   if(sHostAppPushDidRegIMP)
-   {
+   if (sHostAppPushDidRegIMP) {
       sHostAppPushDidRegIMP(self, @selector(application:didRegisterUserNotificationSettings:), application, notificationSettings);
    }
 }

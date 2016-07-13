@@ -14,50 +14,32 @@
  */
 
 #import <Teak/Teak.h>
+
 #import "TeakRaven.h"
+
+@class TeakDebugConfiguration;
+@class TeakAppConfiguration;
+@class TeakDeviceConfiguration;
 
 @class TeakCache;
 @class TeakRequestThread;
 
-#define kTeakServicesHostname @"services.gocarrot.com"
-#define kDefaultHostUrlScheme @"https"
-#define kMergeLastSessionDeltaSeconds 120
-
-extern NSString* URLEscapedString(NSString* inString);
-
 @interface Teak ()
+@property (nonatomic, readwrite) BOOL enableDebugOutput;
 
-@property (strong, nonatomic) NSString* appId;
-@property (strong, nonatomic) NSString* appSecret;
-@property (strong, nonatomic) NSString* pushToken;
-@property (strong, nonatomic) NSString* userId;
-@property (strong, nonatomic) NSString* sdkVersion;
-@property (strong, nonatomic) NSString* sdkPlatform;
-@property (strong, nonatomic) NSString* appVersion;
-@property (strong, nonatomic) NSString* deviceId;
-@property (strong, nonatomic) NSString* launchedFromTeakNotifId;
-@property (strong, nonatomic) NSURL* launchedFromDeepLink;
-@property (strong, nonatomic) NSString* deviceModel;
+@property (strong, nonatomic) TeakDebugConfiguration* debugConfiguration;
+@property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
+@property (strong, nonatomic) TeakDeviceConfiguration* deviceConfiguration;
+
+@property (strong, nonatomic, readwrite) NSString* sdkVersion;
+
 @property (strong, nonatomic) NSString* fbAccessToken;
-@property (strong, nonatomic) NSString* teakCountryCode;
 
-@property (strong, nonatomic) NSDate*   lastSessionEndedAt;
-
-@property (strong, nonatomic) NSString* hostname;
-
-@property (strong, nonatomic) NSString*  dataPath;
 @property (strong, nonatomic) TeakCache* cache;
 @property (strong, nonatomic) TeakRequestThread* requestThread;
-@property (atomic)            BOOL       userIdentifiedThisSession;
-@property (atomic)            BOOL       isProduction;
 
 @property (strong, nonatomic) NSOperationQueue* dependentOperationQueue;
-@property (strong, nonatomic) NSOperation* serviceConfigurationOperation;
-@property (strong, nonatomic) NSOperation* userIdOperation;
-@property (strong, nonatomic) NSOperation* liveConnectionOperation;
-@property (strong, nonatomic) NSOperation* identifyUserOperation;
 @property (strong, nonatomic) NSOperation* facebookAccessTokenOperation;
-@property (strong, nonatomic) NSOperation* pushTokenOperation;
 
 @property (strong, nonatomic) NSMutableDictionary* priceInfoDictionary;
 @property (strong, atomic)    NSMutableDictionary* priceInfoCompleteDictionary;
@@ -66,14 +48,13 @@ extern NSString* URLEscapedString(NSString* inString);
 
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret;
 
-- (BOOL)handleOpenURL:(NSURL*)url;
-- (void)applicationDidBecomeActive:(UIApplication*)application;
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation;
+- (void)applicationWillEnterForeground:(UIApplication*)application;
 - (void)applicationWillResignActive:(UIApplication*)application;
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings;
 - (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error;
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
-- (BOOL)application:(UIApplication*)application willFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 
 @end

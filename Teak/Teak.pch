@@ -13,16 +13,18 @@
  * limitations under the License.
  */
 #import <Foundation/Foundation.h>
-#include <sqlite3.h>
 
-@class TeakCachedRequest;
+#ifndef Teak_h
+#define Teak_h
 
-@interface TeakCache : NSObject
-@property (nonatomic, readonly) sqlite3* sqliteDb;
+#include "TeakKVOHelpers.h"
 
-- (sqlite_uint64)cacheRequest:(TeakCachedRequest*)request;
-- (BOOL)addRetryInCacheForRequest:(TeakCachedRequest*)request;
-- (BOOL)removeRequestFromCache:(TeakCachedRequest*)request;
-- (uint64_t)addRequestsIntoArray:(NSMutableArray*)cacheArray;
+#define TeakLog(fmt, ...) NSLog((@"[%s] %s (Line %d) " fmt), LOG_TAG, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
 
-@end
+extern NSString* TeakURLEscapedString(NSString* inString);
+extern NSString* TeakNSStringOrNilFor(id object);
+
+#define URLEscapedString(_inString) TeakURLEscapedString(_inString)
+#define NSStringOrNilFor(_id) TeakNSStringOrNilFor(_id)
+
+#endif /* Teak_h */

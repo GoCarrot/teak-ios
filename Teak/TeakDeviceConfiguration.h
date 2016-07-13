@@ -14,24 +14,18 @@
  */
 
 #import <Foundation/Foundation.h>
-#import "TeakCache.h"
-#import "TeakRequest.h"
 
-@class TeakSession;
+@class TeakAppConfiguration;
 
-@interface TeakRequestThread : NSObject
+@interface TeakDeviceConfiguration : NSObject
+@property (strong, nonatomic, readonly) NSString* deviceId;
+@property (strong, nonatomic, readonly) NSString* deviceModel;
+@property (strong, nonatomic, readonly) NSString* pushToken;
+@property (strong, nonatomic, readonly) NSString* platformString;
+@property (strong, nonatomic, readonly) NSString* advertisingIdentifier;
+@property (strong, nonatomic, readonly) NSNumber* limitAdTracking;
 
-@property (nonatomic, readonly) BOOL isRunning;
-@property (nonatomic) NSUInteger maxRetryCount; // 0 = infinite
-@property (strong, nonatomic, readonly) TeakCache* cache;
-
-- (id)initForSession:(TeakSession*)session;
-
-- (void)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint withPayload:(NSDictionary*)payload andCallback:(TeakRequestResponse)callback;
-
-- (void)start;
-- (void)stop;
-
-- (void)processRequest:(TeakRequest*)request onHost:(NSString*)host;
-
+- (id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
+- (NSDictionary*)to_h;
+- (void)assignPushToken:(nonnull NSString*)pushToken;
 @end

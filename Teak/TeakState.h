@@ -12,17 +12,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #import <Foundation/Foundation.h>
-#include <sqlite3.h>
 
-@class TeakCachedRequest;
+#define DeclareTeakState(_name) + (nonnull TeakState*) _name
 
-@interface TeakCache : NSObject
-@property (nonatomic, readonly) sqlite3* sqliteDb;
+#define DefineTeakState(_name, _allowedTransitions) + (nonnull TeakState*) _name { static TeakState* _state = nil; static dispatch_once_t onceToken; dispatch_once(&onceToken, ^{ _state = [[TeakState alloc] initWithName:@#_name allowedTransitions: _allowedTransitions ]; }); return _state; }
 
-- (sqlite_uint64)cacheRequest:(TeakCachedRequest*)request;
-- (BOOL)addRetryInCacheForRequest:(TeakCachedRequest*)request;
-- (BOOL)removeRequestFromCache:(TeakCachedRequest*)request;
-- (uint64_t)addRequestsIntoArray:(NSMutableArray*)cacheArray;
+@interface TeakState : NSObject
+@property (strong, nonatomic, readonly) NSString* name;
 
+- (id)initWithName:(nonnull NSString*)name allowedTransitions:(nonnull NSArray*)allowedTransitions;
+- (BOOL)canTransitionToState:(nonnull TeakState*)nextState;
+
++ (TeakState*)Invalid;
 @end

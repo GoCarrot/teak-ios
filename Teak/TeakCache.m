@@ -17,6 +17,8 @@
 #import "TeakCache.h"
 #import "TeakCachedRequest.h"
 
+#define LOG_TAG "Teak:Cache"
+
 // Cache schema version
 #define kCacheSchemaCreateSQL "CREATE TABLE IF NOT EXISTS cache_schema(schema_version INTEGER)"
 #define kCacheSchemaReadSQL "SELECT MAX(schema_version) FROM cache_schema"
@@ -43,27 +45,44 @@ static BOOL teakcache_commit(sqlite3* cache);
 
 @implementation TeakCache
 
-+ (id)cacheWithPath:(NSString*)path
-{
-   return [[TeakCache alloc] initWithPath:path];
-}
+- (id)init {
+   NSError* error = nil;
+   NSString* dataPath = nil;
 
-- (id)initWithPath:path
-{
+   @try {
+      NSArray* searchPaths = [[NSFileManager defaultManager] URLsForDirectory:NSLibraryDirectory inDomains:NSUserDomainMask];
+      dataPath = [[[searchPaths lastObject] URLByAppendingPathComponent:@"Teak"] path];
+   
+   
+      BOOL succeeded = [[NSFileManager defaultManager] createDirectoryAtPath:dataPath
+                                                 withIntermediateDirectories:YES
+                                                                  attributes:nil
+                                                                       error:&error];
+      if (!succeeded) {
+         TeakLog(@"Unable to create Teak data path. %@.", error);
+         return nil;
+      }
+   } @catch (NSException* exception) {
+      TeakLog("Error creating Teak data path. %@", exception);
+   }
+
    sqlite3* sqliteDb;
-   int sql3Err = sqlite3_open([[path stringByAppendingPathComponent:@"RequestQueue.db"] UTF8String],
-                              &sqliteDb);
-   if(sql3Err != SQLITE_OK)
-   {
-      NSLog(@"[Teak] Error creating Teak data store at: %@", path);
-      return nil;
+   @try {
+      int sql3Err = sqlite3_open([[dataPath stringByAppendingPathComponent:@"RequestQueue.db"] UTF8String], &sqliteDb);
+      if (sql3Err != SQLITE_OK) {
+         TeakLog(@"Error creating Teak data store at: %@", dataPath);
+         return nil;
+      }
+   } @catch (NSException* exception) {
+      TeakLog("Error creating Teak data store. %@", exception);
    }
 
    self = [super init];
-   if(self)
-   {
+   if (self) {
       self.sqliteDb = sqliteDb;
-      [self prepareCache];
+      if (![self prepareCache]) {
+         return nil;
+      }
    }
    return self;
 }
@@ -239,53 +258,43 @@ static BOOL teakcache_commit(sqlite3* cache);
    return numAdded;
 }
 
-- (BOOL)prepareCache
-{
+- (BOOL)prepareCache {
    BOOL ret = YES;
 
    sqlite3_stmt* sqlStatement;
 
    // Create schema version table
-   if(sqlite3_prepare_v2(self.sqliteDb, kCacheSchemaCreateSQL, -1, &sqlStatement, NULL) == SQLITE_OK)
-   {
-      if(sqlite3_step(sqlStatement) != SQLITE_DONE)
-      {
-         NSLog(@"[Teak] Failed to create Teak cache schema. Error: %s'", sqlite3_errmsg(self.sqliteDb));
+   if (sqlite3_prepare_v2(self.sqliteDb, kCacheSchemaCreateSQL, -1, &sqlStatement, NULL) == SQLITE_OK) {
+      if (sqlite3_step(sqlStatement) != SQLITE_DONE) {
+         TeakLog(@"Failed to create Teak cache schema. Error: %s'", sqlite3_errmsg(self.sqliteDb));
          ret = NO;
       }
    }
    else
    {
-      NSLog(@"[Teak] Failed to create Teak cache schema statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
+      TeakLog(@"Failed to create Teak cache schema statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
       ret = NO;
    }
    sqlite3_finalize(sqlStatement);
-
-   if(!ret) return ret;
+   if (!ret) return ret;
 
    // Read cache schema version
    NSUInteger cacheSchemaVersion = 0;
-   if(sqlite3_prepare_v2(self.sqliteDb, kCacheSchemaReadSQL, -1, &sqlStatement, NULL) == SQLITE_OK)
-   {
-      while(sqlite3_step(sqlStatement) == SQLITE_ROW)
-      {
+   if (sqlite3_prepare_v2(self.sqliteDb, kCacheSchemaReadSQL, -1, &sqlStatement, NULL) == SQLITE_OK) {
+      while(sqlite3_step(sqlStatement) == SQLITE_ROW) {
          cacheSchemaVersion = sqlite3_column_int(sqlStatement, 0);
       }
    }
    sqlite3_finalize(sqlStatement);
 
    // Create v0 cache if needed
-   if(sqlite3_prepare_v2(self.sqliteDb, kCacheCreateV0SQL, -1, &sqlStatement, NULL) == SQLITE_OK)
-   {
-      if(sqlite3_step(sqlStatement) != SQLITE_DONE)
-      {
-         NSLog(@"[Teak] Failed to create Teak cache. Error: %s'", sqlite3_errmsg(self.sqliteDb));
+   if (sqlite3_prepare_v2(self.sqliteDb, kCacheCreateV0SQL, -1, &sqlStatement, NULL) == SQLITE_OK) {
+      if (sqlite3_step(sqlStatement) != SQLITE_DONE) {
+         TeakLog(@"Failed to create Teak cache. Error: %s'", sqlite3_errmsg(self.sqliteDb));
          ret = NO;
       }
-   }
-   else
-   {
-      NSLog(@"[Teak] Failed to create Teak cache statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
+   } else {
+      TeakLog(@"Failed to create Teak cache statement. Error: '%s'", sqlite3_errmsg(self.sqliteDb));
       ret = NO;
    }
    sqlite3_finalize(sqlStatement);

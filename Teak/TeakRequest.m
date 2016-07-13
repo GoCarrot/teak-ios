@@ -16,6 +16,9 @@
 #import "TeakRequest.h"
 #import "Teak+Internal.h"
 
+#import "TeakAppConfiguration.h"
+#import "TeakDeviceConfiguration.h"
+
 NSString* const TeakRequestTypePOST = @"POST";
 
 @interface TeakRequest ()
@@ -47,15 +50,14 @@ NSString* const TeakRequestTypePOST = @"POST";
    dispatch_once(&onceToken, ^{
       commonPayload = @{
          @"appstore_name" : @"apple",
-         @"api_key" : [Teak sharedInstance].userId,
-         @"game_id" : [Teak sharedInstance].appId,
+         @"game_id" : [Teak sharedInstance].appConfiguration.appId,
          @"sdk_version" : [Teak sharedInstance].sdkVersion,
-         @"sdk_platform" : [Teak sharedInstance].sdkPlatform,
-         @"app_version" : [Teak sharedInstance].appVersion,
-         @"device_model" : [Teak sharedInstance].deviceModel,
+         @"sdk_platform" : [Teak sharedInstance].deviceConfiguration.platformString,
+         @"app_version" : [Teak sharedInstance].appConfiguration.appVersion,
+         @"device_model" : [Teak sharedInstance].deviceConfiguration.deviceModel,
          @"bundle_id" : [[NSBundle mainBundle] bundleIdentifier],
-         @"device_id" : [Teak sharedInstance].deviceId,
-         @"is_sandbox" : [NSNumber numberWithBool:![Teak sharedInstance].isProduction]
+         @"device_id" : [Teak sharedInstance].deviceConfiguration.deviceId,
+         @"is_sandbox" : [NSNumber numberWithBool:![Teak sharedInstance].appConfiguration.isProduction]
       };
    });
 

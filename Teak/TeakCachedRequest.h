@@ -25,6 +25,7 @@
 @property (nonatomic, readonly) sqlite3_uint64 cacheId;
 
 + (id)requestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint withPayload:(NSDictionary*)payload inCache:(TeakCache*)cache callback:(TeakRequestResponse)callback;
+
 - (id)initForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint payload:(NSDictionary*)payload requestId:(NSString*)requestId dateIssued:(NSDate*)dateIssued cacheId:(sqlite3_uint64)cacheId retryCount:(NSUInteger)retryCount callback:(TeakRequestResponse)callback;
 
 - (NSString*)description;
