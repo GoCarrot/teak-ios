@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#import <Teak/Teak.h>
+#import "Teak+Internal.h"
 #import "TeakSession.h"
 #import "TeakRequest.h"
 #import "TeakAppConfiguration.h"
@@ -136,92 +136,92 @@ DefineTeakState(Expired, (@[]))
 }
 
 - (void)identifyUser {
-   // Time zone
-   NSTimeZone* timeZone = [NSTimeZone localTimeZone];
-   float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
-   NSString* timeZoneString = [NSString stringWithFormat:@"%f", timeZoneOffset];
-   if (timeZoneString == nil) {
-      timeZoneString = @"unknown";
+   @synchronized (self) {
+      // Time zone
+      NSTimeZone* timeZone = [NSTimeZone localTimeZone];
+      float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
+      NSString* timeZoneString = [NSString stringWithFormat:@"%f", timeZoneOffset];
+      if (timeZoneString == nil) {
+         timeZoneString = @"unknown";
+      }
+
+      // Locale
+      NSString* locale = nil;
+      @try {
+         locale = [[NSLocale preferredLanguages] objectAtIndex:0];
+      } @catch (NSException *exception) {
+         locale = @"unknown"; // TODO: report
+      }
+
+      NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
+         @"locale" : locale,
+         @"timezone" : timeZoneString
+      }];
+
+      if (self.deviceConfiguration.advertisingIdentifier != nil) {
+         [payload setObject:self.deviceConfiguration.advertisingIdentifier forKey:@"ios_ad_id"];
+         [payload setObject:self.deviceConfiguration.limitAdTracking forKey:@"ios_limit_ad_tracking"];
+      }
+
+      if (self.currentState == [TeakSession UserIdentified]) {
+         [payload setObject:@YES forKey:@"do_not_track_event"];
+      }
+
+      if (self.deviceConfiguration.pushToken != nil) {
+         [payload setObject:self.deviceConfiguration.pushToken forKey:@"apns_push_key"];
+      } else {
+         [payload setObject:@"" forKey:@"apns_push_key"];
+      }
+
+      if (self.launchedFromTeakNotifId != nil) {
+         [payload setObject:self.launchedFromTeakNotifId forKey:@"teak_notif_id"];
+      }
+
+      if (self.launchedFromDeepLink != nil) {
+         [payload setObject:self.launchedFromDeepLink forKey:@"deep_link"];
+      }
+
+      if ([Teak sharedInstance].fbAccessToken != nil) {
+         [payload setObject:[Teak sharedInstance].fbAccessToken forKey:@"access_token"];
+      }
+
+      NSLog(@"[Teak] Identifying user: %@", self.userId);
+      NSLog(@"[Teak]         Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
+      NSLog(@"[Teak]           Locale: %@", [[NSLocale preferredLanguages] objectAtIndex:0]);
+      /*
+       if(self.enableDebugOutput && self.pushToken != nil)
+       {
+       NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@",
+       self.appId,
+       URLEscapedString(self.userId),
+       URLEscapedString(self.pushToken),
+       URLEscapedString(self.deviceModel),
+       URLEscapedString([[NSBundle mainBundle] bundleIdentifier]),
+       self.isProduction ? @"false" : @"true"];
+       NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
+       NSLog(@"%@", urlString);
+       }
+       */
+
+      __block typeof(self) blockSelf = self;
+      TeakRequest* request = [[TeakRequest alloc]
+                              initWithSession:self
+                              forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
+                              withPayload:payload
+                              callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                 // TODO: Check response
+                                 if (YES) {
+                                    // TODO: Set on debug configuration
+                                    //blockSelf.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
+                                    blockSelf.countryCode = [reply valueForKey:@"country_code"];
+
+                                    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                                       [blockSelf setState:[TeakSession UserIdentified]];
+                                    });
+                                 }
+                              }];
+      [request send];
    }
-
-   // Locale
-   NSString* locale = nil;
-   @try {
-      locale = [[NSLocale preferredLanguages] objectAtIndex:0];
-   } @catch (NSException *exception) {
-      locale = @"unknown"; // TODO: report
-   }
-
-   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
-      @"locale" : locale,
-      @"timezone" : timeZoneString,
-      @"api_key" : self.userId
-   }];
-
-   if (self.deviceConfiguration.advertisingIdentifier != nil) {
-      [payload setObject:self.deviceConfiguration.advertisingIdentifier forKey:@"ios_ad_id"];
-      [payload setObject:self.deviceConfiguration.limitAdTracking forKey:@"ios_limit_ad_tracking"];
-   }
-
-   if (self.currentState == [TeakSession UserIdentified]) {
-      [payload setObject:@YES forKey:@"do_not_track_event"];
-   }
-
-   if (self.deviceConfiguration.pushToken != nil) {
-      [payload setObject:self.deviceConfiguration.pushToken forKey:@"apns_push_key"];
-   } else {
-      [payload setObject:@"" forKey:@"apns_push_key"];
-   }
-
-   if (self.launchedFromTeakNotifId != nil) {
-      [payload setObject:self.launchedFromTeakNotifId forKey:@"teak_notif_id"];
-   }
-
-   if (self.launchedFromDeepLink != nil) {
-      [payload setObject:self.launchedFromDeepLink forKey:@"deep_link"];
-   }
-/*
-   if(self.fbAccessToken != nil)
-   {
-      [payload setObject:self.fbAccessToken forKey:@"access_token"];
-   }
-*/
-   NSLog(@"[Teak] Identifying user: %@", self.userId);
-   NSLog(@"[Teak]         Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
-   NSLog(@"[Teak]           Locale: %@", [[NSLocale preferredLanguages] objectAtIndex:0]);
-   /*
-    if(self.enableDebugOutput && self.pushToken != nil)
-    {
-    NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@",
-    self.appId,
-    URLEscapedString(self.userId),
-    URLEscapedString(self.pushToken),
-    URLEscapedString(self.deviceModel),
-    URLEscapedString([[NSBundle mainBundle] bundleIdentifier]),
-    self.isProduction ? @"false" : @"true"];
-    NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
-    NSLog(@"%@", urlString);
-    }
-    */
-
-   __block typeof(self) blockSelf = self;
-   TeakRequest* request = [[TeakRequest alloc]
-                           initWithSession:self
-                           forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
-                           withPayload:payload
-                           callback:^(NSURLResponse* response, NSDictionary* reply) {
-                              // TODO: Check response
-                              if (YES) {
-                                 // TODO: Set on debug configuration
-                                 //blockSelf.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
-                                 blockSelf.countryCode = [reply valueForKey:@"country_code"];
-
-                                 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                                    [blockSelf setState:[TeakSession UserIdentified]];
-                                 });
-                              }
-                           }];
-   [request send];
 }
 
 - (void)sendHeartbeat {
@@ -262,6 +262,7 @@ DefineTeakState(Expired, (@[]))
       RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
       RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
       RegisterKeyValueObserverFor(self, currentState);
+      RegisterKeyValueObserverFor([Teak sharedInstance], fbAccessToken);
 
       [self setState:[TeakSession Created]];
    }
@@ -284,10 +285,19 @@ DefineTeakState(Expired, (@[]))
       RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
       RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
       RegisterKeyValueObserverFor(self, currentState);
+      RegisterKeyValueObserverFor([Teak sharedInstance], fbAccessToken);
 
       [self setState:otherSession.currentState];
    }
    return self;
+}
+
+- (void)dealloc {
+   UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
+   UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
+   UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
+   UnRegisterKeyValueObserverFor(self, currentState);
+   UnRegisterKeyValueObserverFor([Teak sharedInstance], fbAccessToken);
 }
 
 + (void)setUserId:(nonnull NSString*)userId {
@@ -374,6 +384,16 @@ DefineTeakState(Expired, (@[]))
          }
       }
       return currentSession;
+   }
+}
+
+KeyValueObserverFor(Teak, fbAccessToken) {
+   if (oldValue == nil || ![newValue isEqualToString:oldValue]) {
+      @synchronized (self) {
+         if (self.currentState == [TeakSession UserIdentified]) {
+            [self identifyUser];
+         }
+      }
    }
 }
 

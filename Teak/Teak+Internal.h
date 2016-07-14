@@ -32,12 +32,6 @@
 
 @property (strong, nonatomic) NSString* fbAccessToken;
 
-@property (strong, nonatomic) NSOperationQueue* dependentOperationQueue;
-@property (strong, nonatomic) NSOperation* facebookAccessTokenOperation;
-
-@property (strong, nonatomic) NSMutableDictionary* priceInfoDictionary;
-@property (strong, atomic)    NSMutableDictionary* priceInfoCompleteDictionary;
-
 @property (strong, nonatomic) TeakRaven* sdkRaven;
 
 // Static initialization time or main()

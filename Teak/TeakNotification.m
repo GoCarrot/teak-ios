@@ -118,8 +118,6 @@
                                        ret.rewardStatus = kTeakRewardStatusInvalidPost;
                                     }
                                  }
-
-                                 // Ready
                                  ret.completed = YES;
                               }];
       [request send];
@@ -142,11 +140,11 @@
    TeakNotification* ret = [[TeakNotification alloc] init];
    ret.completed = NO;
 
-   NSDictionary* payload = @{
+   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
       @"message" : message,
       @"identifier" : creativeId,
       @"offset" : [NSNumber numberWithUnsignedLongLong:delay]
-   };
+   }];
 
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
       TeakRequest* request = [[TeakRequest alloc]
@@ -166,8 +164,6 @@
                                        ret.teakNotifId = nil;
                                     }
                                  }
-
-                                 // Ready
                                  ret.completed = YES;
                               }];
       [request send];
@@ -202,8 +198,6 @@
                                        ret.teakNotifId = nil;
                                     }
                                  }
-
-                                 // Ready
                                  ret.completed = YES;
                               }];
       [request send];
