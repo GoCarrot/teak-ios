@@ -157,6 +157,10 @@
 
       NSURLSessionDataTask *dataTask = [self.urlSession dataTaskWithRequest:request];
       [dataTask resume];
+
+      if ([Teak sharedInstance].enableDebugOutput) {
+         TeakLog(@"Submitting request to '%@': %@", self.endpoint, self.payload);
+      }
    } @catch(NSException* exception) {
       TeakLog(@"Error sending request. %@", exception);
    }
@@ -182,6 +186,10 @@
    else {
       @try {
          NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
+
+         if ([Teak sharedInstance].enableDebugOutput) {
+            TeakLog(@"Reply from '%@': %@", self.endpoint, reply);
+         }
 
          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             self.callback(task.response, reply);
