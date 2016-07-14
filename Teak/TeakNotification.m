@@ -22,7 +22,7 @@
 
 @property (atomic, readwrite)            BOOL completed;
 @property (nonatomic, readwrite)         int rewardStatus;
-@property (strong, nonatomic, readwrite) NSString* json;
+@property (strong, nonatomic, readwrite) NSDictionary* json;
 
 @end
 
@@ -59,7 +59,7 @@
                                     TeakLog(@"Error claiming Teak reward: %@", response);
                                  } else {
                                     NSDictionary* rewardResponse = [reply objectForKey:@"response"];
-                                    ret.json = [rewardResponse objectForKey:@"reward"];
+                                    ret.json = rewardResponse;
 
                                     NSString* status = [rewardResponse objectForKey:@"status"];
                                     if ([status isEqualToString:@"grant_reward"]) {

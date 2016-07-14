@@ -18,6 +18,7 @@
 
 @interface TeakNotification : NSObject
 @property (strong, nonatomic, readonly) NSString* _Nullable     teakNotifId;
+@property (strong, nonatomic, readonly) NSString* _Nullable     teakRewardId;
 @property (strong, nonatomic, readonly) NSDictionary* _Nullable originalJson;
 @property (strong, nonatomic, readonly) NSURL* _Nullable        deepLink;
 @property (atomic, readonly)            BOOL                    completed;
@@ -41,9 +42,9 @@ typedef enum : int
 } TeakRewardStatus;
 
 @interface TeakReward : NSObject
-@property (atomic, readonly)            BOOL               completed;
-@property (nonatomic, readonly)         int                rewardStatus;
-@property (strong, nonatomic, readonly) NSString* _Nonnull json;
+@property (atomic, readonly)            BOOL                   completed;
+@property (nonatomic, readonly)         int                    rewardStatus;
+@property (strong, nonatomic, readonly) NSDictionary* _Nonnull json;
 
 + (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId;
 @end
