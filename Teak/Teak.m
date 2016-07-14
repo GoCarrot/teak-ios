@@ -67,8 +67,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
    return _teakSharedInstance;
 }
 
-+ (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andSecret:(NSString*)appSecret; {
-   Teak_Plant(appDelegateClass, appId, appSecret);
++ (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andApiKey:(NSString*)apiKey {
+   Teak_Plant(appDelegateClass, appId, apiKey);
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {

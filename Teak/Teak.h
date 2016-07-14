@@ -53,7 +53,7 @@ extern NSString* const TeakNotificationAppLaunch;
  * 	{
  * 		@autoreleasepool {
  * 			// Add this line here.
- * 			[Teak initForApplicationId:@"your_app_id" withClass:[YourAppDelegate class] andSecret:@"your_app_secret"];
+ * 			[Teak initForApplicationId:@"your_app_id" withClass:[YourAppDelegate class] andApiKey:@"your_api_key"];
  *
  * 			return UIApplicationMain(argc, argv, nil, NSStringFromClass([YourAppDelegate class]));
  * 		}
@@ -61,9 +61,9 @@ extern NSString* const TeakNotificationAppLaunch;
  *
  * @param appId            Teak Application Id
  * @param appDelegateClass Class of your application delegate, ex: [YourAppDelegate class].
- * @param appSecret        Your Teak application secret.
+ * @param apiKey           Your Teak API key.
  */
-+ (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andSecret:(NSString*)appSecret;
++ (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andApiKey:(NSString*)apiKey;
 
 /**
  * Teak singleton.
