@@ -94,16 +94,18 @@
 }
 
 - (void)getAdvertisingInformation {
-   __weak typeof(self) weakSelf = self;
-   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-      NSString* advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
-      if (advertisingIdentifier != nil) {
-         weakSelf.limitAdTracking = [ASIdentifierManager sharedManager].advertisingTrackingEnabled ? @YES : @NO;
-         weakSelf.advertisingIdentifier = advertisingIdentifier;
-      } else {
+   NSString* advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
+   if (advertisingIdentifier != nil) {
+      self.limitAdTracking = [ASIdentifierManager sharedManager].advertisingTrackingEnabled ? @YES : @NO;
+      self.advertisingIdentifier = advertisingIdentifier;
+   } else {
+      __weak typeof(self) weakSelf = self;
+
+      // TODO: Exponential backoff?
+      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
          [weakSelf getAdvertisingInformation];
-      }
-   });
+      });
+   }
 }
 
 - (void)assignPushToken:(nonnull NSString*)pushToken {
