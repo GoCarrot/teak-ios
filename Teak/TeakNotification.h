@@ -22,7 +22,6 @@
 @property (strong, nonatomic, readonly) NSURL* _Nullable        deepLink;
 @property (atomic, readonly)            BOOL                    completed;
 
-- (nullable TeakReward*)consume;
 - (nullable TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary;
 
 + (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId withMessage:(nonnull NSString*)message secondsFromNow:(uint64_t)delay;
@@ -45,4 +44,6 @@ typedef enum : int
 @property (atomic, readonly)            BOOL               completed;
 @property (nonatomic, readonly)         int                rewardStatus;
 @property (strong, nonatomic, readonly) NSString* _Nonnull json;
+
++ (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId;
 @end

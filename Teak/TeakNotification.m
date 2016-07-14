@@ -35,6 +35,56 @@
            self.rewardStatus,
            self.json];
 }
+
+
++ (TeakReward*)rewardForRewardId:(NSString*)teakRewardId {
+   if (teakRewardId == nil || teakRewardId.length == 0) {
+      TeakLog(@"teakRewardId must not be nil or empty");
+      return nil;
+   }
+
+   TeakReward* ret = [[TeakReward alloc] init];
+   ret.completed = NO;
+   ret.rewardStatus = kTeakRewardStatusUnknown;
+
+   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+      NSString* urlString = [NSString stringWithFormat:@"/%@/clicks", teakRewardId];
+      TeakRequest* request = [[TeakRequest alloc]
+                              initWithSession:session
+                              forEndpoint:urlString
+                              withPayload:@{@"clicking_user_id" : session.userId}
+                              callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                 // TODO: Check response
+                                 if(NO) {
+                                    TeakLog(@"Error claiming Teak reward: %@", response);
+                                 } else {
+                                    NSDictionary* rewardResponse = [reply objectForKey:@"response"];
+                                    ret.json = [rewardResponse objectForKey:@"reward"];
+
+                                    NSString* status = [rewardResponse objectForKey:@"status"];
+                                    if ([status isEqualToString:@"grant_reward"]) {
+                                       ret.rewardStatus = kTeakRewardStatusGrantReward;
+                                    } else if ([status isEqualToString:@"self_click"]) {
+                                       ret.rewardStatus = kTeakRewardStatusSelfClick;
+                                    } else if ([status isEqualToString:@"already_clicked"]) {
+                                       ret.rewardStatus = kTeakRewardStatusAlreadyClicked;
+                                    } else if ([status isEqualToString:@"too_many_clicks"]) {
+                                       ret.rewardStatus = kTeakRewardStatusTooManyClicks;
+                                    } else if ([status isEqualToString:@"exceed_max_clicks_for_day"]) {
+                                       ret.rewardStatus = kTeakRewardStatusExceedMaxClicksForDay;
+                                    } else if ([status isEqualToString:@"expired"]) {
+                                       ret.rewardStatus = kTeakRewardStatusExpired;
+                                    } else if ([status isEqualToString:@"invalid_post"]) {
+                                       ret.rewardStatus = kTeakRewardStatusInvalidPost;
+                                    }
+                                 }
+                                 ret.completed = YES;
+                              }];
+      [request send];
+   }];
+
+   return ret;
+}
 @end
 
 @interface TeakNotification ()
@@ -80,50 +130,6 @@
            self.teakRewardId,
            self.deepLink,
            self.originalJson];
-}
-
-- (TeakReward*)consume {
-   TeakReward* ret = [[TeakReward alloc] init];
-   ret.completed = NO;
-   ret.rewardStatus = kTeakRewardStatusUnknown;
-
-   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      NSString* urlString = [NSString stringWithFormat:@"/%@/clicks", self.teakRewardId];
-      TeakRequest* request = [[TeakRequest alloc]
-                              initWithSession:session
-                              forEndpoint:urlString
-                              withPayload:@{@"clicking_user_id" : session.userId}
-                              callback:^(NSURLResponse* response, NSDictionary* reply) {
-                                 // TODO: Check response
-                                 if(NO) {
-                                    TeakLog(@"Error claiming Teak reward: %@", response);
-                                 } else {
-                                    NSDictionary* rewardResponse = [reply objectForKey:@"response"];
-                                    ret.json = [rewardResponse objectForKey:@"reward"];
-
-                                    NSString* status = [rewardResponse objectForKey:@"status"];
-                                    if ([status isEqualToString:@"grant_reward"]) {
-                                       ret.rewardStatus = kTeakRewardStatusGrantReward;
-                                    } else if ([status isEqualToString:@"self_click"]) {
-                                       ret.rewardStatus = kTeakRewardStatusSelfClick;
-                                    } else if ([status isEqualToString:@"already_clicked"]) {
-                                       ret.rewardStatus = kTeakRewardStatusAlreadyClicked;
-                                    } else if ([status isEqualToString:@"too_many_clicks"]) {
-                                       ret.rewardStatus = kTeakRewardStatusTooManyClicks;
-                                    } else if ([status isEqualToString:@"exceed_max_clicks_for_day"]) {
-                                       ret.rewardStatus = kTeakRewardStatusExceedMaxClicksForDay;
-                                    } else if ([status isEqualToString:@"expired"]) {
-                                       ret.rewardStatus = kTeakRewardStatusExpired;
-                                    } else if ([status isEqualToString:@"invalid_post"]) {
-                                       ret.rewardStatus = kTeakRewardStatusInvalidPost;
-                                    }
-                                 }
-                                 ret.completed = YES;
-                              }];
-      [request send];
-   }];
-
-   return ret;
 }
 
 + (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay {

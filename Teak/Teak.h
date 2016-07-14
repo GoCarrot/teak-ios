@@ -22,7 +22,7 @@
  *                                               name:TeakNotificationAppLaunch
  *                                             object:nil];
  */
-extern NSString* const TeakNotificationAppLaunch;
+extern NSString* _Nonnull const TeakNotificationAppLaunch;
 
 #ifdef __OBJC__
 
@@ -41,7 +41,7 @@ extern NSString* const TeakNotificationAppLaunch;
 /**
  * Teak SDK Version.
  */
-@property (strong, nonatomic, readonly) NSString* sdkVersion;
+@property (strong, nonatomic, readonly) NSString* _Nonnull sdkVersion;
 
 /**
  * Set up Teak in a single function call.
@@ -63,12 +63,12 @@ extern NSString* const TeakNotificationAppLaunch;
  * @param appDelegateClass Class of your application delegate, ex: [YourAppDelegate class].
  * @param apiKey           Your Teak API key.
  */
-+ (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andApiKey:(NSString*)apiKey;
++ (void)initForApplicationId:(nonnull NSString*)appId withClass:(nonnull Class)appDelegateClass andApiKey:(nonnull NSString*)apiKey;
 
 /**
  * Teak singleton.
  */
-+ (Teak*)sharedInstance;
++ (nullable Teak*)sharedInstance;
 
 /**
  * Tell Teak how to identify the current user.
@@ -77,7 +77,7 @@ extern NSString* const TeakNotificationAppLaunch;
  *
  * @param userId           The string Teak should use to identify the current user.
  */
-- (void)identifyUser:(NSString*)userId;
+- (void)identifyUser:(nonnull NSString*)userId;
 
 /**
  * Track an arbitrary event in Teak.
@@ -86,7 +86,7 @@ extern NSString* const TeakNotificationAppLaunch;
  * @param objectTypeId     The type of object that is being posted, e.g. 'quest'.
  * @param objectInstanceId The specific instance of the object, e.g. 'gather-quest-1'
  */
-- (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId;
+- (void)trackEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId;
 
 @end
 
