@@ -493,7 +493,7 @@ void TeakSignalHandler(int signal) {
    }
    else {
       NSDictionary* response = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
-      NSLog(@"Response: %@", response);
+      TeakLog(@"%@", response);
    }
 }
 

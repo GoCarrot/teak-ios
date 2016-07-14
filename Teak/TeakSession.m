@@ -226,7 +226,7 @@ DefineTeakState(Expired, (@[]))
 
 - (void)sendHeartbeat {
    if ([Teak sharedInstance].enableDebugOutput) {
-      NSLog(@"[Teak] Sending heartbeat for user: %@", self.userId);
+      TeakLog(@"Sending heartbeat for user: %@", self.userId);
    }
 
    NSString* urlString = [NSString stringWithFormat:

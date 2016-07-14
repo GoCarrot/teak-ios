@@ -359,11 +359,9 @@ Teak* _teakSharedInstance;
    }
 }
 
-- (void)transactionPurchased:(SKPaymentTransaction*)transaction
-{
+- (void)transactionPurchased:(SKPaymentTransaction*)transaction {
    NSDictionary* payload;
-   teak_try
-   {
+   teak_try {
       teak_log_breadcrumb(@"Building date formatter");
       NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
       [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
@@ -395,8 +393,7 @@ Teak* _teakSharedInstance;
 
    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       BOOL stillWaiting = YES;
-      do
-      {
+      do {
          sleep(1);
          NSNumber* b = [self.priceInfoCompleteDictionary valueForKey:transaction.payment.productIdentifier];
          stillWaiting = ![b boolValue];
@@ -413,12 +410,9 @@ Teak* _teakSharedInstance;
    });
 }
 
-- (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response
-{
-   if(response.products.count > 0)
-   {
-      teak_try
-      {
+- (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response {
+   if(response.products.count > 0) {
+      teak_try {
          teak_log_breadcrumb(@"Collecting product response info");
          SKProduct* product = [response.products objectAtIndex:0];
          NSLocale* priceLocale = product.priceLocale;
@@ -438,14 +432,11 @@ Teak* _teakSharedInstance;
    }
 }
 
-- (void)transactionFailed:(SKPaymentTransaction*)transaction
-{
-   teak_try
-   {
+- (void)transactionFailed:(SKPaymentTransaction*)transaction {
+   teak_try {
       teak_log_breadcrumb(@"Determining status");
       NSString* errorString = @"unknown";
-      switch(transaction.error.code)
-      {
+      switch (transaction.error.code) {
          case SKErrorClientInvalid:
             errorString = @"client_invalid";
             break;
@@ -482,17 +473,9 @@ Teak* _teakSharedInstance;
    teak_catch_report
 }
 
-- (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions
-{
-   if(self.enableDebugOutput)
-   {
-      NSLog(@"[Teak] Lifecycle - paymentQueue:updatedTransactions:");
-   }
-
-   for(SKPaymentTransaction* transaction in transactions)
-   {
-      switch(transaction.transactionState)
-      {
+- (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions {
+   for (SKPaymentTransaction* transaction in transactions) {
+      switch (transaction.transactionState) {
          case SKPaymentTransactionStatePurchased:
             [self transactionPurchased:transaction];
             break;
