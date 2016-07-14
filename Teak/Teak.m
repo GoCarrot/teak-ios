@@ -85,7 +85,16 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId
 {
-   // TODO: Dear god, past-Pat, do some input validation...
+   if (actionId == nil || actionId.length == 0) {
+      TeakLog(@"actionId can not be nil or empty for trackEvent(), ignoring.");
+      return;
+   }
+
+   if ((objectInstanceId == nil || objectInstanceId.length == 0) &&
+       (objectTypeId == nil || objectTypeId.length == 0)) {
+      TeakLog(@"objectTypeId can not be nil or empty if objectInstanceId is present for trackEvent(), ignoring.");
+      return;
+   }
 
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
       NSDictionary* payload = @{
