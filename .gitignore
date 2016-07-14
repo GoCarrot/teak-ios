@@ -4,3 +4,4 @@ Teak.xcodeproj/xcuserdata/
 build/*
 !build/.gitkeep
 Sample/
+*.pem
