@@ -129,8 +129,6 @@ DefineTeakState(Expired, (@[]))
          TeakLog(@"Session State transition from %@ -> %@.", self.previousState, self.currentState);
       }
 
-      // TODO:  Event broadcast
-
       return YES;
    }
 }
@@ -270,29 +268,6 @@ DefineTeakState(Expired, (@[]))
    return self;
 }
 
-- (TeakSession*)initWithSession:(nonnull TeakSession*)otherSession {
-   self = [super init];
-   if (self) {
-      self.startDate = [[NSDate alloc] init];
-
-      self.attributionChain = [NSMutableArray arrayWithArray:otherSession.attributionChain];
-
-      self.appConfiguration = otherSession.appConfiguration;
-      self.deviceConfiguration = otherSession.deviceConfiguration;
-      self.remoteConfiguration = otherSession.remoteConfiguration;
-      self.userId = otherSession.userId;
-      self.countryCode = otherSession.countryCode;
-
-      RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
-      RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
-      RegisterKeyValueObserverFor(self, currentState);
-      RegisterKeyValueObserverFor([Teak sharedInstance], fbAccessToken);
-
-      [self setState:otherSession.currentState];
-   }
-   return self;
-}
-
 - (void)dealloc {
    UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
    UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
@@ -310,13 +285,17 @@ DefineTeakState(Expired, (@[]))
    @synchronized (currentSessionMutex) {
       @synchronized (currentSession) {
          if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
-            TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
+            TeakSession* newSession = [[TeakSession alloc] initWithAppConfiguration:currentSession.appConfiguration
+                                                                deviceConfiguration:currentSession.deviceConfiguration];
+            newSession.userId = userId;
+            [newSession.attributionChain addObjectsFromArray:currentSession.attributionChain];
 
             [currentSession setState:[TeakSession Expiring]];
             [currentSession setState:[TeakSession Expired]];
 
             currentSession = newSession;
          }
+
          currentSession.userId = userId;
 
          if (currentSession.currentState == [TeakSession Configured]) {
@@ -334,14 +313,19 @@ DefineTeakState(Expired, (@[]))
       // It's a new session if there's a new launch from a notification
       if ([currentSession valueForKey:key] == nil || ![attribution isEqualToString:[currentSession valueForKey:key]]) {
          TeakSession* oldSession = currentSession;
-         currentSession = [[TeakSession alloc] initWithSession:oldSession];
-
+         currentSession = [[TeakSession alloc] initWithAppConfiguration:oldSession.appConfiguration
+                                                    deviceConfiguration:oldSession.deviceConfiguration];
+         [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
          [oldSession setState:[TeakSession Expiring]];
          [oldSession setState:[TeakSession Expired]];
       }
 
       [currentSession setValue:attribution forKey:key];
       [currentSession.attributionChain addObject:attribution];
+
+      if (currentSession.currentState == [TeakSession UserIdentified]) {
+         [currentSession identifyUser];
+      }
    }
 }
 
@@ -374,6 +358,7 @@ DefineTeakState(Expired, (@[]))
       if (currentSession == nil || [currentSession hasExpired]) {
          TeakSession* oldSession = currentSession;
          currentSession = [[TeakSession alloc] initWithAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+         [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
 
          // If the old session had a user id assigned, it needs to be passed to the newly created
          // session. When setSessionState(State.Configured) happens, it will call identifyUser()
@@ -399,46 +384,48 @@ KeyValueObserverFor(Teak, fbAccessToken) {
 }
 
 KeyValueObserverFor(TeakSession, currentState) {
-   if (newValue == [TeakSession Created]) {
-      self.remoteConfiguration = [[TeakRemoteConfiguration alloc] initForSession:self];
-      RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-   } else if (newValue == [TeakSession Configured]) {
-      UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
+   @synchronized (self) {
+      if (newValue == [TeakSession Created]) {
+         self.remoteConfiguration = [[TeakRemoteConfiguration alloc] initForSession:self];
+         RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
+      } else if (newValue == [TeakSession Configured]) {
+         UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
 
-      if (self.userId != nil) {
-         [self identifyUser];
-      }
-   } else if (newValue == [TeakSession UserIdentified]) {
-      self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
-
-      // Heartbeat
-      __block typeof(self) blockSelf = self;
-      self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
-      dispatch_source_set_event_handler(self.heartbeat, ^{ [blockSelf sendHeartbeat]; });
-
-      // TODO: If RemoteConfiguration specifies a different rate, use that
-      dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), 60ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
-      dispatch_resume(self.heartbeat);
-
-      // Process WhenUserIdIsReadyRun queue
-      @synchronized (currentSessionMutex) {
-         NSMutableArray* blocks = [TeakSession whenUserIdIsReadyRunBlocks];
-         for (UserIdReadyBlock block in blocks) {
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-               block(self);
-            });
+         if (self.userId != nil) {
+            [self identifyUser];
          }
-         [blocks removeAllObjects];
+      } else if (newValue == [TeakSession UserIdentified]) {
+         self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
+
+         // Heartbeat
+         __block typeof(self) blockSelf = self;
+         self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
+         dispatch_source_set_event_handler(self.heartbeat, ^{ [blockSelf sendHeartbeat]; });
+
+         // TODO: If RemoteConfiguration specifies a different rate, use that
+         dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), 60ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
+         dispatch_resume(self.heartbeat);
+
+         // Process WhenUserIdIsReadyRun queue
+         @synchronized (currentSessionMutex) {
+            NSMutableArray* blocks = [TeakSession whenUserIdIsReadyRunBlocks];
+            for (UserIdReadyBlock block in blocks) {
+               dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                  block(self);
+               });
+            }
+            [blocks removeAllObjects];
+         }
+      } else if (newValue == [TeakSession Expiring]) {
+         self.endDate = [[NSDate alloc] init];
+
+         // Stop heartbeat, Expiring->Expiring is possible, so no invalid data here
+         dispatch_source_cancel(self.heartbeat);
+         self.heartbeat = nil;
+         self.heartbeatQueue = nil;
+      } else if (newValue == [TeakSession Expired]) {
+         // TODO: Report Session to server, once we collect that info.
       }
-   } else if (newValue == [TeakSession Expiring]) {
-      self.endDate = [[NSDate alloc] init];
-      
-      // Stop heartbeat, Expiring->Expiring is possible, so no invalid data here
-      dispatch_source_cancel(self.heartbeat);
-      self.heartbeat = nil;
-      self.heartbeatQueue = nil;
-   } else if (newValue == [TeakSession Expired]) {
-      // TODO: Report Session to server, once we collect that info.
    }
 }
 
