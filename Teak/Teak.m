@@ -23,6 +23,7 @@
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakSession.h"
+#import "TeakRequest.h"
 
 #import "TeakNotification.h"
 #import "TeakVersion.h"
@@ -82,11 +83,14 @@ Teak* _teakSharedInstance;
       @"object_instance_id" : objectInstanceId
    };
 
-   // TODO: When user id is ready
-   /*[self.requestThread addRequestForService:TeakRequestServiceMetrics
-                                 atEndpoint:@"/me/events"
-                                withPayload:payload
-                                andCallback:nil];*/
+   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+      TeakRequest* request = [[TeakRequest alloc]
+                              initWithSession:session
+                              forEndpoint:@"/me/events"
+                              withPayload:payload
+                              callback:nil];
+      [request send];
+   }];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -401,12 +405,15 @@ Teak* _teakSharedInstance;
 
       NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:payload];
       [fullPayload addEntriesFromDictionary:[self.priceInfoDictionary valueForKey:transaction.payment.productIdentifier]];
-      
-      // TODO: When user id is ready
-      /*[self.requestThread addRequestForService:TeakRequestServicePost
-                                    atEndpoint:@"/me/purchase"
-                                   withPayload:fullPayload
-                                   andCallback:nil];*/
+
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+         TeakRequest* request = [[TeakRequest alloc]
+                                 initWithSession:session
+                                 forEndpoint:@"/me/purchase"
+                                 withPayload:fullPayload
+                                 callback:nil];
+         [request send];
+      }];
    });
 }
 
@@ -464,11 +471,14 @@ Teak* _teakSharedInstance;
 
       teak_log_data_breadcrumb(@"Reporting purchase failed", payload);
       
-      // TODO: When user id is ready
-      /*[self.requestThread addRequestForService:TeakRequestServiceMetrics
-                                    atEndpoint:@"/me/purchase"
-                                   withPayload:payload
-                                   andCallback:nil];*/
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+         TeakRequest* request = [[TeakRequest alloc]
+                                 initWithSession:session
+                                 forEndpoint:@"/me/purchase"
+                                 withPayload:payload
+                                 callback:nil];
+         [request send];
+      }];
    }
    teak_catch_report
 }
