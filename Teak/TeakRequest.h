@@ -14,34 +14,17 @@
  */
 
 #import <Foundation/Foundation.h>
-#include <sqlite3.h>
 
-typedef enum {
-   TeakRequestServiceAuth    = -2,
-   TeakRequestServiceMetrics = -1,
-   TeakRequestServicePost    = 2
-} TeakRequestServiceType;
-
-@class TeakRequestThread;
 @class TeakRequest;
+@class TeakSession;
 
-typedef void (^TeakRequestResponse)(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread);
+typedef void (^TeakRequestResponse)(NSURLResponse* response, NSDictionary* reply);
 
-extern NSString* const TeakRequestTypePOST;
-
-@interface TeakRequest : NSObject
-
-@property (nonatomic, readonly) TeakRequestServiceType serviceType;
+@interface TeakRequest : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
 @property (strong, nonatomic, readonly) NSString* endpoint;
 @property (strong, nonatomic, readonly) NSDictionary* payload;
-@property (strong, nonatomic, readonly) NSString* method;
 @property (strong, nonatomic, readonly) TeakRequestResponse callback;
 
-+ (NSDictionary*)finalPayloadForPayload:(NSDictionary*)payload;
-
-+ (id)requestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload callback:(TeakRequestResponse)callback;
-- (id)initForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method payload:(NSDictionary*)payload callback:(TeakRequestResponse)callback;
-
-- (NSString*)description;
-
+- (TeakRequest*)initWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(TeakRequestResponse)callback;
+- (void)send;
 @end

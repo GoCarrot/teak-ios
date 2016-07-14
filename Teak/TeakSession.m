@@ -15,11 +15,10 @@
 
 #import <Teak/Teak.h>
 #import "TeakSession.h"
+#import "TeakRequest.h"
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakRemoteConfiguration.h"
-#import "TeakRequestThread.h"
-#import "TeakCachedRequest.h"
 
 #define LOG_TAG "Teak:Session"
 #define kSameSessionDeltaSeconds 120
@@ -40,7 +39,6 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic) NSMutableArray* attributionChain;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
-@property (strong, nonatomic, readwrite) TeakRequestThread* requestThread;
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
@@ -206,27 +204,24 @@ DefineTeakState(Expired, (@[]))
     }
     */
 
-   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      __block typeof(self) blockSelf = self;
-      TeakCachedRequest* request = [TeakCachedRequest requestForService:TeakRequestServiceAuth
-                                                             atEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
-                                                            withPayload:payload
-                                                                inCache:self.requestThread.cache
-                                                               callback:^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
-                                                                  NSError* error = nil;
-                                                                  NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
-                                                                  if (error == nil) {
-                                                                     // TODO: Set on debug configuration
-                                                                     //blockSelf.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
-                                                                     blockSelf.countryCode = [jsonReply valueForKey:@"country_code"];
+   __block typeof(self) blockSelf = self;
+   TeakRequest* request = [[TeakRequest alloc]
+                           initWithSession:self
+                           forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
+                           withPayload:payload
+                           callback:^(NSURLResponse* response, NSDictionary* reply) {
+                              // TODO: Check response
+                              if (YES) {
+                                 // TODO: Set on debug configuration
+                                 //blockSelf.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
+                                 blockSelf.countryCode = [reply valueForKey:@"country_code"];
 
-                                                                     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-                                                                        [blockSelf setState:[TeakSession UserIdentified]];
-                                                                     });
-                                                                  }
-                                                               }];
-      [self.requestThread processRequest:request onHost:@"gocarrot.com"];
-   });
+                                 dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                                    [blockSelf setState:[TeakSession UserIdentified]];
+                                 });
+                              }
+                           }];
+   [request send];
 }
 
 - (void)sendHeartbeat {
@@ -263,7 +258,6 @@ DefineTeakState(Expired, (@[]))
       self.appConfiguration = appConfiguration;
       self.deviceConfiguration = deviceConfiguration;
       self.attributionChain = [[NSMutableArray alloc] init];
-      self.requestThread = [[TeakRequestThread alloc] initForSession:self];
 
       RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
       RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -389,7 +383,6 @@ KeyValueObserverFor(TeakSession, currentState) {
       RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
    } else if (newValue == [TeakSession Configured]) {
       UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-      [self.requestThread start];
 
       if (self.userId != nil) {
          [self identifyUser];
@@ -423,9 +416,6 @@ KeyValueObserverFor(TeakSession, currentState) {
       dispatch_source_cancel(self.heartbeat);
       self.heartbeat = nil;
       self.heartbeatQueue = nil;
-      
-      // Stop request thread
-      [self.requestThread stop];
    } else if (newValue == [TeakSession Expired]) {
       // TODO: Report Session to server, once we collect that info.
    }

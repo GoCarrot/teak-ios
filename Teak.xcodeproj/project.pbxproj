@@ -29,12 +29,6 @@
 		431C981F1C7E679900B19DD5 /* TeakHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C981B1C7E679900B19DD5 /* TeakHooks.m */; };
 		431C98201C7E679900B19DD5 /* TeakRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C981C1C7E679900B19DD5 /* TeakRequest.h */; };
 		431C98211C7E679900B19DD5 /* TeakRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C981D1C7E679900B19DD5 /* TeakRequest.m */; };
-		431C988C1C7FA30200B19DD5 /* TeakCache.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C988A1C7FA30200B19DD5 /* TeakCache.h */; };
-		431C988D1C7FA30200B19DD5 /* TeakCache.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C988B1C7FA30200B19DD5 /* TeakCache.m */; };
-		431C98901C7FA44C00B19DD5 /* TeakCachedRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C988E1C7FA44B00B19DD5 /* TeakCachedRequest.h */; };
-		431C98911C7FA44C00B19DD5 /* TeakCachedRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C988F1C7FA44C00B19DD5 /* TeakCachedRequest.m */; };
-		431C98941C7FA4F300B19DD5 /* TeakRequestThread.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C98921C7FA4F300B19DD5 /* TeakRequestThread.h */; };
-		431C98951C7FA4F300B19DD5 /* TeakRequestThread.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C98931C7FA4F300B19DD5 /* TeakRequestThread.m */; };
 		432EDF091CC02CE3007E9C5C /* TeakNotification.h in Headers */ = {isa = PBXBuildFile; fileRef = 432EDF071CC02CE3007E9C5C /* TeakNotification.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		432EDF0A1CC02CE3007E9C5C /* TeakNotification.m in Sources */ = {isa = PBXBuildFile; fileRef = 432EDF081CC02CE3007E9C5C /* TeakNotification.m */; };
 		432FB0EC1D29BEAE009136F1 /* amIBeingDebugged.m in Sources */ = {isa = PBXBuildFile; fileRef = 432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */; };
@@ -88,12 +82,6 @@
 		431C981B1C7E679900B19DD5 /* TeakHooks.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakHooks.m; sourceTree = "<group>"; };
 		431C981C1C7E679900B19DD5 /* TeakRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRequest.h; sourceTree = "<group>"; };
 		431C981D1C7E679900B19DD5 /* TeakRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRequest.m; sourceTree = "<group>"; };
-		431C988A1C7FA30200B19DD5 /* TeakCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakCache.h; sourceTree = "<group>"; };
-		431C988B1C7FA30200B19DD5 /* TeakCache.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakCache.m; sourceTree = "<group>"; };
-		431C988E1C7FA44B00B19DD5 /* TeakCachedRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakCachedRequest.h; sourceTree = "<group>"; };
-		431C988F1C7FA44C00B19DD5 /* TeakCachedRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakCachedRequest.m; sourceTree = "<group>"; };
-		431C98921C7FA4F300B19DD5 /* TeakRequestThread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRequestThread.h; sourceTree = "<group>"; };
-		431C98931C7FA4F300B19DD5 /* TeakRequestThread.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRequestThread.m; sourceTree = "<group>"; };
 		432EDF071CC02CE3007E9C5C /* TeakNotification.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakNotification.h; sourceTree = "<group>"; };
 		432EDF081CC02CE3007E9C5C /* TeakNotification.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakNotification.m; sourceTree = "<group>"; };
 		432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = amIBeingDebugged.m; sourceTree = "<group>"; };
@@ -155,12 +143,6 @@
 				431C981B1C7E679900B19DD5 /* TeakHooks.m */,
 				431C981C1C7E679900B19DD5 /* TeakRequest.h */,
 				431C981D1C7E679900B19DD5 /* TeakRequest.m */,
-				431C988A1C7FA30200B19DD5 /* TeakCache.h */,
-				431C988B1C7FA30200B19DD5 /* TeakCache.m */,
-				431C988E1C7FA44B00B19DD5 /* TeakCachedRequest.h */,
-				431C988F1C7FA44C00B19DD5 /* TeakCachedRequest.m */,
-				431C98921C7FA4F300B19DD5 /* TeakRequestThread.h */,
-				431C98931C7FA4F300B19DD5 /* TeakRequestThread.m */,
 				432EDF071CC02CE3007E9C5C /* TeakNotification.h */,
 				432EDF081CC02CE3007E9C5C /* TeakNotification.m */,
 				43C735C01CC1AA2700484B67 /* TeakCExtern.m */,
@@ -198,13 +180,10 @@
 				4361E49F1D27529700672694 /* TeakRaven.h in Headers */,
 				4383726F1D34239900B01F44 /* TeakAppConfiguration.h in Headers */,
 				4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */,
-				431C988C1C7FA30200B19DD5 /* TeakCache.h in Headers */,
 				432EDF091CC02CE3007E9C5C /* TeakNotification.h in Headers */,
 				4383727B1D34443D00B01F44 /* TeakState.h in Headers */,
 				431C981E1C7E679900B19DD5 /* Teak+Internal.h in Headers */,
 				438372771D3442EA00B01F44 /* TeakSession.h in Headers */,
-				431C98901C7FA44C00B19DD5 /* TeakCachedRequest.h in Headers */,
-				431C98941C7FA4F300B19DD5 /* TeakRequestThread.h in Headers */,
 				438372801D34696500B01F44 /* TeakRemoteConfiguration.h in Headers */,
 				438372731D34285A00B01F44 /* TeakDeviceConfiguration.h in Headers */,
 			);
@@ -324,14 +303,11 @@
 				431C981F1C7E679900B19DD5 /* TeakHooks.m in Sources */,
 				438372811D34696500B01F44 /* TeakRemoteConfiguration.m in Sources */,
 				432FB0EC1D29BEAE009136F1 /* amIBeingDebugged.m in Sources */,
-				431C98951C7FA4F300B19DD5 /* TeakRequestThread.m in Sources */,
 				438372701D34239900B01F44 /* TeakAppConfiguration.m in Sources */,
-				431C98911C7FA44C00B19DD5 /* TeakCachedRequest.m in Sources */,
 				43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */,
 				4383727C1D34443D00B01F44 /* TeakState.m in Sources */,
 				438372781D3442EA00B01F44 /* TeakSession.m in Sources */,
 				4383726C1D3419D000B01F44 /* TeakDebugConfiguration.m in Sources */,
-				431C988D1C7FA30200B19DD5 /* TeakCache.m in Sources */,
 				4361E4A01D27529700672694 /* TeakRaven.m in Sources */,
 				438372741D34285A00B01F44 /* TeakDeviceConfiguration.m in Sources */,
 				43C735C11CC1AA2700484B67 /* TeakCExtern.m in Sources */,

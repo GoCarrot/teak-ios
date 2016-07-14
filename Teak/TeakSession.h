@@ -17,7 +17,6 @@
 #import "TeakState.h"
 
 @class TeakSession;
-@class TeakRequestThread;
 @class TeakAppConfiguration;
 @class TeakDeviceConfiguration;
 @class TeakRemoteConfiguration;
@@ -28,7 +27,6 @@ typedef void (^UserIdReadyBlock)(TeakSession*);
 @property (strong, nonatomic, readonly) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readonly) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readonly) TeakRemoteConfiguration* remoteConfiguration;
-@property (strong, nonatomic, readonly) TeakRequestThread* requestThread;
 @property (strong, nonatomic, readonly) NSString* userId;
 
 DeclareTeakState(Created);

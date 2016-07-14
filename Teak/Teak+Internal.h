@@ -21,9 +21,6 @@
 @class TeakAppConfiguration;
 @class TeakDeviceConfiguration;
 
-@class TeakCache;
-@class TeakRequestThread;
-
 @interface Teak ()
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
 
@@ -35,9 +32,6 @@
 
 @property (strong, nonatomic) NSString* fbAccessToken;
 
-@property (strong, nonatomic) TeakCache* cache;
-@property (strong, nonatomic) TeakRequestThread* requestThread;
-
 @property (strong, nonatomic) NSOperationQueue* dependentOperationQueue;
 @property (strong, nonatomic) NSOperation* facebookAccessTokenOperation;
 
@@ -46,15 +40,23 @@
 
 @property (strong, nonatomic) TeakRaven* sdkRaven;
 
+// Static initialization time or main()
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret;
 
-- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation;
+// App launch
+- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
+
+// Post-launch lifecycle
 - (void)applicationWillEnterForeground:(UIApplication*)application;
 - (void)applicationWillResignActive:(UIApplication*)application;
+
+// Deep Linking
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation;
+
+// Push notification
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings;
 - (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error;
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
-- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 
 @end

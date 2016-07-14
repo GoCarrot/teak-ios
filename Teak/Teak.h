@@ -16,17 +16,11 @@
 #include <Foundation/Foundation.h>
 
 /**
- * Use this named notification to listen for Teak events about push notifications. Ex:
- *
+ * Use this named notification to listen for when your app gets launched from a Teak notification.
  * [[NSNotificationCenter defaultCenter] addObserver:self
  *                                          selector:@selector(handleTeakNotification)
- *                                               name:TeakNotificationAvailable
+ *                                               name:TeakNotificationAppLaunch
  *                                             object:nil];
- */
-extern NSString* const TeakNotificationAvailable;
-
-/**
- * Use this named notification to listen for when your app gets launched from a Teak notification.
  */
 extern NSString* const TeakNotificationAppLaunch;
 

@@ -14,139 +14,131 @@
  */
 #import "TeakNotification.h"
 #import "TeakRequest.h"
-#import "TeakRequestThread.h"
 #import "TeakSession.h"
+
+#define LOG_TAG "Teak:Reward"
 
 @interface TeakReward ()
 
-@property (atomic, readwrite)    BOOL completed;
-@property (nonatomic, readwrite) int rewardStatus;
-@property (nonatomic, readwrite) NSString* json;
+@property (atomic, readwrite)            BOOL completed;
+@property (nonatomic, readwrite)         int rewardStatus;
+@property (strong, nonatomic, readwrite) NSString* json;
 
 @end
 
 @implementation TeakReward
+- (NSString*)description {
+   return [NSString stringWithFormat:@"<%@: %p> completed: %@; reward-status: %d; json: %@",
+           NSStringFromClass([self class]),
+           self,
+           self.completed ? @"YES" : @"NO",
+           self.rewardStatus,
+           self.json];
+}
 @end
 
 @interface TeakNotification ()
 
-@property (nonatomic, readwrite) NSString* teakNotifId;
-@property (nonatomic, readwrite) NSString* teakRewardId;
-@property (nonatomic, readwrite) NSURL* deepLink;
-@property (nonatomic, readwrite) NSDictionary* originalJson;
-@property (atomic, readwrite)    BOOL completed;
+@property (strong, nonatomic, readwrite) NSString* teakNotifId;
+@property (strong, nonatomic, readwrite) NSString* teakRewardId;
+@property (strong, nonatomic, readwrite) NSURL* deepLink;
+@property (strong, nonatomic, readwrite) NSDictionary* originalJson;
+@property (atomic, readwrite)            BOOL completed;
 
 @end
 
 @implementation TeakNotification
 
-+ (NSMutableDictionary*)notifications
-{
-   static NSMutableDictionary* notificationDict = nil;
-   static dispatch_once_t onceToken;
-   dispatch_once(&onceToken, ^{
-      notificationDict = [[NSMutableDictionary alloc] init];
-   });
-   return notificationDict;
+- (TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary {
+   self = [super init];
+   if (self) {
+      self.teakNotifId = NSStringOrNilFor([dictionary objectForKey:@"teakNotifId"]);
+      self.teakRewardId = NSStringOrNilFor([dictionary objectForKey:@"teakRewardId"]);
+      self.originalJson = dictionary;
+      self.completed = YES;
+
+      if ([dictionary objectForKey:@"deepLink"]) {
+         @try {
+            self.deepLink = [NSURL URLWithString:[dictionary objectForKey:@"deepLink"]];
+         } @catch (NSException* exception) {
+            self.deepLink = nil;
+            TeakLog(@"Error parsing deep link '%@'. %@", [dictionary objectForKey:@"deepLink"], exception);
+         }
+      } else {
+         self.deepLink = nil;
+      }
+   }
+   return self;
 }
 
-+ (TeakNotification*)notificationFromDictionary:(NSDictionary*)dictionary
-{
-   TeakNotification* ret = [[TeakNotification alloc] init];
-   id teakNotifIdRaw = [dictionary objectForKey:@"teakNotifId"];
-   id teakRewardIdRaw = [dictionary objectForKey:@"teakRewardId"];
-   ret.teakNotifId = [teakNotifIdRaw isKindOfClass:[NSString class]] ? teakNotifIdRaw : [teakNotifIdRaw stringValue];
-   ret.teakRewardId = [teakRewardIdRaw isKindOfClass:[NSString class]] ? teakRewardIdRaw : [teakRewardIdRaw stringValue];
-   ret.deepLink = [NSURL URLWithString:[dictionary objectForKey:@"deepLink"]];
-   ret.originalJson = dictionary;
-   ret.completed = YES;
-   [[TeakNotification notifications] setValue:ret forKey:ret.teakNotifId];
-   return ret;
+- (NSString*)description {
+   return [NSString stringWithFormat:@"<%@: %p> completed: %@; teak-notif-id: %@; teak-reward-id: %@; deep-link: %@; original-json: %@",
+           NSStringFromClass([self class]),
+           self,
+           self.completed ? @"YES" : @"NO",
+           self.teakNotifId,
+           self.teakRewardId,
+           self.deepLink,
+           self.originalJson];
 }
 
-+ (TeakNotification*)notificationFromTeakNotifId:(NSString*)teakNotifId
-{
-   return [[TeakNotification notifications] objectForKey:teakNotifId];
-}
-
-- (NSString*)description
-{
-   return [NSString stringWithFormat: @"%@", self.originalJson];
-}
-
-- (TeakReward*)consume
-{
+- (TeakReward*)consume {
    TeakReward* ret = [[TeakReward alloc] init];
    ret.completed = NO;
    ret.rewardStatus = kTeakRewardStatusUnknown;
 
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
       NSString* urlString = [NSString stringWithFormat:@"/%@/clicks", self.teakRewardId];
-      TeakRequest* request = [TeakRequest requestForService:TeakRequestServiceAuth
-                                                 atEndpoint:urlString
-                                                usingMethod:TeakRequestTypePOST
-                                                withPayload:@{@"clicking_user_id" : session.userId}
-                                                   callback:
-                              ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
-                                 
-                                 NSError* error = nil;
-                                 NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data
-                                                                                           options:kNilOptions
-                                                                                             error:&error];
-                                 if(error)
-                                 {
-                                    NSLog(@"[Teak] Error claiming Teak reward: %@", error);
-                                 }
-                                 else
-                                 {
-                                    NSDictionary* rewardResponse = [jsonReply objectForKey:@"response"];
+      TeakRequest* request = [[TeakRequest alloc]
+                              initWithSession:session
+                              forEndpoint:urlString
+                              withPayload:@{@"clicking_user_id" : session.userId}
+                              callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                 // TODO: Check response
+                                 if(NO) {
+                                    TeakLog(@"Error claiming Teak reward: %@", response);
+                                 } else {
+                                    NSDictionary* rewardResponse = [reply objectForKey:@"response"];
                                     ret.json = [rewardResponse objectForKey:@"reward"];
 
                                     NSString* status = [rewardResponse objectForKey:@"status"];
-                                    if([status isEqualToString:@"grant_reward"])
-                                    {
+                                    if ([status isEqualToString:@"grant_reward"]) {
                                        ret.rewardStatus = kTeakRewardStatusGrantReward;
-                                    }
-                                    else if([status isEqualToString:@"self_click"])
-                                    {
+                                    } else if ([status isEqualToString:@"self_click"]) {
                                        ret.rewardStatus = kTeakRewardStatusSelfClick;
-                                    }
-                                    else if([status isEqualToString:@"already_clicked"])
-                                    {
+                                    } else if ([status isEqualToString:@"already_clicked"]) {
                                        ret.rewardStatus = kTeakRewardStatusAlreadyClicked;
-                                    }
-                                    else if([status isEqualToString:@"too_many_clicks"])
-                                    {
+                                    } else if ([status isEqualToString:@"too_many_clicks"]) {
                                        ret.rewardStatus = kTeakRewardStatusTooManyClicks;
-                                    }
-                                    else if([status isEqualToString:@"exceed_max_clicks_for_day"])
-                                    {
+                                    } else if ([status isEqualToString:@"exceed_max_clicks_for_day"]) {
                                        ret.rewardStatus = kTeakRewardStatusExceedMaxClicksForDay;
-                                    }
-                                    else if([status isEqualToString:@"expired"])
-                                    {
+                                    } else if ([status isEqualToString:@"expired"]) {
                                        ret.rewardStatus = kTeakRewardStatusExpired;
-                                    }
-                                    else if([status isEqualToString:@"invalid_post"])
-                                    {
+                                    } else if ([status isEqualToString:@"invalid_post"]) {
                                        ret.rewardStatus = kTeakRewardStatusInvalidPost;
                                     }
                                  }
 
-                                 // Remove from set of notifications to be claimed (eventually server-inbox)
-                                 [[TeakNotification notifications] removeObjectForKey:self.teakNotifId];
-
                                  // Ready
                                  ret.completed = YES;
                               }];
-      [session.requestThread processRequest:request onHost:@"rewards.gocarrot.com"];
+      [request send];
    }];
 
    return ret;
 }
 
-+ (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay
-{
++ (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay {
+   if (creativeId == nil || creativeId.length == 0) {
+      TeakLog(@"creativeId can not be nil or empty.");
+      return nil;
+   }
+
+   if (message == nil || message.length == 0) {
+      TeakLog(@"message can not be nil or empty.");
+      return nil;
+   }
+
    TeakNotification* ret = [[TeakNotification alloc] init];
    ret.completed = NO;
 
@@ -157,31 +149,20 @@
    };
 
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      TeakRequest* request = [TeakRequest requestForService:TeakRequestServicePost
-                                                 atEndpoint:@"/me/local_notify"
-                                                usingMethod:TeakRequestTypePOST
-                                                withPayload:payload
-                                                   callback:
-                              ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
-
-                                 NSError* error = nil;
-                                 NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data
-                                                                                           options:kNilOptions
-                                                                                             error:&error];
-                                 if(error)
-                                 {
-                                    NSLog(@"[Teak] Error scheduling notification %@", error);
-                                 }
-                                 else
-                                 {
-                                    NSString* status = [jsonReply objectForKey:@"status"];
-                                    if([status isEqualToString:@"ok"])
-                                    {
-                                       NSDictionary* event = [jsonReply objectForKey:@"event"];
+      TeakRequest* request = [[TeakRequest alloc]
+                              initWithSession:session
+                              forEndpoint:@"/me/local_notify"
+                              withPayload:payload
+                              callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                 // TODO: Check response
+                                 if (NO) {
+                                    TeakLog(@"Error scheduling notification %@", response);
+                                 } else {
+                                    NSString* status = [reply objectForKey:@"status"];
+                                    if ([status isEqualToString:@"ok"]) {
+                                       NSDictionary* event = [reply objectForKey:@"event"];
                                        ret.teakNotifId = [[event objectForKey:@"id"] stringValue];
-                                    }
-                                    else
-                                    {
+                                    } else {
                                        ret.teakNotifId = nil;
                                     }
                                  }
@@ -189,42 +170,35 @@
                                  // Ready
                                  ret.completed = YES;
                               }];
-      [session.requestThread processRequest:request onHost:@"gocarrot.com"];
+      [request send];
    }];
 
    return ret;
 }
 
-+ (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId
-{
++ (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId {
+   if (scheduleId == nil || scheduleId.length == 0) {
+      TeakLog(@"scheduleId can not be nil or empty.");
+      return nil;
+   }
+
    TeakNotification* ret = [[TeakNotification alloc] init];
    ret.completed = NO;
 
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      TeakRequest* request = [TeakRequest requestForService:TeakRequestServicePost
-                                                 atEndpoint:@"/me/cancel_local_notify"
-                                                usingMethod:TeakRequestTypePOST
-                                                withPayload:@{@"id" : scheduleId}
-                                                   callback:
-                              ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
-
-                                 NSError* error = nil;
-                                 NSDictionary* jsonReply = [NSJSONSerialization JSONObjectWithData:data
-                                                                                           options:kNilOptions
-                                                                                             error:&error];
-                                 if(error)
-                                 {
-                                    NSLog(@"[Teak] Error canceling notification %@", error);
-                                 }
-                                 else
-                                 {
-                                    NSString* status = [jsonReply objectForKey:@"status"];
-                                    if([status isEqualToString:@"ok"])
-                                    {
+      TeakRequest* request = [[TeakRequest alloc]
+                              initWithSession:session
+                              forEndpoint:@"/me/cancel_local_notify"
+                              withPayload:@{@"id" : scheduleId}
+                              callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                 // TODO: Check response
+                                 if (NO) {
+                                    TeakLog(@"Error canceling notification %@", response);
+                                 } else {
+                                    NSString* status = [reply objectForKey:@"status"];
+                                    if ([status isEqualToString:@"ok"]) {
                                        ret.teakNotifId = scheduleId;
-                                    }
-                                    else
-                                    {
+                                    } else {
                                        ret.teakNotifId = nil;
                                     }
                                  }
@@ -232,7 +206,7 @@
                                  // Ready
                                  ret.completed = YES;
                               }];
-      [session.requestThread processRequest:request onHost:@"gocarrot.com"];
+      [request send];
    }];
 
    return ret;

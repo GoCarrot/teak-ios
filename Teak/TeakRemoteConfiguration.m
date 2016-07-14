@@ -14,8 +14,9 @@
  */
 
 #import "TeakRemoteConfiguration.h"
-#import "TeakSession.h""
-#import "TeakRequestThread.h"
+
+#import "TeakSession.h"
+#import "TeakRequest.h"
 #import "TeakAppConfiguration.h"
 
 #define LOG_TAG "Teak:RemoteConfig"
@@ -40,29 +41,25 @@
 }
 
 - (void)configureForSession:(nonnull TeakSession*)session {
-   TeakRequest* request = [TeakRequest requestForService:TeakRequestServiceAuth
-                                              atEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
-                                             usingMethod:TeakRequestTypePOST
-                                             withPayload:@{@"id" : session.appConfiguration.appId}
-                                                callback:
-                           ^(TeakRequest* request, NSHTTPURLResponse* response, NSData* data, TeakRequestThread* requestThread) {
-                              NSError* error = nil;
-                              NSDictionary* config = [NSJSONSerialization JSONObjectWithData:data
-                                                                                     options:kNilOptions
-                                                                                       error:&error];
-                              if (error) {
-                                 TeakLog(@"Unable to perform services configuration for Teak. Teak is in offline mode. %@", error);
+   TeakRequest* request = [[TeakRequest alloc]
+                           initWithSession:session
+                           forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
+                           withPayload:@{@"id" : session.appConfiguration.appId}
+                           callback: ^(NSURLResponse* response, NSDictionary* reply) {
+                              // TODO: Check response
+                              if (NO) {
+                                 TeakLog(@"Unable to perform services configuration for Teak. Teak is in offline mode. %@", response);
                               } else {
                                  self.hostname = @"gocarrot.com";
                                  
-                                 NSString* sdkSentryDsn = [config valueForKey:@"sdk_sentry_dsn"];
+                                 NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
                                  if (sdkSentryDsn) {
                                     self.sdkSentryDsn = sdkSentryDsn;
                                     // TODO: assign DSN via KVO?
                                  }
                               }
                            }];
-   [session.requestThread processRequest:request onHost:@"gocarrot.com"];
+   [request send];
 }
 
 @end

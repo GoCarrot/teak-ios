@@ -17,20 +17,16 @@
 @class TeakReward;
 
 @interface TeakNotification : NSObject
+@property (strong, nonatomic, readonly) NSString* _Nullable     teakNotifId;
+@property (strong, nonatomic, readonly) NSDictionary* _Nullable originalJson;
+@property (strong, nonatomic, readonly) NSURL* _Nullable        deepLink;
+@property (atomic, readonly)            BOOL                    completed;
 
-@property (nonatomic, readonly) NSString*     teakNotifId;
-@property (nonatomic, readonly) NSDictionary* originalJson;
-@property (nonatomic, readonly) NSURL*        deepLink;
-@property (atomic, readonly)    BOOL completed;
+- (nullable TeakReward*)consume;
+- (nullable TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary;
 
-- (TeakReward*)consume;
-
-+ (TeakNotification*)notificationFromDictionary:(NSDictionary*)dictionary;
-+ (TeakNotification*)notificationFromTeakNotifId:(NSString*)teakNotifId;
-
-+ (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay;
-
-+ (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId;
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId withMessage:(nonnull NSString*)message secondsFromNow:(uint64_t)delay;
++ (nullable TeakNotification*)cancelScheduledNotification:(nonnull NSString*)scheduleId;
 @end
 
 typedef enum : int
@@ -46,9 +42,7 @@ typedef enum : int
 } TeakRewardStatus;
 
 @interface TeakReward : NSObject
-
-@property (atomic, readonly)    BOOL completed;
-@property (nonatomic, readonly) int rewardStatus;
-@property (nonatomic, readonly) NSString* json;
-
+@property (atomic, readonly)            BOOL               completed;
+@property (nonatomic, readonly)         int                rewardStatus;
+@property (strong, nonatomic, readonly) NSString* _Nonnull json;
 @end

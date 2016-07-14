@@ -24,8 +24,6 @@
 #import "TeakDeviceConfiguration.h"
 #import "TeakSession.h"
 
-#import "TeakCache.h"
-#import "TeakRequestThread.h"
 #import "TeakNotification.h"
 #import "TeakVersion.h"
 
@@ -85,10 +83,10 @@ Teak* _teakSharedInstance;
    };
 
    // TODO: When user id is ready
-   [self.requestThread addRequestForService:TeakRequestServiceMetrics
+   /*[self.requestThread addRequestForService:TeakRequestServiceMetrics
                                  atEndpoint:@"/me/events"
                                 withPayload:payload
-                                andCallback:nil];
+                                andCallback:nil];*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -145,13 +143,6 @@ Teak* _teakSharedInstance;
 
       // Set up SDK Raven
       self.sdkRaven = [TeakRaven ravenForTeak:self];
-
-      // Create cache
-      self.cache = [[TeakCache alloc] init];
-      if(!self.cache) {
-         TeakLog(@"Unable to create Teak cache. Teak is disabled.");
-         return nil;
-      }
 
       // --
 
@@ -333,33 +324,34 @@ Teak* _teakSharedInstance;
    NSString* teakNotifId = NSStringOrNilFor([aps objectForKey:@"teakNotifId"]);
 
    if (teakNotifId != nil) {
-      TeakNotification* notif = [TeakNotification notificationFromDictionary:aps];
+      TeakNotification* notif = [[TeakNotification alloc] initWithDictionary:aps];
 
-      if (application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground) {
-         // App was opened via push notification
-         if (self.enableDebugOutput) {
-            TeakLog(@"App Opened from Teak Notification %@", notif);
-         }
+      if (notif != nil) {
+         if (application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground) {
+            // App was opened via push notification
+            if (self.enableDebugOutput) {
+               TeakLog(@"App Opened from Teak Notification %@", notif);
+            }
 
-         [TeakSession didLaunchFromTeakNotification:teakNotifId appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+            [TeakSession didLaunchFromTeakNotification:teakNotifId
+                                      appConfiguration:self.appConfiguration
+                                   deviceConfiguration:self.deviceConfiguration];
 
-         if (notif.deepLink != nil) {
-            [self handleDeepLink:notif.deepLink];
-         }
+            if (notif.deepLink != nil) {
+               [self handleDeepLink:notif.deepLink];
+            }
 
-         [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                             object:self
-                                                           userInfo:userInfo];
-      } else {
-         // Push notification received while app was in foreground
-         if (self.enableDebugOutput) {
-            TeakLog(@"Teak Notification received in foreground %@", notif);
+            // TODO: Change AIR & Unity code to read the teak notif out of the dict
+            [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                object:self
+                                                              userInfo:@{@"teakNotif" : notif}];
+         } else {
+            // Push notification received while app was in foreground
+            if (self.enableDebugOutput) {
+               TeakLog(@"Teak Notification received in foreground %@", notif);
+            }
          }
       }
-
-      [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAvailable
-                                                          object:self
-                                                        userInfo:userInfo];
    } else {
       if (self.enableDebugOutput) {
          TeakLog(@"Non-Teak push notification, ignored.");
@@ -414,10 +406,10 @@ Teak* _teakSharedInstance;
       [fullPayload addEntriesFromDictionary:[self.priceInfoDictionary valueForKey:transaction.payment.productIdentifier]];
       
       // TODO: When user id is ready
-      [self.requestThread addRequestForService:TeakRequestServicePost
+      /*[self.requestThread addRequestForService:TeakRequestServicePost
                                     atEndpoint:@"/me/purchase"
                                    withPayload:fullPayload
-                                   andCallback:nil];
+                                   andCallback:nil];*/
    });
 }
 
@@ -482,10 +474,10 @@ Teak* _teakSharedInstance;
       teak_log_data_breadcrumb(@"Reporting purchase failed", payload);
       
       // TODO: When user id is ready
-      [self.requestThread addRequestForService:TeakRequestServiceMetrics
+      /*[self.requestThread addRequestForService:TeakRequestServiceMetrics
                                     atEndpoint:@"/me/purchase"
                                    withPayload:payload
-                                   andCallback:nil];
+                                   andCallback:nil];*/
    }
    teak_catch_report
 }

@@ -33,11 +33,6 @@ void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* 
                              andObjectInstanceId:[NSString stringWithUTF8String:objectInstanceId]];
 }
 
-TeakNotification* TeakNotificationFromTeakNotifId(const char* teakNotifId)
-{
-   return [TeakNotification notificationFromTeakNotifId:[NSString stringWithUTF8String:teakNotifId]];
-}
-
 TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, uint64_t delay)
 {
    return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
