@@ -215,9 +215,10 @@ DefineTeakState(Expired, (@[]))
                                     //blockSelf.enableDebugOutput |= [[jsonReply valueForKey:@"verbose_logging"] boolValue];
                                     blockSelf.countryCode = [reply valueForKey:@"country_code"];
 
-                                    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                                    // For 'do_not_track_event'
+                                    if (blockSelf.currentState != [TeakSession UserIdentified]) {
                                        [blockSelf setState:[TeakSession UserIdentified]];
-                                    });
+                                    }
                                  }
                               }];
       [request send];
