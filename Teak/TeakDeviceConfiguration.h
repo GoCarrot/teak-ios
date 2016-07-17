@@ -18,14 +18,14 @@
 @class TeakAppConfiguration;
 
 @interface TeakDeviceConfiguration : NSObject
-@property (strong, nonatomic, readonly) NSString* deviceId;
-@property (strong, nonatomic, readonly) NSString* deviceModel;
-@property (strong, nonatomic, readonly) NSString* pushToken;
-@property (strong, nonatomic, readonly) NSString* platformString;
-@property (strong, nonatomic, readonly) NSString* advertisingIdentifier;
-@property (strong, nonatomic, readonly) NSNumber* limitAdTracking;
+@property (strong, nonatomic, readonly) NSString* _Nonnull deviceId;
+@property (strong, nonatomic, readonly) NSString* _Nonnull deviceModel;
+@property (strong, nonatomic, readonly) NSString* _Nullable pushToken;
+@property (strong, nonatomic, readonly) NSString* _Nonnull platformString;
+@property (strong, nonatomic, readonly) NSString* _Nullable advertisingIdentifier;
+@property (strong, nonatomic, readonly) NSNumber* _Nullable limitAdTracking;
 
-- (id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
-- (NSDictionary*)to_h;
+- (nullable id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
+- (nonnull NSDictionary*)to_h;
 - (void)assignPushToken:(nonnull NSString*)pushToken;
 @end

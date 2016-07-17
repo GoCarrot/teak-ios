@@ -21,13 +21,13 @@
 @class TeakDeviceConfiguration;
 @class TeakRemoteConfiguration;
 
-typedef void (^UserIdReadyBlock)(TeakSession*);
+typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 
 @interface TeakSession : NSObject
-@property (strong, nonatomic, readonly) TeakAppConfiguration* appConfiguration;
-@property (strong, nonatomic, readonly) TeakDeviceConfiguration* deviceConfiguration;
-@property (strong, nonatomic, readonly) TeakRemoteConfiguration* remoteConfiguration;
-@property (strong, nonatomic, readonly) NSString* userId;
+@property (strong, nonatomic, readonly) TeakAppConfiguration* _Nonnull appConfiguration;
+@property (strong, nonatomic, readonly) TeakDeviceConfiguration* _Nonnull deviceConfiguration;
+@property (strong, nonatomic, readonly) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
+@property (strong, nonatomic, readonly) NSString* _Nullable userId;
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);
@@ -37,10 +37,10 @@ DeclareTeakState(Expired);
 
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;
 
-+ (void)setUserId:(NSString*)userId;
++ (void)setUserId:(nonnull NSString*)userId;
 + (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 + (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 
-+ (void)applicationWillEnterForeground:(UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
-+ (void)applicationWillResignActive:(UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
++ (void)applicationWillEnterForeground:(nonnull UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
++ (void)applicationWillResignActive:(nonnull UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 @end

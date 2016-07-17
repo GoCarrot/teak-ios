@@ -16,12 +16,12 @@
 #import <Foundation/Foundation.h>
 
 @interface TeakAppConfiguration : NSObject
-@property (strong, nonatomic, readonly) NSString* appId;
-@property (strong, nonatomic, readonly) NSString* apiKey;
-@property (strong, nonatomic, readonly) NSString* bundleId;
-@property (strong, nonatomic, readonly) NSString* appVersion;
+@property (strong, nonatomic, readonly) NSString* _Nonnull appId;
+@property (strong, nonatomic, readonly) NSString* _Nonnull apiKey;
+@property (strong, nonatomic, readonly) NSString* _Nonnull bundleId;
+@property (strong, nonatomic, readonly) NSString* _Nonnull appVersion;
 @property (nonatomic, readonly) BOOL isProduction;
 
-- (id)initWithAppId:(nonnull NSString*)appId apiKey:(nonnull NSString*)apiKey;
-- (NSDictionary*)to_h;
+- (nullable id)initWithAppId:(nonnull NSString*)appId apiKey:(nonnull NSString*)apiKey;
+- (nonnull NSDictionary*)to_h;
 @end

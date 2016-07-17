@@ -18,13 +18,13 @@
 @class TeakRequest;
 @class TeakSession;
 
-typedef void (^TeakRequestResponse)(NSURLResponse* response, NSDictionary* reply);
+typedef void (^TeakRequestResponse)(NSURLResponse* _Nonnull response, NSDictionary* _Nonnull reply);
 
 @interface TeakRequest : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
-@property (strong, nonatomic, readonly) NSString* endpoint;
-@property (strong, nonatomic, readonly) NSDictionary* payload;
-@property (strong, nonatomic, readonly) TeakRequestResponse callback;
+@property (strong, nonatomic, readonly) NSString* _Nonnull endpoint;
+@property (strong, nonatomic, readonly) NSDictionary* _Nonnull payload;
+@property (copy, nonatomic, readonly) TeakRequestResponse _Nullable callback;
 
-- (TeakRequest*)initWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(TeakRequestResponse)callback;
+- (nonnull TeakRequest*)initWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback;
 - (void)send;
 @end

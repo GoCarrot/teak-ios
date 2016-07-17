@@ -64,7 +64,7 @@
 
 - (NSString*)description {
    return [NSString stringWithFormat:@"<%@: %@> forceDebug %@", NSStringFromClass([self class]),
-           [NSString stringWithFormat:@"0x%016llx", self],
+           [NSString stringWithFormat:@"0x%16@", self],
            self.forceDebug ? @"YES" : @"NO"];
 }
 @end

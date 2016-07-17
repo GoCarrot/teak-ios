@@ -29,8 +29,6 @@ NSString *const TeakSentryClient = @"teak-ios/1.0.0";
 NSString* const TeakRavenLevelError = @"error";
 NSString* const TeakRavenLevelFatal = @"fatal";
 
-typedef void(*TeakRavenSignalHandler)(int);
-
 extern bool AmIBeingDebugged(void);
 
 @interface TeakRavenLocationHelper ()
@@ -50,12 +48,12 @@ extern bool AmIBeingDebugged(void);
 
 @property (strong, nonatomic) NSArray* runLoopModes;
 @property (nonatomic) NSUncaughtExceptionHandler* hException;
-@property (nonatomic) TeakRavenSignalHandler hSIGABRT;
-@property (nonatomic) TeakRavenSignalHandler hSIGILL;
-@property (nonatomic) TeakRavenSignalHandler hSIGSEGV;
-@property (nonatomic) TeakRavenSignalHandler hSIGFPE;
-@property (nonatomic) TeakRavenSignalHandler hSIGBUS;
-@property (nonatomic) TeakRavenSignalHandler hSIGPIPE;
+@property (nonatomic) void* hSIGABRT;
+@property (nonatomic) void* hSIGILL;
+@property (nonatomic) void* hSIGSEGV;
+@property (nonatomic) void* hSIGFPE;
+@property (nonatomic) void* hSIGBUS;
+@property (nonatomic) void* hSIGPIPE;
 
 - (void)reportUncaughtException:(nonnull NSException*)exception;
 - (void)reportSignal:(nonnull NSString*)name;
@@ -148,7 +146,7 @@ void TeakSignalHandler(int signal) {
    NSSetUncaughtExceptionHandler(&TeakUncaughtExceptionHandler);
 
    struct sigaction previousSignalAction;
-#define ASSIGN_SIGNAL_HANDLER(_sig) sigaction(_sig, NULL, &previousSignalAction); self.h##_sig = previousSignalAction.sa_sigaction; signal(_sig,TeakSignalHandler);
+#define ASSIGN_SIGNAL_HANDLER(_sig) sigaction(_sig, NULL, &previousSignalAction); self.h##_sig = previousSignalAction.sa_sigaction; signal(_sig, TeakSignalHandler);
    ASSIGN_SIGNAL_HANDLER(SIGABRT);
    ASSIGN_SIGNAL_HANDLER(SIGILL);
    ASSIGN_SIGNAL_HANDLER(SIGSEGV);
@@ -469,8 +467,8 @@ void TeakSignalHandler(int signal) {
    //[request setValue:@"gzip" forHTTPHeaderField:@"Content-Encoding"]; // TODO: gzip?
    [request setValue:TeakSentryClient forHTTPHeaderField:@"User-Agent"];
    [request setValue:[NSString
-                      stringWithFormat:@"Sentry sentry_version=%@,sentry_timestamp=%d,sentry_key=%@,sentry_secret=%@,sentry_client=%@",
-                      SentryProtocolVersion, [self.timestamp timeIntervalSince1970], self.raven.sentryKey, self.raven.sentrySecret, TeakSentryClient] forHTTPHeaderField:@"X-Sentry-Auth"];
+                      stringWithFormat:@"Sentry sentry_version=%@,sentry_timestamp=%lld,sentry_key=%@,sentry_secret=%@,sentry_client=%@",
+                      SentryProtocolVersion, (long long)[self.timestamp timeIntervalSince1970], self.raven.sentryKey, self.raven.sentrySecret, TeakSentryClient] forHTTPHeaderField:@"X-Sentry-Auth"];
    [request setHTTPMethod:@"POST"];
    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[payloadData length]] forHTTPHeaderField:@"Content-Length"];
    [request setHTTPBody:payloadData];

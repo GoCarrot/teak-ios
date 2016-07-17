@@ -15,34 +15,33 @@
 
 #import <Foundation/Foundation.h>
 
-extern NSString* const TeakRavenLevelError;
-extern NSString* const TeakRavenLevelFatal;
+extern NSString* _Nonnull const TeakRavenLevelError;
+extern NSString* _Nonnull const TeakRavenLevelFatal;
 
 @class Teak;
 
 @interface TeakRavenLocationHelper : NSObject
 
-@property (strong, nonatomic) NSException* exception;
+@property (strong, nonatomic) NSException* _Nonnull exception;
 
-+ (TeakRavenLocationHelper*)pushHelperForFile:(const char*)file line:(int)line function:(const char*)function;
-+ (TeakRavenLocationHelper*)popHelper;
-+ (TeakRavenLocationHelper*)peekHelper;
++ (nonnull TeakRavenLocationHelper*)pushHelperForFile:(const char* _Nonnull)file line:(int)line function:(const char* _Nonnull)function;
++ (nullable TeakRavenLocationHelper*)popHelper;
++ (nullable TeakRavenLocationHelper*)peekHelper;
 
-- (void)addBreadcrumb:(nonnull NSString*)category message:(NSString*)message data:(NSDictionary*)data file:(const char*)file line:(int)line;
+- (void)addBreadcrumb:(nonnull NSString*)category message:(nullable NSString*)message data:(nullable NSDictionary*)data file:(const char* _Nonnull)file line:(int)line;
 
 @end
 
 @interface TeakRaven : NSObject
 
-+ (TeakRaven*)ravenForTeak:(nonnull Teak*)teak;
++ (nullable TeakRaven*)ravenForTeak:(nonnull Teak*)teak;
 
-- (BOOL)setDSN:(NSString*)dsn;
-- (void)setUserValue:(id)value forKey:(nonnull NSString*)key;
+- (BOOL)setDSN:(nonnull NSString*)dsn;
+- (void)setUserValue:(nullable id)value forKey:(nonnull NSString*)key;
 - (void)setAsUncaughtExceptionHandler;
 - (void)unsetAsUncaughtExceptionHandler;
 
-- (void)reportException:(nonnull NSException*)exception level:(nonnull NSString*)level;
-- (void)reportWithHelper:(TeakRavenLocationHelper*)helper;
+- (void)reportWithHelper:(nonnull TeakRavenLocationHelper*)helper;
 
 @end
 
