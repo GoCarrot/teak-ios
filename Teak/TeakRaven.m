@@ -478,7 +478,9 @@ void TeakSignalHandler(int signal) {
 }
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
-   completionHandler(NSURLSessionResponseAllow);
+   if (completionHandler != nil) {
+      completionHandler(NSURLSessionResponseAllow);
+   }
 }
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
