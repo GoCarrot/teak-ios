@@ -471,7 +471,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 }
 
 - (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response {
-   if(response.products.count > 0) {
+   if(response != nil && response.products != nil && response.products.count > 0) {
       teak_try {
          teak_log_breadcrumb(@"Collecting product response info");
          SKProduct* product = [response.products objectAtIndex:0];
