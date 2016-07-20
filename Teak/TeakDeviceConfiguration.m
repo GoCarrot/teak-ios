@@ -94,9 +94,10 @@
 }
 
 - (void)getAdvertisingInformation {
-   NSString* advertisingIdentifier = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
+   ASIdentifierManager* asIdentifierManager = [ASIdentifierManager sharedManager];
+   NSString* advertisingIdentifier = asIdentifierManager ? [asIdentifierManager.advertisingIdentifier UUIDString] : nil;
    if (advertisingIdentifier != nil) {
-      self.limitAdTracking = [ASIdentifierManager sharedManager].advertisingTrackingEnabled ? @YES : @NO;
+      self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled ? @YES : @NO;
       self.advertisingIdentifier = advertisingIdentifier;
    } else {
       __weak typeof(self) weakSelf = self;
