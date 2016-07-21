@@ -57,6 +57,16 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    return self;
 }
 
+- (NSDictionary*)to_h {
+   return @{
+      @"appId" : self.appId,
+      @"apiKey" : self.apiKey,
+      @"bundleId" : self.bundleId,
+      @"appVersion" : self.appVersion,
+      @"isProduction" : self.isProduction ? @YES : @NO
+   };
+}
+
 - (NSString*)description {
    return [NSString stringWithFormat:@"<%@: %p> app-id: %@; api-key: %@; bundle-id: %@; app-version: %@; is-production: %@",
            NSStringFromClass([self class]),

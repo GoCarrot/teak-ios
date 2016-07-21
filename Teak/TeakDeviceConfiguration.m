@@ -128,6 +128,17 @@
    }
 }
 
+- (NSDictionary*)to_h {
+   return @{
+      @"deviceId" : self.deviceId,
+      @"deviceModel" : self.deviceModel,
+      @"pushToken" : self.pushToken ? self.pushToken : [NSNull null],
+      @"platformString" : self.platformString,
+      @"advertisingIdentifier" : self.advertisingIdentifier ? self.advertisingIdentifier : [NSNull null],
+      @"limitAdTracking" : self.limitAdTracking ? self.limitAdTracking : @"unknown"
+   };
+}
+
 - (NSString*)description {
    return [NSString stringWithFormat:@"<%@: %p> device-id: %@; device-model: %@; push-token: %@; platform-string: %@; advertising-tracking-enabled: %@; advertising-identifier: %@",
            NSStringFromClass([self class]),
