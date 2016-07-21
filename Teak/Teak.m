@@ -366,6 +366,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 }
 
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction {
+   if (transaction == nil || transaction.payment == nil) return;
+
    teak_try {
       teak_log_breadcrumb(@"Building date formatter");
       NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
@@ -383,7 +385,10 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
             @"product_id" : transaction.payment.productIdentifier,
             @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
          }];
-         [fullPayload addEntriesFromDictionary:priceInfo];
+
+         if (priceInfo != nil) {
+            [fullPayload addEntriesFromDictionary:priceInfo];
+         }
 
          [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
             TeakRequest* request = [[TeakRequest alloc]
@@ -399,6 +404,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 }
 
 - (void)transactionFailed:(SKPaymentTransaction*)transaction {
+   if (transaction == nil || transaction.payment == nil) return;
+
    teak_try {
       teak_log_breadcrumb(@"Determining status");
       NSString* errorString = @"unknown";
@@ -482,6 +489,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
          self.callback(@{@"price_currency_code" : currencyCode, @"price_float" : price});
       }
       teak_catch_report
+   } else {
+      self.callback(@{});
    }
 }
 
