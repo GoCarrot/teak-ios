@@ -14,24 +14,14 @@
  */
 
 #import <Foundation/Foundation.h>
-#import "TeakCache.h"
-#import "TeakRequest.h"
 
-@class Teak;
+@class TeakAppConfiguration;
+@class TeakSession;
 
-@interface TeakRequestThread : NSObject
+@interface TeakRemoteConfiguration : NSObject
+@property (strong, nonatomic, readonly) NSString* hostname;
+@property (strong, nonatomic, readonly) NSString* sdkSentryDsn;
+@property (strong, nonatomic, readonly) NSString* appSentryDsn;
 
-@property (nonatomic, readonly) BOOL isRunning;
-@property (nonatomic) NSUInteger maxRetryCount; // 0 = infinite
-@property (strong, nonatomic, readonly) TeakCache* cache;
-
-- (id)initWithTeak:(Teak*)teak;
-
-- (BOOL)addRequestForService:(TeakRequestServiceType)serviceType atEndpoint:(NSString*)endpoint usingMethod:(NSString*)method withPayload:(NSDictionary*)payload andCallback:(TeakRequestResponse)callback;
-
-- (void)start;
-- (void)stop;
-
-- (void)processRequest:(TeakRequest*)request onHost:(NSString*)host;
-
+- (TeakRemoteConfiguration*)initForSession:(TeakSession*)session;
 @end

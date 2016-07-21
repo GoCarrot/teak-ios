@@ -16,6 +16,8 @@
 #import "Teak+Internal.h"
 #import <Teak/TeakNotification.h>
 
+#define LOG_TAG "Teak:CExtern"
+
 void TeakSetDebugOutputEnabled(int enabled)
 {
    [Teak sharedInstance].enableDebugOutput = (enabled > 0);
@@ -33,21 +35,6 @@ void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* 
                              andObjectInstanceId:[NSString stringWithUTF8String:objectInstanceId]];
 }
 
-const char* TeakLaunchedFromTeakNotifId()
-{
-   return [[Teak sharedInstance].launchedFromTeakNotifId UTF8String];
-}
-
-const char* TeakLaunchedFromDeepLink()
-{
-   return [[[Teak sharedInstance].launchedFromDeepLink absoluteString] UTF8String];
-}
-
-TeakNotification* TeakNotificationFromTeakNotifId(const char* teakNotifId)
-{
-   return [TeakNotification notificationFromTeakNotifId:[NSString stringWithUTF8String:teakNotifId]];
-}
-
 TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, uint64_t delay)
 {
    return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
@@ -58,11 +45,6 @@ TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* m
 TeakNotification* TeakNotificationCancel(const char* scheduleId)
 {
    return [TeakNotification cancelScheduledNotification:[NSString stringWithUTF8String:scheduleId]];
-}
-
-TeakReward* TeakNotificationConsume(TeakNotification* notif)
-{
-   return [notif consume];
 }
 
 BOOL TeakNotificationHasReward(TeakNotification* notif)
@@ -80,17 +62,28 @@ const char* TeakNotificationGetTeakNotifId(TeakNotification* notif)
    return [notif.teakNotifId UTF8String];
 }
 
+TeakReward* TeakRewardRewardForId(NSString* teakRewardId)
+{
+   return [TeakReward rewardForRewardId:teakRewardId];
+}
+
 BOOL TeakRewardIsCompleted(TeakReward* reward)
 {
    return reward.completed;
 }
 
-int TeakRewardGetStatus(TeakReward* reward)
-{
-   return reward.rewardStatus;
-}
-
 const char* TeakRewardGetJson(TeakReward* reward)
 {
-   return [reward.json UTF8String];
+   NSError* error = nil;
+   NSData* jsonData = [NSJSONSerialization dataWithJSONObject:reward.json
+                                                      options:0
+                                                        error:&error];
+
+   if (error != nil) {
+      TeakLog(@"Error converting to JSON: %@", error);
+   } else {
+      NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+      return [jsonString UTF8String];
+   }
+   return "";
 }

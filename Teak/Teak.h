@@ -16,19 +16,13 @@
 #include <Foundation/Foundation.h>
 
 /**
- * Use this named notification to listen for Teak events about push notifications. Ex:
- *
+ * Use this named notification to listen for when your app gets launched from a Teak notification.
  * [[NSNotificationCenter defaultCenter] addObserver:self
  *                                          selector:@selector(handleTeakNotification)
- *                                               name:TeakNotificationAvailable
+ *                                               name:TeakNotificationAppLaunch
  *                                             object:nil];
  */
-extern NSString* const TeakNotificationAvailable;
-
-/**
- * Use this named notification to listen for when your app gets launched from a Teak notification.
- */
-extern NSString* const TeakNotificationAppLaunch;
+extern NSString* _Nonnull const TeakNotificationAppLaunch;
 
 #ifdef __OBJC__
 
@@ -38,11 +32,16 @@ extern NSString* const TeakNotificationAppLaunch;
 @interface Teak : NSObject
 
 /**
- * Enable/Disable NSLog Debug Output.
+ * Is debug logging enabled.
  *
  * Disabled by default in production, enabled otherwise.
  */
-@property (nonatomic) BOOL enableDebugOutput;
+@property (nonatomic, readonly) BOOL enableDebugOutput;
+
+/**
+ * Teak SDK Version.
+ */
+@property (strong, nonatomic, readonly) NSString* _Nonnull sdkVersion;
 
 /**
  * Set up Teak in a single function call.
@@ -54,7 +53,7 @@ extern NSString* const TeakNotificationAppLaunch;
  * 	{
  * 		@autoreleasepool {
  * 			// Add this line here.
- * 			[Teak initForApplicationId:@"your_app_id" withClass:[YourAppDelegate class] andSecret:@"your_app_secret"];
+ * 			[Teak initForApplicationId:@"your_app_id" withClass:[YourAppDelegate class] andApiKey:@"your_api_key"];
  *
  * 			return UIApplicationMain(argc, argv, nil, NSStringFromClass([YourAppDelegate class]));
  * 		}
@@ -62,14 +61,14 @@ extern NSString* const TeakNotificationAppLaunch;
  *
  * @param appId            Teak Application Id
  * @param appDelegateClass Class of your application delegate, ex: [YourAppDelegate class].
- * @param appSecret        Your Teak application secret.
+ * @param apiKey           Your Teak API key.
  */
-+ (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andSecret:(NSString*)appSecret;
++ (void)initForApplicationId:(nonnull NSString*)appId withClass:(nonnull Class)appDelegateClass andApiKey:(nonnull NSString*)apiKey;
 
 /**
  * Teak singleton.
  */
-+ (Teak*)sharedInstance;
++ (nullable Teak*)sharedInstance;
 
 /**
  * Tell Teak how to identify the current user.
@@ -78,7 +77,7 @@ extern NSString* const TeakNotificationAppLaunch;
  *
  * @param userId           The string Teak should use to identify the current user.
  */
-- (void)identifyUser:(NSString*)userId;
+- (void)identifyUser:(nonnull NSString*)userId;
 
 /**
  * Track an arbitrary event in Teak.
@@ -87,7 +86,7 @@ extern NSString* const TeakNotificationAppLaunch;
  * @param objectTypeId     The type of object that is being posted, e.g. 'quest'.
  * @param objectInstanceId The specific instance of the object, e.g. 'gather-quest-1'
  */
-- (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId;
+- (void)trackEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId;
 
 @end
 

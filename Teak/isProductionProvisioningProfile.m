@@ -24,6 +24,9 @@
  */
 #import <Foundation/Foundation.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+
 #define UA_LTRACE
 #define UA_LERR
 #define UA_LDEBUG
@@ -82,3 +85,5 @@ BOOL isProductionProvisioningProfile(NSString* profilePath) {
 
    return YES;// For safety, assume production unless the profile is explicitly set to development
 }
+
+#pragma clang diagnostic pop
