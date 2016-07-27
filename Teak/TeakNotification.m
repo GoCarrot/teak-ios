@@ -51,7 +51,8 @@
       NSString* urlString = [NSString stringWithFormat:@"/%@/clicks", teakRewardId];
       TeakRequest* request = [[TeakRequest alloc]
                               initWithSession:session
-                              forEndpoint:urlString
+                              forHostname:@"rewards.gocarrot.com"
+                              withEndpoint:urlString
                               withPayload:@{@"clicking_user_id" : session.userId}
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
                                  // TODO: Check response

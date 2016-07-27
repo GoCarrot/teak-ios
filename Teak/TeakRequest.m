@@ -36,11 +36,15 @@
 @implementation TeakRequest
 
 - (TeakRequest*)initWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(TeakRequestResponse)callback {
+   return [self initWithSession:session forHostname:@"gocarrot.com" withEndpoint:endpoint withPayload:payload callback:callback];
+}
+
+- (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(TeakRequestResponse)callback {
    self = [super init];
    if (self) {
       self.endpoint = endpoint;
       self.callback = callback;
-      self.hostname = @"gocarrot.com"; // TODO: Support other hostnames via RemoteConfiguration
+      self.hostname = hostname;
       self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
                                                       delegate:self
                                                  delegateQueue:nil];

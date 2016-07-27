@@ -25,6 +25,8 @@ typedef void (^TeakRequestResponse)(NSURLResponse* _Nonnull response, NSDictiona
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull payload;
 @property (copy, nonatomic, readonly) TeakRequestResponse _Nullable callback;
 
-- (nonnull TeakRequest*)initWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback;
+- (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback;
+- (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(TeakRequestResponse)callback;
+
 - (void)send;
 @end
