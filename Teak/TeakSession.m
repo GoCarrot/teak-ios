@@ -312,10 +312,21 @@ DefineTeakState(Expired, (@[]))
 
       // It's a new session if there's a new launch from a notification
       if ([currentSession valueForKey:key] == nil || ![attribution isEqualToString:[currentSession valueForKey:key]]) {
+         if ([Teak sharedInstance].enableDebugOutput) {
+            TeakLog(@"New session attribution source, creating new session. %@", currentSession != nil ? currentSession : @"");
+         }
+
          TeakSession* oldSession = currentSession;
          currentSession = [[TeakSession alloc] initWithAppConfiguration:oldSession.appConfiguration
                                                     deviceConfiguration:oldSession.deviceConfiguration];
-         [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
+
+         if (oldSession != nil) {
+            [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
+            if (oldSession.userId != nil) {
+               currentSession.userId = oldSession.userId;
+            }
+         }
+
          [oldSession setState:[TeakSession Expiring]];
          [oldSession setState:[TeakSession Expired]];
       }
@@ -356,17 +367,18 @@ DefineTeakState(Expired, (@[]))
 + (TeakSession*)currentSessionForAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
    @synchronized (currentSessionMutex) {
       if (currentSession == nil || [currentSession hasExpired]) {
+         if ([Teak sharedInstance].enableDebugOutput) {
+            TeakLog(@"Previous Session expired, creating new session. %@", currentSession != nil ? currentSession : @"");
+         }
+
          TeakSession* oldSession = currentSession;
          currentSession = [[TeakSession alloc] initWithAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
-         [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
 
-         // If the old session had a user id assigned, it needs to be passed to the newly created
-         // session. When setSessionState(State.Configured) happens, it will call identifyUser()
-         if (oldSession != nil && oldSession.userId != nil) {
-            if ([Teak sharedInstance].enableDebugOutput) {
-               TeakLog(@"Previous Session expired, assigning user id '%@' to new Session.", oldSession.userId);
+         if (oldSession != nil) {
+            [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
+            if (oldSession.userId != nil) {
+               currentSession.userId = oldSession.userId;
             }
-            [TeakSession setUserId:oldSession.userId];
          }
       }
       return currentSession;
