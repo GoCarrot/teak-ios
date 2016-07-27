@@ -432,7 +432,9 @@ KeyValueObserverFor(TeakSession, currentState) {
          self.endDate = [[NSDate alloc] init];
 
          // Stop heartbeat, Expiring->Expiring is possible, so no invalid data here
-         dispatch_source_cancel(self.heartbeat);
+         if (self.heartbeat != nil) {
+            dispatch_source_cancel(self.heartbeat);
+         }
          self.heartbeat = nil;
          self.heartbeatQueue = nil;
       } else if (newValue == [TeakSession Expired]) {
