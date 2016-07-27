@@ -30,7 +30,6 @@
 
 #define LOG_TAG "Teak"
 
-NSString* const TeakNotificationAvailable = @"TeakNotifiacationAvailableId";
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 
 // FB SDK 3.x
