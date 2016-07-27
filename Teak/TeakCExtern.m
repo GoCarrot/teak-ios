@@ -74,6 +74,10 @@ BOOL TeakRewardIsCompleted(TeakReward* reward)
 
 const char* TeakRewardGetJson(TeakReward* reward)
 {
+   if (reward == nil || reward.json == nil) {
+      return "";
+   }
+
    NSError* error = nil;
    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:reward.json
                                                       options:0
