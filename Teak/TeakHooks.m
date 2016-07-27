@@ -28,7 +28,7 @@
   sourceApplication:(NSString*)sourceApplication
          annotation:(id)annotation;
 
-- (void)applicationWillEnterForeground:(UIApplication*)application;
+- (void)applicationDidBecomeActive:(UIApplication*)application;
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
 
@@ -81,9 +81,9 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
       sHostAppOpenURLIMP = (BOOL (*)(id, SEL, UIApplication*, NSURL*, NSString*, id))class_replaceMethod(appDelegateClass, appOpenURLMethod.name, method_getImplementation(ctAppOpenURL), appOpenURLMethod.types);
    }
 
-   // applicationWillEnterForeground:
+   // applicationDidBecomeActive:
    {
-      struct objc_method_description appWEFMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationWillEnterForeground:), NO, YES);
+      struct objc_method_description appWEFMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationDidBecomeActive:), NO, YES);
 
       Method ctAppDBA = class_getInstanceMethod([TeakAppDelegateHooks class], appWEFMethod.name);
       sHostWEFIMP = (void (*)(id, SEL, UIApplication*))class_replaceMethod(appDelegateClass, appWEFMethod.name, method_getImplementation(ctAppDBA), appWEFMethod.types);
@@ -150,10 +150,10 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
    return ret;
 }
 
-- (void)applicationWillEnterForeground:(UIApplication*)application {
-   [[Teak sharedInstance] applicationWillEnterForeground:application];
+- (void)applicationDidBecomeActive:(UIApplication*)application {
+   [[Teak sharedInstance] applicationDidBecomeActive:application];
    if (sHostWEFIMP) {
-      sHostWEFIMP(self, @selector(applicationWillEnterForeground:), application);
+      sHostWEFIMP(self, @selector(applicationDidBecomeActive:), application);
    }
 }
 

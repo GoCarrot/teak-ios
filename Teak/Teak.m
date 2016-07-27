@@ -271,13 +271,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
    // Set up listeners
    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
 
-   // Call 'applicationWillEnterForeground:' to hit the code in there
-   [self applicationWillEnterForeground:application];
+   // Call 'applicationDidBecomeActive:' to hit the code in there
+   [self applicationDidBecomeActive:application];
 
    return NO;
 }
 
-- (void)applicationWillEnterForeground:(UIApplication*)application {
+- (void)applicationDidBecomeActive:(UIApplication*)application {
    // If iOS 8+ then check first to see if we have permission to change badge, otherwise
    // just go ahead and change it.
    if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
@@ -289,7 +289,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
       [application setApplicationIconBadgeNumber:0];
    }
 
-   [TeakSession applicationWillEnterForeground:application appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+   [TeakSession applicationDidBecomeActive:application appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
 }
 
 - (void)applicationWillResignActive:(UIApplication*)application {

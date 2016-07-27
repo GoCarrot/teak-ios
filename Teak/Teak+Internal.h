@@ -41,7 +41,7 @@
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 
 // Post-launch lifecycle
-- (void)applicationWillEnterForeground:(UIApplication*)application;
+- (void)applicationDidBecomeActive:(UIApplication*)application;
 - (void)applicationWillResignActive:(UIApplication*)application;
 
 // Deep Linking

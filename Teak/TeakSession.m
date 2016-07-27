@@ -329,7 +329,7 @@ DefineTeakState(Expired, (@[]))
    }
 }
 
-+ (void)applicationWillEnterForeground:(UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)applicationDidBecomeActive:(UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
    @synchronized (currentSessionMutex) {
       [TeakSession currentSessionForAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
 
