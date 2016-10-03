@@ -186,20 +186,6 @@ DefineTeakState(Expired, (@[]))
       NSLog(@"[Teak] Identifying user: %@", self.userId);
       NSLog(@"[Teak]         Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
       NSLog(@"[Teak]           Locale: %@", [[NSLocale preferredLanguages] objectAtIndex:0]);
-      /*
-       if(self.enableDebugOutput && self.pushToken != nil)
-       {
-       NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@",
-       self.appId,
-       URLEscapedString(self.userId),
-       URLEscapedString(self.pushToken),
-       URLEscapedString(self.deviceModel),
-       URLEscapedString([[NSBundle mainBundle] bundleIdentifier]),
-       self.isProduction ? @"false" : @"true"];
-       NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
-       NSLog(@"%@", urlString);
-       }
-       */
 
       __block typeof(self) blockSelf = self;
       TeakRequest* request = [[TeakRequest alloc]
@@ -453,6 +439,19 @@ KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+      if([Teak sharedInstance].enableDebugOutput && self.deviceConfiguration.pushToken != nil) {
+         NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@&device_id=%@",
+         URLEscapedString(self.appConfiguration.appId),
+         URLEscapedString(self.appConfiguration.apiKey),
+         URLEscapedString(self.deviceConfiguration.pushToken),
+         URLEscapedString(self.deviceConfiguration.deviceModel),
+         URLEscapedString(self.appConfiguration.bundleId),
+         self.appConfiguration.isProduction ? @"false" : @"true",
+         URLEscapedString(self.deviceConfiguration.deviceId)];
+         NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
+         NSLog(@"%@", urlString);
+      }
+
       [session identifyUser];
    }];
 }
