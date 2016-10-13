@@ -233,31 +233,36 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
    // Facebook SDKs
    Class fb4xClass = NSClassFromString(@"FBSDKProfile");
    Class fb3xClass = NSClassFromString(@"FBSession");
-   if (fb4xClass != nil) {
-      BOOL arg = YES;
-      SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange");
-      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fb4xClass methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
-      [inv setSelector:enableUpdatesOnAccessTokenChange];
-      [inv setTarget:fb4xClass];
-      [inv setArgument:&arg atIndex:2];
-      [inv invoke];
+   @try {
+      if (fb4xClass != nil) {
+         BOOL arg = YES;
+         SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
+         NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fb4xClass methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
+         [inv setSelector:enableUpdatesOnAccessTokenChange];
+         [inv setTarget:fb4xClass];
+         [inv setArgument:&arg atIndex:2];
+         [inv invoke];
 
-      [[NSNotificationCenter defaultCenter] addObserver:self
-                                               selector:@selector(fbAccessTokenChanged_4x:)
-                                                   name:TeakFBSDKAccessTokenDidChangeNotification
-                                                 object:nil];
-   } else if (fb3xClass != nil) {
-      // accessTokenData
-      [[NSNotificationCenter defaultCenter] addObserver:self
-                                               selector:@selector(fbAccessTokenChanged_3x:)
-                                                   name:TeakFBSessionDidBecomeOpenActiveSessionNotification
-                                                 object:nil];
-   }
+         [[NSNotificationCenter defaultCenter] addObserver:self
+                                                  selector:@selector(fbAccessTokenChanged_4x:)
+                                                      name:TeakFBSDKAccessTokenDidChangeNotification
+                                                    object:nil];
+      } else if (fb3xClass != nil) {
+         // accessTokenData
+         [[NSNotificationCenter defaultCenter] addObserver:self
+                                                  selector:@selector(fbAccessTokenChanged_3x:)
+                                                      name:TeakFBSessionDidBecomeOpenActiveSessionNotification
+                                                    object:nil];
+      }
 
-   if (self.enableDebugOutput) {
-      if(fb4xClass != nil) TeakLog(@"Using Facebook SDK v4.x");
-      else if(fb3xClass != nil) TeakLog(@"Using Facebook SDK v3.x");
-      else TeakLog(@"Facebook SDK not detected");
+      if (self.enableDebugOutput) {
+         if(fb4xClass != nil) TeakLog(@"Using Facebook SDK v4.x");
+         else if(fb3xClass != nil) TeakLog(@"Using Facebook SDK v3.x");
+         else TeakLog(@"Facebook SDK not detected");
+      }
+   } @catch (NSException* exception) {
+      // I don't know
+      TeakLog(@"Exception working with Facebook SDK: %@", exception);
    }
 
    // If the app was not running, we need to check these and invoke them afterwards
