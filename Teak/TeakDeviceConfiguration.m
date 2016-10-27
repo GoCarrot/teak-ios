@@ -114,9 +114,7 @@
 
    self.pushToken = pushToken;
 
-   if ([Teak sharedInstance].enableDebugOutput) {
-      TeakLog(@"Got new push token: %@", self.pushToken);
-   }
+   TeakLog(@"Registering new push token: %@", self.pushToken);
 
    if (self.userDefaults) {
       @try {
