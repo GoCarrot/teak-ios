@@ -198,7 +198,7 @@ DefineTeakState(Expired, (@[]))
                                  if (YES) {
                                     bool forceDebug = [[jsonReply valueForKey:@"verbose_logging"] boolValue];
                                     [[Teak sharedInstance].debugConfiguration setForceDebugPreference:forceDebug];
-                                    blockSelf.enableDebugOutput |= forceDebug;
+                                    [Teak sharedInstance].enableDebugOutput |= forceDebug;
                                     blockSelf.countryCode = [reply valueForKey:@"country_code"];
 
                                     // For 'do_not_track_event'
