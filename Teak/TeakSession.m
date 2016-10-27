@@ -196,7 +196,7 @@ DefineTeakState(Expired, (@[]))
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
                                  // TODO: Check response
                                  if (YES) {
-                                    bool forceDebug = [jsonReply valueForKey:@"verbose_logging"] boolValue];
+                                    bool forceDebug = [[jsonReply valueForKey:@"verbose_logging"] boolValue];
                                     [[Teak sharedInstance].debugConfiguration setForceDebugPreference:forceDebug];
                                     blockSelf.enableDebugOutput |= forceDebug;
                                     blockSelf.countryCode = [reply valueForKey:@"country_code"];
