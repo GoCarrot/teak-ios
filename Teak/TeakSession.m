@@ -258,7 +258,10 @@ DefineTeakState(Expired, (@[]))
 }
 
 - (void)dealloc {
-   UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
+   // This observer is only registered in the 'Created' state
+   if([self currentState] == [TeakSession Created]) {
+      UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
+   }
    UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
    UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
    UnRegisterKeyValueObserverFor(self, currentState);
