@@ -19,6 +19,7 @@
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakRemoteConfiguration.h"
+#import "TeakDebugConfiguration.h"
 
 #define LOG_TAG "Teak:Session"
 #define kSameSessionDeltaSeconds 120
@@ -196,7 +197,7 @@ DefineTeakState(Expired, (@[]))
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
                                  // TODO: Check response
                                  if (YES) {
-                                    bool forceDebug = [[jsonReply valueForKey:@"verbose_logging"] boolValue];
+                                    bool forceDebug = [[reply valueForKey:@"verbose_logging"] boolValue];
                                     [[Teak sharedInstance].debugConfiguration setForceDebugPreference:forceDebug];
                                     [Teak sharedInstance].enableDebugOutput |= forceDebug;
                                     blockSelf.countryCode = [reply valueForKey:@"country_code"];
