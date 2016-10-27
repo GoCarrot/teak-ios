@@ -72,21 +72,21 @@
       // Get device/app information
       struct utsname systemInfo;
       uname(&systemInfo);
-      
+
       @try {
          self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
       } @catch (NSException* exception) {
          self.deviceModel = @"unknown";
          TeakLog(@"Error getting deviceModel. %@", exception);
       }
-      
+
       @try {
          self.platformString = [NSString stringWithFormat:@"ios_%f",[[[UIDevice currentDevice] systemVersion] floatValue]];
       } @catch (NSException *exception) {
          self.platformString = @"ios_0.0";
          TeakLog(@"Error getting systemVersion. %@", exception);
       }
-      
+
       // Get advertising information
       [self getAdvertisingInformation];
    }

@@ -445,7 +445,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
       };
 
       teak_log_data_breadcrumb(@"Reporting purchase failed", payload);
-      
+
       [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
          TeakRequest* request = [[TeakRequest alloc]
                                  initWithSession:session
