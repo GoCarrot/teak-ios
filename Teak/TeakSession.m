@@ -389,11 +389,14 @@ KeyValueObserverFor(Teak, fbAccessToken) {
 
 KeyValueObserverFor(TeakSession, currentState) {
    @synchronized (self) {
+      if (oldValue == [TeakSession Created]) {
+         UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
+      }
+
       if (newValue == [TeakSession Created]) {
          self.remoteConfiguration = [[TeakRemoteConfiguration alloc] initForSession:self];
          RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
       } else if (newValue == [TeakSession Configured]) {
-         UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
 
          if (self.userId != nil) {
             [self identifyUser];
