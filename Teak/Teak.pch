@@ -20,6 +20,7 @@
 #include "TeakKVOHelpers.h"
 
 #define TeakLog(fmt, ...) NSLog((@"[%s] %s (Line %d) " fmt), LOG_TAG, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define TeakDebugLog(fmt, ...) if([Teak sharedInstance].enableDebugOutput) { NSLog((@"[%s] %s (Line %d) " fmt), LOG_TAG, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); }
 
 extern NSString* TeakURLEscapedString(NSString* inString);
 extern NSString* TeakNSStringOrNilFor(id object);

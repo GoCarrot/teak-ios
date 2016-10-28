@@ -126,9 +126,7 @@ DefineTeakState(Expired, (@[]))
       self.previousState = self.currentState;
       self.currentState = newState;
 
-      if ([Teak sharedInstance].enableDebugOutput) {
-         TeakLog(@"Session State transition from %@ -> %@.", self.previousState, self.currentState);
-      }
+      TeakDebugLog(@"Session State transition from %@ -> %@.", self.previousState, self.currentState);
 
       return YES;
    }
@@ -213,9 +211,7 @@ DefineTeakState(Expired, (@[]))
 }
 
 - (void)sendHeartbeat {
-   if ([Teak sharedInstance].enableDebugOutput) {
-      TeakLog(@"Sending heartbeat for user: %@", self.userId);
-   }
+   TeakDebugLog(@"Sending heartbeat for user: %@", self.userId);
 
    NSString* urlString = [NSString stringWithFormat:
                           @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%@",
@@ -304,9 +300,7 @@ DefineTeakState(Expired, (@[]))
 
       // It's a new session if there's a new launch from a notification
       if ([currentSession valueForKey:key] == nil || ![attribution isEqualToString:[currentSession valueForKey:key]]) {
-         if ([Teak sharedInstance].enableDebugOutput) {
-            TeakLog(@"New session attribution source, creating new session. %@", currentSession != nil ? currentSession : @"");
-         }
+         TeakDebugLog(@"New session attribution source, creating new session. %@", currentSession != nil ? currentSession : @"");
 
          TeakSession* oldSession = currentSession;
          currentSession = [[TeakSession alloc] initWithAppConfiguration:oldSession.appConfiguration
@@ -359,9 +353,7 @@ DefineTeakState(Expired, (@[]))
 + (TeakSession*)currentSessionForAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
    @synchronized (currentSessionMutex) {
       if (currentSession == nil || [currentSession hasExpired]) {
-         if ([Teak sharedInstance].enableDebugOutput) {
-            TeakLog(@"Previous Session expired, creating new session. %@", currentSession != nil ? currentSession : @"");
-         }
+         TeakDebugLog(@"Previous Session expired, creating new session. %@", currentSession != nil ? currentSession : @"");
 
          TeakSession* oldSession = currentSession;
          currentSession = [[TeakSession alloc] initWithAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
