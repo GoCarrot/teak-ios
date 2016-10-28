@@ -192,7 +192,9 @@
          TeakDebugLog(@"Reply from '%@': %@", self.endpoint, reply);
 
          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            self.callback(task.response, reply);
+            if(self.callback) {
+               self.callback(task.response, reply);
+            }
          });
       } @catch(NSException* exception) {
          TeakLog(@"Error deserializing JSON reply. %@", exception);
