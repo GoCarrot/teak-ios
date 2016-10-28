@@ -449,8 +449,8 @@ KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
          URLEscapedString(self.appConfiguration.bundleId),
          self.appConfiguration.isProduction ? @"false" : @"true",
          URLEscapedString(self.deviceConfiguration.deviceId)];
-         NSLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
-         NSLog(@"%@", urlString);
+         NSLog(@"[Teak] If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
+         NSLog(@"[Teak] %@", urlString);
       }
 
       [session identifyUser];
