@@ -15,6 +15,7 @@
 
 #import "Teak+Internal.h"
 #import <Teak/TeakNotification.h>
+#import <Teak/TeakReward.h>
 
 #define LOG_TAG "Teak:CExtern"
 
