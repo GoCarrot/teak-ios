@@ -80,6 +80,10 @@
                                     }
                                  }
                                  ret.completed = YES;
+
+                                 if (ret.onComplete != nil) {
+                                    ret.onComplete();
+                                 }
                               }];
       [request send];
    }];

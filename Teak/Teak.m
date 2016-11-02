@@ -26,6 +26,7 @@
 #import "TeakRequest.h"
 
 #import "TeakNotification.h"
+#import "TeakReward.h"
 #import "TeakVersion.h"
 
 #define LOG_TAG "Teak"
@@ -351,15 +352,35 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
                [self handleDeepLink:notif.deepLink];
             }
 
-            NSDictionary* userInfo = @{
-               @"teakRewardId" : notif.teakRewardId == nil ? [NSNull null] : notif.teakRewardId,
-               @"deepLink" : notif.deepLink == nil ? [NSNull null] : notif.deepLink
-            };
-
-            // TODO: Change AIR & Unity code to read the Teak Reward Id out of the dict
-            [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                object:self
-                                                              userInfo:userInfo];
+            if (notif.teakRewardId != nil) {
+               TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
+               if (reward != nil) {
+                  __weak TeakReward* weakReward = reward;
+                  reward.onComplete = ^() {
+                     NSDictionary* teakUserInfo = @{
+                        @"teakRewardJson" : weakReward.json == nil ? [NSNull null] : weakReward.json,
+                        @"deepLink" : notif.deepLink == nil ? [NSNull null] : notif.deepLink
+                     };
+                     [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                         object:self
+                                                                       userInfo:teakUserInfo];
+                  };
+               } else {
+                  NSDictionary* teakUserInfo = @{
+                     @"deepLink" : notif.deepLink == nil ? [NSNull null] : notif.deepLink
+                  };
+                  [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                      object:self
+                                                                    userInfo:teakUserInfo];
+               }
+            } else {
+               NSDictionary* teakUserInfo = @{
+                  @"deepLink" : notif.deepLink == nil ? [NSNull null] : notif.deepLink
+               };
+               [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                   object:self
+                                                                 userInfo:teakUserInfo];
+            }
          } else {
             // Push notification received while app was in foreground
             if (self.enableDebugOutput) {
