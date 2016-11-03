@@ -22,7 +22,7 @@
 
 @property (strong, nonatomic, readwrite) NSString* teakNotifId;
 @property (strong, nonatomic, readwrite) NSString* teakRewardId;
-@property (strong, nonatomic, readwrite) NSURL* deepLink;
+@property (strong, nonatomic, readwrite) NSURL* teakDeepLink;
 @property (strong, nonatomic, readwrite) NSDictionary* originalJson;
 @property (atomic, readwrite)            BOOL completed;
 
@@ -38,28 +38,28 @@
       self.originalJson = dictionary;
       self.completed = YES;
 
-      if ([dictionary objectForKey:@"deepLink"]) {
+      if ([dictionary objectForKey:@"teakDeepLink"]) {
          @try {
-            self.deepLink = [NSURL URLWithString:[dictionary objectForKey:@"deepLink"]];
+            self.teakDeepLink = [NSURL URLWithString:[dictionary objectForKey:@"teakDeepLink"]];
          } @catch (NSException* exception) {
-            self.deepLink = nil;
-            TeakLog(@"Error parsing deep link '%@'. %@", [dictionary objectForKey:@"deepLink"], exception);
+            self.teakDeepLink = nil;
+            TeakLog(@"Error parsing deep link '%@'. %@", [dictionary objectForKey:@"teakDeepLink"], exception);
          }
       } else {
-         self.deepLink = nil;
+         self.teakDeepLink = nil;
       }
    }
    return self;
 }
 
 - (NSString*)description {
-   return [NSString stringWithFormat:@"<%@: %p> completed: %@; teak-notif-id: %@; teak-reward-id: %@; deep-link: %@; original-json: %@",
+   return [NSString stringWithFormat:@"<%@: %p> completed: %@; teak-notif-id: %@; teak-reward-id: %@; teak-deep-link: %@; original-json: %@",
            NSStringFromClass([self class]),
            self,
            self.completed ? @"YES" : @"NO",
            self.teakNotifId,
            self.teakRewardId,
-           self.deepLink,
+           self.teakDeepLink,
            self.originalJson];
 }
 

@@ -348,8 +348,24 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
                                       appConfiguration:self.appConfiguration
                                    deviceConfiguration:self.deviceConfiguration];
 
-            if (notif.deepLink != nil) {
-               [self handleDeepLink:notif.deepLink];
+            NSDictionary* deepLinkInfo = [NSDictionary dictionary];
+            if (notif.teakDeepLink != nil) {
+               [self handleDeepLink:notif.teakDeepLink];
+
+               NSURLComponents* urlComponents = [NSURLComponents componentsWithURL:notif.teakDeepLink
+                                                           resolvingAgainstBaseURL:NO];
+               NSMutableDictionary* queryComponents = [NSMutableDictionary dictionary];
+               for (NSURLQueryItem* query in urlComponents.queryItems) {
+                  if ([queryComponents objectForKey:query.name] == nil) {
+                     [queryComponents setObject:[NSMutableArray array] forKey:query.name];
+                  }
+                  NSMutableArray* qlist = [queryComponents objectForKey:query.name];
+                  [qlist addObject:query.value];
+               }
+               deepLinkInfo = @{
+                  @"path" : urlComponents.path == nil ? [NSNull null] : urlComponents.path,
+                  @"queryParameters" : queryComponents
+               };
             }
 
             if (notif.teakRewardId != nil) {
@@ -358,8 +374,10 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
                   __weak TeakReward* weakReward = reward;
                   reward.onComplete = ^() {
                      NSDictionary* teakUserInfo = @{
-                        @"teakRewardJson" : weakReward.json == nil ? [NSNull null] : weakReward.json,
-                        @"deepLink" : notif.deepLink == nil ? [NSNull null] : notif.deepLink
+                        @"teakReward" : weakReward.json == nil ? [NSNull null] : weakReward.json,
+                        @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink,
+                        @"teakDeepLinkPath" : [deepLinkInfo objectForKey:@"path"] == nil ? [NSNull null] : [deepLinkInfo objectForKey:@"path"],
+                        @"teakDeepLinkQueryParameters" : [deepLinkInfo objectForKey:@"queryParameters"] == nil ? [NSNull null] : [deepLinkInfo objectForKey:@"queryParameters"]
                      };
                      [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                          object:self
@@ -367,7 +385,9 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
                   };
                } else {
                   NSDictionary* teakUserInfo = @{
-                     @"deepLink" : notif.deepLink == nil ? [NSNull null] : notif.deepLink
+                     @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink,
+                     @"teakDeepLinkPath" : [deepLinkInfo objectForKey:@"path"] == nil ? [NSNull null] : [deepLinkInfo objectForKey:@"path"],
+                     @"teakDeepLinkQueryParameters" : [deepLinkInfo objectForKey:@"queryParameters"] == nil ? [NSNull null] : [deepLinkInfo objectForKey:@"queryParameters"]
                   };
                   [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                       object:self
@@ -375,7 +395,9 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
                }
             } else {
                NSDictionary* teakUserInfo = @{
-                  @"deepLink" : notif.deepLink == nil ? [NSNull null] : notif.deepLink
+                  @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink,
+                  @"teakDeepLinkPath" : [deepLinkInfo objectForKey:@"path"] == nil ? [NSNull null] : [deepLinkInfo objectForKey:@"path"],
+                  @"teakDeepLinkQueryParameters" : [deepLinkInfo objectForKey:@"queryParameters"] == nil ? [NSNull null] : [deepLinkInfo objectForKey:@"queryParameters"]
                };
                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                    object:self
