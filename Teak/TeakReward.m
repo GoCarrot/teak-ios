@@ -56,10 +56,22 @@
                               withPayload:@{@"clicking_user_id" : session.userId}
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
                                  // TODO: Check response
-                                 if(NO) {
+                                 if (NO) {
                                     TeakLog(@"Error claiming Teak reward: %@", response);
                                  } else {
-                                    NSDictionary* rewardResponse = [reply objectForKey:@"response"];
+                                    NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:[reply objectForKey:@"response"]];
+                                    if ([rewardResponse objectForKey:@"reward"] != nil &&
+                                        [[rewardResponse objectForKey:@"reward"] isKindOfClass:[NSString class]]) {
+                                       NSString* rewardString = [rewardResponse objectForKey:@"reward"];
+                                       NSData* rewardStringData = [rewardString dataUsingEncoding:NSUTF8StringEncoding];
+                                       NSError* error = nil;
+                                       NSDictionary* parsedReward = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:rewardStringData
+                                                                                                                   options:kNilOptions
+                                                                                                                     error:&error];
+                                       if (error == nil) {
+                                          [rewardResponse setObject:parsedReward forKey:@"reward"];
+                                       }
+                                    }
                                     ret.json = rewardResponse;
 
                                     NSString* status = [rewardResponse objectForKey:@"status"];
