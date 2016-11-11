@@ -419,7 +419,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 }
 
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction {
-   if (transaction == nil || transaction.payment == nil) return;
+   if (transaction == nil || transaction.payment == nil || transaction.payment.productIdentifier == nil) return;
 
    teak_try {
       teak_log_breadcrumb(@"Building date formatter");
