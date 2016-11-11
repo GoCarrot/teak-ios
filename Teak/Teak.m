@@ -431,7 +431,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
       NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
       NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
-      [TeakProductRequest productRequestForSku:transaction.payment.productIdentifier callback:^(NSDictionary* priceInfo) {
+      __block TeakProductRequest* productRequest = [TeakProductRequest productRequestForSku:transaction.payment.productIdentifier callback:^(NSDictionary* priceInfo) {
+         if (self.enableDebugOutput) {
+            TeakLog(@"%@", productRequest);
+         }
+
          teak_log_breadcrumb(@"Building payload");
          NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
             @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
@@ -545,6 +549,10 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
    } else {
       self.callback(@{});
    }
+}
+
+- (NSString*)description {
+   return [NSString stringWithFormat:@"<%@: %p> products-request: %@", NSStringFromClass([self class]), self, self.productsRequest];
 }
 
 @end
