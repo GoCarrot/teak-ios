@@ -170,6 +170,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 }
 
 - (void)dealloc {
+   [[SKPaymentQueue defaultQueue] removeTransactionObserver:self];
    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
