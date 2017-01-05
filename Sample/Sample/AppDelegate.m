@@ -39,7 +39,7 @@
    }
 
    [[NSNotificationCenter defaultCenter] addObserver:self
-                                            selector:@selector(handleTeakNotification)
+                                            selector:@selector(handleTeakNotification:)
                                                 name:TeakNotificationAppLaunch
                                               object:nil];
 /*
@@ -63,9 +63,12 @@
    return YES;
 }
 
-- (void)handleTeakNotification
+- (void)handleTeakNotification:(NSNotification*)notification
 {
-   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!");
+   NSDictionary* teakReward = [notification.userInfo objectForKey:@"teakReward"];
+   NSDictionary* teakDeepLinkPath = [notification.userInfo objectForKey:@"teakDeepLinkPath"];
+   NSDictionary* teakDeepLinkQueryParameters = [notification.userInfo objectForKey:@"teakDeepLinkQueryParameters"];
+   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!\n%@\n%@\n%@", teakReward, teakDeepLinkPath, teakDeepLinkQueryParameters);
 }
 
 - (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings
