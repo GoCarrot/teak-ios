@@ -18,7 +18,7 @@
 /**
  * Use this named notification to listen for when your app gets launched from a Teak notification.
  * [[NSNotificationCenter defaultCenter] addObserver:self
- *                                          selector:@selector(handleTeakNotification)
+ *                                          selector:@selector(handleTeakNotification:)
  *                                               name:TeakNotificationAppLaunch
  *                                             object:nil];
  */
