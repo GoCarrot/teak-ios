@@ -114,7 +114,7 @@
 
    self.pushToken = pushToken;
 
-   TeakLog(@"Registering new push token: %@", self.pushToken);
+   TeakDebugLog(@"Registering new push token: %@", self.pushToken);
 
    if (self.userDefaults) {
       @try {

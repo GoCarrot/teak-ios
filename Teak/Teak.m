@@ -144,9 +144,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
       }
       self.enableDebugOutput |= !self.appConfiguration.isProduction;
 
-      if (self.enableDebugOutput) {
-         TeakLog(@"%@", self.appConfiguration);
-      }
+      TeakDebugLog(@"%@", self.appConfiguration);
 
       // Device Configuration
       self.deviceConfiguration = [[TeakDeviceConfiguration alloc] initWithAppConfiguration:self.appConfiguration];
@@ -155,11 +153,9 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
          return nil;
       }
 
-      if (self.enableDebugOutput) {
-         TeakLog(@"%@", self.deviceConfiguration);
+      TeakDebugLog(@"%@", self.deviceConfiguration);
 
-         // TODO: Print bug report info
-      }
+      // TODO: Print bug report info
 
       // TODO: RemoteConfiguration event listeners
 
@@ -197,9 +193,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 
 // TODO: iOS 9 added this delegate method, deprecated the other one
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString *,id>*)options {
-   if (self.enableDebugOutput) {
-      TeakLog(@"%@", url);
-   }
+   TeakDebugLog(@"%@", url);
 
    if (url != nil && [self handleDeepLink:url]) {
       [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
@@ -210,9 +204,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
-   if (self.enableDebugOutput) {
-      TeakLog(@"%@", url);
-   }
+   TeakDebugLog(@"%@", url);
 
    if (url != nil && [self handleDeepLink:url]) {
       [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
@@ -328,9 +320,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
-   if (self.enableDebugOutput) {
-      TeakLog(@"%@", userInfo);
-   }
+   TeakDebugLog(@"%@", userInfo);
 
    NSDictionary* aps = [userInfo objectForKey:@"aps"];
    NSString* teakNotifId = NSStringOrNilFor([aps objectForKey:@"teakNotifId"]);
@@ -341,9 +331,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
       if (notif != nil) {
          if (application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground) {
             // App was opened via push notification
-            if (self.enableDebugOutput) {
-               TeakLog(@"App Opened from Teak Notification %@", notif);
-            }
+            TeakDebugLog(@"App Opened from Teak Notification %@", notif);
 
             [TeakSession didLaunchFromTeakNotification:teakNotifId
                                       appConfiguration:self.appConfiguration
@@ -406,15 +394,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
             }
          } else {
             // Push notification received while app was in foreground
-            if (self.enableDebugOutput) {
-               TeakLog(@"Teak Notification received in foreground %@", notif);
-            }
+            TeakDebugLog(@"Teak Notification received in foreground %@", notif);
          }
       }
    } else {
-      if (self.enableDebugOutput) {
-         TeakLog(@"Non-Teak push notification, ignored.");
-      }
+      TeakDebugLog(@"Non-Teak push notification, ignored.");
    }
 }
 
@@ -432,9 +416,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
       NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
       __block TeakProductRequest* productRequest = [TeakProductRequest productRequestForSku:transaction.payment.productIdentifier callback:^(NSDictionary* priceInfo) {
-         if (self.enableDebugOutput) {
-            TeakLog(@"%@", productRequest);
-         }
+         TeakDebugLog(@"%@", productRequest);
 
          teak_log_breadcrumb(@"Building payload");
          NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
