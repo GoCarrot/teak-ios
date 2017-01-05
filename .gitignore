@@ -3,6 +3,7 @@ Teak.xcodeproj/project.xcworkspace/
 Teak.xcodeproj/xcuserdata/
 build/*
 !build/.gitkeep
-Sample/
+Sample/Sample.xcodeproj/project.xcworkspace/
+Sample/Sample.xcodeproj/xcuserdata/
 *.pem
 infer-out/
