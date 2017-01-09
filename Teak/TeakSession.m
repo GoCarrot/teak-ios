@@ -143,8 +143,8 @@ DefineTeakState(Expired, (@[]))
                                 URLEscapedString(self.appConfiguration.bundleId),
                                 self.appConfiguration.isProduction ? @"false" : @"true",
                                 URLEscapedString(self.deviceConfiguration.deviceId)];
-         TeakLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
-         TeakLog(@"%@", urlString);
+         TeakDevHelpLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
+         TeakDevHelpLog(@"%@", urlString);
       }
 
       // Time zone

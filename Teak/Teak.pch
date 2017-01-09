@@ -19,6 +19,7 @@
 
 #include "TeakKVOHelpers.h"
 
+#define TeakDevHelpLog(fmt, ...) NSLog((@"[%s] " fmt), LOG_TAG, ##__VA_ARGS__)
 #define TeakLog(fmt, ...) NSLog((@"[%s] %s (Line %d) " fmt), LOG_TAG, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define TeakDebugLog(fmt, ...) if([Teak sharedInstance].enableDebugOutput) { NSLog((@"[%s] %s (Line %d) " fmt), LOG_TAG, __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__); }
 
