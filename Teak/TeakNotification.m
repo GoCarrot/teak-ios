@@ -93,9 +93,9 @@
                                  if ([status isEqualToString:@"ok"]) {
                                     NSDictionary* event = [reply objectForKey:@"event"];
                                     ret.teakNotifId = [[event objectForKey:@"id"] stringValue];
-                                    TeakLog(@"Scheduled notification with id %@", ret.teakNotifId);
+                                    NSLog(@"[Teak] Scheduled notification with id %@", ret.teakNotifId);
                                  } else {
-                                    TeakLog(@"Error scheduling notification %@", reply);
+                                    NSLog(@"[Teak] Error scheduling notification %@", reply);
                                     ret.teakNotifId = nil;
                                  }
                                  ret.completed = YES;
