@@ -89,17 +89,14 @@
                               forEndpoint:@"/me/local_notify"
                               withPayload:payload
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
-                                 // TODO: Check response
-                                 if (NO) {
-                                    TeakLog(@"Error scheduling notification %@", response);
+                                 NSString* status = [reply objectForKey:@"status"];
+                                 if ([status isEqualToString:@"ok"]) {
+                                    NSDictionary* event = [reply objectForKey:@"event"];
+                                    ret.teakNotifId = [[event objectForKey:@"id"] stringValue];
+                                    TeakLog(@"Scheduled notification with id %@", ret.teakNotifId);
                                  } else {
-                                    NSString* status = [reply objectForKey:@"status"];
-                                    if ([status isEqualToString:@"ok"]) {
-                                       NSDictionary* event = [reply objectForKey:@"event"];
-                                       ret.teakNotifId = [[event objectForKey:@"id"] stringValue];
-                                    } else {
-                                       ret.teakNotifId = nil;
-                                    }
+                                    TeakLog(@"Error scheduling notification %@", reply);
+                                    ret.teakNotifId = nil;
                                  }
                                  ret.completed = YES;
                               }];
