@@ -134,6 +134,19 @@ DefineTeakState(Expired, (@[]))
 
 - (void)identifyUser {
    @synchronized (self) {
+      if([Teak sharedInstance].enableDebugOutput && self.deviceConfiguration.pushToken != nil) {
+         NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@&device_id=%@",
+                                URLEscapedString(self.appConfiguration.appId),
+                                URLEscapedString(self.appConfiguration.apiKey),
+                                URLEscapedString(self.deviceConfiguration.pushToken),
+                                URLEscapedString(self.deviceConfiguration.deviceModel),
+                                URLEscapedString(self.appConfiguration.bundleId),
+                                self.appConfiguration.isProduction ? @"false" : @"true",
+                                URLEscapedString(self.deviceConfiguration.deviceId)];
+         TeakLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
+         TeakLog(@"%@", urlString);
+      }
+
       // Time zone
       NSTimeZone* timeZone = [NSTimeZone localTimeZone];
       float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
@@ -440,19 +453,6 @@ KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      if([Teak sharedInstance].enableDebugOutput && self.deviceConfiguration.pushToken != nil) {
-         NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@&device_id=%@",
-         URLEscapedString(self.appConfiguration.appId),
-         URLEscapedString(self.appConfiguration.apiKey),
-         URLEscapedString(self.deviceConfiguration.pushToken),
-         URLEscapedString(self.deviceConfiguration.deviceModel),
-         URLEscapedString(self.appConfiguration.bundleId),
-         self.appConfiguration.isProduction ? @"false" : @"true",
-         URLEscapedString(self.deviceConfiguration.deviceId)];
-         TeakLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
-         TeakLog(@"%@", urlString);
-      }
-
       [session identifyUser];
    }];
 }
