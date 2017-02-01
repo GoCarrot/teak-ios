@@ -50,7 +50,7 @@ Teak* _teakSharedInstance;
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions;
 @end
 
-typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
+typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsResponse* response);
 
 @interface TeakProductRequest : NSObject<SKProductsRequestDelegate>
 @property (copy, nonatomic) TeakProductRequestCallback callback;
@@ -161,6 +161,9 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
 
       // Set up SDK Raven
       self.sdkRaven = [TeakRaven ravenForTeak:self];
+
+      // Register default purchase deep link
+      [self teak_registerRoute:@"/teak_internal/store/:arg0" forSelector:@selector(launchDefaultPurchaseFlowForSku:)];
    }
    return self;
 }
@@ -415,9 +418,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
       NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
       NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
 
-      __block TeakProductRequest* productRequest = [TeakProductRequest productRequestForSku:transaction.payment.productIdentifier callback:^(NSDictionary* priceInfo) {
-         TeakDebugLog(@"%@", productRequest);
-
+      [TeakProductRequest productRequestForSku:transaction.payment.productIdentifier callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
          teak_log_breadcrumb(@"Building payload");
          NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
             @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
@@ -503,9 +504,35 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
    }
 }
 
+- (void)launchDefaultPurchaseFlowForSku:(NSString*)sku {
+   [TeakProductRequest productRequestForSku:sku callback:^(NSDictionary* unused, SKProductsResponse* response) {
+      if(response.products.count > 0)
+      {
+         SKProduct* product = [response.products objectAtIndex:0];
+         NSLocale* priceLocale = product.priceLocale;
+         NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
+         NSDecimalNumber* price = product.price;
+         NSLog(@"Purchase info: %@ - %@ - %@", product.productIdentifier, currencyCode, price);
+
+         SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
+         payment.quantity = 1;
+         [[SKPaymentQueue defaultQueue] addPayment:payment];
+      }
+   }];
+}
+
 @end
 
 @implementation TeakProductRequest
+
++ (nonnull NSMutableArray*)activeProductRequests {
+   static NSMutableArray* array = nil;
+   static dispatch_once_t onceToken;
+   dispatch_once(&onceToken, ^{
+      array = [[NSMutableArray alloc] init];
+   });
+   return array;
+}
 
 + (TeakProductRequest*)productRequestForSku:(NSString*)sku callback:(TeakProductRequestCallback)callback {
    TeakProductRequest* ret = [[TeakProductRequest alloc] init];
@@ -513,6 +540,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
    ret.productsRequest = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:sku]];
    ret.productsRequest.delegate = ret;
    [ret.productsRequest start];
+   [[TeakProductRequest activeProductRequests] addObject:ret];
    return ret;
 }
 
@@ -525,12 +553,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo);
          NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
          NSDecimalNumber* price = product.price;
 
-         self.callback(@{@"price_currency_code" : currencyCode, @"price_float" : price});
+         self.callback(@{@"price_currency_code" : currencyCode, @"price_float" : price}, response);
       }
       teak_catch_report
    } else {
-      self.callback(@{});
+      self.callback(@{}, nil);
    }
+   [[TeakProductRequest activeProductRequests] removeObject:self];
 }
 
 - (NSString*)description {

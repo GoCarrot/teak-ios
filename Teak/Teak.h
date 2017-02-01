@@ -28,6 +28,7 @@ extern NSString* _Nonnull const TeakNotificationAppLaunch;
 
 #import <UIKit/UIKit.h>
 #import <Teak/TeakNotification.h>
+#import <Teak/NSObject+TeakLink.h>
 
 @interface Teak : NSObject
 

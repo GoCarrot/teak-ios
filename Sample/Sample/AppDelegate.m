@@ -19,6 +19,9 @@
 // Import Teak into your UIApplicationDelegate implementation.
 #import <Teak/Teak.h>
 
+// For testing
+extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
+
 @import AdSupport;
 
 @interface AppDelegate ()
@@ -27,8 +30,14 @@
 
 @implementation AppDelegate
 
++ (void)openStoreForSku:(NSString*)sku {
+   NSLog(@"IT CALLED THE THING!! SKU: %@", sku);
+}
+
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+   [AppDelegate teak_registerRoute:@"/store/:arg0" forSelector:@selector(openStoreForSku:)];
+
    // For this example, we are simply using the IDFA for a user id. In your game, you will
    // want to use the same user id that you use in your database.
    //
@@ -59,6 +68,9 @@
       [application registerForRemoteNotificationTypes:myTypes];
 #pragma clang diagnostic pop
    }
+
+   // TEST
+   TeakLink_HandleDeepLink(@"/teak_internal/store/io.teak.demo.angrybots.dollar");
 
    return YES;
 }
