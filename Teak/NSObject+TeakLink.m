@@ -166,8 +166,8 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
       }
 
       NSScanner* scanner = [NSScanner scannerWithString:toReplace];
-      NSInteger* argumentIndex = nil;
-      if (![scanner scanString:@":arg" intoString:nil] || ![scanner scanInt:argumentIndex]) {
+      NSInteger argumentIndex;
+      if (![scanner scanString:@":arg" intoString:nil] || ![scanner scanInteger:&argumentIndex]) {
          [NSException raise:@"Variable names must be 'arg0', 'arg1' etc" format:@"Arg Name '%@' In route: %@", toReplace, route];
          return nil;
       }
