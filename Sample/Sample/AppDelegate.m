@@ -69,9 +69,6 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
 #pragma clang diagnostic pop
    }
 
-   // TEST
-   TeakLink_HandleDeepLink(@"/teak_internal/store/io.teak.demo.angrybots.dollar");
-
    return YES;
 }
 

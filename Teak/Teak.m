@@ -43,6 +43,7 @@ NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
 NSString* const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
+extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
 
 Teak* _teakSharedInstance;
 
@@ -218,11 +219,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (BOOL)handleDeepLink:(nonnull NSURL*)url {
-   if (YES) { // TODO: Talk to Unity, et. al. to see if we can handle this deep link
-      // TODO: Deep link navigation
+   NSString* matchString = url.path;
+   if (NO) { // TODO: Talk to Unity, et. al. to see if we can handle this deep link
       return YES;
    }
-   return NO;
+   return TeakLink_HandleDeepLink(matchString);
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions

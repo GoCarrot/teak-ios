@@ -107,11 +107,11 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
       if (error != nil) {
          TeakDebugLog(@"Error parsing regular expression: %@", [error localizedDescription]);
       } else {
-         //teak_try {
+         teak_try {
             NSRange range = NSMakeRange(0, [deepLink length]);
             NSTextCheckingResult* match = [regExp firstMatchInString:deepLink options:0 range:range];
             if (match != nil) {
-               //teak_log_data_breadcrumb(@"Found matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink}));
+               teak_log_data_breadcrumb(@"Found matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink}));
                TeakLink* link = [deepLinkPatterns objectForKey:key];
                NSInvocation* invocation = [NSInvocation invocationWithMethodSignature:link.methodSignature];
                [invocation setTarget:link.invocationTarget];
@@ -127,7 +127,7 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
                [invocation invoke];
                return YES;
             }
-         //} teak_catch_report
+         } teak_catch_report
       }
    }
 
