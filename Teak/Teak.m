@@ -356,7 +356,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                   [qlist addObject:query.value];
                }
                deepLinkInfo = @{
-                  @"path" : urlComponents.path == nil ? [NSNull null] : urlComponents.path,
+                  @"path" : notif.teakDeepLink.path == nil ? [NSNull null] : [NSString stringWithFormat:@"/%@%@", notif.teakDeepLink.host, notif.teakDeepLink.path],
                   @"queryParameters" : queryComponents
                };
             }
