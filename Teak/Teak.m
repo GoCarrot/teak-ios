@@ -219,7 +219,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (BOOL)handleDeepLink:(nonnull NSURL*)url {
-   NSString* matchString = url.path;
+   NSString* matchString = [NSString stringWithFormat:@"/%@%@", url.host, url.path];
    if (NO) { // TODO: Talk to Unity, et. al. to see if we can handle this deep link
       return YES;
    }
