@@ -16,9 +16,9 @@
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 
-@interface TeakLink : NSObject
+typedef void (^TeakLinkBlock)(NSDictionary* _Nonnull parameters);
 
-+ (BOOL)handleDeepLink:(nonnull NSString*)deepLink;
+@interface TeakLink : NSObject
 
 + (void)registerRoute:(nonnull NSString*)route onObject:(nonnull id)object name:(nonnull NSString*)name description:(nonnull NSString*)description selector:(nonnull SEL)selector;
 

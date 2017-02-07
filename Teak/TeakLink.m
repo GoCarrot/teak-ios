@@ -17,6 +17,21 @@
 
 #define LOG_TAG "Teak:Link"
 
+@interface TeakLink()
+
+@property (strong, nonatomic) NSMethodSignature* methodSignature;
+@property (strong, nonatomic) NSArray* argumentIndicies;
+@property (weak,   nonatomic) id invocationTarget;
+@property (        nonatomic) SEL selector;
+
+- (nullable TeakLink*)initForSelector:(SEL)selector argumentOrder:(NSArray*)argumentOrder invocationTarget:(id)invocationTarget;
+
++ (nonnull NSMutableDictionary*)deepLinkRegistration;
+
++ (BOOL)handleDeepLink:(NSString*)deepLink;
+
+@end
+
 typedef NSString* (^TeakRegexReplaceBlock)(NSString*);
 NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceBlock block) {
    NSMutableString *output = [[NSMutableString alloc] init];
@@ -57,25 +72,9 @@ NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceB
    return output;
 }
 
-// Used for testing only
 BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    return [TeakLink handleDeepLink:deepLink];
 }
-
-@interface TeakLink()
-
-@property (strong, nonatomic) NSMethodSignature* methodSignature;
-@property (strong, nonatomic) NSArray* argumentIndicies;
-@property (weak,   nonatomic) id invocationTarget;
-@property (        nonatomic) SEL selector;
-
-- (nullable TeakLink*)initForSelector:(SEL)selector argumentOrder:(NSArray*)argumentOrder invocationTarget:(id)invocationTarget;
-
-+ (nonnull NSMutableDictionary*)deepLinkRegistration;
-
-+ (BOOL)handleDeepLink:(NSString*)deepLink;
-
-@end
 
 @implementation TeakLink
 
