@@ -30,14 +30,21 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
 
 @implementation AppDelegate
 
-+ (void)openStoreForSku:(NSString*)sku {
-   NSLog(@"IT CALLED THE THING!! SKU: %@", sku);
+// An example class method that will be called for the '/store/:sku' route
++ (void)openStoreForSku:(NSDictionary*)parameters
+{
+   NSLog(@"IT CALLED THE THING!! SKU: %@", parameters[@"sku"]);
 }
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
    // Register a deep link that opens the store to the specific SKU
-   [TeakLink registerRoute:@"/store/:arg0" onObject:self name:@"" description:@"" selector:@selector(openStoreForSku:)];
+   // Routes use pattern matching to capture variables. Variables are prefixed with ':', so ':sku' will create
+   //    a key named 'sku' in the parameter dictionary passed to the selector.
+   // Use 'self' to register an instance method, or 'self.class' to register a class method
+   // Name and Description are optional, but will show up in the Teak Dashboard to help identify the deep link
+   // The selector is a method which should take one parameter of type NSDictionary
+   [TeakLink registerRoute:@"/store/:sku" onObject:self.class name:@"" description:@"" selector:@selector(openStoreForSku:)];
 
    // For this example, we are simply using the IDFA for a user id. In your game, you will
    // want to use the same user id that you use in your database.
