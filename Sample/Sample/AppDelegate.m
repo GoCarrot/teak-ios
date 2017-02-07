@@ -36,6 +36,7 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+   // Register a deep link that opens the store to the specific SKU
    [TeakLink registerRoute:@"/store/:arg0" onObject:self name:@"" description:@"" selector:@selector(openStoreForSku:)];
 
    // For this example, we are simply using the IDFA for a user id. In your game, you will
@@ -85,11 +86,10 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
    // If the notification contains a reward, it will be found in the 'teakReward' key of the user info dictionary.
    NSDictionary* teakReward = [notification.userInfo objectForKey:@"teakReward"];
 
-   // If the notification contains a deep link, the path of the link will be found in the 'teakDeepLinkPath' of the user info dictionary.
-   NSDictionary* teakDeepLinkPath = [notification.userInfo objectForKey:@"teakDeepLinkPath"];
-   NSDictionary* teakDeepLinkQueryParameters = [notification.userInfo objectForKey:@"teakDeepLinkQueryParameters"];
+   // If the notification contains a deep link, the link will be found in the 'teakDeepLink' key of the user info dictionary.
+   NSDictionary* teakDeepLink = [notification.userInfo objectForKey:@"teakDeepLink"];
 
-   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!\n%@\n%@\n%@", teakReward, teakDeepLinkPath, teakDeepLinkQueryParameters);
+   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!\n%@\n%@", teakReward, teakDeepLink);
 }
 
 @end
