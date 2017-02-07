@@ -199,9 +199,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString *,id>*)options {
    TeakDebugLog(@"%@", url);
 
-   if (url != nil && [self handleDeepLink:url]) {
-      [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
-      return YES;
+   if (url != nil) {
+      return [self handleDeepLink:url];
    }
 
    return NO;
@@ -210,15 +209,17 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
    TeakDebugLog(@"%@", url);
 
-   if (url != nil && [self handleDeepLink:url]) {
-      [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
-      return YES;
+   if (url != nil) {
+      return [self handleDeepLink:url];
    }
 
    return NO;
 }
 
 - (BOOL)handleDeepLink:(nonnull NSURL*)url {
+   // Attribution
+   [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+
    // Check URL scheme to see if it matches the set we support
    for (NSString* scheme in self.appConfiguration.urlSchemes) {
       if ([scheme isEqualToString:url.scheme]) {
