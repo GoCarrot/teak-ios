@@ -23,6 +23,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 @property (strong, nonatomic, readwrite) NSString* apiKey;
 @property (strong, nonatomic, readwrite) NSString* bundleId;
 @property (strong, nonatomic, readwrite) NSString* appVersion;
+@property (strong, nonatomic, readwrite) NSSet*    urlSchemes;
 @property (nonatomic, readwrite) BOOL isProduction;
 @end
 
@@ -32,6 +33,11 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
    if (self) {
       self.appId = appId;
       self.apiKey = apiKey;
+
+      // By default we listen to teakXXXXXX and fbXXXXXX URL schemes
+      self.urlSchemes = [NSSet setWithObjects:
+                         [NSString stringWithFormat:@"teak%@", self.appId],
+                         [NSString stringWithFormat:@"fb%@", self.appId], nil];
 
       @try {
          self.bundleId = [[NSBundle mainBundle] bundleIdentifier];

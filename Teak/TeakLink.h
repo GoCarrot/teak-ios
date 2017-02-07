@@ -14,9 +14,12 @@
  */
 
 #import <Foundation/Foundation.h>
+#import <objc/runtime.h>
 
-@interface NSObject (TeakLink)
+@interface TeakLink : NSObject
 
-- (void)teak_registerRoute:(nonnull NSString*)route forSelector:(nonnull SEL)selector;
++ (BOOL)handleDeepLink:(nonnull NSString*)deepLink;
+
++ (void)registerRoute:(nonnull NSString*)route onObject:(nonnull id)object name:(nonnull NSString*)name description:(nonnull NSString*)description selector:(nonnull SEL)selector;
 
 @end

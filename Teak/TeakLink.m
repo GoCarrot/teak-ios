@@ -14,7 +14,6 @@
  */
 
 #import "Teak+Internal.h"
-#import <objc/runtime.h>
 
 #define LOG_TAG "Teak:Link"
 
@@ -58,7 +57,13 @@ NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceB
    return output;
 }
 
-@interface TeakLink : NSObject
+// Used for testing only
+BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
+   return [TeakLink handleDeepLink:deepLink];
+}
+
+@interface TeakLink()
+
 @property (strong, nonatomic) NSMethodSignature* methodSignature;
 @property (strong, nonatomic) NSArray* argumentIndicies;
 @property (weak,   nonatomic) id invocationTarget;
@@ -71,10 +76,6 @@ NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceB
 + (BOOL)handleDeepLink:(NSString*)deepLink;
 
 @end
-
-BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
-   return [TeakLink handleDeepLink:deepLink];
-}
 
 @implementation TeakLink
 
@@ -134,18 +135,14 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    return NO;
 }
 
-@end
-
-@implementation NSObject (TeakLink)
-
-- (void)teak_registerRoute:(NSString*)route forSelector:(SEL)selector {
++ (void)registerRoute:(NSString*)route onObject:(id)object name:(NSString*)name description:(NSString*)description selector:(SEL)selector {
    // Verify that whatever this is actually responds to the selector
-   if (![self respondsToSelector:selector]) {
+   if (![object respondsToSelector:selector]) {
       [NSException raise:@"Invocation target must respond to selector." format:@"In method: %@", @"TODO METHOD"];
    }
 
    // Verify that only NSObjects are being used as parameters
-   NSMethodSignature* methodSignature = [self methodSignatureForSelector:selector];
+   NSMethodSignature* methodSignature = [object methodSignatureForSelector:selector];
    for (NSUInteger i = 2; i < [methodSignature numberOfArguments]; i++) {
       if (strcmp([methodSignature getArgumentTypeAtIndex:i], "@") != 0) {
          [NSException raise:@"Argument type must be id" format:@"Argument type %s In route: %@", [methodSignature getArgumentTypeAtIndex:i], route];
@@ -184,7 +181,7 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    // Prepend ^
    pattern = [NSString stringWithFormat:@"^%@", pattern];
 
-   TeakLink* link = [[TeakLink alloc] initForSelector:selector argumentOrder:argumentOrder invocationTarget:self];
+   TeakLink* link = [[TeakLink alloc] initForSelector:selector argumentOrder:argumentOrder invocationTarget:object];
    [[TeakLink deepLinkRegistration] setValue:link forKey:pattern];
 }
 

@@ -36,7 +36,7 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-   [AppDelegate teak_registerRoute:@"/store/:arg0" forSelector:@selector(openStoreForSku:)];
+   [TeakLink registerRoute:@"/store/:arg0" onObject:self name:@"" description:@"" selector:@selector(openStoreForSku:)];
 
    // For this example, we are simply using the IDFA for a user id. In your game, you will
    // want to use the same user id that you use in your database.
