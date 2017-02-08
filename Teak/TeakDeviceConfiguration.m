@@ -97,7 +97,7 @@
    ASIdentifierManager* asIdentifierManager = [ASIdentifierManager sharedManager];
    NSString* advertisingIdentifier = asIdentifierManager ? [asIdentifierManager.advertisingIdentifier UUIDString] : nil;
    if (advertisingIdentifier != nil) {
-      self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled ? @YES : @NO;
+      self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled ? @NO : @YES;
       self.advertisingIdentifier = advertisingIdentifier;
    } else {
       __weak typeof(self) weakSelf = self;
