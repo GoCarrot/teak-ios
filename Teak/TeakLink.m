@@ -116,14 +116,13 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
                NSInvocation* invocation = [NSInvocation invocationWithMethodSignature:link.methodSignature];
                [invocation setTarget:link.invocationTarget];
                [invocation setSelector:link.selector];
-               NSMutableArray* argHandleHolder = [[NSMutableArray alloc] init];
+               NSMutableDictionary* argHandleHolder = [[NSMutableDictionary alloc] init];
                for (NSUInteger i = 0; i < [link.argumentIndicies count]; i++) {
                   NSRange argRange = [match rangeAtIndex:i + 1];
                   NSString* arg = argRange.location == NSNotFound ? nil : [deepLink substringWithRange:argRange];
-                  [argHandleHolder addObject:arg];
-                  NSUInteger argIndex = [link.argumentIndicies[i] unsignedIntegerValue];
-                  [invocation setArgument:&arg atIndex: argIndex + 2];
+                  [argHandleHolder setValue:arg forKey:link.argumentIndicies[i]];
                }
+               [invocation setArgument:&argHandleHolder atIndex: 2];
                [invocation invoke];
                return YES;
             }
@@ -161,13 +160,7 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
          return nil;
       }
 
-      NSScanner* scanner = [NSScanner scannerWithString:toReplace];
-      NSInteger argumentIndex;
-      if (![scanner scanString:@":arg" intoString:nil] || ![scanner scanInteger:&argumentIndex]) {
-         [NSException raise:@"Variable names must be 'arg0', 'arg1' etc" format:@"Arg Name '%@' In route: %@", toReplace, route];
-         return nil;
-      }
-      [argumentOrder addObject:[NSNumber numberWithInteger:argumentIndex]];
+      [argumentOrder addObject:[toReplace substringFromIndex:1]];
       return [NSString stringWithFormat:@"(?<%@>[^/?#]+)", [toReplace substringFromIndex:1]];
    });
 

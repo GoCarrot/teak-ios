@@ -164,7 +164,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       self.sdkRaven = [TeakRaven ravenForTeak:self];
 
       // Register default purchase deep link
-      [TeakLink registerRoute:@"/teak_internal/store/:arg0" onObject:self name:@"" description:@"" selector:@selector(launchDefaultPurchaseFlowForSku:)];
+      [TeakLink registerRoute:@"/teak_internal/store/:sku" onObject:self name:@"" description:@"" selector:@selector(launchDefaultPurchaseFlowForSku:)];
    }
    return self;
 }
@@ -501,8 +501,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    }
 }
 
-- (void)launchDefaultPurchaseFlowForSku:(NSString*)sku {
-   [TeakProductRequest productRequestForSku:sku callback:^(NSDictionary* unused, SKProductsResponse* response) {
+- (void)launchDefaultPurchaseFlowForSku:(NSDictionary*)parameters {
+   [TeakProductRequest productRequestForSku:parameters[@"sku"] callback:^(NSDictionary* unused, SKProductsResponse* response) {
       if(response.products.count > 0)
       {
          SKProduct* product = [response.products objectAtIndex:0];
