@@ -265,6 +265,15 @@ DefineTeakState(Expired, (@[]))
    return self;
 }
 
+- (TeakSession*)initWithSession:(nonnull TeakSession*)session {
+   self = [self initWithAppConfiguration:session.appConfiguration deviceConfiguration:session.deviceConfiguration];
+   if (self) {
+      [self.attributionChain addObjectsFromArray:session.attributionChain];
+      self.userId = session.userId;
+   }
+   return self;
+}
+
 - (void)dealloc {
    // This observer is only registered in the 'Created' state
    if([self currentState] == [TeakSession Created]) {
@@ -285,10 +294,7 @@ DefineTeakState(Expired, (@[]))
    @synchronized (currentSessionMutex) {
       @synchronized (currentSession) {
          if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
-            TeakSession* newSession = [[TeakSession alloc] initWithAppConfiguration:currentSession.appConfiguration
-                                                                deviceConfiguration:currentSession.deviceConfiguration];
-            newSession.userId = userId;
-            [newSession.attributionChain addObjectsFromArray:currentSession.attributionChain];
+            TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
 
             [currentSession setState:[TeakSession Expiring]];
             [currentSession setState:[TeakSession Expired]];
@@ -315,15 +321,7 @@ DefineTeakState(Expired, (@[]))
          TeakDebugLog(@"New session attribution source, creating new session. %@", currentSession != nil ? currentSession : @"");
 
          TeakSession* oldSession = currentSession;
-         currentSession = [[TeakSession alloc] initWithAppConfiguration:oldSession.appConfiguration
-                                                    deviceConfiguration:oldSession.deviceConfiguration];
-
-         if (oldSession != nil) {
-            [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
-            if (oldSession.userId != nil) {
-               currentSession.userId = oldSession.userId;
-            }
-         }
+         currentSession = [[TeakSession alloc] initWithSession:oldSession];
 
          [oldSession setState:[TeakSession Expiring]];
          [oldSession setState:[TeakSession Expired]];
@@ -372,9 +370,7 @@ DefineTeakState(Expired, (@[]))
 
          if (oldSession != nil) {
             [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
-            if (oldSession.userId != nil) {
-               currentSession.userId = oldSession.userId;
-            }
+            currentSession.userId = oldSession.userId;
          }
       }
       return currentSession;
