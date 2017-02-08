@@ -213,7 +213,9 @@ DefineTeakState(Expired, (@[]))
                                     blockSelf.countryCode = [reply valueForKey:@"country_code"];
 
                                     // For 'do_not_track_event'
-                                    if (blockSelf.currentState != [TeakSession UserIdentified]) {
+                                    if (blockSelf.currentState == [TeakSession Expiring]) {
+                                       blockSelf.previousState = [TeakSession UserIdentified];
+                                    } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
                                        [blockSelf setState:[TeakSession UserIdentified]];
                                     }
                                  }
