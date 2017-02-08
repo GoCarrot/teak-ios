@@ -320,7 +320,7 @@ DefineTeakState(Expired, (@[]))
 
       // It's a new session if there's a new launch from a notification
       if (([currentSession valueForKey:key] == nil || ![attribution isEqualToString:[currentSession valueForKey:key]]) &&
-          (currentSession.currentState == [TeakSession Configured] || currentSession.currentState == [TeakSession UserIdentified])) {
+          (currentSession.currentState != [TeakSession Allocated] && currentSession.currentState != [TeakSession Created])) {
          TeakDebugLog(@"New session attribution source, creating new session. %@", currentSession != nil ? currentSession : @"");
 
          TeakSession* oldSession = currentSession;
