@@ -51,11 +51,10 @@ DefineTeakState(Allocated, (@[@"Created", @"Expiring"]))
 DefineTeakState(Created, (@[@"Configured", @"Expiring"]))
 DefineTeakState(Configured, (@[@"UserIdentified", @"Expiring"]))
 DefineTeakState(UserIdentified, (@[@"Expiring"]))
-DefineTeakState(Expiring, (@[@"Configured", @"UserIdentified", @"Expired"]))
+DefineTeakState(Expiring, (@[@"Allocated", @"Created", @"Configured", @"UserIdentified", @"Expired"]))
 DefineTeakState(Expired, (@[]))
 
-+ (NSMutableArray*)whenUserIdIsReadyRunBlocks
-{
++ (NSMutableArray*)whenUserIdIsReadyRunBlocks {
    static NSMutableArray* ret = nil;
    static dispatch_once_t onceToken;
    dispatch_once(&onceToken, ^{
