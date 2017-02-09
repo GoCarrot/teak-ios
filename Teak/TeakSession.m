@@ -49,9 +49,10 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
 DefineTeakState(Allocated, (@[@"Created", @"Expiring"]))
 DefineTeakState(Created, (@[@"Configured", @"Expiring"]))
-DefineTeakState(Configured, (@[@"UserIdentified", @"Expiring"]))
+DefineTeakState(Configured, (@[@"IdentifyingUser", @"Expiring"]))
+DefineTeakState(IdentifyingUser, (@[@"UserIdentified", @"Expiring"]))
 DefineTeakState(UserIdentified, (@[@"Expiring"]))
-DefineTeakState(Expiring, (@[@"Allocated", @"Created", @"Configured", @"UserIdentified", @"Expired"]))
+DefineTeakState(Expiring, (@[@"Allocated", @"Created", @"Configured", @"IdentifyingUser", @"UserIdentified", @"Expired"]))
 DefineTeakState(Expired, (@[]))
 
 + (NSMutableArray*)whenUserIdIsReadyRunBlocks {
@@ -100,10 +101,12 @@ DefineTeakState(Expired, (@[]))
          } else if (self.deviceConfiguration == nil) {
             [invalidValuesForTransition addObject:@[@"deviceConfiguration", @"nil"]];
          }
-      } else if (newState == [TeakSession UserIdentified]) {
+      } else if (newState == [TeakSession IdentifyingUser]) {
          if (self.userId == nil) {
             [invalidValuesForTransition addObject:@[@"userId", @"nil"]];
-         } else if (self.heartbeatQueue != nil) {
+         }
+      } else if (newState == [TeakSession UserIdentified]) {
+         if (self.heartbeatQueue != nil) {
             [invalidValuesForTransition addObject:@[@"heartbeat", [NSString stringWithFormat:@"%p", self.heartbeatQueue]]];
          }
       }
@@ -133,6 +136,10 @@ DefineTeakState(Expired, (@[]))
 
 - (void)identifyUser {
    @synchronized (self) {
+      if (self.currentState != [TeakSession UserIdentified] && [self setState:[TeakSession IdentifyingUser]] == NO) {
+         return;
+      }
+
       if([Teak sharedInstance].enableDebugOutput && self.deviceConfiguration.pushToken != nil) {
          NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@&device_id=%@",
                                 URLEscapedString(self.appConfiguration.appId),
@@ -400,7 +407,6 @@ KeyValueObserverFor(TeakSession, currentState) {
          self.remoteConfiguration = [[TeakRemoteConfiguration alloc] initForSession:self];
          RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
       } else if (newValue == [TeakSession Configured]) {
-
          if (self.userId != nil) {
             [self identifyUser];
          }

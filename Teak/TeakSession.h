@@ -31,6 +31,7 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);
+DeclareTeakState(IdentifyingUser);
 DeclareTeakState(UserIdentified);
 DeclareTeakState(Expiring);
 DeclareTeakState(Expired);
