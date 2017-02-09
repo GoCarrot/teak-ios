@@ -407,9 +407,11 @@ KeyValueObserverFor(TeakSession, currentState) {
          self.remoteConfiguration = [[TeakRemoteConfiguration alloc] initForSession:self];
          RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
       } else if (newValue == [TeakSession Configured]) {
-         if (self.userId != nil) {
-            [self identifyUser];
-         }
+         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            if (self.userId != nil) {
+               [self identifyUser];
+            }
+         });
       } else if (newValue == [TeakSession UserIdentified]) {
          self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
 
