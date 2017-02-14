@@ -2,4 +2,4 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-infer -- xcodebuild -project Teak.xcodeproj -sdk iphoneos -scheme Teak -configuration Release CONFIGURATION_BUILD_DIR=./build
+infer --no-xcpretty -- xcodebuild -project Teak.xcodeproj -sdk iphoneos -scheme Teak -configuration Release CONFIGURATION_BUILD_DIR=./build
