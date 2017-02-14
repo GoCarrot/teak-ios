@@ -164,7 +164,22 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       self.sdkRaven = [TeakRaven ravenForTeak:self];
 
       // Register default purchase deep link
-      [TeakLink registerRoute:@"/teak_internal/store/:sku" onObject:self name:@"" description:@"" selector:@selector(launchDefaultPurchaseFlowForSku:)];
+      [TeakLink registerRoute:@"/teak_internal/store/:sku" name:@"" description:@"" block:^(NSDictionary * _Nonnull parameters) {
+         [TeakProductRequest productRequestForSku:parameters[@"sku"] callback:^(NSDictionary* unused, SKProductsResponse* response) {
+            if(response.products.count > 0)
+            {
+               SKProduct* product = [response.products objectAtIndex:0];
+               NSLocale* priceLocale = product.priceLocale;
+               NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
+               NSDecimalNumber* price = product.price;
+               NSLog(@"Purchase info: %@ - %@ - %@", product.productIdentifier, currencyCode, price);
+
+               SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
+               payment.quantity = 1;
+               [[SKPaymentQueue defaultQueue] addPayment:payment];
+            }
+         }];
+      }];
    }
    return self;
 }
@@ -499,23 +514,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
             break;
       }
    }
-}
-
-- (void)launchDefaultPurchaseFlowForSku:(NSDictionary*)parameters {
-   [TeakProductRequest productRequestForSku:parameters[@"sku"] callback:^(NSDictionary* unused, SKProductsResponse* response) {
-      if(response.products.count > 0)
-      {
-         SKProduct* product = [response.products objectAtIndex:0];
-         NSLocale* priceLocale = product.priceLocale;
-         NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
-         NSDecimalNumber* price = product.price;
-         NSLog(@"Purchase info: %@ - %@ - %@", product.productIdentifier, currencyCode, price);
-
-         SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
-         payment.quantity = 1;
-         [[SKPaymentQueue defaultQueue] addPayment:payment];
-      }
-   }];
 }
 
 @end
