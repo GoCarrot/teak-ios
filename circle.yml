@@ -1,6 +1,9 @@
 machine:
   xcode:
     version: 8.2.1
+general:
+  artifacts:
+    - "build/Teak.framework"
 test:
   override:
     - set -o pipefail &&
