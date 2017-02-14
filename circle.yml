@@ -1,9 +1,15 @@
 machine:
   xcode:
     version: 8.2.1
-general:
-  artifacts:
-    - "build/Teak.framework"
+deployment:
+  prod:
+    branch: master
+    commands:
+      - aws s3 cp build/Teak.framework s3://teak-build-artifacts/ios/Teak-`cat VERSION`.framework --acl public-read
+      - aws s3 cp build/Teak.framework s3://teak-build-artifacts/ios/Teak.framework --acl public-read
+compile:
+  override:
+    - ./compile
 test:
   override:
     - set -o pipefail &&
