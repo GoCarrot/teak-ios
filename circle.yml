@@ -6,8 +6,8 @@ deployment:
     branch: master
     commands:
       - (cd build; zip --symlinks -r Teak.framework.zip Teak.framework/)
-      - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-`cat VERSION`.framework.zip --acl public-read --recursive
-      - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read --recursive
+      - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-`cat VERSION`.framework.zip --acl public-read
+      - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
 compile:
   override:
   - ./compile
