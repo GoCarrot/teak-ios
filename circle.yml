@@ -9,7 +9,10 @@ deployment:
       - aws s3 cp build/Teak.framework s3://teak-build-artifacts/ios/Teak.framework --acl public-read
 compile:
   override:
-    - ./compile
+  - ./compile
+dependencies:
+  pre:
+  - ./setup
 test:
   override:
     - set -o pipefail &&
