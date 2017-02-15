@@ -22,4 +22,6 @@ typedef void (^TeakLinkBlock)(NSDictionary* _Nonnull parameters);
 
 + (void)registerRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block;
 
++ (nonnull NSArray*)routeNamesAndDescriptions;
+
 @end

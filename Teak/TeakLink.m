@@ -22,9 +22,10 @@
 @property (strong, nonatomic) NSArray* argumentIndicies;
 @property (copy,   nonatomic) TeakLinkBlock block;
 @property (strong, nonatomic) NSString* name;
-@property (strong, nonatomic) NSString* description;
+@property (strong, nonatomic) NSString* routeDescription;
+@property (strong, nonatomic) NSString* route;
 
-- (nullable TeakLink*)initWithName:(NSString*)name description:(NSString*)description argumentOrder:(NSArray*)argumentOrder block:(TeakLinkBlock)block;
+- (nullable TeakLink*)initWithName:(NSString*)name description:(NSString*)description argumentOrder:(NSArray*)argumentOrder block:(TeakLinkBlock)block route:(NSString*)route;
 
 + (nonnull NSMutableDictionary*)deepLinkRegistration;
 
@@ -78,13 +79,14 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
 
 @implementation TeakLink
 
-- (nullable TeakLink*)initWithName:(NSString*)name description:(NSString*)description argumentOrder:(NSArray*)argumentOrder block:(TeakLinkBlock)block {
+- (nullable TeakLink*)initWithName:(NSString*)name description:(NSString*)description argumentOrder:(NSArray*)argumentOrder block:(TeakLinkBlock)block route:(NSString*)route {
    self = [super init];
    if (self) {
       self.name = name;
-      self.description = description;
+      self.routeDescription = description;
       self.argumentIndicies = argumentOrder;
       self.block = block;
+      self.route = route;
    }
    return self;
 }
@@ -128,6 +130,22 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    return NO;
 }
 
++ (nonnull NSArray*)routeNamesAndDescriptions {
+   NSMutableArray* namesAndDescriptions = [[NSMutableArray alloc] init];
+   NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistration];
+   for (NSString* key in deepLinkPatterns) {
+      TeakLink* link = [deepLinkPatterns objectForKey:key];
+      if (link.name != nil && link.name.length > 0) {
+         [namesAndDescriptions addObject:@{
+            @"name" : link.name,
+            @"description" : link.routeDescription == nil ? @"" : link.routeDescription,
+            @"route" : link.route
+         }];
+      }
+   }
+   return namesAndDescriptions;
+}
+
 + (void)registerRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block {
 
    // Sanitize route
@@ -156,7 +174,7 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    // Prepend ^
    pattern = [NSString stringWithFormat:@"^%@", pattern];
 
-   TeakLink* link = [[TeakLink alloc] initWithName:name description:description argumentOrder:argumentOrder block:block];
+   TeakLink* link = [[TeakLink alloc] initWithName:name description:description argumentOrder:argumentOrder block:block route:route];
    [[TeakLink deepLinkRegistration] setValue:link forKey:pattern];
 }
 

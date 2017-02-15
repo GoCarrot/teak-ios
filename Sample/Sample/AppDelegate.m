@@ -36,7 +36,7 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
    // Routes use pattern matching to capture variables. Variables are prefixed with ':', so ':sku' will create
    //    a key named 'sku' in the dictionary passed to the block.
    // Name and Description are optional, but will show up in the Teak Dashboard to help identify the deep link
-   [TeakLink registerRoute:@"/store/:sku" name:@"" description:@"" block:^(NSDictionary * _Nonnull parameters) {
+   [TeakLink registerRoute:@"/store/:sku" name:@"Store SKU" description:@"Will open the In App Purchase for the specified SKU" block:^(NSDictionary * _Nonnull parameters) {
       NSLog(@"IT CALLED THE THING!! SKU: %@", parameters[@"sku"]);
    }];
 
