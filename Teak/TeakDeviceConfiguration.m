@@ -22,7 +22,6 @@
 
 #define LOG_TAG "Teak:DeviceConfig"
 
-#define kPushTokenUserDefaultsKey @"TeakPushToken"
 #define kDeviceIdKey @"TeakDeviceId"
 
 @interface TeakDeviceConfiguration ()
@@ -52,8 +51,6 @@
          TeakLog(@"[NSUserDefaults standardUserDefaults] returned nil. Teak is disabled.");
          return nil;
       }
-
-      self.pushToken = [self.userDefaults stringForKey:kPushTokenUserDefaultsKey];
 
       // Get/create device id
       self.deviceId = [self.userDefaults objectForKey:kDeviceIdKey];
@@ -115,15 +112,6 @@
    self.pushToken = pushToken;
 
    TeakDebugLog(@"Registering new push token: %@", self.pushToken);
-
-   if (self.userDefaults) {
-      @try {
-         [self.userDefaults setObject:self.pushToken forKey:kPushTokenUserDefaultsKey];
-         [self.userDefaults synchronize];
-      } @catch (NSException *exception) {
-         TeakLog(@"Error occurred while synchronizing userDefaults. %@", exception);
-      }
-   }
 }
 
 - (NSDictionary*)to_h {
