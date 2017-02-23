@@ -20,6 +20,8 @@ typedef void (^TeakLinkBlock)(NSDictionary* _Nonnull parameters);
 
 @interface TeakLink : NSObject
 
-+ (void)registerRoute:(nonnull NSString*)route onObject:(nonnull id)object name:(nonnull NSString*)name description:(nonnull NSString*)description selector:(nonnull SEL)selector;
++ (void)registerRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block;
+
++ (nonnull NSArray*)routeNamesAndDescriptions;
 
 @end

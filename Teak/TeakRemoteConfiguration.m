@@ -18,6 +18,7 @@
 #import "TeakSession.h"
 #import "TeakRequest.h"
 #import "TeakAppConfiguration.h"
+#import "TeakLink.h"
 
 #define LOG_TAG "Teak:RemoteConfig"
 
@@ -41,10 +42,13 @@
 }
 
 - (void)configureForSession:(nonnull TeakSession*)session {
+   NSDictionary* payload = @{@"id" : session.appConfiguration.appId,
+                             @"deep_link_routes" : [TeakLink routeNamesAndDescriptions]};
+
    TeakRequest* request = [[TeakRequest alloc]
                            initWithSession:session
                            forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
-                           withPayload:@{@"id" : session.appConfiguration.appId}
+                           withPayload:payload
                            callback: ^(NSURLResponse* response, NSDictionary* reply) {
                               // TODO: Check response
                               if (NO) {

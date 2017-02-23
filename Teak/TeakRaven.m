@@ -371,7 +371,7 @@ void TeakSignalHandler(int signal) {
 
       return @{
          @"function" : function,
-         @"module" : moduleName,
+         @"module" : moduleName == nil ? @"nil" : moduleName,
          @"in_app" : [moduleName isEqualToString:progname] ? @YES : @NO,
          @"address" : [NSString stringWithFormat:@"0x%016llx", address],
          @"raw" : raw

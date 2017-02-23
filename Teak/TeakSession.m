@@ -201,10 +201,10 @@ DefineTeakState(Expired, (@[]))
          [payload setObject:[Teak sharedInstance].fbAccessToken forKey:@"access_token"];
       }
 
-      NSLog(@"[Teak] Identifying user: %@", self.userId);
-      NSLog(@"[Teak]         Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
-      NSLog(@"[Teak]           Locale: %@", [[NSLocale preferredLanguages] objectAtIndex:0]);
-      NSLog(@"[Teak]    APNS Push Key: %@", [payload objectForKey:@"apns_push_key"]);
+      TeakDevHelpLog(@"Identifying user: %@", self.userId);
+      TeakDevHelpLog(@"        Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
+      TeakDevHelpLog(@"          Locale: %@", [[NSLocale preferredLanguages] objectAtIndex:0]);
+      TeakDevHelpLog(@"   APNS Push Key: %@", [payload objectForKey:@"apns_push_key"]);
 
       __block typeof(self) blockSelf = self;
       TeakRequest* request = [[TeakRequest alloc]

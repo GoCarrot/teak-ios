@@ -19,12 +19,13 @@
 
 @interface TeakLink()
 
-@property (strong, nonatomic) NSMethodSignature* methodSignature;
 @property (strong, nonatomic) NSArray* argumentIndicies;
-@property (weak,   nonatomic) id invocationTarget;
-@property (        nonatomic) SEL selector;
+@property (copy,   nonatomic) TeakLinkBlock block;
+@property (strong, nonatomic) NSString* name;
+@property (strong, nonatomic) NSString* routeDescription;
+@property (strong, nonatomic) NSString* route;
 
-- (nullable TeakLink*)initForSelector:(SEL)selector argumentOrder:(NSArray*)argumentOrder invocationTarget:(id)invocationTarget;
+- (nullable TeakLink*)initWithName:(NSString*)name description:(NSString*)description argumentOrder:(NSArray*)argumentOrder block:(TeakLinkBlock)block route:(NSString*)route;
 
 + (nonnull NSMutableDictionary*)deepLinkRegistration;
 
@@ -78,17 +79,17 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
 
 @implementation TeakLink
 
-- (nullable TeakLink*)initForSelector:(SEL)selector argumentOrder:(NSArray*)argumentOrder invocationTarget:(id)invocationTarget {
+- (nullable TeakLink*)initWithName:(NSString*)name description:(NSString*)description argumentOrder:(NSArray*)argumentOrder block:(TeakLinkBlock)block route:(NSString*)route {
    self = [super init];
    if (self) {
-      self.selector = selector;
+      self.name = name;
+      self.routeDescription = description;
       self.argumentIndicies = argumentOrder;
-      self.invocationTarget = invocationTarget;
-      self.methodSignature = [self.invocationTarget methodSignatureForSelector:self.selector];;
+      self.block = block;
+      self.route = route;
    }
    return self;
 }
-
 
 + (nonnull NSMutableDictionary*)deepLinkRegistration {
    static NSMutableDictionary* dict = nil;
@@ -113,17 +114,13 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
             if (match != nil) {
                teak_log_data_breadcrumb(@"Found matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink}));
                TeakLink* link = [deepLinkPatterns objectForKey:key];
-               NSInvocation* invocation = [NSInvocation invocationWithMethodSignature:link.methodSignature];
-               [invocation setTarget:link.invocationTarget];
-               [invocation setSelector:link.selector];
-               NSMutableDictionary* argHandleHolder = [[NSMutableDictionary alloc] init];
+               NSMutableDictionary* params = [[NSMutableDictionary alloc] init];
                for (NSUInteger i = 0; i < [link.argumentIndicies count]; i++) {
                   NSRange argRange = [match rangeAtIndex:i + 1];
                   NSString* arg = argRange.location == NSNotFound ? nil : [deepLink substringWithRange:argRange];
-                  [argHandleHolder setValue:arg forKey:link.argumentIndicies[i]];
+                  [params setValue:arg forKey:link.argumentIndicies[i]];
                }
-               [invocation setArgument:&argHandleHolder atIndex: 2];
-               [invocation invoke];
+               link.block(params);
                return YES;
             }
          } teak_catch_report
@@ -133,19 +130,23 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    return NO;
 }
 
-+ (void)registerRoute:(NSString*)route onObject:(id)object name:(NSString*)name description:(NSString*)description selector:(SEL)selector {
-   // Verify that whatever this is actually responds to the selector
-   if (![object respondsToSelector:selector]) {
-      [NSException raise:@"Invocation target must respond to selector." format:@"In method: %@", @"TODO METHOD"];
-   }
-
-   // Verify that only NSObjects are being used as parameters
-   NSMethodSignature* methodSignature = [object methodSignatureForSelector:selector];
-   for (NSUInteger i = 2; i < [methodSignature numberOfArguments]; i++) {
-      if (strcmp([methodSignature getArgumentTypeAtIndex:i], "@") != 0) {
-         [NSException raise:@"Argument type must be id" format:@"Argument type %s In route: %@", [methodSignature getArgumentTypeAtIndex:i], route];
++ (nonnull NSArray*)routeNamesAndDescriptions {
+   NSMutableArray* namesAndDescriptions = [[NSMutableArray alloc] init];
+   NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistration];
+   for (NSString* key in deepLinkPatterns) {
+      TeakLink* link = [deepLinkPatterns objectForKey:key];
+      if (link.name != nil && link.name.length > 0) {
+         [namesAndDescriptions addObject:@{
+            @"name" : link.name,
+            @"description" : link.routeDescription == nil ? @"" : link.routeDescription,
+            @"route" : link.route
+         }];
       }
    }
+   return namesAndDescriptions;
+}
+
++ (void)registerRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block {
 
    // Sanitize route
    NSString* escapedRoute = TeakRegexHelper(@"[^\\?\\%\\\\/\\:\\*\\w]", route, ^NSString* (NSString* toReplace) {
@@ -173,7 +174,7 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    // Prepend ^
    pattern = [NSString stringWithFormat:@"^%@", pattern];
 
-   TeakLink* link = [[TeakLink alloc] initForSelector:selector argumentOrder:argumentOrder invocationTarget:object];
+   TeakLink* link = [[TeakLink alloc] initWithName:name description:description argumentOrder:argumentOrder block:block route:route];
    [[TeakLink deepLinkRegistration] setValue:link forKey:pattern];
 }
 

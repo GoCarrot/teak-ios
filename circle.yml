@@ -1,13 +1,15 @@
 machine:
   xcode:
     version: 8.2.1
+checkout:
+  post:
+    - git fetch --tags
 deployment:
   prod:
     branch: master
     commands:
-      - export teak_version=`git describe --tags --always`
       - (cd build; zip --symlinks -r Teak.framework.zip Teak.framework/)
-      - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-${teak_version}.framework.zip --acl public-read
+      - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
       - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
 compile:
   override:

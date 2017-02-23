@@ -92,3 +92,8 @@ const char* TeakRewardGetJson(TeakReward* reward)
    }
    return "";
 }
+
+void TeakRegisterRoute(const char* route, const char* name, const char* description, TeakLinkBlock block)
+{
+   [TeakLink registerRoute:[NSString stringWithUTF8String:route] name:[NSString stringWithUTF8String:name] description:[NSString stringWithUTF8String:description] block:block];
+}
