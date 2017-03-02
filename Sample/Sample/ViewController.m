@@ -28,6 +28,23 @@
    [super viewDidLoad];
    // Do any additional setup after loading the view, typically from a nib.
    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+
+   [TeakLink registerRoute:@"/alert/:title/:message" name:@"Alert" description:@"Display an alert dialog" block:^(NSDictionary * _Nonnull parameters) {
+      UIAlertController * alert = [UIAlertController
+                                   alertControllerWithTitle:parameters[@"title"]
+                                   message:parameters[@"message"]
+                                   preferredStyle:UIAlertControllerStyleAlert];
+
+      UIAlertAction* yesButton = [UIAlertAction
+                                  actionWithTitle:@"Sweet"
+                                  style:UIAlertActionStyleDefault
+                                  handler:^(UIAlertAction * action) {
+                                     //Handle your yes please button action here
+                                  }];
+      
+      [alert addAction:yesButton];
+      [self presentViewController:alert animated:YES completion:nil];
+   }];
 }
 
 - (void)didReceiveMemoryWarning {
