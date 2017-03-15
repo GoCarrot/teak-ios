@@ -446,6 +446,10 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    }
 }
 
+- (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler {
+   return YES;
+}
+
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction {
    if (transaction == nil || transaction.payment == nil || transaction.payment.productIdentifier == nil) return;
 
