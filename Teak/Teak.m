@@ -43,7 +43,7 @@ NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
 NSString* const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
-extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
+extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
 Teak* _teakSharedInstance;
 
@@ -235,15 +235,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    // Attribution
    [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
 
-   // Check URL scheme to see if it matches the set we support
-   for (NSString* scheme in self.appConfiguration.urlSchemes) {
-      if ([scheme isEqualToString:url.scheme]) {
-         NSString* matchString = [NSString stringWithFormat:@"/%@%@", url.host, url.path];
-         return TeakLink_HandleDeepLink(matchString);
-      }
-   }
-
-   return NO;
+   return TeakLink_HandleDeepLink(url);
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
@@ -453,7 +445,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       // Attribution
       [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
 
-      TeakLink_HandleDeepLink(url.path);
+      TeakLink_HandleDeepLink(url);
    }
 
    return YES;
