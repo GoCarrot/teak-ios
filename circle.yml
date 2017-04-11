@@ -13,7 +13,6 @@ deployment:
       - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
 compile:
   override:
-  - xcodebuild -list
   - ./compile
 dependencies:
   pre:
