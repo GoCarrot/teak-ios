@@ -8,7 +8,7 @@ deployment:
   prod:
     branch: master
     commands:
-      - (cd build; zip --symlinks -r Teak.framework.zip Teak.framework/)
+      - (cd build/Release-iphoneos/; zip --symlinks -r Teak.framework.zip Teak.framework/)
       - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
       - aws s3 cp build/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
 compile:
@@ -18,7 +18,7 @@ dependencies:
   pre:
   - ./setup
 test:
-  override:
+  override: # TODO: Use infer here once it's fixed
     - set -o pipefail &&
       xcodebuild
         CODE_SIGNING_REQUIRED=NO
