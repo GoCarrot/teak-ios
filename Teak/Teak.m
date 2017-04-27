@@ -290,6 +290,31 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       [self application:application openURL:launchOptions[UIApplicationLaunchOptionsURLKey] sourceApplication:launchOptions[UIApplicationLaunchOptionsSourceApplicationKey] annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
    }
 
+   // Check to see if the user has already enabled push notifications
+   BOOL pushEnabled = NO;
+   if ([application respondsToSelector:@selector(isRegisteredForRemoteNotifications)]) {
+      pushEnabled = [application isRegisteredForRemoteNotifications];
+   } else {
+      UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
+      pushEnabled = types & UIRemoteNotificationTypeAlert;
+   }
+
+   // If they've already enabled push, go ahead and register since it won't pop up a box.
+   // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
+   // even if the app developer doesn't follow Apple's best practices.
+   if (pushEnabled) {
+      if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+         UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
+         [application registerUserNotificationSettings:settings];
+      } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+         UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
+         [application registerForRemoteNotificationTypes:types];
+#pragma clang diagnostic pop
+      }
+   }
+
    // Set up listeners
    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
 
