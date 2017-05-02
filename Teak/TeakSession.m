@@ -76,6 +76,21 @@ DefineTeakState(Expired, (@[]))
    }
 }
 
++ (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block {
+   @synchronized (currentSessionMutex) {
+      if (currentSession != nil && (currentSession.currentState == [TeakSession UserIdentified] ||
+                                    (currentSession.currentState == [TeakSession Expiring] &&
+                                     currentSession.previousState == [TeakSession UserIdentified]))) {
+         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            block(currentSession);
+         });
+      } else {
+         [[TeakSession whenUserIdIsReadyRunBlocks] addObject:[block copy]];
+      }
+   }
+}
+
+
 - (BOOL)setState:(nonnull TeakState*)newState {
    @synchronized (self) {
       if (self.currentState == newState) {

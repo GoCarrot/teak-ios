@@ -83,7 +83,7 @@
       @"offset" : [NSNumber numberWithUnsignedLongLong:delay]
    }];
 
-   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
       TeakRequest* request = [[TeakRequest alloc]
                               initWithSession:session
                               forEndpoint:@"/me/local_notify"
@@ -115,7 +115,7 @@
    TeakNotification* ret = [[TeakNotification alloc] init];
    ret.completed = NO;
 
-   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
       TeakRequest* request = [[TeakRequest alloc]
                               initWithSession:session
                               forEndpoint:@"/me/cancel_local_notify"

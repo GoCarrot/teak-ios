@@ -37,6 +37,7 @@ DeclareTeakState(Expiring);
 DeclareTeakState(Expired);
 
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;
++ (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
 + (void)setUserId:(nonnull NSString*)userId;
 + (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
