@@ -182,11 +182,11 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
 
 - (void)applicationWillResignActive:(UIApplication*)application
 {
-   [[Teak sharedInstance] applicationWillResignActive:application];
    if(sHostWREIMP)
    {
       sHostWREIMP(self, @selector(applicationWillResignActive:), application);
    }
+   [[Teak sharedInstance] applicationWillResignActive:application];
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo
