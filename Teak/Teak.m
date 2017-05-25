@@ -378,7 +378,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       TeakNotification* notif = [[TeakNotification alloc] initWithDictionary:aps];
 
       if (notif != nil) {
-         if (application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground) {
+         BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
+         
+         // TODO: Send notification_received metric
+
+         if (isInBackground) {
             // App was opened via push notification
             TeakDebugLog(@"App Opened from Teak Notification %@", notif);
 
@@ -389,7 +393,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
             if (notif.teakRewardId != nil) {
                TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
                if (reward != nil) {
-                  __weak TeakReward* weakReward = reward;
+                  __block TeakReward* weakReward = reward;
                   reward.onComplete = ^() {
                      NSDictionary* teakUserInfo = @{
                         @"teakReward" : weakReward.json == nil ? [NSNull null] : weakReward.json,
