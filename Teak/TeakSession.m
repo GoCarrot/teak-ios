@@ -35,8 +35,7 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic) NSString* countryCode;
 @property (strong, nonatomic) dispatch_queue_t heartbeatQueue;
 @property (strong, nonatomic) dispatch_source_t heartbeat;
-@property (strong, nonatomic) NSString* launchedFromTeakNotifId;
-@property (strong, nonatomic) NSString* launchedFromDeepLink;
+@property (strong, nonatomic) NSDictionary* launchAttribution;
 @property (strong, nonatomic) NSMutableArray* attributionChain;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
@@ -204,12 +203,10 @@ DefineTeakState(Expired, (@[]))
          [payload setObject:@"" forKey:@"apns_push_key"];
       }
 
-      if (self.launchedFromTeakNotifId != nil) {
-         [payload setObject:self.launchedFromTeakNotifId forKey:@"teak_notif_id"];
-      }
-
-      if (self.launchedFromDeepLink != nil) {
-         [payload setObject:self.launchedFromDeepLink forKey:@"deep_link"];
+      if (self.launchAttribution != nil) {
+         for (NSString* key in self.launchAttribution) {
+            [payload setObject:[self.launchAttribution objectForKey:key] forKey:key];
+         }
       }
 
       if ([Teak sharedInstance].fbAccessToken != nil) {
@@ -335,13 +332,13 @@ DefineTeakState(Expired, (@[]))
    }
 }
 
-+ (void)addAttribution:(nonnull NSString*)attribution forKey:(nonnull NSString*)key appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)setLaunchAttribution:(nonnull NSDictionary*)attribution appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
    @synchronized (currentSessionMutex) {
       // Call getCurrentSession() so the null || Expired logic stays in one place
       [TeakSession currentSessionForAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
 
       // It's a new session if there's a new launch from a notification
-      if (([currentSession valueForKey:key] == nil || ![attribution isEqualToString:[currentSession valueForKey:key]]) &&
+      if (![attribution isEqualToDictionary:currentSession.launchAttribution] &&
           (currentSession.currentState != [TeakSession Allocated] && currentSession.currentState != [TeakSession Created])) {
          TeakDebugLog(@"New session attribution source, creating new session. %@", currentSession != nil ? currentSession : @"");
 
@@ -352,7 +349,7 @@ DefineTeakState(Expired, (@[]))
          [oldSession setState:[TeakSession Expired]];
       }
 
-      [currentSession setValue:attribution forKey:key];
+      currentSession.launchAttribution = attribution;
       [currentSession.attributionChain addObject:attribution];
 
       if (currentSession.currentState == [TeakSession UserIdentified]) {
@@ -378,11 +375,34 @@ DefineTeakState(Expired, (@[]))
 }
 
 + (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
-   [TeakSession addAttribution:teakNotifId forKey:NSStringFromSelector(@selector(launchedFromTeakNotifId)) appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:teakNotifId, @"teak_notif_id", nil];
+   [TeakSession setLaunchAttribution:launchAttribution appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
 }
 
 + (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
-   [TeakSession addAttribution:deepLink forKey:NSStringFromSelector(@selector(launchedFromDeepLink)) appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+
+   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:deepLink, @"deep_link", nil];
+
+   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
+   NSURLComponents* components = [NSURLComponents componentsWithString:deepLink];
+   for (NSURLQueryItem* item in components.queryItems) {
+      if ([item.name hasPrefix:@"teak_"]) {
+         if ([launchAttribution objectForKey:item.name] != nil) {
+            if ([[launchAttribution objectForKey:item.name] isKindOfClass:[NSArray class]]) {
+               NSMutableArray* array = [launchAttribution objectForKey:item.name];
+               [array addObject:item.value];
+               [launchAttribution setValue:array forKey:item.name];
+            } else {
+               NSMutableArray* array = [NSMutableArray arrayWithObjects:[launchAttribution objectForKey:item.name], item.value, nil];
+               [launchAttribution setValue:array forKey:item.name];
+            }
+         } else {
+            [launchAttribution setValue:item.value forKey:item.name];
+         }
+      }
+   }
+
+   [TeakSession setLaunchAttribution:launchAttribution appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
 }
 
 + (TeakSession*)currentSessionForAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
