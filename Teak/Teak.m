@@ -440,12 +440,37 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
 - (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler {
    if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
-      NSURL* url = userActivity.webpageURL;
 
-      // Attribution
-      [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+      // Make sure the URL we fetch is https
+      NSURLComponents *components = [NSURLComponents componentsWithURL:userActivity.webpageURL
+                                               resolvingAgainstBaseURL:YES];
+      components.scheme = @"https";
+      NSURL* fetchUrl = components.URL;
 
-      TeakLink_HandleDeepLink(url);
+      // Fetch the data for the short link
+      NSURLSessionConfiguration* sessionConfiguration = [NSURLSessionConfiguration defaultSessionConfiguration];
+      sessionConfiguration.HTTPAdditionalHeaders = @{ @"X-Teak-DeviceType" : @"API" };
+      NSURLSession* session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
+      NSURLSessionDataTask* task = [session dataTaskWithURL:fetchUrl
+             completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
+                NSURL* attributionUrl = userActivity.webpageURL;
+
+                if (error == nil) {
+                   NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
+                   if (error == nil) {
+                      NSString* iOSPath = [reply objectForKey:@"iOSPath"];
+                      if (iOSPath != nil) {
+                         attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.appConfiguration.appId, iOSPath]];
+                      }
+                   }
+                }
+
+                // Attribution
+                [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+
+                TeakLink_HandleDeepLink(attributionUrl);
+             }];
+      [task resume];
    }
 
    return YES;
