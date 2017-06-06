@@ -32,6 +32,7 @@
 #define LOG_TAG "Teak"
 
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
+NSString* const TeakOnReward = @"TeakOnReward";
 
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
@@ -382,31 +383,29 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                       appConfiguration:self.appConfiguration
                                    deviceConfiguration:self.deviceConfiguration];
 
+            NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
             if (notif.teakRewardId != nil) {
                TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
                if (reward != nil) {
                   __block TeakReward* weakReward = reward;
                   reward.onComplete = ^() {
-                     NSDictionary* teakUserInfo = @{
-                        @"teakReward" : weakReward.json == nil ? [NSNull null] : weakReward.json,
-                        @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink
-                     };
+                     [teakUserInfo setValue:weakReward.json == nil ? [NSNull null] : weakReward.json forKey:@"teakReward"];
                      [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                          object:self
                                                                        userInfo:teakUserInfo];
+
+                     if (weakReward.json != nil) {
+                        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                            object:self
+                                                                          userInfo:weakReward.json];
+                     }
                   };
                } else {
-                  NSDictionary* teakUserInfo = @{
-                     @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink
-                  };
                   [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                       object:self
                                                                     userInfo:teakUserInfo];
                }
             } else {
-               NSDictionary* teakUserInfo = @{
-                  @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink
-               };
                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                    object:self
                                                                  userInfo:teakUserInfo];

@@ -85,13 +85,7 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 // is launched from a Push Notification.
 - (void)handleTeakNotification:(NSNotification*)notification
 {
-   // If the notification contains a reward, it will be found in the 'teakReward' key of the user info dictionary.
-   NSDictionary* teakReward = [notification.userInfo objectForKey:@"teakReward"];
-
-   // If the notification contains a deep link, the link will be found in the 'teakDeepLink' key of the user info dictionary.
-   NSDictionary* teakDeepLink = [notification.userInfo objectForKey:@"teakDeepLink"];
-
-   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!\n%@\n%@", teakReward, teakDeepLink);
+   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!");
 }
 
 @end

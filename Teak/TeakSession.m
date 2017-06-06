@@ -20,6 +20,7 @@
 #import "TeakDeviceConfiguration.h"
 #import "TeakRemoteConfiguration.h"
 #import "TeakDebugConfiguration.h"
+#import "TeakReward.h"
 
 #define LOG_TAG "Teak:Session"
 #define kSameSessionDeltaSeconds 120
@@ -403,6 +404,22 @@ DefineTeakState(Expired, (@[]))
    }
 
    [TeakSession setLaunchAttribution:launchAttribution appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+
+   // Send off a reward event if one was in this deep link
+   NSString* teakRewardId = [launchAttribution objectForKey:@"teak_reward_id"];
+   if (teakRewardId != nil) {
+      TeakReward* reward = [TeakReward rewardForRewardId:teakRewardId];
+      if (reward != nil) {
+         __block TeakReward* weakReward = reward;
+         reward.onComplete = ^() {
+            if (weakReward.json != nil) {
+               [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                   object:self
+                                                                 userInfo:weakReward.json];
+            }
+         };
+      }
+   }
 }
 
 + (TeakSession*)currentSessionForAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {

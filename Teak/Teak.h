@@ -24,6 +24,15 @@
  */
 extern NSString* _Nonnull const TeakNotificationAppLaunch;
 
+/**
+ * Use this named notification to listen for when a reward claim is attempted.
+ * [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                          selector:@selector(handleTeakReward:)
+ *                                               name:TeakOnReward
+ *                                             object:nil];
+ */
+extern NSString* _Nonnull const TeakOnReward;
+
 #ifdef __OBJC__
 
 #import <UIKit/UIKit.h>
