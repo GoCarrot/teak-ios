@@ -78,11 +78,18 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
    // Check URL scheme to see if it matches the set we support
    for (NSString* scheme in [Teak sharedInstance].appConfiguration.urlSchemes) {
       if ([scheme isEqualToString:deepLink.scheme]) {
-         return [TeakLink handleDeepLink:deepLink];
+         NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
+            [TeakLink handleDeepLink:deepLink];
+         }];
+         if ([Teak sharedInstance].waitForDeepLinkOperation != nil) {
+            [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
+         }
+         [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
+
+         return YES;
       }
    }
 
-   // TODO: Check deepLink.host to see if it's a host we care about
    if ([deepLink.scheme hasPrefix:@"http"]) {
       return [TeakLink handleDeepLink:deepLink];
    }

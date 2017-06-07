@@ -157,12 +157,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
       TeakDebugLog(@"%@", self.deviceConfiguration);
 
-      // TODO: Print bug report info
-
       // TODO: RemoteConfiguration event listeners
 
       // Set up SDK Raven
       self.sdkRaven = [TeakRaven ravenForTeak:self];
+
+      // Operation queue
+      self.operationQueue = [[NSOperationQueue alloc] init];
 
       // Register default purchase deep link
       [TeakLink registerRoute:@"/teak_internal/store/:sku" name:@"" description:@"" block:^(NSDictionary * _Nonnull parameters) {
@@ -210,8 +211,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 #pragma clang diagnostic pop
 }
 
-
-// TODO: iOS 9 added this delegate method, deprecated the other one
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString *,id>*)options {
    TeakDebugLog(@"%@", url);
 

@@ -36,6 +36,16 @@ void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* 
                              andObjectInstanceId:[NSString stringWithUTF8String:objectInstanceId]];
 }
 
+void TeakAssignWaitForDeepLinkOperation(NSOperation* waitForDeepLinkOp)
+{
+   [Teak sharedInstance].waitForDeepLinkOperation = waitForDeepLinkOp;
+}
+
+void TeakRunNSOperation(NSOperation* op)
+{
+   [[Teak sharedInstance].operationQueue addOperation:op];
+}
+
 TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, uint64_t delay)
 {
    return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]

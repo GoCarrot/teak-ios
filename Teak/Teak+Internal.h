@@ -34,6 +34,9 @@
 
 @property (strong, nonatomic) TeakRaven* sdkRaven;
 
+@property (strong, nonatomic) NSOperationQueue* operationQueue;
+@property (strong, nonatomic) NSOperation* waitForDeepLinkOperation;
+
 // Static initialization time or main()
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret;
 
