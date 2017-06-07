@@ -20,7 +20,7 @@
 #import <Teak/Teak.h>
 
 // For testing
-extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
+extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
 @import AdSupport;
 
@@ -37,6 +37,7 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
    //    a key named 'sku' in the dictionary passed to the block.
    // Name and Description are optional, but will show up in the Teak Dashboard to help identify the deep link
    [TeakLink registerRoute:@"/store/:sku" name:@"Store SKU" description:@"Will open the In App Purchase for the specified SKU" block:^(NSDictionary * _Nonnull parameters) {
+      NSLog(@"%@", parameters);
       NSLog(@"IT CALLED THE THING!! SKU: %@", parameters[@"sku"]);
    }];
 
@@ -84,13 +85,7 @@ extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
 // is launched from a Push Notification.
 - (void)handleTeakNotification:(NSNotification*)notification
 {
-   // If the notification contains a reward, it will be found in the 'teakReward' key of the user info dictionary.
-   NSDictionary* teakReward = [notification.userInfo objectForKey:@"teakReward"];
-
-   // If the notification contains a deep link, the link will be found in the 'teakDeepLink' key of the user info dictionary.
-   NSDictionary* teakDeepLink = [notification.userInfo objectForKey:@"teakDeepLink"];
-
-   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!\n%@\n%@", teakReward, teakDeepLink);
+   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!");
 }
 
 @end

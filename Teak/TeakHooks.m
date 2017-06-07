@@ -39,6 +39,8 @@
 - (void)applicationWillResignActive:(UIApplication*)application;
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
+
+- (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler;
 @end
 
 static BOOL (*sHostAppDidFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
@@ -49,6 +51,7 @@ static void (*sHostAppPushDidRegIMP)(id, SEL, UIApplication*, UIUserNotification
 static void (*sHostAppPushRegFailIMP)(id, SEL, UIApplication*, NSError*) = NULL;
 static void (*sHostWREIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostDRRNIMP)(id, SEL, UIApplication*, NSDictionary*) = NULL;
+static BOOL (*sHostContinueUserActivityIMP)(id, SEL, UIApplication*, NSUserActivity*, void (^)(NSArray* _Nullable)) = NULL;
 
 extern Teak* _teakSharedInstance;
 
@@ -128,6 +131,14 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
       Method ctAppDRRN = class_getInstanceMethod([TeakAppDelegateHooks class], appDRRNMethod.name);
       sHostDRRNIMP = (void (*)(id, SEL, UIApplication*, NSDictionary*))class_replaceMethod(appDelegateClass, appDRRNMethod.name, method_getImplementation(ctAppDRRN), appDRRNMethod.types);
    }
+
+   // application:continueUserActivity:restorationHandler:
+   {
+      struct objc_method_description appContinueUserActivityMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:continueUserActivity:restorationHandler:), NO, YES);
+
+      Method ctAppContinueUserActivity = class_getInstanceMethod([TeakAppDelegateHooks class], appContinueUserActivityMethod.name);
+      sHostContinueUserActivityIMP = (BOOL (*)(id, SEL, UIApplication*, NSUserActivity*, (void (^)(NSArray* _Nullable))))class_replaceMethod(appDelegateClass, appContinueUserActivityMethod.name, method_getImplementation(ctAppContinueUserActivity), appContinueUserActivityMethod.types);
+   }
 }
 
 @implementation TeakAppDelegateHooks
@@ -198,4 +209,15 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
    }
 }
 
+- (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler
+{
+   BOOL ret = [[Teak sharedInstance] application:application continueUserActivity:userActivity restorationHandler:restorationHandler];
+
+   if(sHostContinueUserActivityIMP)
+   {
+      ret |= sHostContinueUserActivityIMP(self, @selector(application:continueUserActivity:restorationHandler:), application, userActivity, restorationHandler);
+   }
+
+   return ret;
+}
 @end

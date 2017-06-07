@@ -32,6 +32,7 @@
 #define LOG_TAG "Teak"
 
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
+NSString* const TeakOnReward = @"TeakOnReward";
 
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
@@ -43,7 +44,7 @@ NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
 NSString* const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
-extern BOOL TeakLink_HandleDeepLink(NSString* deepLink);
+extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
 Teak* _teakSharedInstance;
 
@@ -156,12 +157,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
       TeakDebugLog(@"%@", self.deviceConfiguration);
 
-      // TODO: Print bug report info
-
       // TODO: RemoteConfiguration event listeners
 
       // Set up SDK Raven
       self.sdkRaven = [TeakRaven ravenForTeak:self];
+
+      // Operation queue
+      self.operationQueue = [[NSOperationQueue alloc] init];
 
       // Register default purchase deep link
       [TeakLink registerRoute:@"/teak_internal/store/:sku" name:@"" description:@"" block:^(NSDictionary * _Nonnull parameters) {
@@ -209,8 +211,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 #pragma clang diagnostic pop
 }
 
-
-// TODO: iOS 9 added this delegate method, deprecated the other one
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString *,id>*)options {
    TeakDebugLog(@"%@", url);
 
@@ -235,15 +235,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    // Attribution
    [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
 
-   // Check URL scheme to see if it matches the set we support
-   for (NSString* scheme in self.appConfiguration.urlSchemes) {
-      if ([scheme isEqualToString:url.scheme]) {
-         NSString* matchString = [NSString stringWithFormat:@"/%@%@", url.host, url.path];
-         return TeakLink_HandleDeepLink(matchString);
-      }
-   }
-
-   return NO;
+   return TeakLink_HandleDeepLink(url);
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
@@ -390,31 +382,29 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                       appConfiguration:self.appConfiguration
                                    deviceConfiguration:self.deviceConfiguration];
 
+            NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
             if (notif.teakRewardId != nil) {
                TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
                if (reward != nil) {
                   __block TeakReward* weakReward = reward;
                   reward.onComplete = ^() {
-                     NSDictionary* teakUserInfo = @{
-                        @"teakReward" : weakReward.json == nil ? [NSNull null] : weakReward.json,
-                        @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink
-                     };
+                     [teakUserInfo setValue:weakReward.json == nil ? [NSNull null] : weakReward.json forKey:@"teakReward"];
                      [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                          object:self
                                                                        userInfo:teakUserInfo];
+
+                     if (weakReward.json != nil) {
+                        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                            object:self
+                                                                          userInfo:weakReward.json];
+                     }
                   };
                } else {
-                  NSDictionary* teakUserInfo = @{
-                     @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink
-                  };
                   [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                       object:self
                                                                     userInfo:teakUserInfo];
                }
             } else {
-               NSDictionary* teakUserInfo = @{
-                  @"teakDeepLink" : notif.teakDeepLink == nil ? [NSNull null] : notif.teakDeepLink
-               };
                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                    object:self
                                                                  userInfo:teakUserInfo];
@@ -444,6 +434,44 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    } else {
       TeakDebugLog(@"Non-Teak push notification, ignored.");
    }
+}
+
+- (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler {
+   if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
+
+      // Make sure the URL we fetch is https
+      NSURLComponents *components = [NSURLComponents componentsWithURL:userActivity.webpageURL
+                                               resolvingAgainstBaseURL:YES];
+      components.scheme = @"https";
+      NSURL* fetchUrl = components.URL;
+
+      // Fetch the data for the short link
+      NSURLSessionConfiguration* sessionConfiguration = [NSURLSessionConfiguration defaultSessionConfiguration];
+      sessionConfiguration.HTTPAdditionalHeaders = @{ @"X-Teak-DeviceType" : @"API" };
+      NSURLSession* session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
+      NSURLSessionDataTask* task = [session dataTaskWithURL:fetchUrl
+             completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
+                NSURL* attributionUrl = userActivity.webpageURL;
+
+                if (error == nil) {
+                   NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
+                   if (error == nil) {
+                      NSString* iOSPath = [reply objectForKey:@"iOSPath"];
+                      if (iOSPath != nil) {
+                         attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.appConfiguration.appId, iOSPath]];
+                      }
+                   }
+                }
+
+                // Attribution
+                [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+
+                TeakLink_HandleDeepLink(attributionUrl);
+             }];
+      [task resume];
+   }
+
+   return YES;
 }
 
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction {

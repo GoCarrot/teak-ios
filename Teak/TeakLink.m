@@ -14,6 +14,7 @@
  */
 
 #import "Teak+Internal.h"
+#import "TeakAppConfiguration.h"
 
 #define LOG_TAG "Teak:Link"
 
@@ -29,7 +30,7 @@
 
 + (nonnull NSMutableDictionary*)deepLinkRegistration;
 
-+ (BOOL)handleDeepLink:(NSString*)deepLink;
++ (BOOL)handleDeepLink:(NSURL*)deepLink;
 
 @end
 
@@ -73,8 +74,27 @@ NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceB
    return output;
 }
 
-BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
-   return [TeakLink handleDeepLink:deepLink];
+BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
+   // Check URL scheme to see if it matches the set we support
+   for (NSString* scheme in [Teak sharedInstance].appConfiguration.urlSchemes) {
+      if ([scheme isEqualToString:deepLink.scheme]) {
+         NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
+            [TeakLink handleDeepLink:deepLink];
+         }];
+         if ([Teak sharedInstance].waitForDeepLinkOperation != nil) {
+            [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
+         }
+         [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
+
+         return YES;
+      }
+   }
+
+   if ([deepLink.scheme hasPrefix:@"http"]) {
+      return [TeakLink handleDeepLink:deepLink];
+   }
+
+   return NO;
 }
 
 @implementation TeakLink
@@ -100,7 +120,7 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
    return dict;
 }
 
-+ (BOOL)handleDeepLink:(NSString*)deepLink {
++ (BOOL)handleDeepLink:(NSURL*)deepLink {
    NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistration];
    for (NSString* key in deepLinkPatterns) {
       NSError* error = nil;
@@ -109,17 +129,25 @@ BOOL TeakLink_HandleDeepLink(NSString* deepLink) {
          TeakDebugLog(@"Error parsing regular expression: %@", [error localizedDescription]);
       } else {
          teak_try {
-            NSRange range = NSMakeRange(0, [deepLink length]);
-            NSTextCheckingResult* match = [regExp firstMatchInString:deepLink options:0 range:range];
+            NSRange range = NSMakeRange(0, [deepLink.path length]);
+            NSTextCheckingResult* match = [regExp firstMatchInString:deepLink.path options:0 range:range];
             if (match != nil) {
-               teak_log_data_breadcrumb(@"Found matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink}));
+               teak_log_data_breadcrumb(@"Found matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink.path}));
                TeakLink* link = [deepLinkPatterns objectForKey:key];
                NSMutableDictionary* params = [[NSMutableDictionary alloc] init];
                for (NSUInteger i = 0; i < [link.argumentIndicies count]; i++) {
                   NSRange argRange = [match rangeAtIndex:i + 1];
-                  NSString* arg = argRange.location == NSNotFound ? nil : [deepLink substringWithRange:argRange];
+                  NSString* arg = argRange.location == NSNotFound ? nil : [deepLink.path substringWithRange:argRange];
                   [params setValue:arg forKey:link.argumentIndicies[i]];
                }
+
+               // Query params
+               NSURLComponents* urlComponents = [NSURLComponents componentsWithURL:deepLink
+                                                           resolvingAgainstBaseURL:NO];
+               for (NSURLQueryItem* item in urlComponents.queryItems) {
+                  [params setValue:item.value forKey:item.name];
+               }
+
                link.block(params);
                return YES;
             }

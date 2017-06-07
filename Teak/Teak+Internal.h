@@ -34,6 +34,9 @@
 
 @property (strong, nonatomic) TeakRaven* sdkRaven;
 
+@property (strong, nonatomic) NSOperationQueue* operationQueue;
+@property (strong, nonatomic) NSOperation* waitForDeepLinkOperation;
+
 // Static initialization time or main()
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret;
 
@@ -46,6 +49,7 @@
 
 // Deep Linking
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation;
+- (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler;
 
 // Push notification
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
