@@ -29,8 +29,6 @@
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
-#define LOG_TAG "Teak"
-
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 
@@ -74,12 +72,12 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {
-   TeakLog("identifyUser(): %@", userIdentifier);
-
    if (userIdentifier == nil || userIdentifier.length == 0) {
-      TeakLog("User identifier can not be null or empty.");
+      TeakLog_e(@"identify_user.error", @"User identifier can not be null or empty.");
       return;
    }
+
+   TeakLog_i(@"identify_user", @{@"userId" : userIdentifier});
 
    [self.sdkRaven setUserValue:userIdentifier forKey:@"id"];
    [TeakSession setUserId:userIdentifier];
@@ -88,15 +86,17 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId
 {
    if (actionId == nil || actionId.length == 0) {
-      TeakLog(@"actionId can not be nil or empty for trackEvent(), ignoring.");
+      TeakLog_e(@"track_event.error", @"actionId can not be null or empty for trackEvent(), ignoring.");
       return;
    }
 
    if ((objectInstanceId == nil || objectInstanceId.length == 0) &&
        (objectTypeId == nil || objectTypeId.length == 0)) {
-      TeakLog(@"objectTypeId can not be nil or empty if objectInstanceId is present for trackEvent(), ignoring.");
+      TeakLog_e(@"track_event.error", @"objectTypeId can not be null or empty if objectInstanceId is present for trackEvent(), ignoring.");
       return;
    }
+
+   TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId)});
 
    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
       NSDictionary* payload = @{
@@ -120,19 +120,20 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    if(self) {
       // Output version first thing
       self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
-      TeakLog(@"iOS SDK Version: %@", self.sdkVersion);
+
+      // TODO: Adobe AIR Version
+      self.log = [[TeakLog alloc] init];
+      [self.log useSdk:@{@"ios" : self.sdkVersion}];
 
       if ([appId length] == 0) {
-         TeakLog(@"appId cannot be null or empty");
+         [NSException raise:NSInvalidArgumentException format:@"Teak appId cannot be null or empty."];
          return nil;
       }
 
       if ([appSecret length] == 0) {
-         TeakLog(@"appSecret cannot be null or empty");
+         [NSException raise:NSInvalidArgumentException format:@"Teak apiKey cannot be null or empty."];
          return nil;
       }
-
-      // TODO: Adobe AIR Version print
 
       // Debug Configuration
       self.debugConfiguration = [[TeakDebugConfiguration alloc] init];
@@ -141,23 +142,19 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       // App Configuration
       self.appConfiguration = [[TeakAppConfiguration alloc] initWithAppId:appId apiKey:appSecret];
       if (self.appConfiguration == nil) {
-         TeakLog(@"AppConfiguration is nil.");
+         [NSException raise:NSObjectNotAvailableException format:@"Teak App Configuration is nil."];
          return nil;
       }
       self.enableDebugOutput |= !self.appConfiguration.isProduction;
-
-      TeakDebugLog(@"%@", self.appConfiguration);
+      [self.log useAppConfiguration:self.appConfiguration];
 
       // Device Configuration
       self.deviceConfiguration = [[TeakDeviceConfiguration alloc] initWithAppConfiguration:self.appConfiguration];
       if (self.deviceConfiguration == nil) {
-         TeakLog(@"DeviceConfiguration is nil.");
+         [NSException raise:NSObjectNotAvailableException format:@"Teak Device Configuration is nil."];
          return nil;
       }
-
-      TeakDebugLog(@"%@", self.deviceConfiguration);
-
-      // TODO: RemoteConfiguration event listeners
+      [self.log useDeviceConfiguration:self.deviceConfiguration];
 
       // Set up SDK Raven
       self.sdkRaven = [TeakRaven ravenForTeak:self];
@@ -171,10 +168,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
             if(response.products.count > 0)
             {
                SKProduct* product = [response.products objectAtIndex:0];
-               NSLocale* priceLocale = product.priceLocale;
-               NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
-               NSDecimalNumber* price = product.price;
-               TeakDevHelpLog(@"Purchase info: %@ - %@ - %@", product.productIdentifier, currencyCode, price);
 
                SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
                payment.quantity = 1;
@@ -212,8 +205,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString *,id>*)options {
-   TeakDebugLog(@"%@", url);
-
    if (url != nil) {
       return [self handleDeepLink:url];
    }
@@ -222,8 +213,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
-   TeakDebugLog(@"%@", url);
-
    if (url != nil) {
       return [self handleDeepLink:url];
    }
@@ -243,7 +232,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    // Facebook SDKs
    Class fb4xClass = NSClassFromString(@"FBSDKProfile");
    Class fb3xClass = NSClassFromString(@"FBSession");
-   @try {
+   teak_try {
       if (fb4xClass != nil) {
          BOOL arg = YES;
          SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
@@ -266,14 +255,15 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       }
 
       if (self.enableDebugOutput) {
-         if(fb4xClass != nil) { TeakDevHelpLog(@"Using Facebook SDK v4.x"); }
-         else if(fb3xClass != nil) { TeakDevHelpLog(@"Using Facebook SDK v3.x"); }
-         else { TeakDevHelpLog(@"Facebook SDK not detected"); }
+         if(fb4xClass != nil) {
+            TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x"});
+         } else if(fb3xClass != nil) {
+            TeakLog_i(@"facebook.sdk", @{@"version" : @"3.x"});
+         } else {
+            TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
+         }
       }
-   } @catch (NSException* exception) {
-      // I don't know
-      TeakLog(@"Exception working with Facebook SDK: %@", exception);
-   }
+   } teak_catch_report
 
    // If the app was not running, we need to check these and invoke them afterwards
    if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
@@ -341,7 +331,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
    if (deviceToken == nil) {
-      TeakLog(@"Got nil deviceToken. Push is disabled.");
+      TeakLog_e(@"notification.registration.error", @"Got nil deviceToken. Push is disabled.");
       return;
    }
 
@@ -352,17 +342,15 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    if (deviceTokenString != nil) {
       [self.deviceConfiguration assignPushToken:deviceTokenString];
    } else {
-      TeakLog(@"Got nil deviceTokenString. Push is disabled.");
+      TeakLog_e(@"notification.registration.error", @"Got nil deviceTokenString. Push is disabled.");
    }
 }
 
 - (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error {
-   TeakLog(@"Failed to register for push notifications: %@", [error localizedDescription]);
+   TeakLog_e(@"notification.registration.error", @"Failed to register for push notifications.", @{@"error" : _([error localizedDescription])});
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
-   TeakDebugLog(@"%@", userInfo);
-
    NSDictionary* aps = [userInfo objectForKey:@"aps"];
    NSString* teakNotifId = NSStringOrNilFor([aps objectForKey:@"teakNotifId"]);
 
@@ -376,7 +364,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
          if (isInBackground) {
             // App was opened via push notification
-            TeakDebugLog(@"App Opened from Teak Notification %@", notif);
+            TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
             [TeakSession didLaunchFromTeakNotification:teakNotifId
                                       appConfiguration:self.appConfiguration
@@ -428,11 +416,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
             }
          } else {
             // Push notification received while app was in foreground
-            TeakDebugLog(@"Teak Notification received in foreground %@", notif);
+            TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(teakNotifId)});
          }
       }
    } else {
-      TeakDebugLog(@"Non-Teak push notification, ignored.");
+      TeakLog_i(@"notification.non_teak", userInfo);
    }
 }
 

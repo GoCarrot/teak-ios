@@ -14,8 +14,7 @@
  */
 
 #import "TeakDebugConfiguration.h"
-
-#define LOG_TAG "Teak:DebugConfig"
+#import "Teak+Internal.h"
 
 #define kForceDebugPreferencesKey @"TeakForceDebug"
 #define kBugReportUrl @"https://github.com/GoCarrot/teak-ios/issues/new"
@@ -31,14 +30,12 @@
 - (id)init {
    self = [super init];
    if (self) {
-      @try {
+      teak_try {
          self.userDefaults = [NSUserDefaults standardUserDefaults];
-      } @catch (NSException* exception) {
-         TeakLog(@"Error calling [NSUserDefaults standardUserDefaults]. %@", exception);
-      }
+      } teak_catch_report
 
       if (self.userDefaults == nil) {
-         TeakLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
+         TeakLog_e(@"debug_configuration", @"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
       } else {
          self.forceDebug = [self.userDefaults boolForKey:kForceDebugPreferencesKey];
       }
@@ -48,15 +45,15 @@
 
 - (void)setForceDebugPreference:(BOOL)forceDebug {
    if (self.userDefaults == nil) {
-      TeakLog(@"[NSUserDefaults standardUserDefaults] returned nil. Setting force debug is disabled.");
+      TeakLog_e(@"debug_configuration", @"[NSUserDefaults standardUserDefaults] returned nil. Setting force debug is disabled.");
    }
    else {
       @try {
          [self.userDefaults setBool:forceDebug forKey:kForceDebugPreferencesKey];
          [self.userDefaults synchronize];
-         TeakLog(@"Force debug is now %s, please re-start the app.", forceDebug ? "enabled" : "disabled");
+         NSLog(@"Force debug is now %s, please re-start the app.", forceDebug ? "enabled" : "disabled");
       } @catch (NSException* exception) {
-         TeakLog(@"Error occurred while synchronizing userDefaults. %@", exception);
+         NSLog(@"Error occurred while synchronizing userDefaults. %@", exception);
       }
       self.forceDebug = forceDebug;
    }

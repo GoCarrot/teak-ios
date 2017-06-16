@@ -17,8 +17,6 @@
 #import <objc/runtime.h>
 #import "Teak+Internal.h"
 
-#define LOG_TAG "Teak:Hooks"
-
 @interface TeakAppDelegateHooks : NSObject
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
@@ -61,7 +59,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
    _teakSharedInstance = [[Teak alloc] initWithApplicationId:appId andSecret:appSecret];
    if(_teakSharedInstance == nil)
    {
-      TeakLog(@"initWithApplicationId:andSecret returned nil, Teak is disabled.");
+      TeakLog_e(@"sdk.init", @"initWithApplicationId:andSecret returned nil, Teak is disabled.");
       return;
    }
 
@@ -137,7 +135,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
       struct objc_method_description appContinueUserActivityMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:continueUserActivity:restorationHandler:), NO, YES);
 
       Method ctAppContinueUserActivity = class_getInstanceMethod([TeakAppDelegateHooks class], appContinueUserActivityMethod.name);
-      sHostContinueUserActivityIMP = (BOOL (*)(id, SEL, UIApplication*, NSUserActivity*, (void (^)(NSArray* _Nullable))))class_replaceMethod(appDelegateClass, appContinueUserActivityMethod.name, method_getImplementation(ctAppContinueUserActivity), appContinueUserActivityMethod.types);
+      sHostContinueUserActivityIMP = (BOOL (*)(id, SEL, UIApplication*, NSUserActivity*, void (^)(NSArray* _Nullable)))class_replaceMethod(appDelegateClass, appContinueUserActivityMethod.name, method_getImplementation(ctAppContinueUserActivity), appContinueUserActivityMethod.types);
    }
 }
 

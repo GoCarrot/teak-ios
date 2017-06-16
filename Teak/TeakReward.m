@@ -15,8 +15,7 @@
 #import "TeakReward.h"
 #import "TeakSession.h"
 #import "TeakRequest.h"
-
-#define LOG_TAG "Teak:Reward"
+#import "Teak+Internal.h"
 
 @interface TeakReward ()
 
@@ -39,7 +38,7 @@
 
 + (TeakReward*)rewardForRewardId:(NSString*)teakRewardId {
    if (teakRewardId == nil || teakRewardId.length == 0) {
-      TeakLog(@"teakRewardId must not be nil or empty");
+      TeakLog_e(@"reward.error", @"teakRewardId must not be nil or empty");
       return nil;
    }
 
@@ -56,8 +55,8 @@
                               withPayload:@{@"clicking_user_id" : session.userId}
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
                                  // TODO: Check response
-                                 if (NO) {
-                                    TeakLog(@"Error claiming Teak reward: %@", response);
+                                 if (/* DISABLES CODE */ (NO)) {
+                                    TeakLog_e(@"reward.claim_error", @{@"error" : response});
                                  } else {
                                     NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:[reply objectForKey:@"response"]];
                                     if ([rewardResponse objectForKey:@"reward"] != nil &&

@@ -21,8 +21,6 @@
 @property (strong, nonatomic) NSArray* allowedTransitions;
 @end
 
-#define LOG_TAG "Teak:State"
-
 @implementation TeakState
 
 DefineTeakState(Invalid, (@[]))
@@ -33,7 +31,7 @@ DefineTeakState(Invalid, (@[]))
       self.name = name;
       for (id state in allowedTransitions) {
          if (![state isKindOfClass:[NSString class]]) {
-            TeakLog(@"Non-NSString element of allowedTransitions. Returning nil.");
+            [NSException raise:NSInvalidArgumentException format:@"Non-NSString element of allowedTransitions. Returning nil."];
             return nil;
          }
       }

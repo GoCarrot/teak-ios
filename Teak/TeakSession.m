@@ -22,8 +22,7 @@
 #import "TeakDebugConfiguration.h"
 #import "TeakReward.h"
 
-#define LOG_TAG "Teak:Session"
-#define kSameSessionDeltaSeconds 120
+#define kSameSessionDeltaSeconds 120 // TODO: This needs to be a variable so Calabash can modify it
 
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
@@ -94,12 +93,12 @@ DefineTeakState(Expired, (@[]))
 - (BOOL)setState:(nonnull TeakState*)newState {
    @synchronized (self) {
       if (self.currentState == newState) {
-         TeakLog("Session State transition to same state (%@). Ignoring.", self.currentState);
+         TeakLog_i(@"session.same_state", @{@"state" : self.currentState.name});
          return NO;
       }
 
       if (![self.currentState canTransitionToState:newState]) {
-         TeakLog("Invalid Session State transition (%@ -> %@). Ignoring.", self.currentState, newState);
+         TeakLog_i(@"session.invalid_state", @{@"state" : self.currentState.name, @"new_state" : newState.name});
          return NO;
       }
 
@@ -128,12 +127,13 @@ DefineTeakState(Expired, (@[]))
 
       // Print out any invalid values
       if (invalidValuesForTransition.count > 0) {
-         TeakLog(@"Invalid Session value%s while trying to transition from %@ -> %@. Invalidating Session.",
-                                      invalidValuesForTransition.count > 1 ? "s" : "", self.currentState, newState);
-
+         NSMutableDictionary* dict = [[NSMutableDictionary alloc] init];
+         [dict setValue:self.currentState forKey:@"state"];
+         [dict setValue:newState forKey:@"new_state"];
          for (NSArray* elem in invalidValuesForTransition) {
-            TeakLog(@"\t%@: %@", elem[0], elem[1]);
+            [dict setValue:elem[1] forKey:elem[0]];
          }
+         TeakLog_e(@"session.invalid_values", dict);
 
          // Invalidate this session
          [self setState:[TeakState Invalid]];
@@ -143,7 +143,7 @@ DefineTeakState(Expired, (@[]))
       self.previousState = self.currentState;
       self.currentState = newState;
 
-      TeakDebugLog(@"Session State transition from %@ -> %@.", self.previousState, self.currentState);
+      TeakLog_i(@"session.state", @{@"state" : self.currentState.name , @"old_state" : self.previousState.name});
 
       return YES;
    }
@@ -153,19 +153,6 @@ DefineTeakState(Expired, (@[]))
    @synchronized (self) {
       if (self.currentState != [TeakSession UserIdentified] && [self setState:[TeakSession IdentifyingUser]] == NO) {
          return;
-      }
-
-      if([Teak sharedInstance].enableDebugOutput && self.deviceConfiguration.pushToken != nil) {
-         NSString* urlString = [NSString stringWithFormat:@"https://app.teak.io/apps/%@/test_accounts/new?api_key=%@&apns_push_key=%@&device_model=%@&bundle_id=%@&is_sandbox=%@&device_id=%@",
-                                URLEscapedString(self.appConfiguration.appId),
-                                URLEscapedString(self.appConfiguration.apiKey),
-                                URLEscapedString(self.deviceConfiguration.pushToken),
-                                URLEscapedString(self.deviceConfiguration.deviceModel),
-                                URLEscapedString(self.appConfiguration.bundleId),
-                                self.appConfiguration.isProduction ? @"false" : @"true",
-                                URLEscapedString(self.deviceConfiguration.deviceId)];
-         TeakDevHelpLog(@"If you want to debug or test push notifications on this device please click the link below, or copy/paste into your browser:");
-         TeakDevHelpLog(@"%@", urlString);
       }
 
       // Time zone
@@ -214,10 +201,7 @@ DefineTeakState(Expired, (@[]))
          [payload setObject:[Teak sharedInstance].fbAccessToken forKey:@"access_token"];
       }
 
-      TeakDevHelpLog(@"Identifying user: %@", self.userId);
-      TeakDevHelpLog(@"        Timezone: %@", [NSString stringWithFormat:@"%f", timeZoneOffset]);
-      TeakDevHelpLog(@"          Locale: %@", [[NSLocale preferredLanguages] objectAtIndex:0]);
-      TeakDevHelpLog(@"   APNS Push Key: %@", [payload objectForKey:@"apns_push_key"]);
+      TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
 
       __block typeof(self) blockSelf = self;
       TeakRequest* request = [[TeakRequest alloc]
@@ -245,8 +229,6 @@ DefineTeakState(Expired, (@[]))
 }
 
 - (void)sendHeartbeat {
-   TeakDebugLog(@"Sending heartbeat for user: %@", self.userId);
-
    NSString* urlString = [NSString stringWithFormat:
                           @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%@",
                           URLEscapedString(self.appConfiguration.appId),
@@ -309,7 +291,7 @@ DefineTeakState(Expired, (@[]))
 
 + (void)setUserId:(nonnull NSString*)userId {
    if(userId.length == 0) {
-      TeakLog(@"userId cannot be nil or empty.");
+      TeakLog_e(@"session", @"userId cannot be nil or empty.");
       return;
    }
 
@@ -341,7 +323,7 @@ DefineTeakState(Expired, (@[]))
       // It's a new session if there's a new launch from a notification
       if (![attribution isEqualToDictionary:currentSession.launchAttribution] &&
           (currentSession.currentState != [TeakSession Allocated] && currentSession.currentState != [TeakSession Created])) {
-         TeakDebugLog(@"New session attribution source, creating new session. %@", currentSession != nil ? currentSession : @"");
+         TeakLog_i(@"session.attribution", attribution);
 
          TeakSession* oldSession = currentSession;
          currentSession = [[TeakSession alloc] initWithSession:oldSession];
@@ -425,8 +407,6 @@ DefineTeakState(Expired, (@[]))
 + (TeakSession*)currentSessionForAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
    @synchronized (currentSessionMutex) {
       if (currentSession == nil || [currentSession hasExpired]) {
-         TeakDebugLog(@"Previous Session expired, creating new session. %@", currentSession != nil ? currentSession : @"");
-
          TeakSession* oldSession = currentSession;
          currentSession = [[TeakSession alloc] initWithAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
 
@@ -527,7 +507,9 @@ KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
       return self.currentState == [TeakSession Expired];
    }
 }
-
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
 KeyValueObserverSupported
+#pragma clang diagnostic pop
 
 @end

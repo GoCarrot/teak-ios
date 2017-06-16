@@ -20,8 +20,6 @@
 
 @import AdSupport;
 
-#define LOG_TAG "Teak:DeviceConfig"
-
 #define kDeviceIdKey @"TeakDeviceId"
 
 @interface TeakDeviceConfiguration ()
@@ -40,15 +38,11 @@
    self = [super init];
    if (self) {
       // Load settings
-      @try {
+      teak_try {
          self.userDefaults = [NSUserDefaults standardUserDefaults];
-      }
-      @catch (NSException* exception) {
-         TeakLog(@"Error calling [NSUserDefaults standardUserDefaults]. %@", exception);
-      }
+      } teak_catch_report
 
       if (self.userDefaults == nil) {
-         TeakLog(@"[NSUserDefaults standardUserDefaults] returned nil. Teak is disabled.");
          return nil;
       }
 
@@ -61,7 +55,7 @@
             [self.userDefaults setObject:self.deviceId forKey:kDeviceIdKey];
             [self.userDefaults synchronize];
          } @catch (NSException *exception) {
-            TeakLog(@"Error occurred while synchronizing userDefaults. Teak is disabled. %@", exception);
+            TeakLog_e(@"", @"Error occurred while synchronizing userDefaults.", @{@"error" : exception.reason});
             return nil;
          }
       }
@@ -70,19 +64,15 @@
       struct utsname systemInfo;
       uname(&systemInfo);
 
-      @try {
+      self.deviceModel = @"unknown";
+      teak_try {
          self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
-      } @catch (NSException* exception) {
-         self.deviceModel = @"unknown";
-         TeakLog(@"Error getting deviceModel. %@", exception);
-      }
+      } teak_catch_report
 
-      @try {
+      self.platformString = @"ios_0.0";
+      teak_try {
          self.platformString = [NSString stringWithFormat:@"ios_%f",[[[UIDevice currentDevice] systemVersion] floatValue]];
-      } @catch (NSException *exception) {
-         self.platformString = @"ios_0.0";
-         TeakLog(@"Error getting systemVersion. %@", exception);
-      }
+      } teak_catch_report
 
       // Get advertising information
       [self getAdvertisingInformation];
@@ -110,8 +100,6 @@
    if (self.pushToken != nil && [self.pushToken isEqualToString:pushToken]) return;
 
    self.pushToken = pushToken;
-
-   TeakDebugLog(@"Registering new push token: %@", self.pushToken);
 }
 
 - (NSDictionary*)to_h {

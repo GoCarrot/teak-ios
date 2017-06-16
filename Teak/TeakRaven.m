@@ -20,8 +20,6 @@
 
 #include <execinfo.h>
 
-#define LOG_TAG "Teak:Sentry"
-
 NSString *const SentryProtocolVersion = @"7";
 NSString *const TeakSentryVersion = @"1.0.0";
 NSString *const TeakSentryClient = @"teak-ios/1.0.0";
@@ -82,7 +80,7 @@ void TeakUncaughtExceptionHandler(NSException* exception) {
    [uncaughtExceptionHandlerRaven unsetAsUncaughtExceptionHandler];
 
    if (AmIBeingDebugged()) {
-      TeakLog(@"Build running in debugger, not reporting exception: %@", exception);
+      NSLog(@"Teak: Build running in debugger, not reporting exception: %@", exception);
    } else {
       [uncaughtExceptionHandlerRaven reportUncaughtException:exception];
       [uncaughtExceptionHandlerRaven pumpRunLoops];
@@ -102,7 +100,7 @@ void TeakSignalHandler(int signal) {
    };
 
    if(AmIBeingDebugged()) {
-      TeakLog(@"Build running in debugger, not reporting signal: %@", [sigToString objectForKey:[NSNumber numberWithInt:signal]]);
+      NSLog(@"Teak: Build running in debugger, not reporting signal: %@", [sigToString objectForKey:[NSNumber numberWithInt:signal]]);
    } else {
       [uncaughtExceptionHandlerRaven reportSignal:[sigToString objectForKey:[NSNumber numberWithInt:signal]]];
       [uncaughtExceptionHandlerRaven pumpRunLoops];
@@ -270,7 +268,7 @@ void TeakSignalHandler(int signal) {
             }]
          }];
       } @catch (NSException* exception) {
-         TeakLog(@"Error creating payload template: %@", exception);
+         NSLog(@"Teak: Error creating payload template: %@", exception);
          return nil;
       }
 
@@ -285,7 +283,7 @@ void TeakSignalHandler(int signal) {
          self.urlSessionConfig.allowsCellularAccess = YES;
       } @catch (NSException* exception) {
          // TODO: Don't return nil, instead cache the things
-         TeakLog(@"Error creating background NSURLSessionConfiguration: %@", exception);
+         NSLog(@"Teak: Error creating background NSURLSessionConfiguration: %@", exception);
          return nil;
       }
    }
@@ -299,14 +297,14 @@ void TeakSignalHandler(int signal) {
       NSMutableArray* pathComponents = [[dsnUrl pathComponents] mutableCopy];
 
       if (![pathComponents count]) {
-         TeakLog(@"Missing path elements.");
+         NSLog(@"Teak: Missing path elements in Sentry DSN.");
          return NO;
       }
       [pathComponents removeObjectAtIndex:0]; // Leading slash
 
       NSString* projectId = [pathComponents lastObject];
       if (!projectId) {
-         TeakLog(@"Unable to find project id in path.");
+         NSLog(@"Teak: Unable to find Sentry project id in path.");
          return NO;
       }
       [pathComponents removeLastObject]; // Project id
@@ -317,12 +315,12 @@ void TeakSignalHandler(int signal) {
       }
 
       if (![dsnUrl user]) {
-         TeakLog(@"Unable to find Sentry key in DSN.");
+         NSLog(@"Teak: Unable to find Sentry key in DSN.");
          return NO;
       }
 
       if (![dsnUrl password]) {
-         TeakLog(@"Unable to find Sentry secret in DSN.");
+         NSLog(@"Teak: Unable to find Sentry secret in DSN.");
          return NO;
       }
 
@@ -332,7 +330,7 @@ void TeakSignalHandler(int signal) {
 
       ret = YES;
    } @catch (NSException* exception) {
-      TeakLog(@"Error assigning DSN: %@", exception);
+      NSLog(@"Teak: Error assigning Sentry DSN: %@", exception);
    }
 
    return ret;
@@ -448,7 +446,7 @@ void TeakSignalHandler(int signal) {
 
          if (additions != nil) [self.payload addEntriesFromDictionary:additions];
       } @catch( NSException* exception) {
-         TeakLog(@"Error creating exception report: %@", exception);
+         NSLog(@"Teak: Error creating exception report: %@", exception);
          return nil;
       }
    }
@@ -493,7 +491,6 @@ void TeakSignalHandler(int signal) {
    }
    else {
       NSDictionary* response = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
-      TeakDebugLog(@"%@", response);
    }
 }
 

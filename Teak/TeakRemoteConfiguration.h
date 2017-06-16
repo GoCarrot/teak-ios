@@ -19,9 +19,10 @@
 @class TeakSession;
 
 @interface TeakRemoteConfiguration : NSObject
-@property (strong, nonatomic, readonly) NSString* hostname;
-@property (strong, nonatomic, readonly) NSString* sdkSentryDsn;
-@property (strong, nonatomic, readonly) NSString* appSentryDsn;
+@property (strong, nonatomic, readonly) NSString* _Nonnull hostname;
+@property (strong, nonatomic, readonly) NSString* _Nullable sdkSentryDsn;
+@property (strong, nonatomic, readonly) NSString* _Nullable appSentryDsn;
 
-- (TeakRemoteConfiguration*)initForSession:(TeakSession*)session;
+- (TeakRemoteConfiguration* _Nullable)initForSession:(TeakSession* _Nonnull)session;
+- (nonnull NSDictionary*)to_h;
 @end
