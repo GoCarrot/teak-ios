@@ -7,3 +7,4 @@ Sample/Sample.xcodeproj/project.xcworkspace/
 Sample/Sample.xcodeproj/xcuserdata/
 *.pem
 infer-out/
+.irb-history
