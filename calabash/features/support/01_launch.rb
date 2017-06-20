@@ -19,6 +19,19 @@ module Calabash::Launcher
 end
 
 Before do |scenario|
+  $log_data = {:out => "", :err => ""}
+  stdin, stdout, stderr, thread = Open3.popen3('idevicesyslog')
+  $logthread = Thread.new do
+    { :out => stdout, :err => stderr }.each do |key, stream|
+      Thread.new do
+        until (raw_line = stream.gets).nil? do
+          $log_data[key] = $log_data[key] + raw_line
+        end
+      end
+    end
+    thread.join
+  end
+
   launcher = Calabash::Launcher.launcher
   options = {
     # Add launch options here.
@@ -39,5 +52,6 @@ After do |scenario|
   if launcher.quit_app_after_scenario?
     calabash_exit
   end
+  $logthread.exit
 end
 

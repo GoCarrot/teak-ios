@@ -88,4 +88,12 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
    NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!");
 }
 
+// This is for our automated testing.
+extern NSTimeInterval TeakSameSessionDeltaSeconds;
+- (NSString*)integrationTestTimeout:(NSString*)timeout {
+   TeakSameSessionDeltaSeconds = [timeout doubleValue];
+   NSLog(@"TeakSameSessionDeltaSeconds = %f", TeakSameSessionDeltaSeconds);
+   return nil;
+}
+
 @end
