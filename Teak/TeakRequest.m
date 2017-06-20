@@ -209,7 +209,7 @@
       @"hostname" : self.hostname == nil ? [NSNull null] : self.hostname,
       @"endpoint" : self.endpoint,
       @"payload" : self.payload,
-      @"session" : [self.session description]
+      @"session" : self.session.sessionId
    };
 }
 

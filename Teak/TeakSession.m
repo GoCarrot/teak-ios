@@ -22,7 +22,7 @@
 #import "TeakDebugConfiguration.h"
 #import "TeakReward.h"
 
-#define kSameSessionDeltaSeconds 120 // TODO: This needs to be a variable so Calabash can modify it
+NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
@@ -39,6 +39,7 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic) NSMutableArray* attributionChain;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
+@property (strong, nonatomic, readwrite) NSString* sessionId;
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
@@ -258,6 +259,12 @@ DefineTeakState(Expired, (@[]))
       self.appConfiguration = appConfiguration;
       self.deviceConfiguration = deviceConfiguration;
       self.attributionChain = [[NSMutableArray alloc] init];
+
+      CFUUIDRef theUUID = CFUUIDCreate(NULL);
+      CFStringRef string = CFUUIDCreateString(NULL, theUUID);
+      CFRelease(theUUID);
+      self.sessionId = [(__bridge NSString *)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
+      CFRelease(string);
 
       RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
       RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -501,7 +508,7 @@ KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
 
 - (BOOL)hasExpired {
    @synchronized (self) {
-      if (self.currentState == [TeakSession Expiring] && [[[NSDate alloc] init] timeIntervalSinceDate:self.endDate] > kSameSessionDeltaSeconds) {
+      if (self.currentState == [TeakSession Expiring] && [[[NSDate alloc] init] timeIntervalSinceDate:self.endDate] > TeakSameSessionDeltaSeconds) {
          [self setState:[TeakSession Expired]];
       }
       return self.currentState == [TeakSession Expired];
