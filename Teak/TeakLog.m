@@ -140,7 +140,16 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
       return;
    }
 
+   const static int maxLogLength = 900; // 1024 but leave space for formatting
    NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-   NSLog(@"Teak: %@", jsonString);
+   int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);
+   if (numLogLines > 1) {
+      for (int i = 0; i < numLogLines; i++) {
+         NSLog(@"TeakMulti[%d-%d]: %@", i + 1, numLogLines,
+               [jsonString substringWithRange:NSMakeRange(i * maxLogLength, MIN([jsonString length] - i * maxLogLength, maxLogLength))]);
+      }
+   } else {
+      NSLog(@"Teak: %@", jsonString);
+   }
 }
 @end
