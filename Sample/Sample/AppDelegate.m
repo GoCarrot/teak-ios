@@ -96,4 +96,16 @@ extern NSTimeInterval TeakSameSessionDeltaSeconds;
    return nil;
 }
 
+- (NSString*)integrationTestSchedulePush:(NSString*)message {
+   TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"calabash_test" withMessage:message secondsFromNow:1];
+   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+      while(notif.completed == NO)
+      {
+         sleep(1);
+      }
+      NSLog(@"Notification scheduled: %@", notif.teakNotifId);
+   });
+   return nil;
+}
+
 @end

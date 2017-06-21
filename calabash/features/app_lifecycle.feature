@@ -1,5 +1,13 @@
 Feature: App Lifecycle
 
+  @dev
+  Scenario: QuickTesting
+    Given the app has launched
+      Then I send a push notification that says "Calabash Test"
+      When I tap on the latest push notification
+      And I wait for the Teak Session state to be "UserIdentified"
+      Then the current Teak session attribution should have "teak_notif_id"
+
   Scenario: Teak Session expiration
     Given the app has launched
       Then I wait for the Teak Session state to be "UserIdentified"

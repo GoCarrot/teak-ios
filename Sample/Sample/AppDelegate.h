@@ -20,4 +20,5 @@
 @property (strong, nonatomic) UIWindow *window;
 
 - (NSString*)integrationTestTimeout:(NSString*)timeout;
+- (NSString*)integrationTestSchedulePush:(NSString*)message;
 @end

@@ -31,3 +31,10 @@ end
 Given(/^the Teak Session timeout is (\d+) seconds$/) do |value|
   backdoor "integrationTestTimeout:", value.to_s
 end
+
+Then(/^the current Teak session attribution should have "([^"]*?)"$/) do |value|
+  json_blob = get_teak_run_history['session']['attribution']
+  fail "Attribution payload for current session is nil" unless json_blob != nil
+  puts json_blob[value] if json_blob[value]
+  fail "#{value} not found in #{json_blob}" unless json_blob[value]
+end
