@@ -487,10 +487,11 @@ void TeakSignalHandler(int signal) {
 
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
    if (error) {
-      // TODO: Handle error
+      [self.urlSession finishTasksAndInvalidate];
    }
    else {
-      NSDictionary* response = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
+      //NSDictionary* response = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
+      [self.urlSession finishTasksAndInvalidate];
    }
 }
 

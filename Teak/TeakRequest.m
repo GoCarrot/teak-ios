@@ -185,6 +185,7 @@
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
    if (error) {
       // TODO: Handle error
+      [self.urlSession finishTasksAndInvalidate];
    }
    else {
       teak_try {
@@ -198,6 +199,7 @@
             if(self.callback) {
                self.callback(task.response, reply);
             }
+            [self.urlSession finishTasksAndInvalidate];
          });
       } teak_catch_report
    }
