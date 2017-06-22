@@ -172,16 +172,18 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
     [NSURL URLWithString:[NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel]]];
 
    // Log locally
-   NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-   const static int maxLogLength = 900; // 1024 but leave space for formatting
-   int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);
-   if (numLogLines > 1) {
-      for (int i = 0; i < numLogLines; i++) {
-         NSLog(@"TeakMulti[%d-%d]: %@", i + 1, numLogLines,
-               [jsonString substringWithRange:NSMakeRange(i * maxLogLength, MIN([jsonString length] - i * maxLogLength, maxLogLength))]);
+   if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
+      NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+      const static int maxLogLength = 900; // 1024 but leave space for formatting
+      int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);
+      if (numLogLines > 1) {
+         for (int i = 0; i < numLogLines; i++) {
+            NSLog(@"TeakMulti[%d-%d]: %@", i + 1, numLogLines,
+                  [jsonString substringWithRange:NSMakeRange(i * maxLogLength, MIN([jsonString length] - i * maxLogLength, maxLogLength))]);
+         }
+      } else {
+         NSLog(@"Teak: %@", jsonString);
       }
-   } else {
-      NSLog(@"Teak: %@", jsonString);
    }
 }
 @end
