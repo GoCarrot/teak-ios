@@ -72,8 +72,21 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic) TeakRemoteConfiguration* remoteConfiguration;
 
+@property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
 @property (strong, nonatomic) NSString* runId;
 @property (nonatomic)         volatile OSAtomic_int64_aligned64_t eventCounter;
+@end
+
+@interface TeakLogSender : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
+@property (strong, nonatomic) NSMutableData* receivedData;
+@property (strong, nonatomic) NSURLSession* urlSession;
+@property (strong, nonatomic) TeakLog* log;
+
+- (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint;
+
+- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler;
+- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data;
+- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error;
 @end
 
 @implementation TeakLog
@@ -88,6 +101,19 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
       CFRelease(string);
 
       self.eventCounter = 0;
+
+      @try {
+         NSString* sessionIdentifier = [NSString stringWithFormat:@"teaklog.%@.background", self.runId];
+         if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)]) {
+            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
+         } else {
+            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfiguration:sessionIdentifier];
+         }
+         self.urlSessionConfig.discretionary = NO;
+         self.urlSessionConfig.allowsCellularAccess = YES;
+      } @catch (NSException* exception) {
+         self.urlSessionConfig = nil;
+      }
    }
    return self;
 }
@@ -140,8 +166,14 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
       return;
    }
 
-   const static int maxLogLength = 900; // 1024 but leave space for formatting
+   // Log remotely
+   TeakLogSender* sender = [[TeakLogSender alloc] init];
+   [sender sendData:jsonData toEndpoint:
+    [NSURL URLWithString:[NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel]]];
+
+   // Log locally
    NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+   const static int maxLogLength = 900; // 1024 but leave space for formatting
    int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);
    if (numLogLines > 1) {
       for (int i = 0; i < numLogLines; i++) {
@@ -152,4 +184,53 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
       NSLog(@"Teak: %@", jsonString);
    }
 }
+@end
+
+
+@implementation TeakLogSender
+
+- (id)init {
+   self = [super init];
+   if(self) {
+      @try {
+         self.receivedData = [[NSMutableData alloc] init];
+         [self.receivedData setLength:0];
+         self.urlSession = [NSURLSession sessionWithConfiguration:self.log.urlSessionConfig delegate:self delegateQueue:nil];
+
+      } @catch(NSException* exception) {
+         return nil;
+      }
+   }
+   return self;
+}
+
+
+- (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
+   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];
+
+   [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+   [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+   //[request setValue:@"gzip" forHTTPHeaderField:@"Content-Encoding"]; // TODO: gzip?
+   [request setHTTPMethod:@"POST"];
+   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];
+   [request setHTTPBody:data];
+
+   NSURLSessionDataTask *dataTask = [self.urlSession dataTaskWithRequest:request];
+   [dataTask resume];
+}
+
+- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
+   if (completionHandler != nil) {
+      completionHandler(NSURLSessionResponseAllow);
+   }
+}
+
+- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
+   [self.receivedData appendData:data];
+}
+
+- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
+   [self.urlSession finishTasksAndInvalidate];
+}
+
 @end
