@@ -68,6 +68,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
 @interface TeakLog ()
 @property (strong, nonatomic) NSDictionary* sdkVersion;
+@property (strong, nonatomic) NSString* appId;
 @property (strong, nonatomic) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic) TeakRemoteConfiguration* remoteConfiguration;
@@ -91,7 +92,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
 @implementation TeakLog
 
-- (id)init {
+- (id)initWithAppId:(nonnull NSString*)appId {
    self = [super init];
    if (self) {
       CFUUIDRef theUUID = CFUUIDCreate(NULL);
@@ -101,6 +102,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
       CFRelease(string);
 
       self.eventCounter = 0;
+      self.appId = appId;
 
       @try {
          NSString* sessionIdentifier = [NSString stringWithFormat:@"teaklog.%@.background", self.runId];
@@ -144,6 +146,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    [payload setValue:[NSNumber numberWithLongLong:OSAtomicIncrement64(&_eventCounter)] forKey:@"event_id"];
    [payload setValue:[NSNumber numberWithLong:[[NSDate date] timeIntervalSince1970]] forKey:@"timestamp"];
    [payload setValue:self.sdkVersion forKey:@"sdk_version"];
+   [payload setValue:self.appId forKey:@"app_id"];
 
    if (self.deviceConfiguration != nil) {
       [payload setValue:self.deviceConfiguration.deviceId forKey:@"device_id"];
@@ -151,7 +154,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
    if (self.appConfiguration != nil) {
       [payload setValue:self.appConfiguration.bundleId forKey:@"bundle_id"];
-      [payload setValue:self.appConfiguration.appId forKey:@"app_id"];
       [payload setValue:self.appConfiguration.appVersion forKey:@"client_app_version"];
    }
 

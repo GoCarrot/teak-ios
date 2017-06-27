@@ -118,12 +118,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret {
    self = [super init];
    if(self) {
-      // Output version first thing
-      self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
-
-      // TODO: Adobe AIR Version
-      self.log = [[TeakLog alloc] init];
-      [self.log useSdk:@{@"ios" : self.sdkVersion}];
 
       if ([appId length] == 0) {
          [NSException raise:NSInvalidArgumentException format:@"Teak appId cannot be null or empty."];
@@ -134,6 +128,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
          [NSException raise:NSInvalidArgumentException format:@"Teak apiKey cannot be null or empty."];
          return nil;
       }
+
+      // Output version first thing
+      self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
+
+      // TODO: Adobe AIR Version
+      self.log = [[TeakLog alloc] initWithAppId:appId];
+      [self.log useSdk:@{@"ios" : self.sdkVersion}];
 
       // Debug Configuration
       self.debugConfiguration = [[TeakDebugConfiguration alloc] init];

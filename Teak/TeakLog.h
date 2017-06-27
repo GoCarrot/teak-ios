@@ -25,6 +25,8 @@
 - (void)useAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
 - (void)useRemoteConfiguration:(nonnull TeakRemoteConfiguration*)remoteConfiguration;
 - (void)logEvent:(nonnull NSString*)eventType level:(nonnull NSString*)logLevel eventData:(nullable NSDictionary*)eventData;
+
+- (nullable id)initWithAppId:(nonnull NSString*)appId;
 @end
 
 extern __attribute__((overloadable)) void TeakLog_e(NSString* _Nonnull eventType);
