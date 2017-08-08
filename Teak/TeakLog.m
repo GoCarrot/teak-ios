@@ -148,6 +148,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    [payload setValue:self.sdkVersion forKey:@"sdk_version"];
    [payload setValue:self.appId forKey:@"app_id"];
 
+   // For developer site
+   [payload setValue:[[UIDevice currentDevice] name] forKey:@"device_name"];
+
    if (self.deviceConfiguration != nil) {
       [payload setValue:self.deviceConfiguration.deviceId forKey:@"device_id"];
    }
