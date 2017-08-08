@@ -21,8 +21,6 @@
 #import "TeakLink.h"
 #import "Teak+Internal.h"
 
-#define LOG_TAG "Teak:RemoteConfig"
-
 @interface TeakRemoteConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* hostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
@@ -54,7 +52,6 @@
                               callback: ^(NSURLResponse* response, NSDictionary* reply) {
                                  // TODO: Check response
                                  if (NO) {
-                                    TeakLog(@"Unable to perform services configuration for Teak. Teak is in offline mode. %@", response);
                                  } else {
                                     self.hostname = @"gocarrot.com";
 
@@ -73,6 +70,14 @@
    }
 
    [[Teak sharedInstance].operationQueue addOperation:configOp];
+}
+
+- (NSDictionary*)to_h {
+   return @{
+      @"hostname" : self.hostname,
+      @"sdkSentryDsn" : self.sdkSentryDsn,
+      @"appSentryDsn" : self.appSentryDsn
+   };
 }
 
 @end

@@ -43,6 +43,8 @@ extern NSString* _Nonnull const TeakRavenLevelFatal;
 
 - (void)reportWithHelper:(nonnull TeakRavenLocationHelper*)helper;
 
++ (nonnull NSArray*)stacktraceSkippingFrames:(int)skipFrames;
++ (nonnull NSArray*)reverseStacktraceSkippingFrames:(int)skipFrames;
 @end
 
 #define teak_try           [TeakRavenLocationHelper pushHelperForFile:__FILE__ line:__LINE__ function:__PRETTY_FUNCTION__]; @try

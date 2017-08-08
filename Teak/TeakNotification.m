@@ -15,8 +15,7 @@
 #import "TeakNotification.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
-
-#define LOG_TAG "Teak:Notification"
+#import "Teak+Internal.h"
 
 @interface TeakNotification ()
 
@@ -39,12 +38,10 @@
       self.completed = YES;
 
       if ([dictionary objectForKey:@"teakDeepLink"]) {
-         @try {
+         self.teakDeepLink = nil;
+         teak_try {
             self.teakDeepLink = [NSURL URLWithString:[dictionary objectForKey:@"teakDeepLink"]];
-         } @catch (NSException* exception) {
-            self.teakDeepLink = nil;
-            TeakLog(@"Error parsing deep link '%@'. %@", [dictionary objectForKey:@"teakDeepLink"], exception);
-         }
+         } teak_catch_report
       } else {
          self.teakDeepLink = nil;
       }
@@ -65,12 +62,12 @@
 
 + (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(uint64_t)delay {
    if (creativeId == nil || creativeId.length == 0) {
-      TeakLog(@"creativeId can not be nil or empty.");
+      TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
       return nil;
    }
 
    if (message == nil || message.length == 0) {
-      TeakLog(@"message can not be nil or empty.");
+      TeakLog_e(@"notification.schedule.error", @"defaultMessage cannot be null or empty");
       return nil;
    }
 
@@ -93,9 +90,9 @@
                                  if ([status isEqualToString:@"ok"]) {
                                     NSDictionary* event = [reply objectForKey:@"event"];
                                     ret.teakNotifId = [[event objectForKey:@"id"] stringValue];
-                                    TeakDevHelpLog(@"Scheduled notification with id %@", ret.teakNotifId);
+                                    TeakLog_i(@"notification.scheduled", @{@"notification" : ret.teakNotifId});
                                  } else {
-                                    TeakDevHelpLog(@"Error scheduling notification %@", reply);
+                                    TeakLog_e(@"notification.schedule.error", @"Error scheduling notification.", @{@"response" : reply});
                                     ret.teakNotifId = nil;
                                  }
                                  ret.completed = YES;
@@ -108,7 +105,7 @@
 
 + (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId {
    if (scheduleId == nil || scheduleId.length == 0) {
-      TeakLog(@"scheduleId can not be nil or empty.");
+      TeakLog_e(@"notification.cancel.error", @"scheduleId cannot be null or empty");
       return nil;
    }
 
@@ -122,8 +119,7 @@
                               withPayload:@{@"id" : scheduleId}
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
                                  // TODO: Check response
-                                 if (NO) {
-                                    TeakLog(@"Error canceling notification %@", response);
+                                 if (/* DISABLES CODE */ (NO)) {
                                  } else {
                                     NSString* status = [reply objectForKey:@"status"];
                                     if ([status isEqualToString:@"ok"]) {

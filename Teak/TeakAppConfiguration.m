@@ -13,8 +13,7 @@
  * limitations under the License.
  */
 #import "TeakAppConfiguration.h"
-
-#define LOG_TAG "Teak:AppConfiguration"
+#import "Teak+Internal.h"
 
 extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
@@ -42,23 +41,18 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       @try {
          self.bundleId = [[NSBundle mainBundle] bundleIdentifier];
       } @catch (NSException* exception) {
-         TeakLog(@"Failed to get Bundle Id. Teak is disabled. %@", exception);
+         [NSException raise:NSObjectNotAvailableException format:@"Failed to get Bundle Id."];
          return nil;
       }
 
-      @try {
+      teak_try {
          self.isProduction = isProductionProvisioningProfile([[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]);
-      } @catch (NSException* exception) {
-         self.isProduction = YES;
-         TeakLog("Error calling isProductionProvisioningProfile, defaulting to YES. %@", exception);
-      }
+      } teak_catch_report
 
-      @try {
+      self.appVersion = @"unknown";
+      teak_try {
          self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
-      } @catch (NSException *exception) {
-         TeakLog(@"Error getting CFBundleShortVersionString. %@", exception);
-         self.appVersion = @"unknown";
-      }
+      } teak_catch_report
    }
    return self;
 }

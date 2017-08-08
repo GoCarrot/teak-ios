@@ -14,15 +14,13 @@
  */
 
 #import "TeakRequest.h"
-#import <Teak/Teak.h>
+#import "Teak+Internal.h"
 
 #import "TeakSession.h"
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 
 #include <CommonCrypto/CommonHMAC.h>
-
-#define LOG_TAG "Teak:Request"
 
 @interface TeakRequest ()
 @property (strong, nonatomic, readwrite) NSString* endpoint;
@@ -31,6 +29,8 @@
 @property (strong, nonatomic) NSString* hostname;
 @property (strong, nonatomic) NSURLSession* urlSession;
 @property (strong, nonatomic) NSMutableData* receivedData;
+@property (strong, nonatomic) NSString* requestId;
+@property (strong, nonatomic) TeakSession* session;
 @end
 
 @implementation TeakRequest
@@ -42,9 +42,15 @@
 - (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
    self = [super init];
    if (self) {
+      CFUUIDRef theUUID = CFUUIDCreate(NULL);
+      CFStringRef string = CFUUIDCreateString(NULL, theUUID);
+      CFRelease(theUUID);
+      self.requestId = [(__bridge NSString *)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
+      CFRelease(string);
       self.endpoint = endpoint;
       self.callback = callback;
       self.hostname = hostname;
+      self.session = session;
       self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
                                                       delegate:self
                                                  delegateQueue:nil];
@@ -69,7 +75,7 @@
          }
          self.payload = [self signedPayload:payloadWithCommon withSession:session];
       } @catch (NSException* exception) {
-         TeakLog(@"Error creating request payload. %@", exception);
+         TeakLog_e(@"request.error.payload", @{@"error" : exception.reason});
          return nil;
       }
    }
@@ -77,7 +83,7 @@
 }
 
 - (nonnull NSDictionary*)signedPayload:(nonnull NSDictionary*)payloadToSign withSession:(nonnull TeakSession*)session {
-   @try {
+   teak_try {
       NSString* path = self.endpoint;
       if(path == nil || path.length < 1) path = @"/";
 
@@ -93,7 +99,7 @@
             NSError* error = nil;
             NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
             if (error) {
-               TeakLog(@"Error converting %@ to JSON: %@", value, error);
+               TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
                valueString = [value description];
             } else {
                valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
@@ -122,7 +128,7 @@
             NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
 
             if (error) {
-               TeakLog(@"Error converting %@ to JSON: %@", value, error);
+               TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
                valueString = [value description];
             } else {
                valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
@@ -133,14 +139,13 @@
       [retParams setObject:sigString forKey:@"sig"];
 
       return retParams;
-   } @catch (NSException* exception) {
-      TeakLog(@"Error while signing parameters. %@", exception);
-      return payloadToSign;
-   }
+   } teak_catch_report
+
+   return payloadToSign;
 }
 
 - (void)send {
-   @try {
+   teak_try {
       NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
 
       NSString* boundry = @"-===-httpB0unDarY-==-";
@@ -162,10 +167,8 @@
       NSURLSessionDataTask *dataTask = [self.urlSession dataTaskWithRequest:request];
       [dataTask resume];
 
-      TeakDebugLog(@"Submitting request to '%@': %@", self.endpoint, self.payload);
-   } @catch(NSException* exception) {
-      TeakLog(@"Error sending request. %@", exception);
-   }
+      TeakLog_i(@"request.send", [self to_h]);
+   } teak_catch_report
 }
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
@@ -174,32 +177,42 @@
 }
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
-   @try {
+   teak_try {
       [self.receivedData appendData:data];
-   } @catch(NSException* exception) {
-      TeakLog(@"Error appending data from URLSession. %@", exception);
-   }
+   } teak_catch_report
 }
 
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
    if (error) {
       // TODO: Handle error
+      [self.urlSession finishTasksAndInvalidate];
    }
    else {
-      @try {
+      teak_try {
          NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
 
-         TeakDebugLog(@"Reply from '%@': %@", self.endpoint, reply);
+         NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
+         [h setValue:reply forKey:@"payload"];
+         TeakLog_i(@"request.reply", h);
 
          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             if(self.callback) {
                self.callback(task.response, reply);
             }
+            [self.urlSession finishTasksAndInvalidate];
          });
-      } @catch(NSException* exception) {
-         TeakLog(@"Error deserializing JSON reply. %@", exception);
-      }
+      } teak_catch_report
    }
+}
+
+- (NSDictionary*)to_h {
+   return @{
+      @"request_id" : self.requestId,
+      @"hostname" : self.hostname == nil ? [NSNull null] : self.hostname,
+      @"endpoint" : self.endpoint,
+      @"payload" : self.payload,
+      @"session" : self.session.sessionId
+   };
 }
 
 - (NSString*)description {

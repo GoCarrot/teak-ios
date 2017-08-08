@@ -16,8 +16,6 @@
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 
-#define LOG_TAG "Teak:Link"
-
 @interface TeakLink()
 
 @property (strong, nonatomic) NSArray* argumentIndicies;
@@ -126,7 +124,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
       NSError* error = nil;
       NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:key options:0 error:&error];
       if (error != nil) {
-         TeakDebugLog(@"Error parsing regular expression: %@", [error localizedDescription]);
+         TeakLog_e(@"deep_link.parse_error", @{@"error" : [error localizedDescription]});
       } else {
          teak_try {
             NSRange range = NSMakeRange(0, [deepLink.path length]);

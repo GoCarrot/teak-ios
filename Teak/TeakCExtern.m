@@ -17,8 +17,6 @@
 #import <Teak/TeakNotification.h>
 #import <Teak/TeakReward.h>
 
-#define LOG_TAG "Teak:CExtern"
-
 void TeakSetDebugOutputEnabled(int enabled)
 {
    [Teak sharedInstance].enableDebugOutput = (enabled > 0);
@@ -95,7 +93,7 @@ const char* TeakRewardGetJson(TeakReward* reward)
                                                         error:&error];
 
    if (error != nil) {
-      TeakLog(@"Error converting to JSON: %@", error);
+      TeakLog_e(@"reward.error.json", @{@"error" : [error localizedDescription]});
    } else {
       NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
       return [jsonString UTF8String];

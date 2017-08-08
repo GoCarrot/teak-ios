@@ -88,4 +88,24 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
    NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!");
 }
 
+// This is for our automated testing.
+extern NSTimeInterval TeakSameSessionDeltaSeconds;
+- (NSString*)integrationTestTimeout:(NSString*)timeout {
+   TeakSameSessionDeltaSeconds = [timeout doubleValue];
+   NSLog(@"TeakSameSessionDeltaSeconds = %f", TeakSameSessionDeltaSeconds);
+   return nil;
+}
+
+- (NSString*)integrationTestSchedulePush:(NSString*)message {
+   TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"calabash_test" withMessage:message secondsFromNow:1];
+   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+      while(notif.completed == NO)
+      {
+         sleep(1);
+      }
+      NSLog(@"Notification scheduled: %@", notif.teakNotifId);
+   });
+   return nil;
+}
+
 @end
