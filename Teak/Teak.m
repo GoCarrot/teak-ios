@@ -41,6 +41,9 @@ NSString* const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChang
 NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
 NSString* const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
+// AIR/Unity/etc SDK Version Extern
+NSDictionary* TeakWrapperSDK = nil;
+
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
@@ -132,9 +135,12 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       // Output version first thing
       self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
 
-      // TODO: Adobe AIR Version
       self.log = [[TeakLog alloc] initWithAppId:appId];
-      [self.log useSdk:@{@"ios" : self.sdkVersion}];
+      NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
+      if (TeakWrapperSDK != nil) {
+         [sdkDict addEntriesFromDictionary:TeakWrapperSDK];
+      }
+      [self.log useSdk:sdkDict];
 
       // Debug Configuration
       self.debugConfiguration = [[TeakDebugConfiguration alloc] init];
