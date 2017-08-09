@@ -205,17 +205,16 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    self = [super init];
    if(self) {
       @try {
+         self.log = [Teak sharedInstance].log;
          self.receivedData = [[NSMutableData alloc] init];
          [self.receivedData setLength:0];
          self.urlSession = [NSURLSession sessionWithConfiguration:self.log.urlSessionConfig delegate:self delegateQueue:nil];
-
       } @catch(NSException* exception) {
          return nil;
       }
    }
    return self;
 }
-
 
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];
