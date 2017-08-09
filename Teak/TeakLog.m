@@ -207,7 +207,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];
 
-   [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
    [request setValue:@"UTF-8" forHTTPHeaderField:@"Accept-Charset"];
 
