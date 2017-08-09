@@ -209,6 +209,8 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+   [request setValue:@"UTF-8" forHTTPHeaderField:@"Accept-Charset"];
+
    //[request setValue:@"gzip" forHTTPHeaderField:@"Content-Encoding"]; // TODO: gzip?
    [request setHTTPMethod:@"POST"];
    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];
