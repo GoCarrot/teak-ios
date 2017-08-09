@@ -31,6 +31,7 @@
 @property (strong, nonatomic) NSMutableData* receivedData;
 @property (strong, nonatomic) NSString* requestId;
 @property (strong, nonatomic) TeakSession* session;
+@property (strong, nonatomic) NSDate* sendDate;
 @end
 
 @implementation TeakRequest
@@ -165,6 +166,7 @@
       [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
 
       NSURLSessionDataTask *dataTask = [self.urlSession dataTaskWithRequest:request];
+      self.sendDate = [NSDate date];
       [dataTask resume];
 
       TeakLog_i(@"request.send", [self to_h]);
@@ -192,6 +194,8 @@
          NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
 
          NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
+
+         [h setValue:[NSNumber numberWithDouble:[self.sendDate timeIntervalSinceNow] * -1000.0] forKey:@"response_time"];
          [h setValue:reply forKey:@"payload"];
          TeakLog_i(@"request.reply", h);
 
