@@ -73,7 +73,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic) TeakRemoteConfiguration* remoteConfiguration;
 
-@property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
 @property (strong, nonatomic) NSString* runId;
 @property (nonatomic)         volatile OSAtomic_int64_aligned64_t eventCounter;
 @end
@@ -103,19 +102,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
       self.eventCounter = 0;
       self.appId = appId;
-
-      @try {
-         NSString* sessionIdentifier = [NSString stringWithFormat:@"teaklog.%@.background", self.runId];
-         if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)]) {
-            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
-         } else {
-            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfiguration:sessionIdentifier];
-         }
-         self.urlSessionConfig.discretionary = NO;
-         self.urlSessionConfig.allowsCellularAccess = YES;
-      } @catch (NSException* exception) {
-         self.urlSessionConfig = nil;
-      }
    }
    return self;
 }
@@ -208,7 +194,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
          self.log = [Teak sharedInstance].log;
          self.receivedData = [[NSMutableData alloc] init];
          [self.receivedData setLength:0];
-         self.urlSession = [NSURLSession sessionWithConfiguration:self.log.urlSessionConfig delegate:self delegateQueue:nil];
+         self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
+                                                         delegate:self
+                                                    delegateQueue:nil];
       } @catch(NSException* exception) {
          return nil;
       }
