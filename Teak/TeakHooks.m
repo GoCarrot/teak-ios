@@ -39,6 +39,8 @@
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo;
 
 - (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler;
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler;
 @end
 
 static BOOL (*sHostAppDidFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
@@ -50,6 +52,7 @@ static void (*sHostAppPushRegFailIMP)(id, SEL, UIApplication*, NSError*) = NULL;
 static void (*sHostWREIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostDRRNIMP)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 static BOOL (*sHostContinueUserActivityIMP)(id, SEL, UIApplication*, NSUserActivity*, void (^)(NSArray* _Nullable)) = NULL;
+static void (*sHostDRRNFCHIMP)(id, SEL, UIApplication*, NSDictionary*, void (^)(UIBackgroundFetchResult result)) = NULL;
 
 extern Teak* _teakSharedInstance;
 
@@ -137,6 +140,14 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
       Method ctAppContinueUserActivity = class_getInstanceMethod([TeakAppDelegateHooks class], appContinueUserActivityMethod.name);
       sHostContinueUserActivityIMP = (BOOL (*)(id, SEL, UIApplication*, NSUserActivity*, void (^)(NSArray* _Nullable)))class_replaceMethod(appDelegateClass, appContinueUserActivityMethod.name, method_getImplementation(ctAppContinueUserActivity), appContinueUserActivityMethod.types);
    }
+
+   // application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler
+   {
+      struct objc_method_description appDRRNFCHMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:), NO, YES);
+
+      Method ctAppDRRNFCH = class_getInstanceMethod([TeakAppDelegateHooks class], appDRRNFCHMethod.name);
+      sHostDRRNFCHIMP = (void (*)(id, SEL, UIApplication*, NSDictionary*, void (^)(UIBackgroundFetchResult result)))class_replaceMethod(appDelegateClass, appDRRNFCHMethod.name, method_getImplementation(ctAppDRRNFCH), appDRRNFCHMethod.types);
+   }
 }
 
 @implementation TeakAppDelegateHooks
@@ -196,6 +207,19 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
       sHostWREIMP(self, @selector(applicationWillResignActive:), application);
    }
    [[Teak sharedInstance] applicationWillResignActive:application];
+}
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler
+{
+   [[Teak sharedInstance] application:application didReceiveRemoteNotification:userInfo];
+   if(sHostDRRNIMP)
+   {
+      sHostDRRNFCHIMP(self, @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:), application, userInfo,handler);
+   }
+   else
+   {
+      handler(UIBackgroundFetchResultNoData);
+   }
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo
