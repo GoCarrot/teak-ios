@@ -158,17 +158,19 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    }
 
    // Log remotely
-   NSString* urlString = nil;
-   if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
-   } else {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/sdk.log.%@", logLevel];
+   if ([Teak sharedInstance].enableDebugOutput) {
+      NSString* urlString = nil;
+      if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
+         urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
+      } else {
+         urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/sdk.log.%@", logLevel];
+      }
+      TeakLogSender* sender = [[TeakLogSender alloc] init];
+      [sender sendData:jsonData toEndpoint:[NSURL URLWithString:urlString]];
    }
-   TeakLogSender* sender = [[TeakLogSender alloc] init];
-   [sender sendData:jsonData toEndpoint:[NSURL URLWithString:urlString]];
 
    // Log locally
-   if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
+   if ([Teak sharedInstance].enableDebugOutput) {
       NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
       const static int maxLogLength = 900; // 1024 but leave space for formatting
       int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);
