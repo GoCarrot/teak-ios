@@ -73,7 +73,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic) TeakRemoteConfiguration* remoteConfiguration;
 
-@property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
 @property (strong, nonatomic) NSString* runId;
 @property (nonatomic)         volatile OSAtomic_int64_aligned64_t eventCounter;
 @end
@@ -103,19 +102,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
       self.eventCounter = 0;
       self.appId = appId;
-
-      @try {
-         NSString* sessionIdentifier = [NSString stringWithFormat:@"teaklog.%@.background", self.runId];
-         if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)]) {
-            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
-         } else {
-            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfiguration:sessionIdentifier];
-         }
-         self.urlSessionConfig.discretionary = NO;
-         self.urlSessionConfig.allowsCellularAccess = YES;
-      } @catch (NSException* exception) {
-         self.urlSessionConfig = nil;
-      }
    }
    return self;
 }
@@ -172,17 +158,19 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    }
 
    // Log remotely
-   NSString* urlString = nil;
-   if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
-   } else {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/sdk.log.%@", logLevel];
+   if ([Teak sharedInstance].enableDebugOutput) {
+      NSString* urlString = nil;
+      if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
+         urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
+      } else {
+         urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/sdk.log.%@", logLevel];
+      }
+      TeakLogSender* sender = [[TeakLogSender alloc] init];
+      [sender sendData:jsonData toEndpoint:[NSURL URLWithString:urlString]];
    }
-   TeakLogSender* sender = [[TeakLogSender alloc] init];
-   [sender sendData:jsonData toEndpoint:[NSURL URLWithString:urlString]];
 
    // Log locally
-   if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
+   if ([Teak sharedInstance].enableDebugOutput) {
       NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
       const static int maxLogLength = 900; // 1024 but leave space for formatting
       int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);
@@ -205,10 +193,12 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    self = [super init];
    if(self) {
       @try {
+         self.log = [Teak sharedInstance].log;
          self.receivedData = [[NSMutableData alloc] init];
          [self.receivedData setLength:0];
-         self.urlSession = [NSURLSession sessionWithConfiguration:self.log.urlSessionConfig delegate:self delegateQueue:nil];
-
+         self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
+                                                         delegate:self
+                                                    delegateQueue:nil];
       } @catch(NSException* exception) {
          return nil;
       }
@@ -216,12 +206,12 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    return self;
 }
 
-
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];
 
-   [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+   [request setValue:@"UTF-8" forHTTPHeaderField:@"Accept-Charset"];
+
    //[request setValue:@"gzip" forHTTPHeaderField:@"Content-Encoding"]; // TODO: gzip?
    [request setHTTPMethod:@"POST"];
    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];

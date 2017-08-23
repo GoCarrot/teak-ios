@@ -42,7 +42,6 @@ extern bool AmIBeingDebugged(void);
 @property (strong, nonatomic) NSString* sentryKey;
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
-@property (strong, nonatomic) NSURLSessionConfiguration* urlSessionConfig;
 
 @property (strong, nonatomic) NSArray* runLoopModes;
 @property (nonatomic) NSUncaughtExceptionHandler* hException;
@@ -271,21 +270,6 @@ void TeakSignalHandler(int signal) {
          NSLog(@"Teak: Error creating payload template: %@", exception);
          return nil;
       }
-
-      @try {
-         NSString* sessionIdentifier = [NSString stringWithFormat:@"raven.%@.background", self.appId];
-         if([NSURLSessionConfiguration respondsToSelector:@selector(backgroundSessionConfigurationWithIdentifier:)]) {
-            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:sessionIdentifier];
-         } else {
-            self.urlSessionConfig = [NSURLSessionConfiguration backgroundSessionConfiguration:sessionIdentifier];
-         }
-         self.urlSessionConfig.discretionary = NO;
-         self.urlSessionConfig.allowsCellularAccess = YES;
-      } @catch (NSException* exception) {
-         // TODO: Don't return nil, instead cache the things
-         NSLog(@"Teak: Error creating background NSURLSessionConfiguration: %@", exception);
-         return nil;
-      }
    }
    return self;
 }
@@ -426,7 +410,9 @@ void TeakSignalHandler(int signal) {
          self.raven = raven;
          self.receivedData = [[NSMutableData alloc] init];
          [self.receivedData setLength:0];
-         self.urlSession = [NSURLSession sessionWithConfiguration:self.raven.urlSessionConfig delegate:self delegateQueue:nil];
+         self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
+                                                         delegate:self
+                                                    delegateQueue:nil];
 
          self.payload = [NSMutableDictionary dictionaryWithDictionary:self.raven.payloadTemplate];
 
