@@ -212,9 +212,9 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret)
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler
 {
    [[Teak sharedInstance] application:application didReceiveRemoteNotification:userInfo];
-   if(sHostDRRNIMP)
+   if(sHostDRRNFCHIMP)
    {
-      sHostDRRNFCHIMP(self, @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:), application, userInfo,handler);
+      sHostDRRNFCHIMP(self, @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:), application, userInfo, handler);
    }
    else
    {
