@@ -44,6 +44,8 @@ NSString* const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 // AIR/Unity/etc SDK Version Extern
 NSDictionary* TeakWrapperSDK = nil;
 
+NSDictionary* TeakVersionDict = nil;
+
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
@@ -140,7 +142,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       if (TeakWrapperSDK != nil) {
          [sdkDict addEntriesFromDictionary:TeakWrapperSDK];
       }
-      [self.log useSdk:sdkDict];
+      TeakVersionDict = sdkDict;
+      [self.log useSdk:TeakVersionDict];
 
       // Debug Configuration
       self.debugConfiguration = [[TeakDebugConfiguration alloc] init];
