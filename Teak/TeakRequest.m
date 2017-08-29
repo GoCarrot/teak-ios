@@ -192,6 +192,9 @@
    else {
       teak_try {
          NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
+         if (error) {
+            reply = @{};
+         }
 
          NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
 
