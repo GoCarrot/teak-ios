@@ -77,16 +77,10 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @property (nonatomic)         volatile OSAtomic_int64_aligned64_t eventCounter;
 @end
 
-@interface TeakLogSender : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
-@property (strong, nonatomic) NSMutableData* receivedData;
-@property (strong, nonatomic) NSURLSession* urlSession;
+@interface TeakLogSender : NSObject
 @property (strong, nonatomic) TeakLog* log;
 
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint;
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler;
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data;
-- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error;
 @end
 
 @implementation TeakLog
@@ -194,11 +188,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    if(self) {
       @try {
          self.log = [Teak sharedInstance].log;
-         self.receivedData = [[NSMutableData alloc] init];
-         [self.receivedData setLength:0];
-         self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
-                                                         delegate:self
-                                                    delegateQueue:nil];
+
       } @catch(NSException* exception) {
          return nil;
       }
@@ -217,22 +207,8 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];
    [request setHTTPBody:data];
 
-   NSURLSessionDataTask *dataTask = [self.urlSession dataTaskWithRequest:request];
+   NSURLSessionDataTask *dataTask = [[Teak sharedURLSession] dataTaskWithRequest:request];
    [dataTask resume];
-}
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
-   if (completionHandler != nil) {
-      completionHandler(NSURLSessionResponseAllow);
-   }
-}
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
-   [self.receivedData appendData:data];
-}
-
-- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
-   [self.urlSession finishTasksAndInvalidate];
 }
 
 @end

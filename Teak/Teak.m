@@ -72,6 +72,20 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    return _teakSharedInstance;
 }
 
++ (NSURLSession*)sharedURLSession {
+   static NSURLSession* session = nil;
+   static dispatch_once_t onceToken;
+   dispatch_once(&onceToken, ^{
+      NSURLSessionConfiguration* sessionConfiguration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+      sessionConfiguration.URLCache = nil;
+      sessionConfiguration.URLCredentialStorage = nil;
+      sessionConfiguration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+      sessionConfiguration.HTTPAdditionalHeaders = @{ @"X-Teak-DeviceType" : @"API" };
+      session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
+   });
+   return session;
+}
+
 + (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andApiKey:(NSString*)apiKey {
    Teak_Plant(appDelegateClass, appId, apiKey);
 }
@@ -450,10 +464,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       NSURL* fetchUrl = components.URL;
 
       // Fetch the data for the short link
-      NSURLSessionConfiguration* sessionConfiguration = [NSURLSessionConfiguration defaultSessionConfiguration];
-      sessionConfiguration.HTTPAdditionalHeaders = @{ @"X-Teak-DeviceType" : @"API" };
-      NSURLSession* session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
-      NSURLSessionDataTask* task = [session dataTaskWithURL:fetchUrl
+      NSURLSessionDataTask* task = [[Teak sharedURLSession] dataTaskWithURL:fetchUrl
              completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
                 NSURL* attributionUrl = userActivity.webpageURL;
 

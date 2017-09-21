@@ -43,6 +43,8 @@
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;
 
++ (NSURLSession* _Nonnull)sharedURLSession;
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 // App launch

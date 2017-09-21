@@ -57,9 +57,7 @@ extern bool AmIBeingDebugged(void);
 - (void)pumpRunLoops;
 @end
 
-@interface TeakRavenReport : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
-@property (strong, nonatomic) NSMutableData* receivedData;
-@property (strong, nonatomic) NSURLSession* urlSession;
+@interface TeakRavenReport : NSObject
 @property (strong, nonatomic) NSDate* timestamp;
 @property (strong, nonatomic) TeakRaven* raven;
 @property (strong, nonatomic) NSMutableDictionary* payload;
@@ -68,10 +66,6 @@ extern bool AmIBeingDebugged(void);
 - (id)initForRaven:(nonnull TeakRaven*)raven level:(nonnull NSString*)level message:(nonnull NSString*)message additions:(NSDictionary*)additions;
 
 - (void)send;
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler;
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data;
-- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error;
 @end
 
 TeakRaven* uncaughtExceptionHandlerRaven;
@@ -408,12 +402,6 @@ void TeakSignalHandler(int signal) {
       @try {
          self.timestamp = [[NSDate alloc] init];
          self.raven = raven;
-         self.receivedData = [[NSMutableData alloc] init];
-         [self.receivedData setLength:0];
-         self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
-                                                         delegate:self
-                                                    delegateQueue:nil];
-
          self.payload = [NSMutableDictionary dictionaryWithDictionary:self.raven.payloadTemplate];
 
          CFUUIDRef theUUID = CFUUIDCreate(NULL);
@@ -457,28 +445,8 @@ void TeakSignalHandler(int signal) {
    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[payloadData length]] forHTTPHeaderField:@"Content-Length"];
    [request setHTTPBody:payloadData];
 
-   NSURLSessionDataTask *dataTask = [self.urlSession dataTaskWithRequest:request];
+   NSURLSessionDataTask *dataTask = [[Teak sharedURLSession] dataTaskWithRequest:request];
    [dataTask resume];
-}
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
-   if (completionHandler != nil) {
-      completionHandler(NSURLSessionResponseAllow);
-   }
-}
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
-   [self.receivedData appendData:data];
-}
-
-- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
-   if (error) {
-      [self.urlSession finishTasksAndInvalidate];
-   }
-   else {
-      //NSDictionary* response = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
-      [self.urlSession finishTasksAndInvalidate];
-   }
 }
 
 + (NSDateFormatter*)dateFormatter {
