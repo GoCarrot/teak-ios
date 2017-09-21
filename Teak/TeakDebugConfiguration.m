@@ -35,7 +35,7 @@
       } teak_catch_report
 
       if (self.userDefaults == nil) {
-         TeakLog_e(@"debug_configuration", @"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
+         NSLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
       } else {
          self.forceDebug = [self.userDefaults boolForKey:kForceDebugPreferencesKey];
       }
