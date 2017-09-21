@@ -384,17 +384,19 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
             if (notif.teakRewardId != nil) {
                TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
                if (reward != nil) {
-                  __block TeakReward* weakReward = reward;
+                  __weak TeakReward* weakReward = reward;
                   reward.onComplete = ^() {
-                     [teakUserInfo setValue:weakReward.json == nil ? [NSNull null] : weakReward.json forKey:@"teakReward"];
+                     __strong TeakReward* blockReward = weakReward;
+
+                     [teakUserInfo setValue:blockReward.json == nil ? [NSNull null] : blockReward.json forKey:@"teakReward"];
                      [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                                          object:self
                                                                        userInfo:teakUserInfo];
 
-                     if (weakReward.json != nil) {
+                     if (blockReward.json != nil) {
                         [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
                                                                             object:self
-                                                                          userInfo:weakReward.json];
+                                                                          userInfo:blockReward.json];
                      }
                   };
                } else {

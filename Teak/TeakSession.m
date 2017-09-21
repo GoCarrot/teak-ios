@@ -204,12 +204,14 @@ DefineTeakState(Expired, (@[]))
 
       TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
 
-      __block typeof(self) blockSelf = self;
+      __weak TeakSession* weakSelf = self;
       TeakRequest* request = [[TeakRequest alloc]
                               initWithSession:self
                               forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
                               withPayload:payload
                               callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                 __strong TeakSession* blockSelf = weakSelf;
+
                                  // TODO: Check response
                                  if (YES) {
                                     bool forceDebug = [[reply valueForKey:@"verbose_logging"] boolValue];
@@ -401,12 +403,13 @@ DefineTeakState(Expired, (@[]))
    if (teakRewardId != nil) {
       TeakReward* reward = [TeakReward rewardForRewardId:teakRewardId];
       if (reward != nil) {
-         __block TeakReward* weakReward = reward;
+         __weak TeakReward* tempWeakReward = reward;
          reward.onComplete = ^() {
-            if (weakReward.json != nil) {
+            __strong TeakReward* blockReward = tempWeakReward;
+            if (blockReward.json != nil) {
                [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
                                                                    object:self
-                                                                 userInfo:weakReward.json];
+                                                                 userInfo:blockReward.json];
             }
          };
       }
@@ -461,9 +464,12 @@ KeyValueObserverFor(TeakSession, currentState) {
          self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
 
          // Heartbeat
-         __block typeof(self) blockSelf = self;
+         __weak TeakSession* weakSelf = self;
          self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
-         dispatch_source_set_event_handler(self.heartbeat, ^{ [blockSelf sendHeartbeat]; });
+         dispatch_source_set_event_handler(self.heartbeat, ^{
+            __strong TeakSession* blockSelf = weakSelf;
+            [blockSelf sendHeartbeat];
+         });
 
          // TODO: If RemoteConfiguration specifies a different rate, use that
          dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), 60ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
