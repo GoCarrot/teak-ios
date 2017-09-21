@@ -27,14 +27,41 @@
 @property (strong, nonatomic, readwrite) NSDictionary* payload;
 @property (copy, nonatomic, readwrite) TeakRequestResponse callback;
 @property (strong, nonatomic) NSString* hostname;
-@property (strong, nonatomic) NSURLSession* urlSession;
-@property (strong, nonatomic) NSMutableData* receivedData;
 @property (strong, nonatomic) NSString* requestId;
 @property (strong, nonatomic) TeakSession* session;
 @property (strong, nonatomic) NSDate* sendDate;
 @end
 
+@interface TeakRequestURLDelegate : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
+@property (strong, nonatomic) NSMutableDictionary* responseData;
+@end
+
 @implementation TeakRequest
+
++ (NSURLSession*)sharedURLSession {
+   static NSURLSession* session = nil;
+   static dispatch_once_t onceToken;
+   dispatch_once(&onceToken, ^{
+      NSURLSessionConfiguration* sessionConfiguration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+      sessionConfiguration.URLCache = nil;
+      sessionConfiguration.URLCredentialStorage = nil;
+      sessionConfiguration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+      sessionConfiguration.HTTPAdditionalHeaders = @{ @"X-Teak-DeviceType" : @"API" };
+      session = [NSURLSession sessionWithConfiguration:sessionConfiguration
+                                              delegate:[[TeakRequestURLDelegate alloc] init]
+                                         delegateQueue:nil];
+   });
+   return session;
+}
+
++ (NSMutableDictionary*)requestsInFlight {
+   static NSMutableDictionary* dict = nil;
+   static dispatch_once_t onceToken;
+   dispatch_once(&onceToken, ^{
+      dict = [[NSMutableDictionary alloc] init];
+   });
+   return dict;
+}
 
 - (TeakRequest*)initWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
    return [self initWithSession:session forHostname:@"gocarrot.com" withEndpoint:endpoint withPayload:payload callback:callback];
@@ -52,11 +79,6 @@
       self.callback = callback;
       self.hostname = hostname;
       self.session = session;
-      self.urlSession = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]
-                                                      delegate:self
-                                                 delegateQueue:nil];
-      self.receivedData = [[NSMutableData alloc] init];
-      [self.receivedData setLength:0];
 
       @try {
          NSMutableDictionary* payloadWithCommon = [NSMutableDictionary dictionaryWithDictionary:payload];
@@ -165,51 +187,13 @@
       NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
       [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
 
-      NSURLSessionDataTask *dataTask = [self.urlSession dataTaskWithRequest:request];
+      NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];
+      [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = self;
       self.sendDate = [NSDate date];
       [dataTask resume];
 
       TeakLog_i(@"request.send", [self to_h]);
    } teak_catch_report
-}
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
-   // TODO: Check response
-   completionHandler(NSURLSessionResponseAllow);
-}
-
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
-   teak_try {
-      [self.receivedData appendData:data];
-   } teak_catch_report
-}
-
-- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
-   if (error) {
-      // TODO: Handle error
-      [self.urlSession finishTasksAndInvalidate];
-   }
-   else {
-      teak_try {
-         NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&error];
-         if (error) {
-            reply = @{};
-         }
-
-         NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
-
-         [h setValue:[NSNumber numberWithDouble:[self.sendDate timeIntervalSinceNow] * -1000.0] forKey:@"response_time"];
-         [h setValue:reply forKey:@"payload"];
-         TeakLog_i(@"request.reply", h);
-
-         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            if(self.callback) {
-               self.callback(task.response, reply);
-            }
-            [self.urlSession finishTasksAndInvalidate];
-         });
-      } teak_catch_report
-   }
 }
 
 - (NSDictionary*)to_h {
@@ -229,6 +213,64 @@
            self.endpoint,
            self.callback,
            self.payload];
+}
+
+- (void)response:(NSURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
+   teak_try {
+      NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
+
+      [h setValue:[NSNumber numberWithDouble:[self.sendDate timeIntervalSinceNow] * -1000.0] forKey:@"response_time"];
+      [h setValue:payload forKey:@"payload"];
+      TeakLog_i(@"request.reply", h);
+
+      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+         if(self.callback) {
+            self.callback(response, payload);
+         }
+      });
+   } teak_catch_report
+}
+
+@end
+
+@implementation TeakRequestURLDelegate
+
+- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
+   completionHandler(NSURLSessionResponseAllow);
+}
+
+- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
+   teak_try {
+      NSMutableData* responseData = self.responseData[@(dataTask.taskIdentifier)];
+      if (!responseData) {
+         responseData = [NSMutableData dataWithData:data];
+         self.responseData[@(dataTask.taskIdentifier)] = responseData;
+      } else {
+         [responseData appendData:data];
+      }
+   } teak_catch_report
+}
+
+- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)dataTask didCompleteWithError:(NSError*)error {
+   NSDictionary* reply = @{};
+   if (error) {
+      // TODO: Handle error
+   } else {
+      teak_try {
+         reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
+                                                                options:kNilOptions
+                                                                  error:&error];
+         if (error) {
+            reply = @{};
+         }
+      } teak_catch_report
+   }
+   self.responseData[@(dataTask.taskIdentifier)] = nil;
+   TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
+   if (request) {
+      [request response:dataTask.response payload:reply withError:error];
+      [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = nil;
+   }
 }
 
 @end
