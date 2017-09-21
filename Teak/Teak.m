@@ -134,16 +134,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
          return nil;
       }
 
-      // Output version first thing
+      // Native SDK version
       self.sdkVersion = [NSString stringWithUTF8String: TEAK_SDK_VERSION];
 
+      // Log messages
       self.log = [[TeakLog alloc] initWithAppId:appId];
-      NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
-      if (TeakWrapperSDK != nil) {
-         [sdkDict addEntriesFromDictionary:TeakWrapperSDK];
-      }
-      TeakVersionDict = sdkDict;
-      [self.log useSdk:TeakVersionDict];
 
       // Debug Configuration
       self.debugConfiguration = [[TeakDebugConfiguration alloc] init];
@@ -156,6 +151,15 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
          return nil;
       }
       self.enableDebugOutput |= !self.appConfiguration.isProduction;
+
+      // Add Unity/Air SDK version if applicable
+      NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
+      if (TeakWrapperSDK != nil) {
+         [sdkDict addEntriesFromDictionary:TeakWrapperSDK];
+      }
+      TeakVersionDict = sdkDict;
+
+      [self.log useSdk:TeakVersionDict];
       [self.log useAppConfiguration:self.appConfiguration];
 
       // Device Configuration
