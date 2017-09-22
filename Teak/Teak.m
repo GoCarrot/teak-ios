@@ -109,7 +109,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       return;
    }
 
-   if ((objectInstanceId == nil || objectInstanceId.length == 0) &&
+   if ((objectInstanceId != nil && objectInstanceId.length > 0) &&
        (objectTypeId == nil || objectTypeId.length == 0)) {
       TeakLog_e(@"track_event.error", @"objectTypeId can not be null or empty if objectInstanceId is present for trackEvent(), ignoring.");
       return;
