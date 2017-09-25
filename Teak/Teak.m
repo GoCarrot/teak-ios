@@ -368,6 +368,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                     stringByReplacingOccurrencesOfString:@">" withString:@""]
                                     stringByReplacingOccurrencesOfString:@" " withString:@""];
    if (deviceTokenString != nil) {
+      TeakLog_i(@"notification.registration.success", @{@"token" : deviceTokenString});
       [self.deviceConfiguration assignPushToken:deviceTokenString];
    } else {
       TeakLog_e(@"notification.registration.error", @"Got nil deviceTokenString. Push is disabled.");
