@@ -272,7 +272,7 @@
          }
       } teak_catch_report
    }
-   self.responseData[@(dataTask.taskIdentifier)] = nil;
+   [self.responseData removeObjectForKey:@(dataTask.taskIdentifier)];
    TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
    if (request) {
       [request response:dataTask.response payload:reply withError:error];
