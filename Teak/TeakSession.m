@@ -509,9 +509,11 @@ KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
-   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      [session identifyUser];
-   }];
+   @synchronized (self) {
+      if (self.currentState == [TeakSession UserIdentified]) {
+         [self identifyUser];
+      }
+   }
 }
 
 KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
