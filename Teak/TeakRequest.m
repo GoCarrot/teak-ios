@@ -235,6 +235,14 @@
 
 @implementation TeakRequestURLDelegate
 
+- (id)init {
+   self = [super init];
+   if (self) {
+      self.responseData = [[NSMutableDictionary alloc] init];
+   }
+   return self;
+}
+
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
    completionHandler(NSURLSessionResponseAllow);
 }
@@ -243,8 +251,7 @@
    teak_try {
       NSMutableData* responseData = self.responseData[@(dataTask.taskIdentifier)];
       if (!responseData) {
-         responseData = [NSMutableData dataWithData:data];
-         self.responseData[@(dataTask.taskIdentifier)] = responseData;
+         self.responseData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
       } else {
          [responseData appendData:data];
       }
