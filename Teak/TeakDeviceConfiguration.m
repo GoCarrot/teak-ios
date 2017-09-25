@@ -84,8 +84,11 @@
    ASIdentifierManager* asIdentifierManager = [ASIdentifierManager sharedManager];
    NSString* advertisingIdentifier = asIdentifierManager ? [asIdentifierManager.advertisingIdentifier UUIDString] : nil;
    if (advertisingIdentifier != nil) {
+      NSNumber* oldLimitAdtracking = self.limitAdTracking;
       self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled ? @NO : @YES;
-      self.advertisingIdentifier = advertisingIdentifier;
+      if (self.limitAdTracking != oldLimitAdtracking || ![self.advertisingIdentifier isEqualToString:advertisingIdentifier]) {
+         self.advertisingIdentifier = advertisingIdentifier; // Triggers KVO
+      }
    } else {
       __weak typeof(self) weakSelf = self;
 
