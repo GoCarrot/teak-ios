@@ -510,7 +510,7 @@ KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
    @synchronized (self) {
-      TeakLog_i(@"kvo.pushToken", @{@"state":self.currentState});
+      TeakLog_i(@"kvo.pushToken", @{@"state":[self.currentState description]});
       if (self.currentState == [TeakSession UserIdentified]) {
          [self identifyUser];
       }
