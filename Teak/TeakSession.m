@@ -544,6 +544,10 @@ KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
    @synchronized (self) {
       TeakLog_i(@"kvo.pushToken", @{@"state":[self.currentState description]});
       [TeakSession whenDeviceIsAwakeRun:^{
+         while (self.currentState == [TeakSession IdentifyingUser]) {
+            sleep(200);
+         }
+
          if (self.currentState == [TeakSession UserIdentified]) {
             [self identifyUser];
          }
