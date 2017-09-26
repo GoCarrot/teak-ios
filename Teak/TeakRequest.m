@@ -276,7 +276,7 @@
    TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
    if (request) {
       [request response:dataTask.response payload:reply withError:error];
-      [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = nil;
+      [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
    }
 }
 
