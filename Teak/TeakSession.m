@@ -64,6 +64,27 @@ DefineTeakState(Expired, (@[]))
    return ret;
 }
 
++ (NSMutableArray*)whenDeviceIsAwakeRunBlocks {
+   static NSMutableArray* ret = nil;
+   static dispatch_once_t onceToken;
+   dispatch_once(&onceToken, ^{
+      ret = [[NSMutableArray alloc] init];
+   });
+   return ret;
+}
+
++ (void)whenDeviceIsAwakeRun:(nonnull void (^)())block {
+   @synchronized (currentSessionMutex) {
+      if (currentSession.currentState != [TeakSession Expiring] && currentSession.currentState != [TeakSession Expired]) {
+         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            block();
+         });
+      } else {
+         [[TeakSession whenDeviceIsAwakeRunBlocks] addObject:[block copy]];
+      }
+   }
+}
+
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block {
    @synchronized (currentSessionMutex) {
       if (currentSession != nil && currentSession.currentState == [TeakSession UserIdentified]) {
@@ -359,6 +380,15 @@ DefineTeakState(Expired, (@[]))
       if (currentSession.currentState == [TeakSession Expiring]) {
          [currentSession setState:currentSession.previousState];
       }
+
+      // Process WhenDeviceIsAwakeRun queue
+      NSMutableArray* blocks = [TeakSession whenDeviceIsAwakeRunBlocks];
+      for (void (^block)() in blocks) {
+         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            block();
+         });
+      }
+      [blocks removeAllObjects];
    }
 }
 
@@ -502,18 +532,22 @@ KeyValueObserverFor(TeakSession, currentState) {
 
 KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
    @synchronized (self) {
-      if (self.currentState == [TeakSession UserIdentified]) {
-         [self identifyUser];
-      }
+      [TeakSession whenDeviceIsAwakeRun:^{
+         if (self.currentState == [TeakSession UserIdentified]) {
+            [self identifyUser];
+         }
+      }];
    }
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
    @synchronized (self) {
       TeakLog_i(@"kvo.pushToken", @{@"state":[self.currentState description]});
-      if (self.currentState == [TeakSession UserIdentified]) {
-         [self identifyUser];
-      }
+      [TeakSession whenDeviceIsAwakeRun:^{
+         if (self.currentState == [TeakSession UserIdentified]) {
+            [self identifyUser];
+         }
+      }];
    }
 }
 
