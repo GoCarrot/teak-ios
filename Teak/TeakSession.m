@@ -43,6 +43,8 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
+
+@property (nonatomic) BOOL userIdentificationSent;
 @end
 
 @implementation TeakSession
@@ -51,7 +53,7 @@ DefineTeakState(Allocated, (@[@"Created", @"Expiring"]))
 DefineTeakState(Created, (@[@"Configured", @"Expiring"]))
 DefineTeakState(Configured, (@[@"IdentifyingUser", @"Expiring"]))
 DefineTeakState(IdentifyingUser, (@[@"UserIdentified", @"Expiring"]))
-DefineTeakState(UserIdentified, (@[@"Expiring"]))
+DefineTeakState(UserIdentified, (@[@"IdentifyingUser", @"Expiring"]))
 DefineTeakState(Expiring, (@[@"Allocated", @"Created", @"Configured", @"IdentifyingUser", @"UserIdentified", @"Expired"]))
 DefineTeakState(Expired, (@[]))
 
@@ -141,16 +143,12 @@ DefineTeakState(Expired, (@[]))
          if (self.userId == nil) {
             [invalidValuesForTransition addObject:@[@"userId", @"nil"]];
          }
-      } else if (newState == [TeakSession UserIdentified]) {
-         if (self.heartbeatQueue != nil) {
-            [invalidValuesForTransition addObject:@[@"heartbeat", [NSString stringWithFormat:@"%p", self.heartbeatQueue]]];
-         }
       }
 
       // Print out any invalid values
       if (invalidValuesForTransition.count > 0) {
          NSMutableDictionary* dict = [[NSMutableDictionary alloc] init];
-         [dict setValue:self.currentState forKey:@"state"];
+         [dict setValue:self.currentState.name forKey:@"state"];
          [dict setValue:newState forKey:@"new_state"];
          for (NSArray* elem in invalidValuesForTransition) {
             [dict setValue:elem[1] forKey:elem[0]];
@@ -171,9 +169,9 @@ DefineTeakState(Expired, (@[]))
    }
 }
 
-- (void)identifyUser {
+- (void)sendUserIdentifier {
    @synchronized (self) {
-      if (self.currentState != [TeakSession UserIdentified] && [self setState:[TeakSession IdentifyingUser]] == NO) {
+      if ([self setState:[TeakSession IdentifyingUser]] == NO) {
          return;
       }
 
@@ -203,9 +201,10 @@ DefineTeakState(Expired, (@[]))
          [payload setObject:self.deviceConfiguration.limitAdTracking forKey:@"ios_limit_ad_tracking"];
       }
 
-      if (self.currentState == [TeakSession UserIdentified]) {
+      if (self.userIdentificationSent) {
          [payload setObject:@YES forKey:@"do_not_track_event"];
       }
+      self.userIdentificationSent = YES;
 
       if (self.deviceConfiguration.pushToken != nil) {
          [payload setObject:self.deviceConfiguration.pushToken forKey:@"apns_push_key"];
@@ -341,7 +340,7 @@ DefineTeakState(Expired, (@[]))
          currentSession.userId = userId;
 
          if (currentSession.currentState == [TeakSession Configured]) {
-            [currentSession identifyUser];
+            [currentSession sendUserIdentifier];
          }
       }
    }
@@ -367,9 +366,7 @@ DefineTeakState(Expired, (@[]))
       currentSession.launchAttribution = attribution;
       [currentSession.attributionChain addObject:attribution];
 
-      if (currentSession.currentState == [TeakSession UserIdentified]) {
-         [currentSession identifyUser];
-      }
+      [currentSession identifyUserInfoHasChanged];
    }
 }
 
@@ -461,13 +458,32 @@ DefineTeakState(Expired, (@[]))
    }
 }
 
+- (void)identifyUserInfoHasChanged {
+      [TeakSession whenDeviceIsAwakeRun:^{
+         // If identify user is in progress, wait for it to complete
+         TeakState* thisSessionState = nil;
+         @synchronized (self) {
+            thisSessionState = self.currentState;
+         }
+         while (thisSessionState == [TeakSession IdentifyingUser]) {
+            sleep(1);
+            @synchronized (self) {
+               thisSessionState = self.currentState;
+            }
+         }
+
+         // Re-send identify user if needed
+         @synchronized (self) {
+            if (self.userIdentificationSent) {
+               [self sendUserIdentifier];
+            }
+         }
+      }];
+}
+
 KeyValueObserverFor(Teak, fbAccessToken) {
    if (oldValue == nil || ![newValue isEqualToString:oldValue]) {
-      @synchronized (self) {
-         if (self.currentState == [TeakSession UserIdentified]) {
-            [self identifyUser];
-         }
-      }
+      [self identifyUserInfoHasChanged];
    }
 }
 
@@ -487,10 +503,18 @@ KeyValueObserverFor(TeakSession, currentState) {
       } else if (newValue == [TeakSession Configured]) {
          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             if (self.userId != nil) {
-               [self identifyUser];
+               [self sendUserIdentifier];
             }
          });
       } else if (newValue == [TeakSession UserIdentified]) {
+         // Stop heartbeat, since UserIdentified->IdentifyingUser->UserIdentified
+         if (self.heartbeat != nil) {
+            dispatch_source_cancel(self.heartbeat);
+         }
+         self.heartbeat = nil;
+         self.heartbeatQueue = nil;
+
+         // Heartbeat queue
          self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
 
          // Heartbeat
@@ -531,28 +555,11 @@ KeyValueObserverFor(TeakSession, currentState) {
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
-   @synchronized (self) {
-      [TeakSession whenDeviceIsAwakeRun:^{
-         if (self.currentState == [TeakSession UserIdentified]) {
-            [self identifyUser];
-         }
-      }];
-   }
+   [self identifyUserInfoHasChanged];
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
-   @synchronized (self) {
-      TeakLog_i(@"kvo.pushToken", @{@"state":self.currentState.name});
-      [TeakSession whenDeviceIsAwakeRun:^{
-         while (self.currentState == [TeakSession IdentifyingUser]) {
-            sleep(200);
-         }
-
-         if (self.currentState == [TeakSession UserIdentified]) {
-            [self identifyUser];
-         }
-      }];
-   }
+   [self identifyUserInfoHasChanged];
 }
 
 KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
