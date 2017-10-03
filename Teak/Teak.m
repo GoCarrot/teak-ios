@@ -257,6 +257,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
 {
+   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
+
    // Facebook SDKs
    Class fb4xClass = NSClassFromString(@"FBSDKProfile");
    Class fb3xClass = NSClassFromString(@"FBSession");
@@ -335,6 +337,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (void)applicationDidBecomeActive:(UIApplication*)application {
+   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
+
    // If iOS 8+ then check first to see if we have permission to change badge, otherwise
    // just go ahead and change it.
    if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
@@ -350,6 +354,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (void)applicationWillResignActive:(UIApplication*)application {
+   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
+
    [TeakSession applicationWillResignActive:application appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
 }
 
