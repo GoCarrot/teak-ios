@@ -400,6 +400,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                    deviceConfiguration:self.deviceConfiguration];
 
             NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
+            if (aps[@"teakRewardId"] != nil) [teakUserInfo setValue:aps[@"teakRewardId"] forKey:@"teakRewardId"];
+            if (aps[@"teakScheduleName"] != nil) [teakUserInfo setValue:aps[@"teakScheduleName"] forKey:@"teakScheduleName"];
+            if (aps[@"teakCreativeName"] != nil) [teakUserInfo setValue:aps[@"teakCreativeName"] forKey:@"teakCreativeName"];
+            teakUserInfo[@"incentivized"] = aps[@"teakRewardId"] == nil ? @NO : @YES;
+
             if (notif.teakRewardId != nil) {
                TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
                if (reward != nil) {
@@ -413,9 +418,10 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                                                        userInfo:teakUserInfo];
 
                      if (blockReward.json != nil) {
+                        [teakUserInfo addEntriesFromDictionary:blockReward.json];
                         [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
                                                                             object:self
-                                                                          userInfo:blockReward.json];
+                                                                          userInfo:teakUserInfo];
                      }
                   };
                } else {
