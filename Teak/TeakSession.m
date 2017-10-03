@@ -75,7 +75,7 @@ DefineTeakState(Expired, (@[]))
    return ret;
 }
 
-+ (void)whenDeviceIsAwakeRun:(nonnull void (^)())block {
++ (void)whenDeviceIsAwakeRun:(nonnull void (^)(void))block {
    @synchronized (currentSessionMutex) {
       if (currentSession.currentState != [TeakSession Expiring] && currentSession.currentState != [TeakSession Expired]) {
          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -380,7 +380,7 @@ DefineTeakState(Expired, (@[]))
 
       // Process WhenDeviceIsAwakeRun queue
       NSMutableArray* blocks = [TeakSession whenDeviceIsAwakeRunBlocks];
-      for (void (^block)() in blocks) {
+      for (void (^block)(void) in blocks) {
          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
             block();
          });

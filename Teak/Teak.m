@@ -307,8 +307,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
    if ([application respondsToSelector:@selector(isRegisteredForRemoteNotifications)]) {
       pushEnabled = [application isRegisteredForRemoteNotifications];
    } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
       UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
       pushEnabled = types & UIRemoteNotificationTypeAlert;
+#pragma clang diagnostic pop
    }
 
    // If they've already enabled push, go ahead and register since it won't pop up a box.

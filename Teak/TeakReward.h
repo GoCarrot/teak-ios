@@ -26,7 +26,7 @@ typedef enum : int
    kTeakRewardStatusInvalidPost = 6,    ///< Teak does not recognize this reward id.
 } TeakRewardStatus;
 
-typedef void (^RewardCompleted)();
+typedef void (^RewardCompleted)(void);
 
 @interface TeakReward : NSObject
 @property (atomic, readonly)            BOOL                   completed;

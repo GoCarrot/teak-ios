@@ -38,7 +38,7 @@ BOOL isProductionProvisioningProfile(NSString* profilePath) {
    NSString *embeddedProfile = [NSString stringWithContentsOfFile:profilePath
                                                          encoding:NSASCIIStringEncoding
                                                             error:&err];
-   UA_LTRACE(@"Profile path: %@", profilePath);
+   UA_LTRACE((void)(@"Profile path: %@"), profilePath);
 
    if (err) {
       UA_LERR(@"No mobile provision profile found or the profile could not be read. Defaulting to production mode.");
@@ -73,7 +73,7 @@ BOOL isProductionProvisioningProfile(NSString* profilePath) {
    }
 
    NSString *apsEnvironment = [plistDict valueForKeyPath:@"Entitlements.aps-environment"];
-   UA_LDEBUG(@"APS Environment set to %@", apsEnvironment);
+   UA_LDEBUG((void)(@"APS Environment set to %@"), apsEnvironment);
    if ([@"development" isEqualToString:apsEnvironment]) {
       return NO;
    }
