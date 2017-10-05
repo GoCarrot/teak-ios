@@ -181,7 +181,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
    // Build pattern, get argument-order array
    NSMutableArray* argumentOrder = [[NSMutableArray alloc] init];
-   NSString* pattern = TeakRegexHelper(@"((:\\w+)|\\*)", escapedRoute, ^NSString* (NSString* toReplace) {
+   NSString* pattern = TeakRegexHelper(@"((\\:\\w+)|\\*)", escapedRoute, ^NSString* (NSString* toReplace) {
       if ([toReplace isEqualToString:@"*"]) {
          [NSException raise:@"'splat' functionality is not supported by TeakLinks." format:@"In route: %@", route];
          return nil;
