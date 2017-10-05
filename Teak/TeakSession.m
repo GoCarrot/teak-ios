@@ -482,9 +482,11 @@ DefineTeakState(Expired, (@[]))
 }
 
 KeyValueObserverFor(Teak, fbAccessToken) {
-   if (oldValue == nil || (newValue != nil && newValue != [NSNull null] && ![oldValue isEqualToString:newValue])) {
-      [self identifyUserInfoHasChanged];
-   }
+   teak_try {
+      if (oldValue == nil || (newValue != nil && newValue != [NSNull null] && ![oldValue isEqualToString:newValue])) {
+         [self identifyUserInfoHasChanged];
+      }
+   } teak_catch_report
 }
 
 KeyValueObserverFor(TeakSession, currentState) {
