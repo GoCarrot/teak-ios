@@ -175,7 +175,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 + (void)registerRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block {
 
    // Sanitize route
-   NSString* escapedRoute = TeakRegexHelper(@"[^\\?\\%\\\\/\\:\\*\\w]", route, ^NSString* (NSString* toReplace) {
+   NSString* escapedRoute = TeakRegexHelper(@"[\\?\\%\\\\/\\:\\*]", route, ^NSString* (NSString* toReplace) {
       return [NSRegularExpression escapedPatternForString:toReplace];
    });
 
