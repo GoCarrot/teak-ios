@@ -44,7 +44,7 @@ void TeakRunNSOperation(NSOperation* op)
    [[Teak sharedInstance].operationQueue addOperation:op];
 }
 
-TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, uint64_t delay)
+TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, int64_t delay)
 {
    return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
                                                 withMessage:[NSString stringWithUTF8String:message]
@@ -54,6 +54,11 @@ TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* m
 TeakNotification* TeakNotificationCancel(const char* scheduleId)
 {
    return [TeakNotification cancelScheduledNotification:[NSString stringWithUTF8String:scheduleId]];
+}
+
+TeakNotification* TeakNotificationCancelAll()
+{
+   return [TeakNotification cancelAll];
 }
 
 BOOL TeakNotificationHasReward(TeakNotification* notif)
@@ -69,6 +74,11 @@ BOOL TeakNotificationIsCompleted(TeakNotification* notif)
 const char* TeakNotificationGetTeakNotifId(TeakNotification* notif)
 {
    return [notif.teakNotifId UTF8String];
+}
+
+const char* TeakNotificationGetStatus(TeakNotification* notif)
+{
+   return [notif.status UTF8String];
 }
 
 TeakReward* TeakRewardRewardForId(NSString* teakRewardId)
