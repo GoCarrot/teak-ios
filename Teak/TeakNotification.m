@@ -176,7 +176,17 @@
                                  } else {
                                     ret.status = [reply objectForKey:@"status"];
                                     if ([ret.status isEqualToString:@"ok"]) {
-                                       TeakLog_i(@"notification.cancel_all", @"Canceled all notifications.");
+
+                                       NSError* error = nil;
+                                       NSData* jsonData = [NSJSONSerialization dataWithJSONObject:[reply objectForKey:@"canceled"] options:0 error:&error];
+                                       if (error) {
+                                          TeakLog_e(@"notification.cancel_all.error.json", @{@"value" : [reply objectForKey:@"canceled"], @"error" : error});
+                                          ret.teakNotifId = @"[]";
+                                       } else {
+                                          ret.teakNotifId = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                                       }
+
+                                       TeakLog_i(@"notification.cancel_all", @"Canceled all notifications.", @{@"canceled" : ret.teakNotifId});
                                     } else {
                                        TeakLog_e(@"notification.cancel_all.error", @"Error canceling all notifications.", @{@"response" : reply});
                                     }
