@@ -15,6 +15,7 @@ compile:
   - ./compile
 dependencies:
   pre:
+  - brew update # Fixes: Homebrew must be run under Ruby 2.3!
   - ./setup
 test:
   override: # TODO: Use infer here once it's fixed
