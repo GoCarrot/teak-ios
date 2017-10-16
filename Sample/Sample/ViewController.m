@@ -86,7 +86,7 @@
 
 - (IBAction)scheduleNotification:(id)sender
 {
-   TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"test_reward" withMessage:@"Test notif" secondsFromNow:10];
+   TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"test_deeplink" withMessage:@"Test notif" secondsFromNow:10];
    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       while(notif.completed == NO)
       {
