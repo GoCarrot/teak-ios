@@ -2,9 +2,35 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+#TODO: I'd like to try out scan-build
+prefix="clang-analyze"
+suffix="$(date +%s)"
+clangTemp="/tmp/$prefix-$suffix"
+xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean analyze | xcpretty #--report junit
+if [ ! $? -eq 0 ]; then
+  rm -fr $clangTemp
+  exit $retVal
+fi
+
+if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
+  echo "clang static analysis found issues"
+  if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
+    find $clangTemp -type f -name *.html | xargs open
+  else
+    echo "Circle!"
+    clangArtifacts=$CIRCLE_ARTIFACTS/clang/
+    mkdir -p clangArtifacts
+    cp `find $clangTemp -type f -name *.html` $clangArtifacts
+  fi
+  rm -fr $clangTemp
+  exit 1
+fi
+rm -fr $clangTemp
+
 infer run --fail-on-issue -- xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" clean build
 retVal=$?
 if [ ! $? -eq 0 ]; then
   exit $retVal
 fi
+
 (cd build/Release-iphoneos/; zip -y -r Teak.framework.zip Teak.framework/)
