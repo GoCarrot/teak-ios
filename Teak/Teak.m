@@ -558,23 +558,23 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
     teak_log_breadcrumb(@"Determining status");
     NSString* errorString = @"unknown";
     switch (transaction.error.code) {
-    case SKErrorClientInvalid:
-      errorString = @"client_invalid";
-      break;
-    case SKErrorPaymentCancelled:
-      errorString = @"payment_canceled";
-      break;
-    case SKErrorPaymentInvalid:
-      errorString = @"payment_invalid";
-      break;
-    case SKErrorPaymentNotAllowed:
-      errorString = @"payment_not_allowed";
-      break;
-    case SKErrorStoreProductNotAvailable:
-      errorString = @"store_product_not_available";
-      break;
-    default:
-      break;
+      case SKErrorClientInvalid:
+        errorString = @"client_invalid";
+        break;
+      case SKErrorPaymentCancelled:
+        errorString = @"payment_canceled";
+        break;
+      case SKErrorPaymentInvalid:
+        errorString = @"payment_invalid";
+        break;
+      case SKErrorPaymentNotAllowed:
+        errorString = @"payment_not_allowed";
+        break;
+      case SKErrorStoreProductNotAvailable:
+        errorString = @"store_product_not_available";
+        break;
+      default:
+        break;
     }
     teak_log_data_breadcrumb(@"Got transaction error code", @{@"transaction.error.code" : errorString});
 
@@ -600,14 +600,14 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions {
   for (SKPaymentTransaction* transaction in transactions) {
     switch (transaction.transactionState) {
-    case SKPaymentTransactionStatePurchased:
-      [self transactionPurchased:transaction];
-      break;
-    case SKPaymentTransactionStateFailed:
-      [self transactionFailed:transaction];
-      break;
-    default:
-      break;
+      case SKPaymentTransactionStatePurchased:
+        [self transactionPurchased:transaction];
+        break;
+      case SKPaymentTransactionStateFailed:
+        [self transactionFailed:transaction];
+        break;
+      default:
+        break;
     }
   }
 }
