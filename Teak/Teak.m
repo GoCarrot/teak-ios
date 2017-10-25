@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-@import AdSupport;
-@import StoreKit;
+#import <AdSupport/AdSupport.h>
+#import <StoreKit/StoreKit.h>
 
 #import <Teak/Teak.h>
 #import "Teak+Internal.h"

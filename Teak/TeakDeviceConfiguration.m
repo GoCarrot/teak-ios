@@ -18,7 +18,7 @@
 #import "Teak+Internal.h"
 #import <sys/utsname.h>
 
-@import AdSupport;
+#import <AdSupport/AdSupport.h>
 
 #define kDeviceIdKey @"TeakDeviceId"
 
