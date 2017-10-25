@@ -2,7 +2,9 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-ls Teak/*.[hm] | xargs clang-format -i -style=file
-
-infer run -- xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode"
+infer run --fail-on-issue -- xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" clean build
+retVal=$?
+if [ ! $? -eq 0 ]; then
+  exit $retVal
+fi
 (cd build/Release-iphoneos/; zip -y -r Teak.framework.zip Teak.framework/)
