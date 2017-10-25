@@ -12,8 +12,7 @@ deployment:
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
 compile:
   override:
-  #TODO: Don't make this change things, just validate
-  # https://stackoverflow.com/questions/22866609/can-clang-format-tell-me-if-formatting-changes-are-necessary
+  - ./validate-code-format
   - ./compile
 dependencies:
   pre:
