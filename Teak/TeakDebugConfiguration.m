@@ -33,12 +33,11 @@
     teak_try {
       self.userDefaults = [NSUserDefaults standardUserDefaults];
     }
-    teak_catch_report
+    teak_catch_report;
 
-        if (self.userDefaults == nil) {
+    if (self.userDefaults == nil) {
       NSLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
-    }
-    else {
+    } else {
       self.forceDebug = [self.userDefaults boolForKey:kForceDebugPreferencesKey];
     }
   }

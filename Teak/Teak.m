@@ -294,13 +294,12 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       }
     }
   }
-  teak_catch_report
+  teak_catch_report;
 
-      // If the app was not running, we need to check these and invoke them afterwards
-      if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
+  // If the app was not running, we need to check these and invoke them afterwards
+  if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
-  }
-  else if (launchOptions[UIApplicationLaunchOptionsURLKey]) {
+  } else if (launchOptions[UIApplicationLaunchOptionsURLKey]) {
     [self application:application openURL:launchOptions[UIApplicationLaunchOptionsURLKey] sourceApplication:launchOptions[UIApplicationLaunchOptionsSourceApplicationKey] annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
   }
 
@@ -552,7 +551,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                       }];
                                     }];
   }
-  teak_catch_report
+  teak_catch_report;
 }
 
 - (void)transactionFailed:(SKPaymentTransaction*)transaction {
@@ -598,7 +597,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       [request send];
     }];
   }
-  teak_catch_report
+  teak_catch_report;
 }
 
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions {
@@ -650,7 +649,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
       self.callback(@{@"price_currency_code" : _(currencyCode), @"price_float" : price}, response);
     }
-    teak_catch_report
+    teak_catch_report;
   } else {
     self.callback(@{}, nil);
   }

@@ -44,7 +44,7 @@
       teak_try {
         self.teakDeepLink = [NSURL URLWithString:[dictionary objectForKey:@"teakDeepLink"]];
       }
-      teak_catch_report
+      teak_catch_report;
     } else {
       self.teakDeepLink = nil;
     }

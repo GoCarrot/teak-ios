@@ -48,13 +48,13 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
     teak_try {
       self.isProduction = isProductionProvisioningProfile([[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]);
     }
-    teak_catch_report
+    teak_catch_report;
 
-        self.appVersion = @"unknown";
+    self.appVersion = @"unknown";
     teak_try {
       self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
     }
-    teak_catch_report
+    teak_catch_report;
   }
   return self;
 }

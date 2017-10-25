@@ -149,7 +149,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
           return YES;
         }
       }
-      teak_catch_report
+      teak_catch_report;
     }
   }
 

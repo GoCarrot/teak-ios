@@ -41,9 +41,9 @@
     teak_try {
       self.userDefaults = [NSUserDefaults standardUserDefaults];
     }
-    teak_catch_report
+    teak_catch_report;
 
-        if (self.userDefaults == nil) {
+    if (self.userDefaults == nil) {
       return nil;
     }
 
@@ -69,16 +69,16 @@
     teak_try {
       self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
     }
-    teak_catch_report
+    teak_catch_report;
 
-        self.platformString = @"ios_0.0";
+    self.platformString = @"ios_0.0";
     teak_try {
       self.platformString = [NSString stringWithFormat:@"ios_%f", [[[UIDevice currentDevice] systemVersion] floatValue]];
     }
-    teak_catch_report
+    teak_catch_report;
 
-        // Get advertising information
-        [self getAdvertisingInformation];
+    // Get advertising information
+    [self getAdvertisingInformation];
   }
   return self;
 }

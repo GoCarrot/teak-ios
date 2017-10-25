@@ -163,9 +163,9 @@
 
     return retParams;
   }
-  teak_catch_report
+  teak_catch_report;
 
-      return payloadToSign;
+  return payloadToSign;
 }
 
 - (void)send {
@@ -195,7 +195,7 @@
 
     TeakLog_i(@"request.send", [self to_h]);
   }
-  teak_catch_report
+  teak_catch_report;
 }
 
 - (NSDictionary*)to_h {
@@ -231,7 +231,7 @@
       }
     });
   }
-  teak_catch_report
+  teak_catch_report;
 }
 
 @end
@@ -259,7 +259,7 @@
       [responseData appendData:data];
     }
   }
-  teak_catch_report
+  teak_catch_report;
 }
 
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)dataTask didCompleteWithError:(NSError*)error {
@@ -275,7 +275,7 @@
         reply = @{};
       }
     }
-    teak_catch_report
+    teak_catch_report;
   }
   [self.responseData removeObjectForKey:@(dataTask.taskIdentifier)];
   TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];

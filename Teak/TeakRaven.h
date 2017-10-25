@@ -57,7 +57,8 @@ extern NSString* _Nonnull const TeakRavenLevelFatal;
   }                                                                                         \
   @finally {                                                                                \
     [TeakRavenLocationHelper popHelper];                                                    \
-  }
+  }                                                                                         \
+  ((void)0) // This is so clang-format doesn't indent the lines following a teak_catch_report
 
 #define teak_log_breadcrumb(message_nsstr) [[TeakRavenLocationHelper peekHelper] addBreadcrumb:@"log" message:message_nsstr data:nil file:__FILE__ line:__LINE__]
 #define teak_log_data_breadcrumb(message_nsstr, data_nsdict) [[TeakRavenLocationHelper peekHelper] addBreadcrumb:@"log" message:message_nsstr data:data_nsdict file:__FILE__ line:__LINE__]
