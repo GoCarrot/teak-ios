@@ -18,7 +18,7 @@ dependencies:
   - brew update # Fixes: Homebrew must be run under Ruby 2.3!
   - ./setup
 test:
-  override: # TODO: Use infer here once it's fixed
+  override:
     - set -o pipefail &&
       xcodebuild
         CODE_SIGNING_REQUIRED=NO
