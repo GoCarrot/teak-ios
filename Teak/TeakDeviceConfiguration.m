@@ -112,10 +112,10 @@
   return @{
     @"deviceId" : self.deviceId,
     @"deviceModel" : self.deviceModel,
-    @"pushToken" : self.pushToken ? self.pushToken : [NSNull null],
+    @"pushToken" : _(self.pushToken),
     @"platformString" : self.platformString,
-    @"advertisingIdentifier" : self.advertisingIdentifier ? self.advertisingIdentifier : [NSNull null],
-    @"limitAdTracking" : self.limitAdTracking ? self.limitAdTracking : @"unknown"
+    @"advertisingIdentifier" : _(self.advertisingIdentifier),
+    @"limitAdTracking" : self.limitAdTracking != nil ? self.limitAdTracking : @NO
   };
 }
 

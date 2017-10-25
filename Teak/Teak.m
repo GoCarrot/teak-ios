@@ -390,7 +390,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 }
 
 - (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error {
-  TeakLog_e(@"notification.registration.error", @"Failed to register for push notifications.", @{@"error" : _([error localizedDescription])});
+  if (error != nil) {
+    TeakLog_e(@"notification.registration.error", @"Failed to register for push notifications.", @{@"error" : _([error localizedDescription])});
+  } else {
+    TeakLog_e(@"notification.registration.error", @"Failed to register for push notifications.", @{@"error" : @"unknown"});
+  }
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
@@ -644,7 +648,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
       NSDecimalNumber* price = product.price;
 
-      self.callback(@{@"price_currency_code" : currencyCode, @"price_float" : price}, response);
+      self.callback(@{@"price_currency_code" : _(currencyCode), @"price_float" : price}, response);
     }
     teak_catch_report
   } else {
