@@ -15,8 +15,8 @@
 
 #import <Teak/Teak.h>
 
-#import "TeakRaven.h"
 #import "TeakLog.h"
+#import "TeakRaven.h"
 
 @class TeakDebugConfiguration;
 @class TeakAppConfiguration;

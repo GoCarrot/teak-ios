@@ -33,57 +33,57 @@
 
 BOOL isProductionProvisioningProfile(NSString* profilePath) {
 
-   // Attempt to read this file as ASCII (rather than UTF-8) due to the binary blocks before and after the plist data
-   NSError *err = nil;
-   NSString *embeddedProfile = [NSString stringWithContentsOfFile:profilePath
-                                                         encoding:NSASCIIStringEncoding
-                                                            error:&err];
-   UA_LTRACE((void)(@"Profile path: %@"), profilePath);
+  // Attempt to read this file as ASCII (rather than UTF-8) due to the binary blocks before and after the plist data
+  NSError* err = nil;
+  NSString* embeddedProfile = [NSString stringWithContentsOfFile:profilePath
+                                                        encoding:NSASCIIStringEncoding
+                                                           error:&err];
+  UA_LTRACE((void)(@"Profile path: %@"), profilePath);
 
-   if (err) {
-      UA_LERR(@"No mobile provision profile found or the profile could not be read. Defaulting to production mode.");
-      return YES;
-   }
+  if (err) {
+    UA_LERR(@"No mobile provision profile found or the profile could not be read. Defaulting to production mode.");
+    return YES;
+  }
 
-   NSDictionary *plistDict = nil;
-   NSScanner *scanner = [[NSScanner alloc] initWithString:embeddedProfile];
+  NSDictionary* plistDict = nil;
+  NSScanner* scanner = [[NSScanner alloc] initWithString:embeddedProfile];
 
-   if ([scanner scanUpToString:@"<?xml version=\"1.0\" encoding=\"UTF-8\"?>" intoString:nil]) {
-      NSString *plistString = nil;
-      if ([scanner scanUpToString:@"</plist>" intoString:&plistString]) {
-         NSData *data = [[plistString stringByAppendingString:@"</plist>"] dataUsingEncoding:NSUTF8StringEncoding];
-         plistDict = [NSPropertyListSerialization propertyListWithData:data
-                                                               options:NSPropertyListImmutable
-                                                                format:nil
-                                                                 error:nil];
-      }
-   }
+  if ([scanner scanUpToString:@"<?xml version=\"1.0\" encoding=\"UTF-8\"?>" intoString:nil]) {
+    NSString* plistString = nil;
+    if ([scanner scanUpToString:@"</plist>" intoString:&plistString]) {
+      NSData* data = [[plistString stringByAppendingString:@"</plist>"] dataUsingEncoding:NSUTF8StringEncoding];
+      plistDict = [NSPropertyListSerialization propertyListWithData:data
+                                                            options:NSPropertyListImmutable
+                                                             format:nil
+                                                              error:nil];
+    }
+  }
 
-   // Tell the logs a little about the app
-   if ([plistDict valueForKeyPath:@"ProvisionedDevices"]){
-      if ([[plistDict valueForKeyPath:@"Entitlements.get-task-allow"] boolValue]) {
-         UA_LDEBUG(@"Debug provisioning profile. Uses the APNS Sandbox Servers.");
-      } else {
-         UA_LDEBUG(@"Ad-Hoc provisioning profile. Uses the APNS Production Servers.");
-      }
-   } else if ([[plistDict valueForKeyPath:@"ProvisionsAllDevices"] boolValue]) {
-      UA_LDEBUG(@"Enterprise provisioning profile. Uses the APNS Production Servers.");
-   } else {
-      UA_LDEBUG(@"App Store provisioning profile. Uses the APNS Production Servers.");
-   }
+  // Tell the logs a little about the app
+  if ([plistDict valueForKeyPath:@"ProvisionedDevices"]) {
+    if ([[plistDict valueForKeyPath:@"Entitlements.get-task-allow"] boolValue]) {
+      UA_LDEBUG(@"Debug provisioning profile. Uses the APNS Sandbox Servers.");
+    } else {
+      UA_LDEBUG(@"Ad-Hoc provisioning profile. Uses the APNS Production Servers.");
+    }
+  } else if ([[plistDict valueForKeyPath:@"ProvisionsAllDevices"] boolValue]) {
+    UA_LDEBUG(@"Enterprise provisioning profile. Uses the APNS Production Servers.");
+  } else {
+    UA_LDEBUG(@"App Store provisioning profile. Uses the APNS Production Servers.");
+  }
 
-   NSString *apsEnvironment = [plistDict valueForKeyPath:@"Entitlements.aps-environment"];
-   UA_LDEBUG((void)(@"APS Environment set to %@"), apsEnvironment);
-   if ([@"development" isEqualToString:apsEnvironment]) {
-      return NO;
-   }
+  NSString* apsEnvironment = [plistDict valueForKeyPath:@"Entitlements.aps-environment"];
+  UA_LDEBUG((void)(@"APS Environment set to %@"), apsEnvironment);
+  if ([@"development" isEqualToString:apsEnvironment]) {
+    return NO;
+  }
 
-   // Let the dev know if there's not an APS entitlement in the profile. Something is terribly wrong.
-   if (!apsEnvironment) {
-      UA_LERR(@"aps-environment value is not set. If this is not a simulator, ensure that the app is properly provisioned for push");
-   }
+  // Let the dev know if there's not an APS entitlement in the profile. Something is terribly wrong.
+  if (!apsEnvironment) {
+    UA_LERR(@"aps-environment value is not set. If this is not a simulator, ensure that the app is properly provisioned for push");
+  }
 
-   return YES;// For safety, assume production unless the profile is explicitly set to development
+  return YES; // For safety, assume production unless the profile is explicitly set to development
 }
 
 #pragma clang diagnostic pop

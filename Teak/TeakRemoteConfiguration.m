@@ -15,11 +15,11 @@
 
 #import "TeakRemoteConfiguration.h"
 
-#import "TeakSession.h"
-#import "TeakRequest.h"
+#import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 #import "TeakLink.h"
-#import "Teak+Internal.h"
+#import "TeakRequest.h"
+#import "TeakSession.h"
 
 @interface TeakRemoteConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* hostname;
@@ -30,55 +30,55 @@
 @implementation TeakRemoteConfiguration
 
 - (TeakRemoteConfiguration*)initForSession:(nonnull TeakSession*)session {
-   self = [super init];
-   if (self) {
-      __weak TeakRemoteConfiguration* weakSelf = self;
-      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-         __strong TeakRemoteConfiguration* blockSelf = weakSelf;
-         [blockSelf configureForSession:session];
-      });
-   }
-   return self;
+  self = [super init];
+  if (self) {
+    __weak TeakRemoteConfiguration* weakSelf = self;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+      __strong TeakRemoteConfiguration* blockSelf = weakSelf;
+      [blockSelf configureForSession:session];
+    });
+  }
+  return self;
 }
 
 - (void)configureForSession:(nonnull TeakSession*)session {
-   NSBlockOperation* configOp = [NSBlockOperation blockOperationWithBlock:^{
-      NSDictionary* payload = @{@"id" : session.appConfiguration.appId,
-                                @"deep_link_routes" : [TeakLink routeNamesAndDescriptions]};
+  NSBlockOperation* configOp = [NSBlockOperation blockOperationWithBlock:^{
+    NSDictionary* payload = @{@"id" : session.appConfiguration.appId,
+                              @"deep_link_routes" : [TeakLink routeNamesAndDescriptions]};
 
-      TeakRequest* request = [[TeakRequest alloc]
-                              initWithSession:session
-                              forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
-                              withPayload:payload
-                              callback: ^(NSURLResponse* response, NSDictionary* reply) {
-                                 // TODO: Check response
-                                 if (NO) {
-                                 } else {
-                                    self.hostname = @"gocarrot.com";
+    TeakRequest* request = [[TeakRequest alloc]
+        initWithSession:session
+            forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
+            withPayload:payload
+               callback:^(NSURLResponse* response, NSDictionary* reply) {
+                 // TODO: Check response
+                 if (NO) {
+                 } else {
+                   self.hostname = @"gocarrot.com";
 
-                                    NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
-                                    if (sdkSentryDsn) {
-                                       self.sdkSentryDsn = sdkSentryDsn;
-                                       // TODO: assign DSN via KVO?
-                                    }
-                                 }
-                              }];
-      [request send];
-   }];
+                   NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
+                   if (sdkSentryDsn) {
+                     self.sdkSentryDsn = sdkSentryDsn;
+                     // TODO: assign DSN via KVO?
+                   }
+                 }
+               }];
+    [request send];
+  }];
 
-   if ([Teak sharedInstance].waitForDeepLinkOperation != nil) {
-      [configOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
-   }
+  if ([Teak sharedInstance].waitForDeepLinkOperation != nil) {
+    [configOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
+  }
 
-   [[Teak sharedInstance].operationQueue addOperation:configOp];
+  [[Teak sharedInstance].operationQueue addOperation:configOp];
 }
 
 - (NSDictionary*)to_h {
-   return @{
-      @"hostname" : self.hostname,
-      @"sdkSentryDsn" : self.sdkSentryDsn,
-      @"appSentryDsn" : self.appSentryDsn
-   };
+  return @{
+    @"hostname" : self.hostname,
+    @"sdkSentryDsn" : self.sdkSentryDsn,
+    @"appSentryDsn" : self.appSentryDsn
+  };
 }
 
 @end

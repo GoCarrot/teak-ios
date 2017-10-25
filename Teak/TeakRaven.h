@@ -47,8 +47,17 @@ extern NSString* _Nonnull const TeakRavenLevelFatal;
 + (nonnull NSArray*)reverseStacktraceSkippingFrames:(int)skipFrames;
 @end
 
-#define teak_try           [TeakRavenLocationHelper pushHelperForFile:__FILE__ line:__LINE__ function:__PRETTY_FUNCTION__]; @try
-#define teak_catch_report  @catch(NSException* exception) { [TeakRavenLocationHelper peekHelper].exception = exception; [[Teak sharedInstance].sdkRaven reportWithHelper:[TeakRavenLocationHelper peekHelper]]; } @finally { [TeakRavenLocationHelper popHelper]; }
+#define teak_try                                                                                   \
+  [TeakRavenLocationHelper pushHelperForFile:__FILE__ line:__LINE__ function:__PRETTY_FUNCTION__]; \
+  @try
+#define teak_catch_report                                                                   \
+  @catch (NSException * exception) {                                                        \
+    [TeakRavenLocationHelper peekHelper].exception = exception;                             \
+    [[Teak sharedInstance].sdkRaven reportWithHelper:[TeakRavenLocationHelper peekHelper]]; \
+  }                                                                                         \
+  @finally {                                                                                \
+    [TeakRavenLocationHelper popHelper];                                                    \
+  }
 
 #define teak_log_breadcrumb(message_nsstr) [[TeakRavenLocationHelper peekHelper] addBreadcrumb:@"log" message:message_nsstr data:nil file:__FILE__ line:__LINE__]
 #define teak_log_data_breadcrumb(message_nsstr, data_nsdict) [[TeakRavenLocationHelper peekHelper] addBreadcrumb:@"log" message:message_nsstr data:data_nsdict file:__FILE__ line:__LINE__]

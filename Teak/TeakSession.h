@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#import <UIKit/UIKit.h>
 #import "TeakState.h"
+#import <UIKit/UIKit.h>
 
 @class TeakSession;
 @class TeakAppConfiguration;

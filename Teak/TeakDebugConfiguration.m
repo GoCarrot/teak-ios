@@ -28,40 +28,41 @@
 @implementation TeakDebugConfiguration
 
 - (id)init {
-   self = [super init];
-   if (self) {
-      teak_try {
-         self.userDefaults = [NSUserDefaults standardUserDefaults];
-      } teak_catch_report
+  self = [super init];
+  if (self) {
+    teak_try {
+      self.userDefaults = [NSUserDefaults standardUserDefaults];
+    }
+    teak_catch_report
 
-      if (self.userDefaults == nil) {
-         NSLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
-      } else {
-         self.forceDebug = [self.userDefaults boolForKey:kForceDebugPreferencesKey];
-      }
-   }
-   return self;
+        if (self.userDefaults == nil) {
+      NSLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
+    }
+    else {
+      self.forceDebug = [self.userDefaults boolForKey:kForceDebugPreferencesKey];
+    }
+  }
+  return self;
 }
 
 - (void)setForceDebugPreference:(BOOL)forceDebug {
-   if (self.userDefaults == nil) {
-      TeakLog_e(@"debug_configuration", @"[NSUserDefaults standardUserDefaults] returned nil. Setting force debug is disabled.");
-   }
-   else {
-      @try {
-         [self.userDefaults setBool:forceDebug forKey:kForceDebugPreferencesKey];
-         [self.userDefaults synchronize];
-         NSLog(@"Force debug is now %s, please re-start the app.", forceDebug ? "enabled" : "disabled");
-      } @catch (NSException* exception) {
-         NSLog(@"Error occurred while synchronizing userDefaults. %@", exception);
-      }
-      self.forceDebug = forceDebug;
-   }
+  if (self.userDefaults == nil) {
+    TeakLog_e(@"debug_configuration", @"[NSUserDefaults standardUserDefaults] returned nil. Setting force debug is disabled.");
+  } else {
+    @try {
+      [self.userDefaults setBool:forceDebug forKey:kForceDebugPreferencesKey];
+      [self.userDefaults synchronize];
+      NSLog(@"Force debug is now %s, please re-start the app.", forceDebug ? "enabled" : "disabled");
+    } @catch (NSException* exception) {
+      NSLog(@"Error occurred while synchronizing userDefaults. %@", exception);
+    }
+    self.forceDebug = forceDebug;
+  }
 }
 
 - (NSString*)description {
-   return [NSString stringWithFormat:@"<%@: %@> forceDebug %@", NSStringFromClass([self class]),
-           [NSString stringWithFormat:@"0x%16@", self],
-           self.forceDebug ? @"YES" : @"NO"];
+  return [NSString stringWithFormat:@"<%@: %@> forceDebug %@", NSStringFromClass([self class]),
+                                    [NSString stringWithFormat:@"0x%16@", self],
+                                    self.forceDebug ? @"YES" : @"NO"];
 }
 @end
