@@ -123,8 +123,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
   NSDictionary* payload = @{
     @"action_type" : actionId,
-    @"object_type" : objectTypeId,
-    @"object_instance_id" : objectInstanceId
+    @"object_type" : _(objectTypeId),
+    @"object_instance_id" : _(objectInstanceId)
   };
   [TrackEventEvent trackedEventWithPayload:payload];
 }
