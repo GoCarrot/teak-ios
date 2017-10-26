@@ -21,7 +21,8 @@
 typedef enum {
   PushRegistered,
   PushUnRegistered,
-  UserIdentified
+  UserIdentified,
+  TrackedEvent
 } TeakEventType;
 
 typedef void (^TeakEventHandlerBlock)(TeakEvent* _Nonnull);

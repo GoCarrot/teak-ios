@@ -26,11 +26,13 @@
 #import "TeakRequest.h"
 #import "TeakSession.h"
 
+#import "TeakCore.h"
 #import "TeakNotification.h"
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
 #import "PushRegistrationEvent.h"
+#import "TrackEventEvent.h"
 #import "UserIdEvent.h"
 
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
@@ -119,19 +121,12 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
   TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId)});
 
-  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-    NSDictionary* payload = @{
-      @"action_type" : actionId,
-      @"object_type" : objectTypeId,
-      @"object_instance_id" : objectInstanceId
-    };
-    TeakRequest* request = [[TeakRequest alloc]
-        initWithSession:session
-            forEndpoint:@"/me/events"
-            withPayload:payload
-               callback:nil];
-    [request send];
-  }];
+  NSDictionary* payload = @{
+    @"action_type" : actionId,
+    @"object_type" : objectTypeId,
+    @"object_instance_id" : objectInstanceId
+  };
+  [TrackEventEvent trackedEventWithPayload:payload];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -191,6 +186,9 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
     // Operation queue
     self.operationQueue = [[NSOperationQueue alloc] init];
+
+    // Teak Core
+    self.core = [[TeakCore alloc] initForSomething:@"temporary"];
 
     // Register default purchase deep link
     [TeakLink registerRoute:@"/teak_internal/store/:sku"

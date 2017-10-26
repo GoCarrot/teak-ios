@@ -21,6 +21,7 @@
 @class TeakDebugConfiguration;
 @class TeakAppConfiguration;
 @class TeakDeviceConfiguration;
+@class TeakCore;
 
 @interface Teak ()
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
@@ -39,6 +40,8 @@
 @property (strong, nonatomic) NSOperation* _Nonnull waitForDeepLinkOperation;
 
 @property (strong, nonatomic) TeakLog* _Nonnull log;
+
+@property (strong, nonatomic) TeakCore* _Nonnull core;
 
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;
