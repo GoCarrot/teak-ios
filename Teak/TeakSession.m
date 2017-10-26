@@ -197,7 +197,7 @@ DefineTeakState(Allocated, (@[ @"Created", @"Expiring" ]))
 
     if (self.deviceConfiguration.advertisingIdentifier != nil) {
       [payload setObject:self.deviceConfiguration.advertisingIdentifier forKey:@"ios_ad_id"];
-      [payload setObject:self.deviceConfiguration.limitAdTracking forKey:@"ios_limit_ad_tracking"];
+      [payload setObject:[NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking] forKey:@"ios_limit_ad_tracking"];
     }
 
     if (self.userIdentificationSent) {

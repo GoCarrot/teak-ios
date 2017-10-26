@@ -23,7 +23,7 @@
 @property (strong, nonatomic, readonly) NSString* _Nullable pushToken;
 @property (strong, nonatomic, readonly) NSString* _Nonnull platformString;
 @property (strong, nonatomic, readonly) NSString* _Nullable advertisingIdentifier;
-@property (strong, nonatomic, readonly) NSNumber* _Nullable limitAdTracking;
+@property (nonatomic, readonly) BOOL limitAdTracking;
 
 - (nullable id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
 - (nonnull NSDictionary*)to_h;

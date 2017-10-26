@@ -28,7 +28,7 @@
 @property (strong, nonatomic, readwrite) NSString* pushToken;
 @property (strong, nonatomic, readwrite) NSString* platformString;
 @property (strong, nonatomic, readwrite) NSString* advertisingIdentifier;
-@property (strong, nonatomic, readwrite) NSNumber* limitAdTracking;
+@property (nonatomic, readwrite) BOOL limitAdTracking;
 
 @property (strong, nonatomic) NSUserDefaults* userDefaults;
 @end
@@ -87,8 +87,8 @@
   ASIdentifierManager* asIdentifierManager = [ASIdentifierManager sharedManager];
   NSString* advertisingIdentifier = asIdentifierManager ? [asIdentifierManager.advertisingIdentifier UUIDString] : nil;
   if (advertisingIdentifier != nil) {
-    NSNumber* oldLimitAdtracking = self.limitAdTracking;
-    self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled ? @NO : @YES;
+    BOOL oldLimitAdtracking = self.limitAdTracking;
+    self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled;
     if (self.limitAdTracking != oldLimitAdtracking || ![self.advertisingIdentifier isEqualToString:advertisingIdentifier]) {
       self.advertisingIdentifier = advertisingIdentifier; // Triggers KVO
     }
@@ -112,10 +112,10 @@
   return @{
     @"deviceId" : self.deviceId,
     @"deviceModel" : self.deviceModel,
-    @"pushToken" : _(self.pushToken),
+    @"pushToken" : self.pushToken,
     @"platformString" : self.platformString,
-    @"advertisingIdentifier" : _(self.advertisingIdentifier),
-    @"limitAdTracking" : self.limitAdTracking != nil ? self.limitAdTracking : @NO
+    @"advertisingIdentifier" : self.advertisingIdentifier,
+    @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking]
   };
 }
 
@@ -127,7 +127,7 @@
                                     self.deviceModel,
                                     self.pushToken,
                                     self.platformString,
-                                    [self.limitAdTracking boolValue] ? @"YES" : @"NO",
+                                    self.limitAdTracking ? @"YES" : @"NO",
                                     self.advertisingIdentifier];
 }
 @end
