@@ -115,9 +115,9 @@
   return @{
     @"deviceId" : self.deviceId,
     @"deviceModel" : self.deviceModel,
-    @"pushToken" : self.pushToken,
+    @"pushToken" : self.pushToken == nil ? @"" : self.pushToken,
     @"platformString" : self.platformString,
-    @"advertisingIdentifier" : self.advertisingIdentifier,
+    @"advertisingIdentifier" : self.advertisingIdentifier == nil ? @"" : self.advertisingIdentifier,
     @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking]
   };
 }
