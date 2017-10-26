@@ -21,9 +21,9 @@
 @interface TeakDeviceConfiguration : NSObject <TeakEventHandler>
 @property (strong, nonatomic, readonly) NSString* _Nonnull deviceId;
 @property (strong, nonatomic, readonly) NSString* _Nonnull deviceModel;
-@property (strong, nonatomic, readonly) NSString* _Nullable pushToken;
+@property (strong, nonatomic, readonly) NSString* _Nonnull pushToken;
 @property (strong, nonatomic, readonly) NSString* _Nonnull platformString;
-@property (strong, nonatomic, readonly) NSString* _Nullable advertisingIdentifier;
+@property (strong, nonatomic, readonly) NSString* _Nonnull advertisingIdentifier;
 @property (nonatomic, readonly) BOOL limitAdTracking;
 
 - (nullable id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;

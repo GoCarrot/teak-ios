@@ -196,7 +196,7 @@ DefineTeakState(Allocated, (@[ @"Created", @"Expiring" ]))
       @"timezone" : timeZoneString
     }];
 
-    if (self.deviceConfiguration.advertisingIdentifier != nil) {
+    if ([self.deviceConfiguration.advertisingIdentifier length] > 0) {
       [payload setObject:self.deviceConfiguration.advertisingIdentifier forKey:@"ios_ad_id"];
       [payload setObject:[NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking] forKey:@"ios_limit_ad_tracking"];
     }
@@ -206,7 +206,7 @@ DefineTeakState(Allocated, (@[ @"Created", @"Expiring" ]))
     }
     self.userIdentificationSent = YES;
 
-    if (self.deviceConfiguration.pushToken != nil) {
+    if ([self.deviceConfiguration.pushToken length] > 0) {
       [payload setObject:self.deviceConfiguration.pushToken forKey:@"apns_push_key"];
     } else {
       [payload setObject:@"" forKey:@"apns_push_key"];

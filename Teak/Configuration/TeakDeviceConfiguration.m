@@ -78,6 +78,10 @@
     }
     teak_catch_report;
 
+    // Make sure these are not nil
+    self.advertisingIdentifier = @"";
+    self.pushToken = @"";
+
     [TeakEvent addEventHandler:self];
 
     // Get advertising information
@@ -106,7 +110,7 @@
 }
 
 - (void)assignPushToken:(nonnull NSString*)pushToken {
-  if (self.pushToken != nil && [self.pushToken isEqualToString:pushToken]) return;
+  if ([self.pushToken isEqualToString:pushToken]) return;
 
   self.pushToken = pushToken;
 }
@@ -115,9 +119,9 @@
   return @{
     @"deviceId" : self.deviceId,
     @"deviceModel" : self.deviceModel,
-    @"pushToken" : self.pushToken == nil ? @"" : self.pushToken,
+    @"pushToken" : self.pushToken,
     @"platformString" : self.platformString,
-    @"advertisingIdentifier" : self.advertisingIdentifier == nil ? @"" : self.advertisingIdentifier,
+    @"advertisingIdentifier" : self.advertisingIdentifier,
     @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking]
   };
 }
