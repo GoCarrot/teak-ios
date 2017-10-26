@@ -15,8 +15,8 @@
 
 #import "TeakEvent.h"
 
-NSString* eventHandlersMutex = @"io.teak.sdk.eventHandlersMutex";
-NSMutableSet* eventHandlers;
+NSString* TeakEventHandlersMutex = @"io.teak.sdk.eventHandlersMutex";
+NSMutableSet* TeakEventHandlerSet;
 
 @interface TeakEvent ()
 @property (nonatomic, readwrite) TeakEventType type;
@@ -44,9 +44,9 @@ NSMutableSet* eventHandlers;
 + (bool)postEvent:(TeakEvent* _Nonnull)event {
   dispatch_async([TeakEvent eventProcessingQueue], ^{
     NSSet* handlers = nil;
-    @synchronized(eventHandlersMutex) {
-      handlers = eventHandlers;
-      eventHandlers = [eventHandlers copy];
+    @synchronized(TeakEventHandlersMutex) {
+      handlers = TeakEventHandlerSet;
+      TeakEventHandlerSet = [TeakEventHandlerSet copy];
     }
 
     for (id<TeakEventHandler> handler in handlers) {
@@ -57,14 +57,16 @@ NSMutableSet* eventHandlers;
 }
 
 + (void)addEventHandler:(id<TeakEventHandler> _Nonnull)handler {
-  @synchronized(eventHandlersMutex) {
-    [eventHandlers addObject:handler];
+  @synchronized(TeakEventHandlersMutex) {
+    if (TeakEventHandlerSet == nil) TeakEventHandlerSet = [[NSMutableSet alloc] init];
+    [TeakEventHandlerSet addObject:handler];
   }
 }
 
 + (void)removeEventHandler:(id<TeakEventHandler> _Nonnull)handler {
-  @synchronized(eventHandlersMutex) {
-    [eventHandlers removeObject:handler];
+  @synchronized(TeakEventHandlersMutex) {
+    if (TeakEventHandlerSet == nil) TeakEventHandlerSet = [[NSMutableSet alloc] init];
+    [TeakEventHandlerSet removeObject:handler];
   }
 }
 
