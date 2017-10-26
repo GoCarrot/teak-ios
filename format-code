@@ -2,4 +2,4 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-ls Teak/* | xargs clang-format -style=file -i
+find Teak -type f -name "*.[hm]" | xargs clang-format -style=file -i
