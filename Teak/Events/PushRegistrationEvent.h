@@ -13,31 +13,12 @@
  * limitations under the License.
  */
 
+#import "TeakEvent.h"
 #import <Foundation/Foundation.h>
 
-@class TeakEvent;
-@protocol TeakEventHandler;
+@interface PushRegistrationEvent : TeakEvent
+@property (strong, nonatomic, readonly) NSString* _Nullable token;
 
-typedef enum {
-  PushRegistered,
-  PushUnRegistered
-} TeakEventType;
-
-typedef void (^TeakEventHandlerBlock)(TeakEvent* _Nonnull);
-
-@interface TeakEvent : NSObject
-
-@property (nonatomic, readonly) TeakEventType type;
-- (nonnull TeakEvent*)initWithType:(TeakEventType)type;
-
-+ (bool)postEvent:(TeakEvent* _Nonnull)event;
-
-+ (void)addEventHandler:(id<TeakEventHandler> _Nonnull)handler;
-+ (void)removeEventHandler:(id<TeakEventHandler> _Nonnull)handler;
-
-@end
-
-@protocol TeakEventHandler
-@required
-- (void)handleEvent:(TeakEvent* _Nonnull)event;
++ (void)registeredWithToken:(NSString* _Nonnull)token;
++ (void)unRegistered;
 @end

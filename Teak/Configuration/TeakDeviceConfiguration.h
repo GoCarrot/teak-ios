@@ -13,11 +13,12 @@
  * limitations under the License.
  */
 
+#import "TeakEvent.h"
 #import <Foundation/Foundation.h>
 
 @class TeakAppConfiguration;
 
-@interface TeakDeviceConfiguration : NSObject
+@interface TeakDeviceConfiguration : NSObject <TeakEventHandler>
 @property (strong, nonatomic, readonly) NSString* _Nonnull deviceId;
 @property (strong, nonatomic, readonly) NSString* _Nonnull deviceModel;
 @property (strong, nonatomic, readonly) NSString* _Nullable pushToken;
@@ -27,5 +28,4 @@
 
 - (nullable id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
 - (nonnull NSDictionary*)to_h;
-- (void)assignPushToken:(nonnull NSString*)pushToken;
 @end

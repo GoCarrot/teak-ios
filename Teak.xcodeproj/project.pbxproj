@@ -48,6 +48,8 @@
 		438372811D34696500B01F44 /* TeakRemoteConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4383727F1D34696500B01F44 /* TeakRemoteConfiguration.m */; };
 		438372841D35889800B01F44 /* TeakHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 438372831D35889800B01F44 /* TeakHelpers.m */; };
 		439815B91FA2651D005303F1 /* TeakEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815B81FA2651B005303F1 /* TeakEvent.m */; };
+		439815BE1FA27799005303F1 /* PushRegistrationEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 439815BC1FA27799005303F1 /* PushRegistrationEvent.h */; };
+		439815BF1FA27799005303F1 /* PushRegistrationEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815BD1FA27799005303F1 /* PushRegistrationEvent.m */; };
 		43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */; };
 		43C735C11CC1AA2700484B67 /* TeakCExtern.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C735C01CC1AA2700484B67 /* TeakCExtern.m */; };
 		43CEF65C1E4137C20065E4E5 /* TeakLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 43CEF65A1E4137C20065E4E5 /* TeakLink.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -111,6 +113,8 @@
 		438372831D35889800B01F44 /* TeakHelpers.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakHelpers.m; sourceTree = "<group>"; };
 		439815B71FA2651A005303F1 /* TeakEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakEvent.h; sourceTree = "<group>"; };
 		439815B81FA2651B005303F1 /* TeakEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakEvent.m; sourceTree = "<group>"; };
+		439815BC1FA27799005303F1 /* PushRegistrationEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PushRegistrationEvent.h; sourceTree = "<group>"; };
+		439815BD1FA27799005303F1 /* PushRegistrationEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PushRegistrationEvent.m; sourceTree = "<group>"; };
 		43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = isProductionProvisioningProfile.m; sourceTree = "<group>"; };
 		43C735C01CC1AA2700484B67 /* TeakCExtern.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakCExtern.m; sourceTree = "<group>"; };
 		43CEF65A1E4137C20065E4E5 /* TeakLink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakLink.h; sourceTree = "<group>"; };
@@ -151,6 +155,7 @@
 		431C97FC1C7E609800B19DD5 /* Teak */ = {
 			isa = PBXGroup;
 			children = (
+				439815BB1FA2776B005303F1 /* Events */,
 				439815BA1FA27356005303F1 /* Configuration */,
 				439815B71FA2651A005303F1 /* TeakEvent.h */,
 				439815B81FA2651B005303F1 /* TeakEvent.m */,
@@ -199,6 +204,15 @@
 			path = Configuration;
 			sourceTree = "<group>";
 		};
+		439815BB1FA2776B005303F1 /* Events */ = {
+			isa = PBXGroup;
+			children = (
+				439815BC1FA27799005303F1 /* PushRegistrationEvent.h */,
+				439815BD1FA27799005303F1 /* PushRegistrationEvent.m */,
+			);
+			path = Events;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -210,6 +224,7 @@
 				431C98081C7E612400B19DD5 /* Teak.h in Headers */,
 				4361E49F1D27529700672694 /* TeakRaven.h in Headers */,
 				4383726F1D34239900B01F44 /* TeakAppConfiguration.h in Headers */,
+				439815BE1FA27799005303F1 /* PushRegistrationEvent.h in Headers */,
 				4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */,
 				432EDF091CC02CE3007E9C5C /* TeakNotification.h in Headers */,
 				4383727B1D34443D00B01F44 /* TeakState.h in Headers */,
@@ -351,6 +366,7 @@
 				43F7CFF91EF0957E00361256 /* TeakLog.m in Sources */,
 				438372841D35889800B01F44 /* TeakHelpers.m in Sources */,
 				432EDF0A1CC02CE3007E9C5C /* TeakNotification.m in Sources */,
+				439815BF1FA27799005303F1 /* PushRegistrationEvent.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

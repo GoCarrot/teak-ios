@@ -14,6 +14,7 @@
  */
 
 #import "TeakDeviceConfiguration.h"
+#import "PushRegistrationEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 #import <sys/utsname.h>
@@ -77,6 +78,8 @@
     }
     teak_catch_report;
 
+    [TeakEvent addEventHandler:self];
+
     // Get advertising information
     [self getAdvertisingInformation];
   }
@@ -130,4 +133,26 @@
                                     self.limitAdTracking ? @"YES" : @"NO",
                                     self.advertisingIdentifier];
 }
+
+- (void)dealloc {
+  [TeakEvent removeEventHandler:self];
+}
+
+- (void)handleEvent:(TeakEvent* _Nonnull)event {
+  switch (event.type) {
+    case PushRegistered: {
+      NSString* pushToken = ((PushRegistrationEvent*)event).token;
+      // Check before assignment so KVO isn't triggered unless it should be
+      if (self.pushToken == nil || ![self.pushToken isEqualToString:pushToken]) {
+        self.pushToken = pushToken;
+      }
+    } break;
+    case PushUnRegistered: {
+      if (self.pushToken != nil) self.pushToken = nil;
+    } break;
+    default:
+      break;
+  }
+}
+
 @end

@@ -18,7 +18,19 @@
 NSString* eventHandlersMutex = @"io.teak.sdk.eventHandlersMutex";
 NSMutableSet* eventHandlers;
 
+@interface TeakEvent ()
+@property (nonatomic, readwrite) TeakEventType type;
+@end
+
 @implementation TeakEvent
+
+- (TeakEvent*)initWithType:(TeakEventType)type {
+  self = [super init];
+  if (self) {
+    self.type = type;
+  }
+  return self;
+}
 
 + (dispatch_queue_t)eventProcessingQueue {
   static dispatch_queue_t queue = nil;
@@ -37,39 +49,23 @@ NSMutableSet* eventHandlers;
       eventHandlers = [eventHandlers copy];
     }
 
-    for (TeakEventHandler* handler in handlers) {
-      handler.block(event);
+    for (id<TeakEventHandler> handler in handlers) {
+      [handler handleEvent:event];
     }
   });
   return YES;
 }
 
-+ (void)addEventHandler:(TeakEventHandler* _Nonnull)handler {
++ (void)addEventHandler:(id<TeakEventHandler> _Nonnull)handler {
   @synchronized(eventHandlersMutex) {
     [eventHandlers addObject:handler];
   }
 }
 
-+ (void)removeEventHandler:(TeakEventHandler* _Nonnull)handler {
++ (void)removeEventHandler:(id<TeakEventHandler> _Nonnull)handler {
   @synchronized(eventHandlersMutex) {
     [eventHandlers removeObject:handler];
   }
 }
 
-@end
-
-///// TeakEventHandler
-
-@interface TeakEventHandler ()
-@property (copy, nonatomic, readwrite) TeakEventHandlerBlock _Nonnull block;
-@end
-
-@implementation TeakEventHandler
-+ (nullable TeakEventHandler*)handlerWithBlock:(TeakEventHandlerBlock _Nonnull)block {
-  TeakEventHandler* ret = [[TeakEventHandler alloc] init];
-  if (ret) {
-    ret.block = block;
-  }
-  return ret;
-}
 @end

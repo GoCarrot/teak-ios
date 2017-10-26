@@ -30,6 +30,8 @@
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
+#import "PushRegistrationEvent.h"
+
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 
@@ -382,7 +384,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                 withString:@""];
   if (deviceTokenString != nil) {
     TeakLog_i(@"notification.registration.success", @{@"token" : deviceTokenString});
-    [self.deviceConfiguration assignPushToken:deviceTokenString];
+    [PushRegistrationEvent registeredWithToken:deviceTokenString];
   } else {
     TeakLog_e(@"notification.registration.error", @"Got nil deviceTokenString. Push is disabled.");
   }
