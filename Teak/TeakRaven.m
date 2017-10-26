@@ -17,6 +17,7 @@
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "UserIdEvent.h"
 
 #include <execinfo.h>
 
@@ -226,15 +227,6 @@ void TeakSignalHandler(int signal) {
   [report send];
 }
 
-- (void)setUserValue:(id)value forKey:(nonnull NSString*)key {
-  NSMutableDictionary* user = [self.payloadTemplate valueForKey:@"user"];
-  if (value != nil) {
-    [user setValue:value forKey:key];
-  } else {
-    [user removeObjectForKey:key];
-  }
-}
-
 - (id)initForTeak:(Teak*)teak {
   self = [super init];
   if (self) {
@@ -262,6 +254,9 @@ void TeakSignalHandler(int signal) {
           @"device_id" : teak.deviceConfiguration.deviceId
         }]
       }];
+
+      // Listener for User Id
+      [TeakEvent addEventHandler:self];
     } @catch (NSException* exception) {
       NSLog(@"Teak: Error creating payload template: %@", exception);
       return nil;
@@ -387,6 +382,17 @@ void TeakSignalHandler(int signal) {
   free(strs);
 
   return stacktrace;
+}
+
+- (void)dealloc {
+  [TeakEvent removeEventHandler:self];
+}
+
+- (void)handleEvent:(TeakEvent* _Nonnull)event {
+  if (event.type == UserIdentified) {
+    NSMutableDictionary* user = [self.payloadTemplate valueForKey:@"user"];
+    [user setValue:((UserIdEvent*)event).userId forKey:@"id"];
+  }
 }
 
 @end

@@ -15,9 +15,8 @@
 
 #import "TeakEvent.h"
 
-@interface PushRegistrationEvent : TeakEvent
-@property (strong, nonatomic, readonly) NSString* _Nullable token;
+@interface UserIdEvent : TeakEvent
+@property (strong, nonatomic, readonly) NSString* _Nonnull userId;
 
-+ (void)registeredWithToken:(NSString* _Nonnull)token;
-+ (void)unRegistered;
++ (void)userIdentified:(NSString* _Nonnull)userId;
 @end

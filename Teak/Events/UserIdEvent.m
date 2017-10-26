@@ -13,11 +13,17 @@
  * limitations under the License.
  */
 
-#import "TeakEvent.h"
+#import "UserIdEvent.h"
 
-@interface PushRegistrationEvent : TeakEvent
-@property (strong, nonatomic, readonly) NSString* _Nullable token;
+@interface UserIdEvent ()
+@property (strong, nonatomic, readwrite) NSString* _Nonnull userId;
+@end
 
-+ (void)registeredWithToken:(NSString* _Nonnull)token;
-+ (void)unRegistered;
+@implementation UserIdEvent
+
++ (void)userIdentified:(NSString* _Nonnull)userId {
+  UserIdEvent* event = [[UserIdEvent alloc] initWithType:UserIdentified];
+  event.userId = userId;
+  [TeakEvent postEvent:event];
+}
 @end

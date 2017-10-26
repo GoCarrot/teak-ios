@@ -21,6 +21,7 @@
 #import "TeakRemoteConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakReward.h"
+#import "UserIdEvent.h"
 
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
@@ -317,6 +318,19 @@ DefineTeakState(Allocated, (@[ @"Created", @"Expiring" ]))
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
   UnRegisterKeyValueObserverFor(self, currentState);
   UnRegisterKeyValueObserverFor([Teak sharedInstance], fbAccessToken);
+}
+
++ (void)registerStaticEventListeners {
+  static id<TeakEventHandler> handler = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    handler = [TeakEventBlockHandler handlerWithBlock:^(TeakEvent* _Nonnull event) {
+      if (event.type == UserIdentified) {
+        [TeakSession setUserId:((UserIdEvent*)event).userId];
+      }
+    }];
+  });
+  [TeakEvent addEventHandler:handler];
 }
 
 + (void)setUserId:(nonnull NSString*)userId {

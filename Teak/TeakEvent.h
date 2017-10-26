@@ -20,7 +20,8 @@
 
 typedef enum {
   PushRegistered,
-  PushUnRegistered
+  PushUnRegistered,
+  UserIdentified
 } TeakEventType;
 
 typedef void (^TeakEventHandlerBlock)(TeakEvent* _Nonnull);
@@ -40,4 +41,8 @@ typedef void (^TeakEventHandlerBlock)(TeakEvent* _Nonnull);
 @protocol TeakEventHandler
 @required
 - (void)handleEvent:(TeakEvent* _Nonnull)event;
+@end
+
+@interface TeakEventBlockHandler : NSObject <TeakEventHandler>
++ (nonnull TeakEventBlockHandler*)handlerWithBlock:(TeakEventHandlerBlock _Nonnull)block;
 @end

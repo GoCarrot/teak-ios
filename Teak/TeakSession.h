@@ -37,10 +37,11 @@ DeclareTeakState(UserIdentified);
 DeclareTeakState(Expiring);
 DeclareTeakState(Expired);
 
++ (void)registerStaticEventListeners;
+
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;
 + (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
-+ (void)setUserId:(nonnull NSString*)userId;
 + (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 + (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 

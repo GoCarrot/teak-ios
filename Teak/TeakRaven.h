@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#import "UserIdEvent.h"
 
 extern NSString* _Nonnull const TeakRavenLevelError;
 extern NSString* _Nonnull const TeakRavenLevelFatal;
@@ -32,12 +32,11 @@ extern NSString* _Nonnull const TeakRavenLevelFatal;
 
 @end
 
-@interface TeakRaven : NSObject
+@interface TeakRaven : NSObject <TeakEventHandler>
 
 + (nullable TeakRaven*)ravenForTeak:(nonnull Teak*)teak;
 
 - (BOOL)setDSN:(nonnull NSString*)dsn;
-- (void)setUserValue:(nullable id)value forKey:(nonnull NSString*)key;
 - (void)setAsUncaughtExceptionHandler;
 - (void)unsetAsUncaughtExceptionHandler;
 

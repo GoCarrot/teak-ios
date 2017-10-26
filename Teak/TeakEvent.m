@@ -69,3 +69,19 @@ NSMutableSet* eventHandlers;
 }
 
 @end
+
+@interface TeakEventBlockHandler ()
+@property (copy, nonatomic) TeakEventHandlerBlock _Nonnull block;
+@end
+
+@implementation TeakEventBlockHandler
++ (nonnull TeakEventBlockHandler*)handlerWithBlock:(TeakEventHandlerBlock _Nonnull)block {
+  TeakEventBlockHandler* handler = [[TeakEventBlockHandler alloc] init];
+  handler.block = block;
+  return handler;
+}
+
+- (void)handleEvent:(TeakEvent* _Nonnull)event {
+  self.block(event);
+}
+@end

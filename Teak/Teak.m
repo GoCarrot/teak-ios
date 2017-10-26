@@ -31,6 +31,7 @@
 #import "TeakVersion.h"
 
 #import "PushRegistrationEvent.h"
+#import "UserIdEvent.h"
 
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
@@ -101,8 +102,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
   TeakLog_i(@"identify_user", @{@"userId" : userIdentifier});
 
-  [self.sdkRaven setUserValue:userIdentifier forKey:@"id"];
-  [TeakSession setUserId:userIdentifier];
+  [UserIdEvent userIdentified:userIdentifier];
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
