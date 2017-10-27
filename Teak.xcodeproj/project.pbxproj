@@ -34,6 +34,8 @@
 		432FB0EC1D29BEAE009136F1 /* amIBeingDebugged.m in Sources */ = {isa = PBXBuildFile; fileRef = 432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */; };
 		434861771FA2C5E000E0DA12 /* TeakConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 434861751FA2C5E000E0DA12 /* TeakConfiguration.h */; };
 		434861781FA2C5E000E0DA12 /* TeakConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 434861761FA2C5E000E0DA12 /* TeakConfiguration.m */; };
+		4348617B1FA3B5D800E0DA12 /* PurchaseFailedEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434861791FA3B5D800E0DA12 /* PurchaseFailedEvent.h */; };
+		4348617C1FA3B5D800E0DA12 /* PurchaseFailedEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 4348617A1FA3B5D800E0DA12 /* PurchaseFailedEvent.m */; };
 		4361E49F1D27529700672694 /* TeakRaven.h in Headers */ = {isa = PBXBuildFile; fileRef = 4361E49D1D27529700672694 /* TeakRaven.h */; };
 		4361E4A01D27529700672694 /* TeakRaven.m in Sources */ = {isa = PBXBuildFile; fileRef = 4361E49E1D27529700672694 /* TeakRaven.m */; };
 		4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372691D3419D000B01F44 /* TeakDebugConfiguration.h */; };
@@ -104,6 +106,8 @@
 		432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = amIBeingDebugged.m; sourceTree = "<group>"; };
 		434861751FA2C5E000E0DA12 /* TeakConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakConfiguration.h; sourceTree = "<group>"; };
 		434861761FA2C5E000E0DA12 /* TeakConfiguration.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakConfiguration.m; sourceTree = "<group>"; };
+		434861791FA3B5D800E0DA12 /* PurchaseFailedEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PurchaseFailedEvent.h; sourceTree = "<group>"; };
+		4348617A1FA3B5D800E0DA12 /* PurchaseFailedEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PurchaseFailedEvent.m; sourceTree = "<group>"; };
 		4361E49D1D27529700672694 /* TeakRaven.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRaven.h; sourceTree = "<group>"; };
 		4361E49E1D27529700672694 /* TeakRaven.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRaven.m; sourceTree = "<group>"; };
 		438372691D3419D000B01F44 /* TeakDebugConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakDebugConfiguration.h; sourceTree = "<group>"; };
@@ -240,6 +244,8 @@
 				439815C11FA2909F005303F1 /* UserIdEvent.m */,
 				439815C91FA29A6E005303F1 /* TrackEventEvent.h */,
 				439815CA1FA29A6E005303F1 /* TrackEventEvent.m */,
+				434861791FA3B5D800E0DA12 /* PurchaseFailedEvent.h */,
+				4348617A1FA3B5D800E0DA12 /* PurchaseFailedEvent.m */,
 			);
 			path = Events;
 			sourceTree = "<group>";
@@ -277,6 +283,7 @@
 				FAA4DCFC1DC32AD100374B93 /* TeakReward.h in Headers */,
 				43F7CFF81EF0957E00361256 /* TeakLog.h in Headers */,
 				438372771D3442EA00B01F44 /* TeakSession.h in Headers */,
+				4348617B1FA3B5D800E0DA12 /* PurchaseFailedEvent.h in Headers */,
 				438372801D34696500B01F44 /* TeakRemoteConfiguration.h in Headers */,
 				438372731D34285A00B01F44 /* TeakDeviceConfiguration.h in Headers */,
 			);
@@ -403,6 +410,7 @@
 				438372701D34239900B01F44 /* TeakAppConfiguration.m in Sources */,
 				43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */,
 				4383727C1D34443D00B01F44 /* TeakState.m in Sources */,
+				4348617C1FA3B5D800E0DA12 /* PurchaseFailedEvent.m in Sources */,
 				438372781D3442EA00B01F44 /* TeakSession.m in Sources */,
 				4383726C1D3419D000B01F44 /* TeakDebugConfiguration.m in Sources */,
 				43CEF65D1E4137C20065E4E5 /* TeakLink.m in Sources */,

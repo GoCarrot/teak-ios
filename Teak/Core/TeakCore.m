@@ -14,6 +14,7 @@
  */
 
 #import "TeakCore.h"
+#import "PurchaseFailedEvent.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
 #import "TrackEventEvent.h"
@@ -36,15 +37,29 @@
 }
 
 - (void)handleEvent:(TeakEvent* _Nonnull)event {
-  if (event.type == TrackedEvent) {
-    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      TeakRequest* request = [[TeakRequest alloc]
-          initWithSession:session
-              forEndpoint:@"/me/events"
-              withPayload:((TrackEventEvent*)event).payload
-                 callback:nil];
-      [request send];
-    }];
+  switch (event.type) {
+    case TrackedEvent: {
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+        TeakRequest* request = [[TeakRequest alloc]
+            initWithSession:session
+                forEndpoint:@"/me/events"
+                withPayload:((TrackEventEvent*)event).payload
+                   callback:nil];
+        [request send];
+      }];
+    } break;
+    case PurchaseFailed: {
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+        TeakRequest* request = [[TeakRequest alloc]
+            initWithSession:session
+                forEndpoint:@"/me/purchase"
+                withPayload:((PurchaseFailedEvent*)event).payload
+                   callback:nil];
+        [request send];
+      }];
+    } break;
+    default:
+      break;
   }
 }
 

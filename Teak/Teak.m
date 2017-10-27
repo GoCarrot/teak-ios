@@ -28,6 +28,7 @@
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
+#import "PurchaseFailedEvent.h"
 #import "PushRegistrationEvent.h"
 #import "TrackEventEvent.h"
 #import "UserIdEvent.h"
@@ -568,20 +569,10 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
     teak_log_data_breadcrumb(@"Got transaction error code", @{@"transaction.error.code" : errorString});
 
     NSDictionary* payload = @{
-      @"product_id" : transaction.payment.productIdentifier,
+      @"product_id" : _(transaction.payment.productIdentifier),
       @"error_string" : errorString
     };
-
-    teak_log_data_breadcrumb(@"Reporting purchase failed", payload);
-
-    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      TeakRequest* request = [[TeakRequest alloc]
-          initWithSession:session
-              forEndpoint:@"/me/purchase"
-              withPayload:payload
-                 callback:nil];
-      [request send];
-    }];
+    [PurchaseFailedEvent purchaseFailed:payload];
   }
   teak_catch_report;
 }
