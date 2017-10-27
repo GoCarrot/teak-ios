@@ -1,10 +1,8 @@
 .DS_Store
-Teak.xcodeproj/project.xcworkspace/
-Teak.xcodeproj/xcuserdata/
+**/project.xcworkspace/
+**/xcuserdata/
 build/*
 !build/.gitkeep
-Sample/Sample.xcodeproj/project.xcworkspace/
-Sample/Sample.xcodeproj/xcuserdata/
 *.pem
 infer-out/
 
