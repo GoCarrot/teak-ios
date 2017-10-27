@@ -325,8 +325,15 @@ DefineTeakState(Expired, (@[]));
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     handler = [TeakEventBlockHandler handlerWithBlock:^(TeakEvent* _Nonnull event) {
-      if (event.type == UserIdentified) {
-        [TeakSession setUserId:((UserIdEvent*)event).userId];
+      switch (event.type) {
+        case UserIdentified: {
+          [TeakSession setUserId:((UserIdEvent*)event).userId];
+        } break;
+        case LifecycleBecameActive: {
+          [TeakSession applicationDidBecomeActive];
+        } break;
+        default:
+          break;
       }
     }];
   });
@@ -383,9 +390,11 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)applicationDidBecomeActive:(UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)applicationDidBecomeActive {
   @synchronized(currentSessionMutex) {
-    [TeakSession currentSessionForAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+    TeakConfiguration* configuration = [TeakConfiguration configuration];
+    [TeakSession currentSessionForAppConfiguration:configuration.appConfiguration
+                               deviceConfiguration:configuration.deviceConfiguration];
 
     if (currentSession.currentState == [TeakSession Expiring]) {
       [currentSession setState:currentSession.previousState];

@@ -311,7 +311,8 @@ Teak* _teakSharedInstance;
     [application setApplicationIconBadgeNumber:0];
   }
 
-  [TeakSession applicationDidBecomeActive:application appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
+  // Lifecycle Event
+  [LifecycleEvent applicationBecameActive];
 }
 
 - (void)applicationWillResignActive:(UIApplication*)application {

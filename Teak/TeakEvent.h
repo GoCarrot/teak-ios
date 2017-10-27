@@ -25,7 +25,8 @@ typedef enum {
   TrackedEvent,
   PurchaseFailed,
   PurchaseSucceeded,
-  LifecycleFinishedLaunching
+  LifecycleFinishedLaunching,
+  LifecycleBecameActive
 } TeakEventType;
 
 typedef void (^TeakEventHandlerBlock)(TeakEvent* _Nonnull);

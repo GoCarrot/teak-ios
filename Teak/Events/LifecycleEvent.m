@@ -19,4 +19,9 @@
   LifecycleEvent* event = [[LifecycleEvent alloc] initWithType:LifecycleFinishedLaunching];
   [TeakEvent postEvent:event];
 }
+
++ (void)applicationBecameActive {
+  LifecycleEvent* event = [[LifecycleEvent alloc] initWithType:LifecycleBecameActive];
+  [TeakEvent postEvent:event];
+}
 @end
