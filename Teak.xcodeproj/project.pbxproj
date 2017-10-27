@@ -36,6 +36,8 @@
 		434861781FA2C5E000E0DA12 /* TeakConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 434861761FA2C5E000E0DA12 /* TeakConfiguration.m */; };
 		4348617B1FA3B5D800E0DA12 /* PurchaseEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434861791FA3B5D800E0DA12 /* PurchaseEvent.h */; };
 		4348617C1FA3B5D800E0DA12 /* PurchaseEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 4348617A1FA3B5D800E0DA12 /* PurchaseEvent.m */; };
+		434861801FA3B97B00E0DA12 /* SKPaymentObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = 4348617E1FA3B97B00E0DA12 /* SKPaymentObserver.h */; };
+		434861811FA3B97B00E0DA12 /* SKPaymentObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = 4348617F1FA3B97B00E0DA12 /* SKPaymentObserver.m */; };
 		4361E49F1D27529700672694 /* TeakRaven.h in Headers */ = {isa = PBXBuildFile; fileRef = 4361E49D1D27529700672694 /* TeakRaven.h */; };
 		4361E4A01D27529700672694 /* TeakRaven.m in Sources */ = {isa = PBXBuildFile; fileRef = 4361E49E1D27529700672694 /* TeakRaven.m */; };
 		4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372691D3419D000B01F44 /* TeakDebugConfiguration.h */; };
@@ -108,6 +110,8 @@
 		434861761FA2C5E000E0DA12 /* TeakConfiguration.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakConfiguration.m; sourceTree = "<group>"; };
 		434861791FA3B5D800E0DA12 /* PurchaseEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PurchaseEvent.h; sourceTree = "<group>"; };
 		4348617A1FA3B5D800E0DA12 /* PurchaseEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PurchaseEvent.m; sourceTree = "<group>"; };
+		4348617E1FA3B97B00E0DA12 /* SKPaymentObserver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SKPaymentObserver.h; sourceTree = "<group>"; };
+		4348617F1FA3B97B00E0DA12 /* SKPaymentObserver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SKPaymentObserver.m; sourceTree = "<group>"; };
 		4361E49D1D27529700672694 /* TeakRaven.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRaven.h; sourceTree = "<group>"; };
 		4361E49E1D27529700672694 /* TeakRaven.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRaven.m; sourceTree = "<group>"; };
 		438372691D3419D000B01F44 /* TeakDebugConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakDebugConfiguration.h; sourceTree = "<group>"; };
@@ -175,6 +179,7 @@
 		431C97FC1C7E609800B19DD5 /* Teak */ = {
 			isa = PBXGroup;
 			children = (
+				4348617D1FA3B90500E0DA12 /* Store */,
 				434861741FA2C51B00E0DA12 /* 3rdParty */,
 				439815C41FA299E5005303F1 /* Core */,
 				439815BB1FA2776B005303F1 /* Events */,
@@ -216,6 +221,15 @@
 				432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */,
 			);
 			path = 3rdParty;
+			sourceTree = "<group>";
+		};
+		4348617D1FA3B90500E0DA12 /* Store */ = {
+			isa = PBXGroup;
+			children = (
+				4348617E1FA3B97B00E0DA12 /* SKPaymentObserver.h */,
+				4348617F1FA3B97B00E0DA12 /* SKPaymentObserver.m */,
+			);
+			path = Store;
 			sourceTree = "<group>";
 		};
 		439815BA1FA27356005303F1 /* Configuration */ = {
@@ -281,6 +295,7 @@
 				43CEF65C1E4137C20065E4E5 /* TeakLink.h in Headers */,
 				431C981E1C7E679900B19DD5 /* Teak+Internal.h in Headers */,
 				FAA4DCFC1DC32AD100374B93 /* TeakReward.h in Headers */,
+				434861801FA3B97B00E0DA12 /* SKPaymentObserver.h in Headers */,
 				43F7CFF81EF0957E00361256 /* TeakLog.h in Headers */,
 				438372771D3442EA00B01F44 /* TeakSession.h in Headers */,
 				4348617B1FA3B5D800E0DA12 /* PurchaseEvent.h in Headers */,
@@ -408,6 +423,7 @@
 				439815CC1FA29A6E005303F1 /* TrackEventEvent.m in Sources */,
 				432FB0EC1D29BEAE009136F1 /* amIBeingDebugged.m in Sources */,
 				438372701D34239900B01F44 /* TeakAppConfiguration.m in Sources */,
+				434861811FA3B97B00E0DA12 /* SKPaymentObserver.m in Sources */,
 				43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */,
 				4383727C1D34443D00B01F44 /* TeakState.m in Sources */,
 				4348617C1FA3B5D800E0DA12 /* PurchaseEvent.m in Sources */,

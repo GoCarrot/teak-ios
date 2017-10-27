@@ -20,6 +20,7 @@
 #import "TeakRaven.h"
 
 @class TeakCore;
+@class SKPaymentObserver;
 
 @interface Teak ()
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
@@ -36,6 +37,7 @@
 @property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
 @property (strong, nonatomic) TeakLog* _Nonnull log;
 @property (strong, nonatomic) TeakCore* _Nonnull core;
+@property (strong, nonatomic) SKPaymentObserver* _Nonnull paymentObserver;
 
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;

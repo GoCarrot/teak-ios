@@ -15,14 +15,13 @@
 
 #import <AdSupport/AdSupport.h>
 
-#import <StoreKit/StoreKit.h>
-
 #import "Teak+Internal.h"
 #import <Teak/Teak.h>
 
 #import "TeakRequest.h"
 #import "TeakSession.h"
 
+#import "SKPaymentObserver.h"
 #import "TeakCore.h"
 #import "TeakNotification.h"
 #import "TeakReward.h"
@@ -54,21 +53,6 @@ extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSec
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
 Teak* _teakSharedInstance;
-
-@interface Teak () <SKPaymentTransactionObserver>
-- (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions;
-@end
-
-typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsResponse* response);
-
-@interface TeakProductRequest : NSObject <SKProductsRequestDelegate>
-@property (copy, nonatomic) TeakProductRequestCallback callback;
-@property (strong, nonatomic) SKProductsRequest* productsRequest;
-
-+ (TeakProductRequest*)productRequestForSku:(NSString*)sku callback:(TeakProductRequestCallback)callback;
-
-- (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response;
-@end
 
 @implementation Teak
 
@@ -177,28 +161,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
     // TODO: This should be factory based
     self.core = [[TeakCore alloc] initForSomething:@"temporary"];
 
-    // Register default purchase deep link
-    [TeakLink registerRoute:@"/teak_internal/store/:sku"
-                       name:@""
-                description:@""
-                      block:^(NSDictionary* _Nonnull parameters) {
-                        [TeakProductRequest productRequestForSku:parameters[@"sku"]
-                                                        callback:^(NSDictionary* unused, SKProductsResponse* response) {
-                                                          if (response.products.count > 0) {
-                                                            SKProduct* product = [response.products objectAtIndex:0];
-
-                                                            SKMutablePayment* payment = [SKMutablePayment paymentWithProduct:product];
-                                                            payment.quantity = 1;
-                                                            [[SKPaymentQueue defaultQueue] addPayment:payment];
-                                                          }
-                                                        }];
-                      }];
+    // Payment observer
+    self.paymentObserver = [[SKPaymentObserver alloc] initForSomething:@"temporary"];
   }
   return self;
 }
 
 - (void)dealloc {
-  [[SKPaymentQueue defaultQueue] removeTransactionObserver:self];
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
@@ -317,9 +286,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 #pragma clang diagnostic pop
     }
   }
-
-  // Set up listeners
-  [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
 
   // Call 'applicationDidBecomeActive:' to hit the code in there
   [self applicationDidBecomeActive:application];
@@ -500,134 +466,6 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
   }
 
   return YES;
-}
-
-- (void)transactionPurchased:(SKPaymentTransaction*)transaction {
-  if (transaction == nil || transaction.payment == nil || transaction.payment.productIdentifier == nil) return;
-
-  teak_try {
-    teak_log_breadcrumb(@"Building date formatter");
-    NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
-    [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
-    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
-
-    teak_log_breadcrumb(@"Getting info from App Store receipt");
-    NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
-    NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
-
-    [TeakProductRequest productRequestForSku:transaction.payment.productIdentifier
-                                    callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
-                                      teak_log_breadcrumb(@"Building payload");
-                                      NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
-                                        @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
-                                        @"product_id" : transaction.payment.productIdentifier,
-                                        @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
-                                      }];
-
-                                      if (priceInfo != nil) {
-                                        [fullPayload addEntriesFromDictionary:priceInfo];
-                                      }
-
-                                      [PurchaseEvent purchaseSucceeded:fullPayload];
-                                    }];
-  }
-  teak_catch_report;
-}
-
-- (void)transactionFailed:(SKPaymentTransaction*)transaction {
-  if (transaction == nil || transaction.payment == nil) return;
-
-  teak_try {
-    teak_log_breadcrumb(@"Determining status");
-    NSString* errorString = @"unknown";
-    switch (transaction.error.code) {
-      case SKErrorClientInvalid:
-        errorString = @"client_invalid";
-        break;
-      case SKErrorPaymentCancelled:
-        errorString = @"payment_canceled";
-        break;
-      case SKErrorPaymentInvalid:
-        errorString = @"payment_invalid";
-        break;
-      case SKErrorPaymentNotAllowed:
-        errorString = @"payment_not_allowed";
-        break;
-      case SKErrorStoreProductNotAvailable:
-        errorString = @"store_product_not_available";
-        break;
-      default:
-        break;
-    }
-    teak_log_data_breadcrumb(@"Got transaction error code", @{@"transaction.error.code" : errorString});
-
-    NSDictionary* payload = @{
-      @"product_id" : _(transaction.payment.productIdentifier),
-      @"error_string" : errorString
-    };
-    [PurchaseEvent purchaseFailed:payload];
-  }
-  teak_catch_report;
-}
-
-- (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions {
-  for (SKPaymentTransaction* transaction in transactions) {
-    switch (transaction.transactionState) {
-      case SKPaymentTransactionStatePurchased:
-        [self transactionPurchased:transaction];
-        break;
-      case SKPaymentTransactionStateFailed:
-        [self transactionFailed:transaction];
-        break;
-      default:
-        break;
-    }
-  }
-}
-
-@end
-
-@implementation TeakProductRequest
-
-+ (nonnull NSMutableArray*)activeProductRequests {
-  static NSMutableArray* array = nil;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    array = [[NSMutableArray alloc] init];
-  });
-  return array;
-}
-
-+ (TeakProductRequest*)productRequestForSku:(NSString*)sku callback:(TeakProductRequestCallback)callback {
-  TeakProductRequest* ret = [[TeakProductRequest alloc] init];
-  ret.callback = callback;
-  ret.productsRequest = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:sku]];
-  ret.productsRequest.delegate = ret;
-  [ret.productsRequest start];
-  [[TeakProductRequest activeProductRequests] addObject:ret];
-  return ret;
-}
-
-- (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response {
-  if (response != nil && response.products != nil && response.products.count > 0) {
-    teak_try {
-      teak_log_breadcrumb(@"Collecting product response info");
-      SKProduct* product = [response.products objectAtIndex:0];
-      NSLocale* priceLocale = product.priceLocale;
-      NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
-      NSDecimalNumber* price = product.price;
-
-      self.callback(@{@"price_currency_code" : _(currencyCode), @"price_float" : price}, response);
-    }
-    teak_catch_report;
-  } else {
-    self.callback(@{}, nil);
-  }
-  [[TeakProductRequest activeProductRequests] removeObject:self];
-}
-
-- (NSString*)description {
-  return [NSString stringWithFormat:@"<%@: %p> products-request: %@", NSStringFromClass([self class]), self, self.productsRequest];
 }
 
 @end
