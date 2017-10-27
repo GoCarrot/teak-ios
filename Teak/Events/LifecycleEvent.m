@@ -20,8 +20,8 @@
   [TeakEvent postEvent:event];
 }
 
-+ (void)applicationBecameActive {
-  LifecycleEvent* event = [[LifecycleEvent alloc] initWithType:LifecycleBecameActive];
++ (void)applicationActivate {
+  LifecycleEvent* event = [[LifecycleEvent alloc] initWithType:LifecycleActivate];
   [TeakEvent postEvent:event];
 }
 @end

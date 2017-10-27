@@ -329,7 +329,7 @@ DefineTeakState(Expired, (@[]));
         case UserIdentified: {
           [TeakSession setUserId:((UserIdEvent*)event).userId];
         } break;
-        case LifecycleBecameActive: {
+        case LifecycleActivate: {
           [TeakSession applicationDidBecomeActive];
         } break;
         default:

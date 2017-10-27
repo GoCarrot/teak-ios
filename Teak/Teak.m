@@ -309,7 +309,7 @@ Teak* _teakSharedInstance;
   }
 
   // Lifecycle Event
-  [LifecycleEvent applicationBecameActive];
+  [LifecycleEvent applicationActivate];
 }
 
 - (void)applicationWillResignActive:(UIApplication*)application {

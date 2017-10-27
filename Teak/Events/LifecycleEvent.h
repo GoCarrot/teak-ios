@@ -17,5 +17,5 @@
 
 @interface LifecycleEvent : TeakEvent
 + (void)applicationFinishedLaunching;
-+ (void)applicationBecameActive;
++ (void)applicationActivate;
 @end
