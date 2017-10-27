@@ -12,11 +12,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#import "PurchaseEvent.h"
 
-#import "TeakEvent.h"
+@interface PurchaseEvent ()
+@property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;
+@end
 
-@interface PurchaseFailedEvent : TeakEvent
-@property (strong, nonatomic, readonly) NSDictionary* _Nonnull payload;
+@implementation PurchaseEvent
++ (void)purchaseFailed:(NSDictionary* _Nonnull)payload {
+  PurchaseEvent* event = [[PurchaseEvent alloc] initWithType:PurchaseFailed];
+  event.payload = payload;
+  [TeakEvent postEvent:event];
+}
 
-+ (void)purchaseFailed:(NSDictionary* _Nonnull)payload;
++ (void)purchaseSucceeded:(NSDictionary* _Nonnull)payload {
+  PurchaseEvent* event = [[PurchaseEvent alloc] initWithType:PurchaseSucceeded];
+  event.payload = payload;
+  [TeakEvent postEvent:event];
+}
 @end

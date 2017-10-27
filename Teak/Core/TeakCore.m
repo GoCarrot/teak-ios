@@ -14,7 +14,7 @@
  */
 
 #import "TeakCore.h"
-#import "PurchaseFailedEvent.h"
+#import "PurchaseEvent.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
 #import "TrackEventEvent.h"
@@ -48,12 +48,15 @@
         [request send];
       }];
     } break;
-    case PurchaseFailed: {
+
+    // Same code handles both events, but keep two events just for code intent clarity
+    case PurchaseFailed:
+    case PurchaseSucceeded: {
       [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
         TeakRequest* request = [[TeakRequest alloc]
             initWithSession:session
                 forEndpoint:@"/me/purchase"
-                withPayload:((PurchaseFailedEvent*)event).payload
+                withPayload:((PurchaseEvent*)event).payload
                    callback:nil];
         [request send];
       }];

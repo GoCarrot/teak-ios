@@ -28,7 +28,7 @@
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
-#import "PurchaseFailedEvent.h"
+#import "PurchaseEvent.h"
 #import "PushRegistrationEvent.h"
 #import "TrackEventEvent.h"
 #import "UserIdEvent.h"
@@ -528,14 +528,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                         [fullPayload addEntriesFromDictionary:priceInfo];
                                       }
 
-                                      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-                                        TeakRequest* request = [[TeakRequest alloc]
-                                            initWithSession:session
-                                                forEndpoint:@"/me/purchase"
-                                                withPayload:fullPayload
-                                                   callback:nil];
-                                        [request send];
-                                      }];
+                                      [PurchaseEvent purchaseSucceeded:fullPayload];
                                     }];
   }
   teak_catch_report;
@@ -572,7 +565,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
       @"product_id" : _(transaction.payment.productIdentifier),
       @"error_string" : errorString
     };
-    [PurchaseFailedEvent purchaseFailed:payload];
+    [PurchaseEvent purchaseFailed:payload];
   }
   teak_catch_report;
 }
