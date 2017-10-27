@@ -37,7 +37,10 @@ typedef void (^ProductRequestCallback)(NSDictionary* priceInfo, SKProductsRespon
 - (id)initForSomething:(id _Nullable)foo {
   self = [super init];
   if (self) {
+    [TeakEvent addEventHandler:self];
+
     // Register default purchase deep link
+    // TODO: Should this be here, or somewhere else
     [TeakLink registerRoute:@"/teak_internal/store/:sku"
                        name:@""
                 description:@""
@@ -145,8 +148,9 @@ typedef void (^ProductRequestCallback)(NSDictionary* priceInfo, SKProductsRespon
 }
 
 - (void)handleEvent:(TeakEvent* _Nonnull)event {
-  // TODO: If Did become active event
-  [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+  if (event.type == LifecycleFinishedLaunching) {
+    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+  }
 }
 
 @end

@@ -27,6 +27,7 @@
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
+#import "LifecycleEvent.h"
 #import "PurchaseEvent.h"
 #import "PushRegistrationEvent.h"
 #import "TrackEventEvent.h"
@@ -286,6 +287,9 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic pop
     }
   }
+
+  // Lifecycle event
+  [LifecycleEvent applicationFinishedLaunching];
 
   // Call 'applicationDidBecomeActive:' to hit the code in there
   [self applicationDidBecomeActive:application];
