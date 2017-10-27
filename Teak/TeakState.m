@@ -23,9 +23,9 @@
 
 @implementation TeakState
 
-DefineTeakState(Invalid, (@[]))
+DefineTeakState(Invalid, (@[]));
 
-    - (id)initWithName : (nonnull NSString*)name allowedTransitions : (nonnull NSArray*)allowedTransitions {
+- (id)initWithName:(nonnull NSString*)name allowedTransitions:(nonnull NSArray*)allowedTransitions {
   self = [super init];
   if (self) {
     self.name = name;

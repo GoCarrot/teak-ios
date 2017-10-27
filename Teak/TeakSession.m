@@ -50,15 +50,15 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
 @implementation TeakSession
 
-DefineTeakState(Allocated, (@[ @"Created", @"Expiring" ]))
-        DefineTeakState(Created, (@[ @"Configured", @"Expiring" ]))
-            DefineTeakState(Configured, (@[ @"IdentifyingUser", @"Expiring" ]))
-                DefineTeakState(IdentifyingUser, (@[ @"UserIdentified", @"Expiring" ]))
-                    DefineTeakState(UserIdentified, (@[ @"IdentifyingUser", @"Expiring" ]))
-                        DefineTeakState(Expiring, (@[ @"Allocated", @"Created", @"Configured", @"IdentifyingUser", @"UserIdentified", @"Expired" ]))
-                            DefineTeakState(Expired, (@[]))
+DefineTeakState(Allocated, (@[ @"Created", @"Expiring" ]));
+DefineTeakState(Created, (@[ @"Configured", @"Expiring" ]));
+DefineTeakState(Configured, (@[ @"IdentifyingUser", @"Expiring" ]));
+DefineTeakState(IdentifyingUser, (@[ @"UserIdentified", @"Expiring" ]));
+DefineTeakState(UserIdentified, (@[ @"IdentifyingUser", @"Expiring" ]));
+DefineTeakState(Expiring, (@[ @"Allocated", @"Created", @"Configured", @"IdentifyingUser", @"UserIdentified", @"Expired" ]));
+DefineTeakState(Expired, (@[]));
 
-    + (NSMutableArray*)whenUserIdIsReadyRunBlocks {
++ (NSMutableArray*)whenUserIdIsReadyRunBlocks {
   static NSMutableArray* ret = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
@@ -598,7 +598,7 @@ KeyValueObserverFor(TeakRemoteConfiguration, appSentryDsn) {
 }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-KeyValueObserverSupported
+KeyValueObserverSupported;
 #pragma clang diagnostic pop
 
-    @end
+@end
