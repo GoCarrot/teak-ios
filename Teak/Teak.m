@@ -314,8 +314,7 @@ Teak* _teakSharedInstance;
 
 - (void)applicationWillResignActive:(UIApplication*)application {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
-
-  [TeakSession applicationWillResignActive:application appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
+  [LifecycleEvent applicationDeactivate];
 }
 
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {

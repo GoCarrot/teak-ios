@@ -332,6 +332,9 @@ DefineTeakState(Expired, (@[]));
         case LifecycleActivate: {
           [TeakSession applicationDidBecomeActive];
         } break;
+        case LifecycleDeactivate: {
+          [TeakSession applicationWillResignActive];
+        } break;
         default:
           break;
       }
@@ -411,7 +414,7 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)applicationWillResignActive:(UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)applicationWillResignActive {
   @synchronized(currentSessionMutex) {
     [currentSession setState:[TeakSession Expiring]];
   }

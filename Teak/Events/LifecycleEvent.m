@@ -24,4 +24,9 @@
   LifecycleEvent* event = [[LifecycleEvent alloc] initWithType:LifecycleActivate];
   [TeakEvent postEvent:event];
 }
+
++ (void)applicationDeactivate {
+  LifecycleEvent* event = [[LifecycleEvent alloc] initWithType:LifecycleDeactivate];
+  [TeakEvent postEvent:event];
+}
 @end
