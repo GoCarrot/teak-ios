@@ -73,7 +73,7 @@ NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceB
 
 BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
   // Check URL scheme to see if it matches the set we support
-  for (NSString* scheme in [Teak sharedInstance].appConfiguration.urlSchemes) {
+  for (NSString* scheme in [TeakConfiguration configuration].appConfiguration.urlSchemes) {
     if ([scheme isEqualToString:deepLink.scheme]) {
       NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
         [TeakLink handleDeepLink:deepLink];

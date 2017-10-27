@@ -235,7 +235,7 @@ DefineTeakState(Expired, (@[]));
                  // TODO: Check response
                  if (YES) {
                    bool forceDebug = [[reply valueForKey:@"verbose_logging"] boolValue];
-                   [[Teak sharedInstance].debugConfiguration setForceDebugPreference:forceDebug];
+                   [[TeakConfiguration configuration].debugConfiguration setForceDebugPreference:forceDebug];
                    [Teak sharedInstance].enableDebugOutput |= forceDebug;
                    blockSelf.countryCode = [reply valueForKey:@"country_code"];
 

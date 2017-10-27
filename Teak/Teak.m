@@ -20,9 +20,6 @@
 #import "Teak+Internal.h"
 #import <Teak/Teak.h>
 
-#import "TeakAppConfiguration.h"
-#import "TeakDebugConfiguration.h"
-#import "TeakDeviceConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
 
@@ -151,17 +148,11 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
     // Log messages
     self.log = [[TeakLog alloc] initWithAppId:appId];
 
-    // Debug Configuration
-    self.debugConfiguration = [[TeakDebugConfiguration alloc] init];
-    self.enableDebugOutput = self.debugConfiguration.forceDebug;
+    [TeakConfiguration configureForAppId:appId andSecret:appSecret];
+    self.configuration = [TeakConfiguration configuration];
 
-    // App Configuration
-    self.appConfiguration = [[TeakAppConfiguration alloc] initWithAppId:appId apiKey:appSecret];
-    if (self.appConfiguration == nil) {
-      [NSException raise:NSObjectNotAvailableException format:@"Teak App Configuration is nil."];
-      return nil;
-    }
-    self.enableDebugOutput |= !self.appConfiguration.isProduction;
+    self.enableDebugOutput = self.configuration.debugConfiguration.forceDebug;
+    self.enableDebugOutput |= !self.configuration.appConfiguration.isProduction;
 
     // Add Unity/Air SDK version if applicable
     NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
@@ -170,16 +161,10 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
     }
     TeakVersionDict = sdkDict;
 
+    // TODO
     [self.log useSdk:TeakVersionDict];
-    [self.log useAppConfiguration:self.appConfiguration];
-
-    // Device Configuration
-    self.deviceConfiguration = [[TeakDeviceConfiguration alloc] initWithAppConfiguration:self.appConfiguration];
-    if (self.deviceConfiguration == nil) {
-      [NSException raise:NSObjectNotAvailableException format:@"Teak Device Configuration is nil."];
-      return nil;
-    }
-    [self.log useDeviceConfiguration:self.deviceConfiguration];
+    [self.log useAppConfiguration:self.configuration.appConfiguration];
+    [self.log useDeviceConfiguration:self.configuration.deviceConfiguration];
 
     // Set up SDK Raven
     self.sdkRaven = [TeakRaven ravenForTeak:self];
@@ -188,6 +173,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
     self.operationQueue = [[NSOperationQueue alloc] init];
 
     // Teak Core
+    // TODO: This should be factory based
     self.core = [[TeakCore alloc] initForSomething:@"temporary"];
 
     // Register default purchase deep link
@@ -251,7 +237,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
 
 - (BOOL)handleDeepLink:(nonnull NSURL*)url {
   // Attribution
-  [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+  [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
 
   return TeakLink_HandleDeepLink(url);
 }
@@ -354,13 +340,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
     [application setApplicationIconBadgeNumber:0];
   }
 
-  [TeakSession applicationDidBecomeActive:application appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+  [TeakSession applicationDidBecomeActive:application appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
 }
 
 - (void)applicationWillResignActive:(UIApplication*)application {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
-  [TeakSession applicationWillResignActive:application appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+  [TeakSession applicationWillResignActive:application appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
 }
 
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {
@@ -413,8 +399,8 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
         [TeakSession didLaunchFromTeakNotification:teakNotifId
-                                  appConfiguration:self.appConfiguration
-                               deviceConfiguration:self.deviceConfiguration];
+                                  appConfiguration:self.configuration.appConfiguration
+                               deviceConfiguration:self.configuration.deviceConfiguration];
 
         NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
         if (aps[@"teakRewardId"] != nil) [teakUserInfo setValue:aps[@"teakRewardId"] forKey:@"teakRewardId"];
@@ -499,13 +485,13 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                                                             if (error == nil) {
                                                               NSString* iOSPath = [reply objectForKey:@"iOSPath"];
                                                               if (iOSPath != nil) {
-                                                                attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.appConfiguration.appId, iOSPath]];
+                                                                attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath]];
                                                               }
                                                             }
                                                           }
 
                                                           // Attribution
-                                                          [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString appConfiguration:self.appConfiguration deviceConfiguration:self.deviceConfiguration];
+                                                          [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
 
                                                           TeakLink_HandleDeepLink(attributionUrl);
                                                         }];

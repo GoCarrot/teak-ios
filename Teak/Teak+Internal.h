@@ -15,20 +15,14 @@
 
 #import <Teak/Teak.h>
 
+#import "TeakConfiguration.h"
 #import "TeakLog.h"
 #import "TeakRaven.h"
 
-@class TeakDebugConfiguration;
-@class TeakAppConfiguration;
-@class TeakDeviceConfiguration;
 @class TeakCore;
 
 @interface Teak ()
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
-
-@property (strong, nonatomic) TeakDebugConfiguration* _Nonnull debugConfiguration;
-@property (strong, nonatomic) TeakAppConfiguration* _Nonnull appConfiguration;
-@property (strong, nonatomic) TeakDeviceConfiguration* _Nonnull deviceConfiguration;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull sdkVersion;
 
@@ -39,8 +33,8 @@
 @property (strong, nonatomic) NSOperationQueue* _Nonnull operationQueue;
 @property (strong, nonatomic) NSOperation* _Nonnull waitForDeepLinkOperation;
 
+@property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
 @property (strong, nonatomic) TeakLog* _Nonnull log;
-
 @property (strong, nonatomic) TeakCore* _Nonnull core;
 
 // Static initialization time or main()

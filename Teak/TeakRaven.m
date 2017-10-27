@@ -238,20 +238,20 @@ void TeakSignalHandler(int signal) {
         @"release" : teak.sdkVersion,
         @"server_name" : [[NSBundle mainBundle] bundleIdentifier],
         @"tags" : @{
-          @"app_id" : teak.appConfiguration.appId,
-          @"app_version" : teak.appConfiguration.appVersion
+          @"app_id" : teak.configuration.appConfiguration.appId,
+          @"app_version" : teak.configuration.appConfiguration.appVersion
         },
         @"sdk" : @{
           @"name" : @"teak",
           @"version" : TeakSentryVersion
         },
         @"device" : @{
-          @"name" : teak.deviceConfiguration.deviceModel,
-          @"version" : teak.deviceConfiguration.platformString,
+          @"name" : teak.configuration.deviceConfiguration.deviceModel,
+          @"version" : teak.configuration.deviceConfiguration.platformString,
           @"build" : @""
         },
         @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
-          @"device_id" : teak.deviceConfiguration.deviceId
+          @"device_id" : teak.configuration.deviceConfiguration.deviceId
         }]
       }];
 
