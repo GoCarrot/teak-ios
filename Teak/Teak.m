@@ -291,9 +291,6 @@ Teak* _teakSharedInstance;
   // Lifecycle event
   [LifecycleEvent applicationFinishedLaunching];
 
-  // Call 'applicationDidBecomeActive:' to hit the code in there
-  [self applicationDidBecomeActive:application];
-
   return NO;
 }
 
