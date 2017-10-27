@@ -17,7 +17,6 @@
 #import "Teak+Internal.h"
 
 #define kForceDebugPreferencesKey @"TeakForceDebug"
-#define kBugReportUrl @"https://github.com/GoCarrot/teak-ios/issues/new"
 
 @interface TeakDebugConfiguration ()
 @property (nonatomic, readwrite) BOOL forceDebug;
