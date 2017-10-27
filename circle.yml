@@ -18,6 +18,8 @@ dependencies:
   pre:
   - brew update # Fixes: Homebrew must be run under Ruby 2.3!
   - ./setup
+  cache_directories:
+    - ~/Library/Caches/Homebrew/
 test:
   override:
     - ./framework-sanity
@@ -26,9 +28,10 @@ test:
         CODE_SIGNING_REQUIRED=NO
         CODE_SIGN_IDENTITY=
         PROVISIONING_PROFILE=
+        -project Automated/Automated.xcodeproj
         -sdk iphonesimulator
-        -destination 'platform=iOS Simulator,OS=10.0,name=iPhone 6'
-        -scheme Teak
-        clean build |
+        -destination 'platform=iOS Simulator,OS=11.0.1,name=iPhone 8'
+        -scheme Automated
+        clean build test |
       tee $CIRCLE_ARTIFACTS/xcode_raw.log |
       xcpretty --color --report junit --output $CIRCLE_TEST_REPORTS/xcode/results.xml
