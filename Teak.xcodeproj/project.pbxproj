@@ -167,6 +167,7 @@
 		431C97FC1C7E609800B19DD5 /* Teak */ = {
 			isa = PBXGroup;
 			children = (
+				434861741FA2C51B00E0DA12 /* 3rdParty */,
 				439815C41FA299E5005303F1 /* Core */,
 				439815BB1FA2776B005303F1 /* Events */,
 				439815BA1FA27356005303F1 /* Configuration */,
@@ -186,10 +187,8 @@
 				432EDF071CC02CE3007E9C5C /* TeakNotification.h */,
 				432EDF081CC02CE3007E9C5C /* TeakNotification.m */,
 				43C735C01CC1AA2700484B67 /* TeakCExtern.m */,
-				43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */,
 				4361E49D1D27529700672694 /* TeakRaven.h */,
 				4361E49E1D27529700672694 /* TeakRaven.m */,
-				432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */,
 				438372751D3442EA00B01F44 /* TeakSession.h */,
 				438372761D3442EA00B01F44 /* TeakSession.m */,
 				438372791D34443D00B01F44 /* TeakState.h */,
@@ -200,6 +199,15 @@
 				43F7CFF71EF0957E00361256 /* TeakLog.m */,
 			);
 			path = Teak;
+			sourceTree = "<group>";
+		};
+		434861741FA2C51B00E0DA12 /* 3rdParty */ = {
+			isa = PBXGroup;
+			children = (
+				43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */,
+				432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */,
+			);
+			path = 3rdParty;
 			sourceTree = "<group>";
 		};
 		439815BA1FA27356005303F1 /* Configuration */ = {
