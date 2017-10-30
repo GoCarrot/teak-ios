@@ -275,13 +275,15 @@ DefineTeakState(Expired, (@[]));
 #pragma clang diagnostic pop
 }
 
-- (TeakSession*)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
+- (TeakSession*)init {
   self = [super init];
   if (self) {
+    TeakConfiguration* configuration = [TeakConfiguration configuration];
+
     self.currentState = [TeakSession Allocated];
     self.startDate = [[NSDate alloc] init];
-    self.appConfiguration = appConfiguration;
-    self.deviceConfiguration = deviceConfiguration;
+    self.appConfiguration = configuration.appConfiguration;
+    self.deviceConfiguration = configuration.deviceConfiguration;
     self.attributionChain = [[NSMutableArray alloc] init];
 
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
@@ -301,12 +303,14 @@ DefineTeakState(Expired, (@[]));
   return self;
 }
 
-- (TeakSession*)initWithSession:(nonnull TeakSession*)session {
-  self = [self initWithAppConfiguration:session.appConfiguration deviceConfiguration:session.deviceConfiguration];
+- (TeakSession*)initWithSession:(nullable TeakSession*)session {
+  self = [self init];
   if (self) {
-    [self.attributionChain addObjectsFromArray:session.attributionChain];
-    self.userId = session.userId;
-    self.facebookAccessToken = session.facebookAccessToken;
+    if (session != nil) {
+      [self.attributionChain addObjectsFromArray:session.attributionChain];
+      self.userId = session.userId;
+      self.facebookAccessToken = session.facebookAccessToken;
+    }
   }
   return self;
 }
@@ -370,6 +374,7 @@ DefineTeakState(Expired, (@[]));
   }
 
   @synchronized(currentSessionMutex) {
+    [TeakSession currentSession];
     @synchronized(currentSession) {
       if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
         TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
@@ -392,7 +397,7 @@ DefineTeakState(Expired, (@[]));
 + (void)setLaunchAttribution:(nonnull NSDictionary*)attribution appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
   @synchronized(currentSessionMutex) {
     // Call getCurrentSession() so the null || Expired logic stays in one place
-    [TeakSession currentSessionForAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+    [TeakSession currentSession];
 
     // It's a new session if there's a new launch from a notification
     if (![attribution isEqualToDictionary:currentSession.launchAttribution] &&
@@ -415,9 +420,7 @@ DefineTeakState(Expired, (@[]));
 
 + (void)applicationDidBecomeActive {
   @synchronized(currentSessionMutex) {
-    TeakConfiguration* configuration = [TeakConfiguration configuration];
-    [TeakSession currentSessionForAppConfiguration:configuration.appConfiguration
-                               deviceConfiguration:configuration.deviceConfiguration];
+    [TeakSession currentSession];
 
     if (currentSession.currentState == [TeakSession Expiring]) {
       [currentSession setState:currentSession.previousState];
@@ -488,16 +491,11 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (TeakSession*)currentSessionForAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (TeakSession*)currentSession {
   @synchronized(currentSessionMutex) {
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
-      currentSession = [[TeakSession alloc] initWithAppConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
-
-      if (oldSession != nil) {
-        [currentSession.attributionChain addObjectsFromArray:oldSession.attributionChain];
-        currentSession.userId = oldSession.userId;
-      }
+      currentSession = [[TeakSession alloc] initWithSession:oldSession];
     }
     return currentSession;
   }
