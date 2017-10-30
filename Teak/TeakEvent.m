@@ -46,7 +46,7 @@ NSMutableSet* TeakEventHandlerSet;
     NSSet* handlers = nil;
     @synchronized(TeakEventHandlersMutex) {
       handlers = TeakEventHandlerSet;
-      TeakEventHandlerSet = [TeakEventHandlerSet copy];
+      TeakEventHandlerSet = [NSMutableSet setWithSet:handlers];
     }
 
     for (id<TeakEventHandler> handler in handlers) {
