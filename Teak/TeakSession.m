@@ -14,6 +14,7 @@
  */
 
 #import "TeakSession.h"
+#import "FacebookAccessTokenEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 #import "TeakDebugConfiguration.h"
@@ -38,6 +39,7 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic) dispatch_source_t heartbeat;
 @property (strong, nonatomic) NSDictionary* launchAttribution;
 @property (strong, nonatomic) NSMutableArray* attributionChain;
+@property (strong, nonatomic) NSString* facebookAccessToken;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
 @property (strong, nonatomic, readwrite) NSString* sessionId;
@@ -218,8 +220,8 @@ DefineTeakState(Expired, (@[]));
       }
     }
 
-    if ([Teak sharedInstance].fbAccessToken != nil) {
-      [payload setObject:[Teak sharedInstance].fbAccessToken forKey:@"access_token"];
+    if (self.facebookAccessToken != nil) {
+      [payload setObject:self.facebookAccessToken forKey:@"access_token"];
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
@@ -291,7 +293,8 @@ DefineTeakState(Expired, (@[]));
     RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
     RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
     RegisterKeyValueObserverFor(self, currentState);
-    RegisterKeyValueObserverFor([Teak sharedInstance], fbAccessToken);
+
+    [TeakEvent addEventHandler:self];
 
     [self setState:[TeakSession Created]];
   }
@@ -303,6 +306,7 @@ DefineTeakState(Expired, (@[]));
   if (self) {
     [self.attributionChain addObjectsFromArray:session.attributionChain];
     self.userId = session.userId;
+    self.facebookAccessToken = session.facebookAccessToken;
   }
   return self;
 }
@@ -317,7 +321,23 @@ DefineTeakState(Expired, (@[]));
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
   UnRegisterKeyValueObserverFor(self, currentState);
-  UnRegisterKeyValueObserverFor([Teak sharedInstance], fbAccessToken);
+
+  [TeakEvent removeEventHandler:self];
+}
+
+- (void)handleEvent:(TeakEvent*)event {
+  switch (event.type) {
+    case FacebookAccessToken: {
+      id oldValue = self.facebookAccessToken;
+      id newValue = ((FacebookAccessTokenEvent*)event).accessToken;
+      if (oldValue != newValue && (oldValue == nil || oldValue == [NSNull null] || ![newValue isEqualToString:oldValue])) {
+        self.facebookAccessToken = newValue;
+        [self identifyUserInfoHasChanged];
+      }
+    } break;
+    default:
+      break;
+  }
 }
 
 + (void)registerStaticEventListeners {
@@ -504,12 +524,6 @@ DefineTeakState(Expired, (@[]));
       }
     }
   }];
-}
-
-KeyValueObserverFor(Teak, fbAccessToken) {
-  if (oldValue != newValue && newValue && newValue != [NSNull null] && (oldValue == nil || oldValue == [NSNull null] || ![newValue isEqualToString:oldValue])) {
-    [self identifyUserInfoHasChanged];
-  }
 }
 
 KeyValueObserverFor(TeakSession, currentState) {

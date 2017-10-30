@@ -27,8 +27,6 @@
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull sdkVersion;
 
-@property (strong, nonatomic) NSString* _Nullable fbAccessToken;
-
 @property (strong, nonatomic) TeakRaven* _Nonnull sdkRaven;
 
 @property (strong, nonatomic) NSOperationQueue* _Nonnull operationQueue;

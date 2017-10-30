@@ -27,7 +27,8 @@ typedef enum {
   PurchaseSucceeded,
   LifecycleFinishedLaunching,
   LifecycleActivate,
-  LifecycleDeactivate
+  LifecycleDeactivate,
+  FacebookAccessToken
 } TeakEventType;
 
 typedef void (^TeakEventHandlerBlock)(TeakEvent* _Nonnull);

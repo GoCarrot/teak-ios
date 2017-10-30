@@ -40,6 +40,8 @@
 		434861811FA3B97B00E0DA12 /* SKPaymentObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = 4348617F1FA3B97B00E0DA12 /* SKPaymentObserver.m */; };
 		434861851FA3C08A00E0DA12 /* LifecycleEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434861831FA3C08A00E0DA12 /* LifecycleEvent.h */; };
 		434861861FA3C08A00E0DA12 /* LifecycleEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 434861841FA3C08A00E0DA12 /* LifecycleEvent.m */; };
+		434862481FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434862461FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h */; };
+		434862491FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */; };
 		4361E49F1D27529700672694 /* TeakRaven.h in Headers */ = {isa = PBXBuildFile; fileRef = 4361E49D1D27529700672694 /* TeakRaven.h */; };
 		4361E4A01D27529700672694 /* TeakRaven.m in Sources */ = {isa = PBXBuildFile; fileRef = 4361E49E1D27529700672694 /* TeakRaven.m */; };
 		4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372691D3419D000B01F44 /* TeakDebugConfiguration.h */; };
@@ -116,6 +118,8 @@
 		4348617F1FA3B97B00E0DA12 /* SKPaymentObserver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SKPaymentObserver.m; sourceTree = "<group>"; };
 		434861831FA3C08A00E0DA12 /* LifecycleEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LifecycleEvent.h; sourceTree = "<group>"; };
 		434861841FA3C08A00E0DA12 /* LifecycleEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LifecycleEvent.m; sourceTree = "<group>"; };
+		434862461FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FacebookAccessTokenEvent.h; sourceTree = "<group>"; };
+		434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FacebookAccessTokenEvent.m; sourceTree = "<group>"; };
 		4361E49D1D27529700672694 /* TeakRaven.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRaven.h; sourceTree = "<group>"; };
 		4361E49E1D27529700672694 /* TeakRaven.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRaven.m; sourceTree = "<group>"; };
 		438372691D3419D000B01F44 /* TeakDebugConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakDebugConfiguration.h; sourceTree = "<group>"; };
@@ -266,6 +270,8 @@
 				4348617A1FA3B5D800E0DA12 /* PurchaseEvent.m */,
 				434861831FA3C08A00E0DA12 /* LifecycleEvent.h */,
 				434861841FA3C08A00E0DA12 /* LifecycleEvent.m */,
+				434862461FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h */,
+				434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */,
 			);
 			path = Events;
 			sourceTree = "<group>";
@@ -291,6 +297,7 @@
 				434861851FA3C08A00E0DA12 /* LifecycleEvent.h in Headers */,
 				439815C71FA299F8005303F1 /* TeakCore.h in Headers */,
 				439815C21FA2909F005303F1 /* UserIdEvent.h in Headers */,
+				434862481FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h in Headers */,
 				431C98081C7E612400B19DD5 /* Teak.h in Headers */,
 				434861771FA2C5E000E0DA12 /* TeakConfiguration.h in Headers */,
 				4361E49F1D27529700672694 /* TeakRaven.h in Headers */,
@@ -432,6 +439,7 @@
 				438372701D34239900B01F44 /* TeakAppConfiguration.m in Sources */,
 				434861811FA3B97B00E0DA12 /* SKPaymentObserver.m in Sources */,
 				434861861FA3C08A00E0DA12 /* LifecycleEvent.m in Sources */,
+				434862491FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m in Sources */,
 				43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */,
 				4383727C1D34443D00B01F44 /* TeakState.m in Sources */,
 				4348617C1FA3B5D800E0DA12 /* PurchaseEvent.m in Sources */,

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#import "TeakEvent.h"
 #import "TeakState.h"
 #import <UIKit/UIKit.h>
 
@@ -23,7 +24,7 @@
 
 typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 
-@interface TeakSession : NSObject
+@interface TeakSession : NSObject <TeakEventHandler>
 @property (strong, nonatomic, readonly) TeakAppConfiguration* _Nonnull appConfiguration;
 @property (strong, nonatomic, readonly) TeakDeviceConfiguration* _Nonnull deviceConfiguration;
 @property (strong, nonatomic, readonly) TeakRemoteConfiguration* _Nonnull remoteConfiguration;

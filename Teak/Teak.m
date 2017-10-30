@@ -27,6 +27,7 @@
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
+#import "FacebookAccessTokenEvent.h"
 #import "LifecycleEvent.h"
 #import "PurchaseEvent.h"
 #import "PushRegistrationEvent.h"
@@ -176,7 +177,10 @@ Teak* _teakSharedInstance;
   id newAccessToken = [notification.userInfo objectForKey:TeakFBSDKAccessTokenChangeNewKey];
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-  self.fbAccessToken = [newAccessToken performSelector:sel_getUid("tokenString")];
+  id accessToken = [newAccessToken performSelector:sel_getUid("tokenString")];
+  if (accessToken != nil && accessToken != [NSNull null]) {
+    [FacebookAccessTokenEvent accessTokenUpdated:accessToken];
+  }
 #pragma clang diagnostic pop
 }
 
@@ -186,7 +190,10 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
   id activeSession = [fbSession performSelector:sel_getUid("activeSession")];
   id accessTokenData = [activeSession performSelector:sel_getUid("accessTokenData")];
-  self.fbAccessToken = [accessTokenData performSelector:sel_getUid("accessToken")];
+  id accessToken = [accessTokenData performSelector:sel_getUid("accessToken")];
+  if (accessToken != nil && accessToken != [NSNull null]) {
+    [FacebookAccessTokenEvent accessTokenUpdated:accessToken];
+  }
 #pragma clang diagnostic pop
 }
 
