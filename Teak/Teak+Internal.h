@@ -15,30 +15,27 @@
 
 #import <Teak/Teak.h>
 
-#import "TeakRaven.h"
+#import "TeakConfiguration.h"
 #import "TeakLog.h"
+#import "TeakRaven.h"
 
-@class TeakDebugConfiguration;
-@class TeakAppConfiguration;
-@class TeakDeviceConfiguration;
+@class TeakCore;
+@class SKPaymentObserver;
 
 @interface Teak ()
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
 
-@property (strong, nonatomic) TeakDebugConfiguration* _Nonnull debugConfiguration;
-@property (strong, nonatomic) TeakAppConfiguration* _Nonnull appConfiguration;
-@property (strong, nonatomic) TeakDeviceConfiguration* _Nonnull deviceConfiguration;
-
 @property (strong, nonatomic, readwrite) NSString* _Nonnull sdkVersion;
-
-@property (strong, nonatomic) NSString* _Nullable fbAccessToken;
 
 @property (strong, nonatomic) TeakRaven* _Nonnull sdkRaven;
 
 @property (strong, nonatomic) NSOperationQueue* _Nonnull operationQueue;
 @property (strong, nonatomic) NSOperation* _Nonnull waitForDeepLinkOperation;
 
+@property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
 @property (strong, nonatomic) TeakLog* _Nonnull log;
+@property (strong, nonatomic) TeakCore* _Nonnull core;
+@property (strong, nonatomic) SKPaymentObserver* _Nonnull paymentObserver;
 
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;

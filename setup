@@ -2,5 +2,6 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-#if [ "$(which infer)" == "" ]; then brew install infer; fi
+if [ "$(which infer)" == "" ]; then brew install infer; fi
 if [ "$(which aws)" == "" ]; then brew install awscli; fi
+if [ "$(which clang-format)" == "" ]; then brew install clang-format; fi

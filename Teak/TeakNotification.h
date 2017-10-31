@@ -17,12 +17,12 @@
 @class TeakReward;
 
 @interface TeakNotification : NSObject
-@property (strong, nonatomic, readonly) NSString* _Nullable     teakNotifId;
-@property (strong, nonatomic, readonly) NSString* _Nullable     status;
-@property (strong, nonatomic, readonly) NSString* _Nullable     teakRewardId;
+@property (strong, nonatomic, readonly) NSString* _Nullable teakNotifId;
+@property (strong, nonatomic, readonly) NSString* _Nullable status;
+@property (strong, nonatomic, readonly) NSString* _Nullable teakRewardId;
 @property (strong, nonatomic, readonly) NSDictionary* _Nullable originalJson;
-@property (strong, nonatomic, readonly) NSURL* _Nullable        teakDeepLink;
-@property (atomic, readonly)            BOOL                    completed;
+@property (strong, nonatomic, readonly) NSURL* _Nullable teakDeepLink;
+@property (atomic, readonly) BOOL completed;
 
 - (nullable TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary;
 

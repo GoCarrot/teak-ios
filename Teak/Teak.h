@@ -35,9 +35,9 @@ extern NSString* _Nonnull const TeakOnReward;
 
 #ifdef __OBJC__
 
-#import <UIKit/UIKit.h>
-#import <Teak/TeakNotification.h>
 #import <Teak/TeakLink.h>
+#import <Teak/TeakNotification.h>
+#import <UIKit/UIKit.h>
 
 @interface Teak : NSObject
 

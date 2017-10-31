@@ -17,7 +17,7 @@
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
-@property (strong, nonatomic) UIWindow *window;
+@property (strong, nonatomic) UIWindow* window;
 
 - (NSString*)integrationTestTimeout:(NSString*)timeout;
 - (NSString*)integrationTestSchedulePush:(NSString*)message;

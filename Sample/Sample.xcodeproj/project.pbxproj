@@ -354,8 +354,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_LDFLAGS = (
 					"-ObjC",
-					"-force_load",
-					"\"$(SOURCE_ROOT)/../calabash.framework/calabash\"",
 					"-framework",
 					CFNetwork,
 				);
@@ -382,8 +380,6 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				OTHER_LDFLAGS = (
 					"-ObjC",
-					"-force_load",
-					"\"$(SOURCE_ROOT)/../calabash.framework/calabash\"",
 					"-framework",
 					CFNetwork,
 				);

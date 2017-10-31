@@ -16,17 +16,17 @@
 #import <Foundation/Foundation.h>
 
 NSString* TeakNSStringOrNilFor(id object) {
-   if (object == nil) return nil;
+  if (object == nil) return nil;
 
-   NSString* ret = nil;
-   @try {
-      ret = ((object == nil || [object isKindOfClass:[NSString class]]) ? object : [object stringValue]);
-   } @catch (NSException* ignored) {
-   }
-   return ret;
+  NSString* ret = nil;
+  @try {
+    ret = ((object == nil || [object isKindOfClass:[NSString class]]) ? object : [object stringValue]);
+  } @catch (NSException* ignored) {
+  }
+  return ret;
 }
 
 NSString* TeakURLEscapedString(NSString* inString) {
-   if (inString == nil) return nil;
-   return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]];
+  if (inString == nil) return nil;
+  return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]];
 }
