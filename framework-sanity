@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+err=0
+
+output_should_be=$(cat <<-END
+build/Release-iphoneos/Teak.framework/Versions/A
+build/Release-iphoneos/Teak.framework/Versions/Current
+build/Release-iphoneos/Teak.framework/Versions/A/Headers
+build/Release-iphoneos/Teak.framework/Versions/A/Teak
+build/Release-iphoneos/Teak.framework/Versions/A/Headers/Teak.h
+build/Release-iphoneos/Teak.framework/Versions/A/Headers/TeakLink.h
+build/Release-iphoneos/Teak.framework/Versions/A/Headers/TeakNotification.h
+END
+)
+
+output=$(ls -R build/Release-iphoneos/Teak.framework | awk '
+/:$/&&f{s=$0;f=0}
+/:$/&&!f{sub(/:$/,"");s=$0;f=1;next}
+NF&&f{ print s"/"$0 }')
+
+if [ "$output" != "$output_should_be" ];
+then
+    echo "Teak.framework sanity check failed."
+    diff  <(echo "$output" ) <(echo "$output_should_be")
+    exit 1
+else
+    echo "Teak.framework sanity check passed."
+fi

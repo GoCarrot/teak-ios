@@ -20,7 +20,7 @@
 
 typedef void (^TeakRequestResponse)(NSURLResponse* _Nonnull response, NSDictionary* _Nonnull reply);
 
-@interface TeakRequest : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
+@interface TeakRequest : NSObject
 @property (strong, nonatomic, readonly) NSString* _Nonnull endpoint;
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull payload;
 @property (copy, nonatomic, readonly) TeakRequestResponse _Nullable callback;

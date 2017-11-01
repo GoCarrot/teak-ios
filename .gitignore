@@ -1,12 +1,12 @@
 .DS_Store
-Teak.xcodeproj/project.xcworkspace/
-Teak.xcodeproj/xcuserdata/
 build/*
 !build/.gitkeep
-Sample/Sample.xcodeproj/project.xcworkspace/
-Sample/Sample.xcodeproj/xcuserdata/
 *.pem
+
 infer-out/
 
-calabash/screenshot*
 .irb-history
+
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout

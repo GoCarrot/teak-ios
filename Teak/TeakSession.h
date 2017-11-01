@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 
-#import <UIKit/UIKit.h>
+#import "TeakEvent.h"
 #import "TeakState.h"
+#import <UIKit/UIKit.h>
 
 @class TeakSession;
 @class TeakAppConfiguration;
@@ -23,7 +24,7 @@
 
 typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 
-@interface TeakSession : NSObject
+@interface TeakSession : NSObject <TeakEventHandler>
 @property (strong, nonatomic, readonly) TeakAppConfiguration* _Nonnull appConfiguration;
 @property (strong, nonatomic, readonly) TeakDeviceConfiguration* _Nonnull deviceConfiguration;
 @property (strong, nonatomic, readonly) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
@@ -37,13 +38,11 @@ DeclareTeakState(UserIdentified);
 DeclareTeakState(Expiring);
 DeclareTeakState(Expired);
 
++ (void)registerStaticEventListeners;
+
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;
 + (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
-+ (void)setUserId:(nonnull NSString*)userId;
 + (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 + (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
-
-+ (void)applicationDidBecomeActive:(nonnull UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
-+ (void)applicationWillResignActive:(nonnull UIApplication*)application appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 @end
