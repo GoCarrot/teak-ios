@@ -422,26 +422,33 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                      __strong TeakReward* blockReward = weakReward;
 
                      [teakUserInfo setValue:blockReward.json == nil ? [NSNull null] : blockReward.json forKey:@"teakReward"];
-                     [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                         object:self
-                                                                       userInfo:teakUserInfo];
+                    [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+                      [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                          object:self
+                                                                        userInfo:teakUserInfo];
+                    }];
 
                      if (blockReward.json != nil) {
-                        [teakUserInfo addEntriesFromDictionary:blockReward.json];
-                        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                                            object:self
-                                                                          userInfo:teakUserInfo];
+                       [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+                         [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                             object:self
+                                                                           userInfo:teakUserInfo];
+                       }];
                      }
                   };
                } else {
-                  [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                      object:self
-                                                                    userInfo:teakUserInfo];
+                 [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+                   [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                       object:self
+                                                                     userInfo:teakUserInfo];
+                 }];
                }
             } else {
-               [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                   object:self
-                                                                 userInfo:teakUserInfo];
+              [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                    object:self
+                                                                  userInfo:teakUserInfo];
+              }];
             }
 
             // If there's a deep link, see if Teak handles it. Otherwise use openURL.

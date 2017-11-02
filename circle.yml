@@ -6,7 +6,7 @@ checkout:
     - git fetch --tags
 deployment:
   prod:
-    branch: master
+    branch: [master, /hotfix.*/]
     commands:
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read

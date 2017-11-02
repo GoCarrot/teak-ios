@@ -434,9 +434,11 @@ DefineTeakState(Expired, (@[]))
          reward.onComplete = ^() {
             __strong TeakReward* blockReward = tempWeakReward;
             if (blockReward.json != nil) {
-               [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                                   object:self
-                                                                 userInfo:blockReward.json];
+              [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                    object:self
+                                                                  userInfo:blockReward.json];
+              }];
             }
          };
       }
