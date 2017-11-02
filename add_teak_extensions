@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+ruby TeakExtensions/add_teak_extensions.rb --symlink-instead-of-copy Sample/Sample.xcodeproj
