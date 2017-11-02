@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'bundler/setup'
 require 'fileutils'
 require 'pathname'
 require 'xcodeproj'
@@ -39,8 +40,9 @@ teak_extensions.each do |service|
 
   Dir.glob(File.expand_path("#{service}/*", File.dirname(__FILE__))).map(&File.method(:realpath)).each do |file|
     target_file = File.join(target_path, File.basename(file))
-    puts "#{file} -> #{target_file}"
+    FileUtils.rm_f(target_file)
 
+    puts "#{file} -> #{target_file}"
     if symlink_instead_of_copy then
       first = Pathname.new file
       second = Pathname.new File.dirname(target_file)
