@@ -429,6 +429,7 @@ typedef void (^TeakProductRequestCallback)(NSDictionary* priceInfo, SKProductsRe
                     }];
 
                      if (blockReward.json != nil) {
+                       [teakUserInfo addEntriesFromDictionary:blockReward.json];
                        [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
                          [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
                                                                              object:self
