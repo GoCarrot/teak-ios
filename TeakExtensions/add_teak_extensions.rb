@@ -30,7 +30,7 @@ puts "Adding Teak Notification Extensions to: #{xcode_project_path}"
 xcode_proj = Xcodeproj::Project.open(xcode_project_path)
 
 # List of Teak extensions
-teak_extensions = ["TeakNotificationService"]
+teak_extensions = ["TeakNotificationService", "TeakNotificationContent"]
 teak_extensions.each do |service|
 
   # Copy our files
@@ -45,7 +45,7 @@ teak_extensions.each do |service|
   target = xcode_proj.native_targets.detect { |e| e.name == service} ||
     xcode_proj.new_target(:app_extension, service, :ios, nil, xcode_proj.products_group, :objc)
 
-  Dir.glob(File.expand_path("#{service}/*", File.dirname(__FILE__))).map(&File.method(:realpath)).each do |file|
+  Dir.glob(File.expand_path("#{service}/**/*", File.dirname(__FILE__))).map(&File.method(:realpath)).each do |file|
     target_file = File.join(target_path, File.basename(file))
     FileUtils.rm_f(target_file)
 
@@ -91,7 +91,7 @@ teak_extensions.each do |service|
 
   # Add to native targets
   xcode_proj.native_targets.each do |native_target|
-    next if native_target == target
+    next if native_target.to_s != xcode_project_name
 
     puts "Adding #{target} as a dependency for #{native_target}"
     native_target.add_dependency(target)
