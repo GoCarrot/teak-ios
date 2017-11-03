@@ -65,7 +65,7 @@ teak_extensions.each do |service|
     file_ref = product_group[File.basename(file)] || product_group.new_reference(File.basename(file))
 
     # Add *.m files to build phase
-    if File.extname(file) == "m" then
+    if File.extname(file) == ".m" then
       target.source_build_phase.add_file_reference(file_ref, true)
     end
   end
