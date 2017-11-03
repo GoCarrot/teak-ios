@@ -20,7 +20,7 @@
 @property (strong, nonatomic) UNMutableNotificationContent* bestAttemptContent;
 @property (strong, nonatomic) NSURLSession* session;
 
-- (NSURLRequest*)metricRequestForPayload:(NSDictionary*)payload;
+- (void)sendMetricForPayload:(NSDictionary*)payload;
 @end
 
 NSString* TeakNSStringOrNilFor(id object) {
