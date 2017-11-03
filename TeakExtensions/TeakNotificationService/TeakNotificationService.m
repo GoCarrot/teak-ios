@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#import "NotificationService.h"
+#import "TeakNotificationService.h"
 
-@interface NotificationService ()
+@interface TeakNotificationService ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent* contentToDeliver);
 @property (strong, nonatomic) UNMutableNotificationContent* bestAttemptContent;
 @property (strong, nonatomic) NSURLSession* session;
@@ -34,7 +34,7 @@ NSString* TeakNSStringOrNilFor(id object) {
   return ret;
 }
 
-@implementation NotificationService
+@implementation TeakNotificationService
 
 - (void)didReceiveNotificationRequest:(UNNotificationRequest*)request withContentHandler:(void (^)(UNNotificationContent* _Nonnull))contentHandler {
   self.contentHandler = contentHandler;

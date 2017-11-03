@@ -17,7 +17,6 @@
 		431C98811C7E6EE100B19DD5 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98801C7E6EE100B19DD5 /* AdSupport.framework */; };
 		431C98851C7E7CC100B19DD5 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98841C7E7CC100B19DD5 /* StoreKit.framework */; };
 		431C98971C7FAB0800B19DD5 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */; };
-		6132D73D6FD41CB9789DE0F0 /* NotificationService.m in Sources */ = {isa = PBXBuildFile; fileRef = 18FB2E1A7E96BD2CA54CA591 /* NotificationService.m */; };
 		93E7C4E351CB84E3E423A958 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
 		F4F1C1D4A75ABF493E3C8010 /* TeakNotificationService.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = 62147F837EC50C99C900F90F /* TeakNotificationService.appex */; };
 /* End PBXBuildFile section */
@@ -54,10 +53,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		18FB2E1A7E96BD2CA54CA591 /* NotificationService.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = NotificationService.m; sourceTree = "<group>"; };
 		192F1BCFC30B896DB474AF0F /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.3.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		237798B7AA94F09595987774 /* NotificationService.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = NotificationService.h; sourceTree = "<group>"; };
 		3562F208140473F086EF949A /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		399E6056E5D0B169635A1FCA /* TeakNotificationService.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationService.m; sourceTree = "<group>"; };
 		431C985C1C7E6DE300B19DD5 /* Sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		431C98601C7E6DE300B19DD5 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		431C98621C7E6DE300B19DD5 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -72,6 +70,7 @@
 		431C98801C7E6EE100B19DD5 /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		431C98841C7E7CC100B19DD5 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		620BD3EBADA22E139E437F55 /* TeakNotificationService.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = TeakNotificationService.h; sourceTree = "<group>"; };
 		62147F837EC50C99C900F90F /* TeakNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAEB0FB81E4BDB0F00B6069C /* Sample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sample.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -167,10 +166,9 @@
 			isa = PBXGroup;
 			children = (
 				3562F208140473F086EF949A /* Info.plist */,
-				237798B7AA94F09595987774 /* NotificationService.h */,
-				18FB2E1A7E96BD2CA54CA591 /* NotificationService.m */,
+				620BD3EBADA22E139E437F55 /* TeakNotificationService.h */,
+				399E6056E5D0B169635A1FCA /* TeakNotificationService.m */,
 			);
-			name = TeakNotificationService;
 			path = TeakNotificationService;
 			sourceTree = "<group>";
 		};
@@ -245,6 +243,9 @@
 							};
 						};
 					};
+					AD60EAFB07AE94463E29BBB1 = {
+						DevelopmentTeam = 7FLZTACJ82;
+					};
 				};
 			};
 			buildConfigurationList = 431C98571C7E6DE200B19DD5 /* Build configuration list for PBXProject "Sample" */;
@@ -307,7 +308,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6132D73D6FD41CB9789DE0F0 /* NotificationService.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
