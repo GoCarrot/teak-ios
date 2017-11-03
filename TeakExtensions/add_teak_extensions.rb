@@ -30,7 +30,10 @@ puts "Adding Teak Notification Extensions to: #{xcode_project_path}"
 xcode_proj = Xcodeproj::Project.open(xcode_project_path)
 
 # List of Teak extensions
-teak_extensions = ["TeakNotificationService", "TeakNotificationContent"]
+teak_extensions = [
+  "TeakNotificationService",
+  "TeakNotificationContent"
+]
 teak_extensions.each do |service|
 
   # Copy our files
