@@ -38,6 +38,13 @@ teak_extensions.each do |service|
   target_path = File.join(File.dirname(xcode_project_path), service)
   FileUtils.mkdir_p(target_path)
 
+  # Find or create PBXGroup
+  product_group = xcode_proj[service] || xcode_proj.new_group(service, service)
+
+  # Get or create target
+  target = xcode_proj.native_targets.detect { |e| e.name == service} ||
+    xcode_proj.new_target(:app_extension, service, :ios, nil, xcode_proj.products_group, :objc)
+
   Dir.glob(File.expand_path("#{service}/*", File.dirname(__FILE__))).map(&File.method(:realpath)).each do |file|
     target_file = File.join(target_path, File.basename(file))
     FileUtils.rm_f(target_file)
@@ -50,22 +57,15 @@ teak_extensions.each do |service|
     else
       FileUtils.cp(file, target_file)
     end
+
+    # Find or add file
+    file_ref = product_group[File.basename(file)] || product_group.new_reference(File.basename(file))
+
+    # Add *.m files to build phase
+    if File.extname(file) == "m" then
+      target.source_build_phase.add_file_reference(file_ref, true)
+    end
   end
-
-  # Find or create PBXGroup
-  product_group = xcode_proj[service] || xcode_proj.new_group(service, service)
-
-  # Find or add files
-  product_group["Info.plist"] || product_group.new_reference("Info.plist")
-  product_group["NotificationService.h"] || product_group.new_reference("NotificationService.h")
-  m_file = product_group["NotificationService.m"] || product_group.new_reference("NotificationService.m")
-
-  # Get or create target
-  target = xcode_proj.native_targets.detect { |e| e.name == service} || 
-    xcode_proj.new_target(:app_extension, service, :ios, nil, xcode_proj.products_group, :objc)
-
-  # Add m_file to its build phase if it doesn't exist
-  target.source_build_phase.add_file_reference(m_file, true)
 
   # Add Resources build phase
   target.resources_build_phase
