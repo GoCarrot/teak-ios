@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0B3EA16D61DB7C106D031058 /* TeakNotificationService.m in Sources */ = {isa = PBXBuildFile; fileRef = B09842D360B36999858F27CC /* TeakNotificationService.m */; };
+		141C19FD24E7CAA4AD44EA6F /* TeakNotificationContent.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = FBFD9BE05552924F99514665 /* TeakNotificationContent.appex */; };
 		431C98611C7E6DE300B19DD5 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C98601C7E6DE300B19DD5 /* main.m */; };
 		431C98641C7E6DE300B19DD5 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C98631C7E6DE300B19DD5 /* AppDelegate.m */; };
 		431C98671C7E6DE300B19DD5 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C98661C7E6DE300B19DD5 /* ViewController.m */; };
@@ -18,8 +19,12 @@
 		431C98811C7E6EE100B19DD5 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98801C7E6EE100B19DD5 /* AdSupport.framework */; };
 		431C98851C7E7CC100B19DD5 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98841C7E7CC100B19DD5 /* StoreKit.framework */; };
 		431C98971C7FAB0800B19DD5 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */; };
+		4B42F2E07D5AB45F9FCA756E /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
 		5F158A8EB9F1FA3311799D7A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
 		A628E016A31A3884318A4A8D /* TeakNotificationService.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = 743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */; };
+		E6C409BD987F3456FDED7EBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
+		F947CCAE63F557F1DD54C69A /* UserNotificationsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D34458518D7A040139D5987 /* UserNotificationsUI.framework */; };
+		FEF918354B8C1D9E23276DD1 /* TeakNotificationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D57C2695070C11A92648E58A /* TeakNotificationViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,6 +34,13 @@
 			proxyType = 2;
 			remoteGlobalIDString = 431C97FA1C7E609800B19DD5;
 			remoteInfo = Teak;
+		};
+		564B7A26C242B6E207281BA4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 431C98541C7E6DE200B19DD5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A79877AA6FB137229A26A700;
+			remoteInfo = TeakNotificationContent;
 		};
 		61E59122994789B33022AE93 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -47,6 +59,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				A628E016A31A3884318A4A8D /* TeakNotificationService.appex in Embed Teak App Extensions */,
+				141C19FD24E7CAA4AD44EA6F /* TeakNotificationContent.appex in Embed Teak App Extensions */,
 			);
 			name = "Embed Teak App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -70,10 +83,16 @@
 		431C98801C7E6EE100B19DD5 /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		431C98841C7E7CC100B19DD5 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		6D34458518D7A040139D5987 /* UserNotificationsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotificationsUI.framework; path = System/Library/Frameworks/UserNotificationsUI.framework; sourceTree = SDKROOT; };
 		743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABB77BC1C06D19B18BC9AE2B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B09842D360B36999858F27CC /* TeakNotificationService.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationService.m; sourceTree = "<group>"; };
+		C312C18550196F0615196F9E /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D2EC9E562952FA69B7E82396 /* TeakNotificationViewController.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = TeakNotificationViewController.h; sourceTree = "<group>"; };
+		D57C2695070C11A92648E58A /* TeakNotificationViewController.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationViewController.m; sourceTree = "<group>"; };
+		E7BB850291E740CCB89F8860 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		FAEB0FB81E4BDB0F00B6069C /* Sample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sample.entitlements; sourceTree = "<group>"; };
+		FBFD9BE05552924F99514665 /* TeakNotificationContent.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationContent.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,9 +115,30 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BDEBD3E33960090A22A1AD37 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E6C409BD987F3456FDED7EBE /* Foundation.framework in Frameworks */,
+				4B42F2E07D5AB45F9FCA756E /* UserNotifications.framework in Frameworks */,
+				F947CCAE63F557F1DD54C69A /* UserNotificationsUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		05F12CB46404D8AF8B0EFD82 /* TeakNotificationContent */ = {
+			isa = PBXGroup;
+			children = (
+				C312C18550196F0615196F9E /* Info.plist */,
+				D2EC9E562952FA69B7E82396 /* TeakNotificationViewController.h */,
+				D57C2695070C11A92648E58A /* TeakNotificationViewController.m */,
+			);
+			name = TeakNotificationContent;
+			path = TeakNotificationContent;
+			sourceTree = "<group>";
+		};
 		06ED73E7C6DE58F06A78DE21 /* TeakNotificationService */ = {
 			isa = PBXGroup;
 			children = (
@@ -121,6 +161,7 @@
 				431C985D1C7E6DE300B19DD5 /* Products */,
 				879C4E8A2BF50111224BCCB3 /* Frameworks */,
 				06ED73E7C6DE58F06A78DE21 /* TeakNotificationService */,
+				05F12CB46404D8AF8B0EFD82 /* TeakNotificationContent */,
 			);
 			sourceTree = "<group>";
 		};
@@ -129,6 +170,7 @@
 			children = (
 				431C985C1C7E6DE300B19DD5 /* Sample.app */,
 				743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */,
+				FBFD9BE05552924F99514665 /* TeakNotificationContent.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -170,6 +212,8 @@
 			isa = PBXGroup;
 			children = (
 				F1858FF3B67742428E0B66BD /* iOS */,
+				E7BB850291E740CCB89F8860 /* UserNotifications.framework */,
+				6D34458518D7A040139D5987 /* UserNotificationsUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -198,11 +242,29 @@
 			);
 			dependencies = (
 				D3701E0241228602B17DDB68 /* PBXTargetDependency */,
+				CF0180186D381F22D4066E70 /* PBXTargetDependency */,
 			);
 			name = Sample;
 			productName = Sample;
 			productReference = 431C985C1C7E6DE300B19DD5 /* Sample.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A79877AA6FB137229A26A700 /* TeakNotificationContent */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 92474334A852E55F9DF11466 /* Build configuration list for PBXNativeTarget "TeakNotificationContent" */;
+			buildPhases = (
+				DEC013EABA464F7C2DE5F26D /* Sources */,
+				BDEBD3E33960090A22A1AD37 /* Frameworks */,
+				877A9B7F67827BC603C80963 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TeakNotificationContent;
+			productName = TeakNotificationContent;
+			productReference = FBFD9BE05552924F99514665 /* TeakNotificationContent.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		B90237E307C9A817DE88FBCB /* TeakNotificationService */ = {
 			isa = PBXNativeTarget;
@@ -268,6 +330,7 @@
 			targets = (
 				431C985B1C7E6DE300B19DD5 /* Sample */,
 				B90237E307C9A817DE88FBCB /* TeakNotificationService */,
+				A79877AA6FB137229A26A700 /* TeakNotificationContent */,
 			);
 		};
 /* End PBXProject section */
@@ -290,6 +353,13 @@
 				431C986F1C7E6DE300B19DD5 /* LaunchScreen.storyboard in Resources */,
 				431C986C1C7E6DE300B19DD5 /* Assets.xcassets in Resources */,
 				431C986A1C7E6DE300B19DD5 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		877A9B7F67827BC603C80963 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -321,9 +391,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DEC013EABA464F7C2DE5F26D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FEF918354B8C1D9E23276DD1 /* TeakNotificationViewController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CF0180186D381F22D4066E70 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = TeakNotificationContent;
+			target = A79877AA6FB137229A26A700 /* TeakNotificationContent */;
+			targetProxy = 564B7A26C242B6E207281BA4 /* PBXContainerItemProxy */;
+		};
 		D3701E0241228602B17DDB68 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = TeakNotificationService;
@@ -500,6 +584,19 @@
 			};
 			name = Release;
 		};
+		5649BAF7D6ECE9B4845C9FB9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 		6B98CE36BE51F753B738A090 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -526,6 +623,19 @@
 			};
 			name = Debug;
 		};
+		F4AAA9B659C4B3F362137F84 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -543,6 +653,15 @@
 			buildConfigurations = (
 				431C98741C7E6DE300B19DD5 /* Debug */,
 				431C98751C7E6DE300B19DD5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		92474334A852E55F9DF11466 /* Build configuration list for PBXNativeTarget "TeakNotificationContent" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5649BAF7D6ECE9B4845C9FB9 /* Release */,
+				F4AAA9B659C4B3F362137F84 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -31,10 +31,10 @@ xcode_proj = Xcodeproj::Project.open(xcode_project_path)
 
 # List of Teak extensions
 teak_extensions = [
-  "TeakNotificationService",
-#  "TeakNotificationContent"
+  ["TeakNotificationService", []],
+  ["TeakNotificationContent", ["UserNotifications", "UserNotificationsUI"]]
 ]
-teak_extensions.each do |service|
+teak_extensions.each do |service, deps|
 
   # Copy our files
   puts symlink_instead_of_copy ? "Creating symbolic links (--symlink-instead-of-copy)" : "Copying files..."
@@ -47,6 +47,14 @@ teak_extensions.each do |service|
   # Get or create target
   target = xcode_proj.native_targets.detect { |e| e.name == service} ||
     xcode_proj.new_target(:app_extension, service, :ios, nil, xcode_proj.products_group, :objc)
+
+  # Add target dependencies
+  deps.each do |framework|
+    file_ref = xcode_proj.frameworks_group.new_reference("System/Library/Frameworks/#{framework}.framework")
+    file_ref.name = "#{framework}.framework"
+    file_ref.source_tree = 'SDKROOT'
+    target.frameworks_build_phase.add_file_reference(file_ref)
+  end
 
   Dir.glob(File.expand_path("#{service}/**/*", File.dirname(__FILE__))).map(&File.method(:realpath)).each do |file|
     target_file = File.join(target_path, File.basename(file))
