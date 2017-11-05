@@ -19,6 +19,7 @@
 		431C98811C7E6EE100B19DD5 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98801C7E6EE100B19DD5 /* AdSupport.framework */; };
 		431C98851C7E7CC100B19DD5 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98841C7E7CC100B19DD5 /* StoreKit.framework */; };
 		431C98971C7FAB0800B19DD5 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */; };
+		435A0C021FAEA140000EF1EF /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
 		4B42F2E07D5AB45F9FCA756E /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
 		5F158A8EB9F1FA3311799D7A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
 		A628E016A31A3884318A4A8D /* TeakNotificationService.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = 743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */; };
@@ -100,6 +101,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				435A0C021FAEA140000EF1EF /* UserNotifications.framework in Frameworks */,
 				431C98971C7FAB0800B19DD5 /* libsqlite3.tbd in Frameworks */,
 				431C98851C7E7CC100B19DD5 /* StoreKit.framework in Frameworks */,
 				431C98811C7E6EE100B19DD5 /* AdSupport.framework in Frameworks */,
@@ -135,7 +137,6 @@
 				D2EC9E562952FA69B7E82396 /* TeakNotificationViewController.h */,
 				D57C2695070C11A92648E58A /* TeakNotificationViewController.m */,
 			);
-			name = TeakNotificationContent;
 			path = TeakNotificationContent;
 			sourceTree = "<group>";
 		};
@@ -146,7 +147,6 @@
 				07349725359D77DE692B57D0 /* TeakNotificationService.h */,
 				B09842D360B36999858F27CC /* TeakNotificationService.m */,
 			);
-			name = TeakNotificationService;
 			path = TeakNotificationService;
 			sourceTree = "<group>";
 		};
@@ -306,6 +306,12 @@
 								enabled = 1;
 							};
 						};
+					};
+					A79877AA6FB137229A26A700 = {
+						DevelopmentTeam = 7FLZTACJ82;
+					};
+					B90237E307C9A817DE88FBCB = {
+						DevelopmentTeam = 7FLZTACJ82;
 					};
 				};
 			};

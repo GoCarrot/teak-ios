@@ -14,6 +14,7 @@
  */
 
 #import <Teak/Teak.h>
+#import <UserNotifications/UserNotifications.h>
 
 #import "TeakConfiguration.h"
 #import "TeakLog.h"
@@ -22,7 +23,7 @@
 @class TeakCore;
 @class SKPaymentObserver;
 
-@interface Teak ()
+@interface Teak () <UNUserNotificationCenterDelegate>
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull sdkVersion;

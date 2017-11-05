@@ -14,6 +14,7 @@
  */
 
 #import <AdSupport/AdSupport.h>
+#import <UserNotifications/UNUserNotificationCenter.h>
 
 #import "Teak+Internal.h"
 #import <Teak/Teak.h>
@@ -260,6 +261,25 @@ Teak* _teakSharedInstance;
   }
   teak_catch_report;
 
+  // Register push notification categories
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    NSMutableArray* actions = [[NSMutableArray alloc] init];
+    for (int i = 0; i < 4; i++) {
+      UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:[NSString stringWithFormat:@"%d", i]
+                                                                          title:[NSString stringWithFormat:@"%d", i]
+                                                                        options:UNNotificationActionOptionNone];
+      [actions addObject:action];
+    }
+    UNNotificationCategory* category = [UNNotificationCategory categoryWithIdentifier:@"TeakNotificationContent"
+                                                                              actions:actions
+                                                                    intentIdentifiers:@[]
+                                                                              options:UNNotificationCategoryOptionCustomDismissAction];
+    NSSet* categories = [NSSet setWithObject:category];
+    center.delegate = self;
+    [center setNotificationCategories:categories];
+  }
+
   // If the app was not running, we need to check these and invoke them afterwards
   if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
@@ -282,7 +302,30 @@ Teak* _teakSharedInstance;
   // If they've already enabled push, go ahead and register since it won't pop up a box.
   // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
   // even if the app developer doesn't follow Apple's best practices.
-  if (pushEnabled) {
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
+      switch (settings.authorizationStatus) {
+        case UNAuthorizationStatusDenied:
+          // They need to go into the Settings and enable it
+          break;
+        case UNAuthorizationStatusAuthorized: {
+          // Already enabled
+          [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
+                                completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                                  if (granted) {
+                                    dispatch_async(dispatch_get_main_queue(), ^{
+                                      [application registerForRemoteNotifications];
+                                    });
+                                  }
+                                }];
+        } break;
+        case UNAuthorizationStatusNotDetermined:
+          // They haven't been asked
+          break;
+      }
+    }];
+  } else if (pushEnabled) {
     if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
       UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
       [application registerUserNotificationSettings:settings];
@@ -326,6 +369,18 @@ Teak* _teakSharedInstance;
 
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {
   [application registerForRemoteNotifications];
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+       willPresentNotification:(UNNotification*)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler {
+  // When notification is delivered with app in the foreground, mute it like default behavior
+  completionHandler(UNNotificationPresentationOptionNone);
+}
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+    didReceiveNotificationResponse:(UNNotificationResponse*)response
+             withCompletionHandler:(void (^)(void))completionHandler {
+  completionHandler();
 }
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
