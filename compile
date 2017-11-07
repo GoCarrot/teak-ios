@@ -17,7 +17,6 @@ if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
   if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
     find $clangTemp -type f -name *.html | xargs open
   else
-    echo "Circle!"
     clangArtifacts=$CIRCLE_ARTIFACTS/clang/
     mkdir -p clangArtifacts
     cp `find $clangTemp -type f -name *.html` $clangArtifacts
@@ -27,10 +26,15 @@ if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
 fi
 rm -fr $clangTemp
 
-infer run --fail-on-issue -- xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" clean build
-retVal=$?
-if [ ! $? -eq 0 ]; then
-  exit $retVal
+if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
+  infer run --fail-on-issue -- xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" clean build
+  retVal=$?
+  if [ ! $? -eq 0 ]; then
+    exit $retVal
+  fi
+elif ! infer --version | grep 0.13.0; then
+  echo "New Infer version, check to see if they have that DEAD_STORE stuff fixed."
+  exit 1
 fi
 
 (cd build/Release-iphoneos/; zip -y -r Teak.framework.zip Teak.framework/)
