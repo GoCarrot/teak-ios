@@ -261,25 +261,6 @@ Teak* _teakSharedInstance;
   }
   teak_catch_report;
 
-  // Register push notification categories
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    NSMutableArray* actions = [[NSMutableArray alloc] init];
-    for (int i = 0; i < 4; i++) {
-      UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:[NSString stringWithFormat:@"%d", i]
-                                                                          title:[NSString stringWithFormat:@"%d", i]
-                                                                        options:UNNotificationActionOptionNone];
-      [actions addObject:action];
-    }
-    UNNotificationCategory* category = [UNNotificationCategory categoryWithIdentifier:@"TeakNotificationContent"
-                                                                              actions:actions
-                                                                    intentIdentifiers:@[]
-                                                                              options:UNNotificationCategoryOptionCustomDismissAction];
-    NSSet* categories = [NSSet setWithObject:category];
-    center.delegate = self;
-    [center setNotificationCategories:categories];
-  }
-
   // If the app was not running, we need to check these and invoke them afterwards
   if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];

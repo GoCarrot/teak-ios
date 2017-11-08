@@ -25,7 +25,9 @@
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>UNNotificationExtensionCategory</key>
-			<string>TeakNotificationContent</string>
+			<array>
+				<string>TeakNotificationContent_DISABLED</string>
+			</array>
 			<key>UNNotificationExtensionInitialContentSizeRatio</key>
 			<real>1</real>
 			<key>UNNotificationExtensionDefaultContentHidden</key>
