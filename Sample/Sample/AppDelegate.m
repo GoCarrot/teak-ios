@@ -14,6 +14,7 @@
  */
 
 #import "AppDelegate.h"
+#import <UserNotifications/UserNotifications.h>
 
 // Step 3:
 // Import Teak into your UIApplicationDelegate implementation.
@@ -70,7 +71,17 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
                                              object:nil];
 
   // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
-  if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
+                          completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                            if (granted) {
+                              dispatch_async(dispatch_get_main_queue(), ^{
+                                [application registerForRemoteNotifications];
+                              });
+                            }
+                          }];
+  } else if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
     UIUserNotificationSettings* settings = [UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeAlert | UIUserNotificationTypeBadge | UIUserNotificationTypeSound) categories:nil];
     [application registerUserNotificationSettings:settings];
   } else {
