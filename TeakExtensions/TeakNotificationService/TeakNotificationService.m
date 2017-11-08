@@ -21,6 +21,7 @@
 @property (strong, nonatomic) NSURLSession* session;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 @property (strong, nonatomic) NSOperation* contentHandlerOperation;
+@property (strong, atomic) NSMutableArray* attachments;
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload;
 - (NSOperation*)loadAttachment:(NSURL*)attachmentUrl;
@@ -42,6 +43,7 @@ NSString* TeakNSStringOrNilFor(id object) {
 - (void)didReceiveNotificationRequest:(UNNotificationRequest*)request withContentHandler:(void (^)(UNNotificationContent* _Nonnull))contentHandler {
   self.contentHandler = contentHandler;
   self.bestAttemptContent = [request.content mutableCopy];
+  self.attachments = [[NSMutableArray alloc] init];
   self.operationQueue = [[NSOperationQueue alloc] init];
   self.contentHandlerOperation = [NSBlockOperation blockOperationWithBlock:^{
     [self.session finishTasksAndInvalidate];
@@ -52,25 +54,23 @@ NSString* TeakNSStringOrNilFor(id object) {
     NSDictionary* notification = request.content.userInfo[@"aps"];
     NSString* teakNotifId = TeakNSStringOrNilFor(notification[@"teakNotifId"]);
     if ([teakNotifId length] > 0) {
-      // TODO: May want to use backgroundSession?
       self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
 
-      // HACK FOR TESTING
-      self.bestAttemptContent.title = [NSString stringWithFormat:@"%@", teakNotifId];
-
       // Load attachments
-      NSDictionary* haxAttachments = @{
-        @"media-attachment" : @"https://i.imgur.com/byhGWV5.jpg" // General purpose "show this thing"
-      };
-      NSDictionary* attachments = haxAttachments; //notification[@"attachments"];
-      for (NSString* key in attachments) {
-        NSString* attachmentUrlString = attachments[key];
+      NSOperation* assignAttachmentsOperation = [NSBlockOperation blockOperationWithBlock:^{
+        self.bestAttemptContent.attachments = self.attachments;
+      }];
+      [self.contentHandlerOperation addDependency:assignAttachmentsOperation];
+
+      NSArray* attachments = notification[@"attachments"];
+      for (NSString* attachmentUrlString in attachments) {
         NSURL* attachmentUrl = [NSURL URLWithString:attachmentUrlString];
         if (attachmentUrl != nil) {
           NSOperation* attachmentOperation = [self loadAttachment:attachmentUrl];
-          [self.contentHandlerOperation addDependency:attachmentOperation];
+          [assignAttachmentsOperation addDependency:attachmentOperation];
         }
       }
+      [self.operationQueue addOperation:assignAttachmentsOperation];
 
       // Send notification_received metric
       NSString* teakUserId = TeakNSStringOrNilFor(notification[@"teakUserId"]);
@@ -99,7 +99,7 @@ NSString* TeakNSStringOrNilFor(id object) {
   __block UNNotificationAttachment* attachment;
   NSOperation* attachmentOperation = [NSBlockOperation blockOperationWithBlock:^{
     if (attachment != nil) {
-      self.bestAttemptContent.attachments = [NSArray arrayWithObject:attachment];
+      [self.attachments addObject:attachment];
     }
   }];
 
