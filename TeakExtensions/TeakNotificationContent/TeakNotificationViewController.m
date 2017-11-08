@@ -14,6 +14,7 @@
  */
 
 #import "TeakNotificationViewController.h"
+#import <AVKit/AVKit.h>
 #import <UserNotifications/UserNotifications.h>
 #import <UserNotificationsUI/UserNotificationsUI.h>
 
@@ -23,16 +24,11 @@
 
 @implementation TeakNotificationViewController
 
-- (void)loadView {
-  [super loadView];
-}
-
 - (void)viewDidLoad {
   [super viewDidLoad];
 }
 
 - (void)didReceiveNotification:(UNNotification*)notification {
-  NSLog(@"Foo?");
 }
 
 @end

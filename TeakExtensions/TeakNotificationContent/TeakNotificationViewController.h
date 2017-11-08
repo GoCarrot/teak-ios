@@ -16,5 +16,5 @@
 #import <UIKit/UIKit.h>
 
 @interface TeakNotificationViewController : UIViewController
-- (void)loadView;
+- (void)viewDidLoad;
 @end
