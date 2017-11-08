@@ -19,8 +19,11 @@
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent* contentToDeliver);
 @property (strong, nonatomic) UNMutableNotificationContent* bestAttemptContent;
 @property (strong, nonatomic) NSURLSession* session;
+@property (strong, nonatomic) NSOperationQueue* operationQueue;
+@property (strong, nonatomic) NSOperation* contentHandlerOperation;
 
-- (void)sendMetricForPayload:(NSDictionary*)payload;
+- (NSOperation*)sendMetricForPayload:(NSDictionary*)payload;
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl;
 @end
 
 NSString* TeakNSStringOrNilFor(id object) {
@@ -39,6 +42,11 @@ NSString* TeakNSStringOrNilFor(id object) {
 - (void)didReceiveNotificationRequest:(UNNotificationRequest*)request withContentHandler:(void (^)(UNNotificationContent* _Nonnull))contentHandler {
   self.contentHandler = contentHandler;
   self.bestAttemptContent = [request.content mutableCopy];
+  self.operationQueue = [[NSOperationQueue alloc] init];
+  self.contentHandlerOperation = [NSBlockOperation blockOperationWithBlock:^{
+    [self.session finishTasksAndInvalidate];
+    self.contentHandler(self.bestAttemptContent);
+  }];
 
   @try {
     NSDictionary* notification = request.content.userInfo[@"aps"];
@@ -50,6 +58,20 @@ NSString* TeakNSStringOrNilFor(id object) {
       // HACK FOR TESTING
       self.bestAttemptContent.title = [NSString stringWithFormat:@"%@", teakNotifId];
 
+      // Load attachments
+      NSDictionary* haxAttachments = @{
+        @"media-attachment" : @"https://i.imgur.com/byhGWV5.jpg" // General purpose "show this thing"
+      };
+      NSDictionary* attachments = haxAttachments; //notification[@"attachments"];
+      for (NSString* key in attachments) {
+        NSString* attachmentUrlString = attachments[key];
+        NSURL* attachmentUrl = [NSURL URLWithString:attachmentUrlString];
+        if (attachmentUrl != nil) {
+          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrl];
+          [self.contentHandlerOperation addDependency:attachmentOperation];
+        }
+      }
+
       // Send notification_received metric
       NSString* teakUserId = TeakNSStringOrNilFor(notification[@"teakUserId"]);
       if ([teakUserId length] > 0) {
@@ -58,12 +80,13 @@ NSString* TeakNSStringOrNilFor(id object) {
           @"platform_id" : teakNotifId,
           @"network_id" : @3
         };
-        [self sendMetricForPayload:payload];
+        NSOperation* metricOperation = [self sendMetricForPayload:payload];
+        [self.contentHandlerOperation addDependency:metricOperation];
       }
     }
   }
   @finally {
-    self.contentHandler(self.bestAttemptContent);
+    [self.operationQueue addOperation:self.contentHandlerOperation];
   }
 }
 
@@ -72,7 +95,40 @@ NSString* TeakNSStringOrNilFor(id object) {
   self.contentHandler(self.bestAttemptContent);
 }
 
-- (void)sendMetricForPayload:(NSDictionary*)payload {
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl {
+  __block UNNotificationAttachment* attachment;
+  NSOperation* attachmentOperation = [NSBlockOperation blockOperationWithBlock:^{
+    if (attachment != nil) {
+      self.bestAttemptContent.attachments = [NSArray arrayWithObject:attachment];
+    }
+  }];
+
+  [[self.session downloadTaskWithURL:attachmentUrl
+                   completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
+                     if (error != nil) {
+                       NSLog(@"%@", error.localizedDescription);
+                     } else {
+                       NSFileManager* fileManager = [NSFileManager defaultManager];
+                       NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, [attachmentUrl pathExtension]];
+                       NSURL* localUrl = [NSURL fileURLWithPath:pathWithExtension];
+                       [fileManager moveItemAtURL:temporaryFileLocation toURL:localUrl error:&error];
+
+                       if (error == nil) {
+                         attachment = [UNNotificationAttachment attachmentWithIdentifier:@"" URL:localUrl options:nil error:&error];
+                         if (error != nil) {
+                           NSLog(@"%@", error.localizedDescription);
+                         }
+                       } else {
+                         NSLog(@"%@", error.localizedDescription);
+                       }
+                     }
+                     [self.operationQueue addOperation:attachmentOperation];
+                   }] resume];
+
+  return attachmentOperation;
+}
+
+- (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_received"]];
 
   NSString* boundry = @"-===-httpB0unDarY-==-";
@@ -91,13 +147,16 @@ NSString* TeakNSStringOrNilFor(id object) {
   NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
   [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
 
+  NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];
+
   NSURLSessionUploadTask* uploadTask =
       [self.session uploadTaskWithRequest:request
                                  fromData:nil
                         completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
-                          [self.session finishTasksAndInvalidate];
+                          [self.operationQueue addOperation:metricOperation];
                         }];
   [uploadTask resume];
+  return metricOperation;
 }
 
 @end

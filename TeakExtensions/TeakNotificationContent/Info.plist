@@ -28,6 +28,8 @@
 			<string>TeakNotificationContent</string>
 			<key>UNNotificationExtensionInitialContentSizeRatio</key>
 			<real>1</real>
+			<key>UNNotificationExtensionDefaultContentHidden</key>
+			<true/>
 		</dict>
 		<key>NSExtensionPrincipalClass</key>
 		<string>TeakNotificationViewController</string>
