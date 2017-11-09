@@ -109,6 +109,7 @@
 
   self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y,
                                self.view.frame.size.width, scaledHeight);
+  self.preferredContentSize = CGSizeMake(self.view.frame.size.width, scaledHeight);
   [self.view addSubview:self.notificationContentView];
 
   // If Autoplay
