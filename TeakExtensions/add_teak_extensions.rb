@@ -31,7 +31,7 @@ xcode_proj = Xcodeproj::Project.open(xcode_project_path)
 
 # List of Teak extensions
 teak_extensions = [
-  ["TeakNotificationService", []],
+  ["TeakNotificationService", ["MobileCoreServices"]],
   ["TeakNotificationContent", ["UserNotifications", "UserNotificationsUI", "AVKit"]]
 ]
 teak_extensions.each do |service, deps|

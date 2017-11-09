@@ -14,6 +14,7 @@
  */
 
 #import "TeakNotificationService.h"
+#import <MobileCoreServices/MobileCoreServices.h>
 
 @interface TeakNotificationService ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent* contentToDeliver);
@@ -24,7 +25,7 @@
 @property (strong, atomic) NSMutableArray* attachments;
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload;
-- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl;
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType;
 @end
 
 NSString* TeakNSStringOrNilFor(id object) {
@@ -63,10 +64,10 @@ NSString* TeakNSStringOrNilFor(id object) {
       [self.contentHandlerOperation addDependency:assignAttachmentsOperation];
 
       NSArray* attachments = notification[@"attachments"];
-      for (NSString* attachmentUrlString in attachments) {
-        NSURL* attachmentUrl = [NSURL URLWithString:attachmentUrlString];
+      for (NSDictionary* a in attachments) {
+        NSURL* attachmentUrl = [NSURL URLWithString:a[@"url"]];
         if (attachmentUrl != nil) {
-          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrl];
+          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrl forMIMEType:a[@"mime_type"]];
           [assignAttachmentsOperation addDependency:attachmentOperation];
         }
       }
@@ -95,7 +96,7 @@ NSString* TeakNSStringOrNilFor(id object) {
   self.contentHandler(self.bestAttemptContent);
 }
 
-- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl {
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType {
   __block UNNotificationAttachment* attachment;
   NSOperation* attachmentOperation = [NSBlockOperation blockOperationWithBlock:^{
     if (attachment != nil) {
@@ -103,13 +104,16 @@ NSString* TeakNSStringOrNilFor(id object) {
     }
   }];
 
+  NSString* uti = CFBridgingRelease(UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (__bridge CFStringRef)mimeType, NULL));
+  NSString* extension = (NSString*)CFBridgingRelease(UTTypeCopyPreferredTagWithClass((__bridge CFStringRef)uti, kUTTagClassFilenameExtension));
+
   [[self.session downloadTaskWithURL:attachmentUrl
                    completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
                      if (error != nil) {
                        NSLog(@"%@", error.localizedDescription);
                      } else {
                        NSFileManager* fileManager = [NSFileManager defaultManager];
-                       NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, [attachmentUrl pathExtension]];
+                       NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, extension];
                        NSURL* localUrl = [NSURL fileURLWithPath:pathWithExtension];
                        [fileManager moveItemAtURL:temporaryFileLocation toURL:localUrl error:&error];
 
