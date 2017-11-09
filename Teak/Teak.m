@@ -261,6 +261,45 @@ Teak* _teakSharedInstance;
   }
   teak_catch_report;
 
+  // Register push notification categories
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    // TODO: NSLocalizedStringFromTableInBundle with bundle id of Teak SDK
+    NSDictionary* presumablySomeKindOfLocalizationThing = @{
+      @"spin" : @{
+        @"en_us" : @"Spin!"
+      }
+    };
+
+    NSDictionary* teakNotificationCategories = @{
+      // TeakNotificationInteractiveSpin
+      @"TeakNotificationContent" : @{
+        @"actions" : @[ @"spin" ]
+      }
+    };
+
+    NSMutableSet* categories = [[NSMutableSet alloc] init];
+    for (NSString* key in teakNotificationCategories) {
+      NSDictionary* category = teakNotificationCategories[key];
+
+      NSMutableArray* actions = [[NSMutableArray alloc] init];
+      for (NSString* actionId in category[@"actions"]) {
+        UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionId
+                                                                            title:presumablySomeKindOfLocalizationThing[actionId][@"en_us"]
+                                                                          options:UNNotificationActionOptionForeground];
+        [actions addObject:action];
+      }
+
+      UNNotificationCategory* notifCategory = [UNNotificationCategory categoryWithIdentifier:key
+                                                                                     actions:actions
+                                                                           intentIdentifiers:@[]
+                                                                                     options:UNNotificationCategoryOptionCustomDismissAction];
+      [categories addObject:notifCategory];
+    }
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    center.delegate = self;
+    [center setNotificationCategories:categories];
+  }
+
   // If the app was not running, we need to check these and invoke them afterwards
   if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
