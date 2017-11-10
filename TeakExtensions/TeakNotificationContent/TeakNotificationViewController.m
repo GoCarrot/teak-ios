@@ -18,6 +18,19 @@
 #import <UserNotifications/UserNotifications.h>
 #import <UserNotificationsUI/UserNotificationsUI.h>
 
+NSString* TeakNSStringOrNilFor(id object) {
+  if (object == nil) return nil;
+
+  NSString* ret = nil;
+  @try {
+    ret = ((object == nil || [object isKindOfClass:[NSString class]]) ? object : [object stringValue]);
+  } @catch (NSException* ignored) {
+  }
+  return ret;
+}
+
+/////
+
 @interface TeakAVPlayerView : UIView
 @property (strong, nonatomic, setter=setPlayer:) AVPlayer* player;
 
@@ -39,6 +52,9 @@
 /////
 
 @interface TeakNotificationViewController () <UNNotificationContentExtension>
+@property (strong, nonatomic) NSURLSession* session;
+@property (strong, nonatomic) NSOperationQueue* operationQueue;
+@property (strong, nonatomic) NSOperation* sessionFinishOperation;
 
 // Video related
 @property (strong, nonatomic) AVPlayer* player;
@@ -58,6 +74,27 @@
 }
 
 - (void)didReceiveNotification:(UNNotification*)notification {
+  self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
+  self.operationQueue = [[NSOperationQueue alloc] init];
+  self.sessionFinishOperation = [NSBlockOperation blockOperationWithBlock:^{
+    [self.session finishTasksAndInvalidate];
+  }];
+
+  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
+  NSString* teakNotifId = TeakNSStringOrNilFor(aps[@"teakNotifId"]);
+  NSString* teakUserId = TeakNSStringOrNilFor(aps[@"teakUserId"]);
+  if ([teakNotifId length] > 0 && [teakUserId length] > 0) {
+    NSOperation* metricOperation = [self sendMetricForPayload:@{
+      @"user_id" : teakUserId,
+      @"platform_id" : teakNotifId,
+      @"network_id" : @3
+    }];
+    [self.sessionFinishOperation addDependency:metricOperation];
+  }
+
+  // Move this if more ops are added
+  [self.operationQueue addOperation:self.sessionFinishOperation];
+
   // The first object of the attachments array will be displayed as the "preview" in the small view,
   // we can use any subsequent attachments differently
   UNNotificationAttachment* attachment = [notification.request.content.attachments lastObject];
@@ -129,6 +166,37 @@
                                                 }];
 
   [self.player play];
+}
+
+- (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_expanded"]];
+
+  NSString* boundry = @"-===-httpB0unDarY-==-";
+
+  NSMutableData* postData = [[NSMutableData alloc] init];
+
+  for (NSString* key in payload) {
+    [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
+    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, [payload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
+  }
+  [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
+
+  [request setHTTPMethod:@"POST"];
+  [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
+  [request setHTTPBody:postData];
+  NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
+  [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
+
+  NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];
+
+  NSURLSessionUploadTask* uploadTask =
+      [self.session uploadTaskWithRequest:request
+                                 fromData:nil
+                        completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+                          [self.operationQueue addOperation:metricOperation];
+                        }];
+  [uploadTask resume];
+  return metricOperation;
 }
 
 @end
