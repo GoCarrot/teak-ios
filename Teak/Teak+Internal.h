@@ -23,6 +23,8 @@
 @class TeakCore;
 @class SKPaymentObserver;
 
+extern NSDictionary* _Nonnull TeakNotificationCategories;
+
 @interface Teak () <UNUserNotificationCenterDelegate>
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
 

@@ -14,6 +14,7 @@
 				431C98101C7E631600B19DD5 /* Build Framework */,
 			);
 			dependencies = (
+				430E64791FB631C7008DE15B /* PBXTargetDependency */,
 				431C980F1C7E62F400B19DD5 /* PBXTargetDependency */,
 			);
 			name = Framework;
@@ -22,6 +23,8 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		430E64541FB62468008DE15B /* TeakNotificationCategories.m in Sources */ = {isa = PBXBuildFile; fileRef = 430E64531FB62468008DE15B /* TeakNotificationCategories.m */; };
+		430E647B1FB63249008DE15B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 430E647D1FB63249008DE15B /* Localizable.strings */; };
 		431C97FE1C7E609800B19DD5 /* Teak.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 431C97FD1C7E609800B19DD5 /* Teak.h */; };
 		431C98001C7E609800B19DD5 /* Teak.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C97FF1C7E609800B19DD5 /* Teak.m */; };
 		431C98081C7E612400B19DD5 /* Teak.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C97FD1C7E609800B19DD5 /* Teak.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -77,6 +80,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		430E64781FB631C7008DE15B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 431C97F21C7E609800B19DD5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 430E64661FB62EEE008DE15B;
+			remoteInfo = TeakResources;
+		};
 		431C980E1C7E62F400B19DD5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 431C97F21C7E609800B19DD5 /* Project object */;
@@ -100,6 +110,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		430E64531FB62468008DE15B /* TeakNotificationCategories.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationCategories.m; sourceTree = "<group>"; };
+		430E64671FB62EEE008DE15B /* TeakResources.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TeakResources.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
+		430E64691FB62EEE008DE15B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		430E647C1FB63249008DE15B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		431C97FA1C7E609800B19DD5 /* libTeak.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libTeak.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		431C97FD1C7E609800B19DD5 /* Teak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Teak.h; sourceTree = "<group>"; };
 		431C97FF1C7E609800B19DD5 /* Teak.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Teak.m; sourceTree = "<group>"; };
@@ -158,6 +172,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		430E64641FB62EEE008DE15B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		431C97F71C7E609800B19DD5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -168,10 +189,28 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		430E64681FB62EEE008DE15B /* TeakResources */ = {
+			isa = PBXGroup;
+			children = (
+				430E646E1FB62FB6008DE15B /* en.lproj */,
+				430E64691FB62EEE008DE15B /* Info.plist */,
+			);
+			path = TeakResources;
+			sourceTree = "<group>";
+		};
+		430E646E1FB62FB6008DE15B /* en.lproj */ = {
+			isa = PBXGroup;
+			children = (
+				430E647D1FB63249008DE15B /* Localizable.strings */,
+			);
+			path = en.lproj;
+			sourceTree = "<group>";
+		};
 		431C97F11C7E609800B19DD5 = {
 			isa = PBXGroup;
 			children = (
 				431C97FC1C7E609800B19DD5 /* Teak */,
+				430E64681FB62EEE008DE15B /* TeakResources */,
 				431C97FB1C7E609800B19DD5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -180,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				431C97FA1C7E609800B19DD5 /* libTeak.a */,
+				430E64671FB62EEE008DE15B /* TeakResources.bundle */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -218,6 +258,7 @@
 				438372831D35889800B01F44 /* TeakHelpers.m */,
 				43F7CFF61EF0957E00361256 /* TeakLog.h */,
 				43F7CFF71EF0957E00361256 /* TeakLog.m */,
+				430E64531FB62468008DE15B /* TeakNotificationCategories.m */,
 			);
 			path = Teak;
 			sourceTree = "<group>";
@@ -321,6 +362,23 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		430E64661FB62EEE008DE15B /* TeakResources */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 430E646C1FB62EEE008DE15B /* Build configuration list for PBXNativeTarget "TeakResources" */;
+			buildPhases = (
+				430E64631FB62EEE008DE15B /* Sources */,
+				430E64641FB62EEE008DE15B /* Frameworks */,
+				430E64651FB62EEE008DE15B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TeakResources;
+			productName = TeakResources;
+			productReference = 430E64671FB62EEE008DE15B /* TeakResources.bundle */;
+			productType = "com.apple.product-type.bundle";
+		};
 		431C97F91C7E609800B19DD5 /* Teak */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 431C98031C7E609800B19DD5 /* Build configuration list for PBXNativeTarget "Teak" */;
@@ -350,6 +408,11 @@
 				LastUpgradeCheck = 0900;
 				ORGANIZATIONNAME = "GoCarrot Inc.";
 				TargetAttributes = {
+					430E64661FB62EEE008DE15B = {
+						CreatedOnToolsVersion = 9.0;
+						DevelopmentTeam = 7FLZTACJ82;
+						ProvisioningStyle = Automatic;
+					};
 					431C97F91C7E609800B19DD5 = {
 						CreatedOnToolsVersion = 7.2.1;
 					};
@@ -372,9 +435,21 @@
 			targets = (
 				431C97F91C7E609800B19DD5 /* Teak */,
 				431C980A1C7E62B200B19DD5 /* Framework */,
+				430E64661FB62EEE008DE15B /* TeakResources */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		430E64651FB62EEE008DE15B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				430E647B1FB63249008DE15B /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		431C98091C7E61BF00B19DD5 /* Prepare Framework */ = {
@@ -423,12 +498,20 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		430E64631FB62EEE008DE15B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		431C97F61C7E609800B19DD5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				431C98211C7E679900B19DD5 /* TeakRequest.m in Sources */,
 				439815C31FA2909F005303F1 /* UserIdEvent.m in Sources */,
+				430E64541FB62468008DE15B /* TeakNotificationCategories.m in Sources */,
 				FAA4DCFD1DC32AD100374B93 /* TeakReward.m in Sources */,
 				434861781FA2C5E000E0DA12 /* TeakConfiguration.m in Sources */,
 				431C98001C7E609800B19DD5 /* Teak.m in Sources */,
@@ -461,6 +544,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		430E64791FB631C7008DE15B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 430E64661FB62EEE008DE15B /* TeakResources */;
+			targetProxy = 430E64781FB631C7008DE15B /* PBXContainerItemProxy */;
+		};
 		431C980F1C7E62F400B19DD5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 431C97F91C7E609800B19DD5 /* Teak */;
@@ -468,7 +556,66 @@
 		};
 /* End PBXTargetDependency section */
 
+/* Begin PBXVariantGroup section */
+		430E647D1FB63249008DE15B /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				430E647C1FB63249008DE15B /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXVariantGroup section */
+
 /* Begin XCBuildConfiguration section */
+		430E646A1FB62EEE008DE15B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = TeakResources/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.sdk.TeakResources;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Debug;
+		};
+		430E646B1FB62EEE008DE15B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = TeakResources/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.sdk.TeakResources;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				WRAPPER_EXTENSION = bundle;
+			};
+			name = Release;
+		};
 		431C98011C7E609800B19DD5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -628,6 +775,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		430E646C1FB62EEE008DE15B /* Build configuration list for PBXNativeTarget "TeakResources" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				430E646A1FB62EEE008DE15B /* Debug */,
+				430E646B1FB62EEE008DE15B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		431C97F51C7E609800B19DD5 /* Build configuration list for PBXProject "Teak" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

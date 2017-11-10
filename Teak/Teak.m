@@ -263,28 +263,14 @@ Teak* _teakSharedInstance;
 
   // Register push notification categories
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    // TODO: NSLocalizedStringFromTableInBundle with bundle id of Teak SDK
-    NSDictionary* presumablySomeKindOfLocalizationThing = @{
-      @"spin" : @{
-        @"en_us" : @"Spin!"
-      }
-    };
-
-    NSDictionary* teakNotificationCategories = @{
-      // TeakNotificationInteractiveSpin
-      @"TeakNotificationContent" : @{
-        @"actions" : @[ @"spin" ]
-      }
-    };
-
     NSMutableSet* categories = [[NSMutableSet alloc] init];
-    for (NSString* key in teakNotificationCategories) {
-      NSDictionary* category = teakNotificationCategories[key];
+    for (NSString* key in TeakNotificationCategories) {
+      NSDictionary* category = TeakNotificationCategories[key];
 
       NSMutableArray* actions = [[NSMutableArray alloc] init];
-      for (NSString* actionId in category[@"actions"]) {
-        UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionId
-                                                                            title:presumablySomeKindOfLocalizationThing[actionId][@"en_us"]
+      for (NSArray* actionPair in category[@"actions"]) {
+        UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionPair[0]
+                                                                            title:actionPair[1]
                                                                           options:UNNotificationActionOptionForeground];
         [actions addObject:action];
       }
