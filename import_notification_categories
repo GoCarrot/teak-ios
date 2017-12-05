@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+require 'bundler/setup'
+require 'plist'
+require 'csv'
+require 'erb'
+require 'net/http'
+
+this_path = File.expand_path(File.dirname(__FILE__))
+
+# Check if argument is empty
+if ARGV.last.to_s.empty? then
+  raise "CSV file required"
+end
+
+csv_filename = ARGV.last.to_s
+if ARGV.last.to_s == "--download"
+  csv_filename = File.join(this_path, "notification_categories.csv")
+  google_sheets_key = "1UYpGxETGi2l7Of6kERukaMjgsMklbgEtkHoWvjguyNE"
+  google_sheets_sheet_name = "Sheet 1"
+  csv_contents = Net::HTTP.get(URI.parse("https://docs.google.com/spreadsheets/d/#{google_sheets_key}/gviz/tq?tqx=out:csv&sheet=#{google_sheets_sheet_name}"))
+  File.open(csv_filename, 'w') { |file| file.write(csv_contents) }
+end
+
+teak_notification_content_plist_path = File.join(this_path, "TeakExtensions", "TeakNotificationContent", "Info.plist")
+teak_notification_categories_path = File.join(this_path, "Teak", "TeakNotificationCategories.m")
+teak_notification_categories_template_path = File.join(this_path, "TeakNotificationCategories.m.erb")
+
+# Mark files as assume unchanged in git
+`git update-index --assume-unchanged #{teak_notification_content_plist_path}`
+`git update-index --assume-unchanged #{teak_notification_categories_path}`
+
+# Load Plist and clear existing categories
+teak_notification_content_plist = Plist.parse_xml(teak_notification_content_plist_path)
+teak_notification_content_plist['NSExtension']['NSExtensionAttributes']['UNNotificationExtensionCategory'] = []
+
+categories = []
+CSV.foreach(csv_filename) do |row|
+  next if row[0] == "Group Name" # Skip header row
+
+  # Category name into Plist
+  teak_notification_content_plist['NSExtension']['NSExtensionAttributes']['UNNotificationExtensionCategory'] << row[0]
+
+  # Info into code file
+  categories << {
+    category: row[0],
+    interactive: row[1].downcase == "yes" ? true : false,
+    actions: [[row[2], row[3]], [row[4], row[5]], [row[6], row[7]]].reject { |button| button[0] == nil or button[0].empty? }.collect { |button| { id: button[1] ? button[1].gsub(/\s+/, "_").downcase : button[0].gsub(/\s+/, "_").downcase, text: button[0] } }
+  }
+end
+
+context = binding
+context.local_variable_set(:items, categories)
+
+# Write Plist
+File.open(teak_notification_content_plist_path, 'w') { |file| file.write(teak_notification_content_plist.to_plist) }
+
+# Write code file
+renderer = ERB.new(File.read(teak_notification_categories_template_path))
+File.open(teak_notification_categories_path, 'w') { |file| file.write(renderer.result(context)) }

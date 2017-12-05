@@ -26,17 +26,16 @@
 		<dict>
 			<key>UNNotificationExtensionCategory</key>
 			<array>
-				<string>TeakNotificationContent</string>
 			</array>
-			<key>UNNotificationExtensionInitialContentSizeRatio</key>
-			<real>1</real>
 			<key>UNNotificationExtensionDefaultContentHidden</key>
 			<true/>
+			<key>UNNotificationExtensionInitialContentSizeRatio</key>
+			<real>1.0</real>
 		</dict>
-		<key>NSExtensionPrincipalClass</key>
-		<string>TeakNotificationViewController</string>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.usernotifications.content-extension</string>
+		<key>NSExtensionPrincipalClass</key>
+		<string>TeakNotificationViewController</string>
 	</dict>
 </dict>
 </plist>

@@ -387,6 +387,8 @@ Teak* _teakSharedInstance;
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
   completionHandler();
+
+  // TODO: HERE is where we report metric that a button was pressed
 }
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {

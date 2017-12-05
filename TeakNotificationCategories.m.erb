@@ -33,7 +33,16 @@ __attribute__((constructor)) void teak_init_notification_categories() {
   }
 
   // TODO: Need CSV to handle the localization notes (comment)
-  TeakNotificationCategories = @{
-#error Must run 'import_notification_categories' before building
-  };
+  TeakNotificationCategories = @{<% for @item in items %>
+    @"<%= @item[:category] %>" : @{
+      @"interactive" : <%= @item[:interactive] ? "@YES" : "@NO" %>,
+      @"actions" : @[
+        <% for @action in @item[:actions] %>@[
+          @"<%= @action[:id] %>",
+          TeakLocalizedStringWithDefaultValue(@"<%= @action[:id] %>", nil, TeakResourceBundle, @"<%= @action[:text] %>",
+                                              @"<%= @action[:text] %>")
+        ],<% end %>
+      ]
+    },
+  <% end %>};
 }
