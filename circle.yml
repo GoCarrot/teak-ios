@@ -13,6 +13,7 @@ deployment:
 compile:
   override:
   - ./validate-code-format
+  - ./import_notification_categories notification_categories.csv
   - ./compile
 dependencies:
   pre:
