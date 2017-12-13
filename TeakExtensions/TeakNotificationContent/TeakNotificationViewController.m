@@ -229,8 +229,7 @@ NSString* TeakNSStringOrNilFor(id object) {
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption option))completionHandler {
   NSString* action = self.actions[response.actionIdentifier];
 
-  // HAX: We need the actions
-  if ((NO)) { //(action == nil) {
+  if (action == nil) {
     // Launch the app when the button is pressed
     completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
   } else {
