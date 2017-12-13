@@ -51,6 +51,36 @@ NSString* TeakNSStringOrNilFor(id object) {
 
 /////
 
+@interface UIImageArrayView : UIImageView
+@property (strong, nonatomic, setter=setImageArray:) NSArray* imageArray;
+@property (nonatomic, setter=setImageIndex:) NSUInteger imageIndex;
+
+- (id)initWithImageArray:(NSArray*)imageArray;
+- (void)setImageArray:(NSArray*)imageArray;
+@end
+
+@implementation UIImageArrayView
+- (id)initWithImageArray:(NSArray*)imageArray {
+  self = [super init];
+  if (self) {
+    self.imageArray = imageArray;
+  }
+  return self;
+}
+
+- (void)setImageArray:(NSArray*)imageArray {
+  _imageArray = imageArray;
+  self.imageIndex = 0;
+}
+
+- (void)setImageIndex:(NSUInteger)imageIndex {
+  _imageIndex = imageIndex;
+  self.image = self.imageArray[_imageIndex];
+}
+@end
+
+/////
+
 @interface TeakNotificationViewController () <UNNotificationContentExtension>
 @property (strong, nonatomic) NSURLSession* session;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
@@ -155,8 +185,7 @@ NSString* TeakNSStringOrNilFor(id object) {
     float imageScaleRatio = self.view.frame.size.width / (self.image.size.width * self.image.scale);
     scaledHeight = self.image.size.height * self.image.scale * imageScaleRatio;
 
-    UIImageView* imageView = [[UIImageView alloc] init];
-    imageView.image = self.image;
+    UIImageArrayView* imageView = [[UIImageArrayView alloc] initWithImageArray:@[ self.image ]];
     imageView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
 
     self.notificationContentView = imageView;
