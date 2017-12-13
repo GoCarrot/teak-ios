@@ -65,6 +65,11 @@ NSString* TeakNSStringOrNilFor(id object) {
 
 // Common parent view for whatever is in the notification.
 @property (strong, nonatomic) UIView* notificationContentView;
+
+// Configuration
+@property (strong, nonatomic) NSDictionary* actions;
+@property (nonatomic) BOOL autoPlay;
+@property (nonatomic) BOOL loop;
 @end
 
 @implementation TeakNotificationViewController
@@ -73,7 +78,23 @@ NSString* TeakNSStringOrNilFor(id object) {
   [super viewDidLoad];
 }
 
+- (void)configureForNotification:(UNNotification*)notification {
+  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
+
+  // Button actions, nil = just launch the app
+  self.actions = aps[@"actions"];
+  if (self.actions == nil || self.actions == (NSDictionary*)[NSNull null]) {
+    self.actions = [[NSDictionary alloc] init];
+  }
+
+  // Video options
+  self.autoPlay = (aps[@"autoplay"] == nil || aps[@"autoplay"] == [NSNull null]) ? NO : aps[@"autoplay"];
+  self.loop = (aps[@"loop"] == nil || aps[@"loop"] == [NSNull null]) ? NO : aps[@"loop"];
+}
+
 - (void)didReceiveNotification:(UNNotification*)notification {
+  [self configureForNotification:notification];
+
   self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
   self.operationQueue = [[NSOperationQueue alloc] init];
   self.sessionFinishOperation = [NSBlockOperation blockOperationWithBlock:^{
@@ -120,10 +141,11 @@ NSString* TeakNSStringOrNilFor(id object) {
     scaledHeight = trackSize.height * scaleRatio;
 
     AVQueuePlayer* queuePlayer = [AVQueuePlayer queuePlayerWithItems:@[ self.playerItem ]];
-    self.player = (AVPlayer*)queuePlayer;
-    if ((NO)) { // If loop animation
+    if (self.loop) {
       self.player = (AVPlayer*)[AVPlayerLooper playerLooperWithPlayer:queuePlayer
                                                          templateItem:self.playerItem];
+    } else {
+      self.player = (AVPlayer*)queuePlayer;
     }
 
     TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
@@ -149,21 +171,26 @@ NSString* TeakNSStringOrNilFor(id object) {
   self.preferredContentSize = CGSizeMake(self.view.frame.size.width, scaledHeight);
   [self.view addSubview:self.notificationContentView];
 
-  // If Autoplay
-  if ((NO)) {
+  // Start video if auto-play
+  if (self.autoPlay) {
     [self.player play];
   }
 }
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption option))completionHandler {
-  [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
-                                                    object:self.playerItem
-                                                     queue:nil
-                                                usingBlock:^(NSNotification* notification) {
-                                                  [[NSNotificationCenter defaultCenter] removeObserver:self];
-                                                  completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
-                                                }];
+  NSString* action = self.actions[response.actionIdentifier];
+  if (action == nil) {
+    completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+  } else {
+    [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
+                                                      object:self.playerItem
+                                                       queue:nil
+                                                  usingBlock:^(NSNotification* notification) {
+                                                    [[NSNotificationCenter defaultCenter] removeObserver:self];
+                                                    completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+                                                  }];
+  }
 
   [self.player play];
 }
