@@ -85,13 +85,10 @@ NSString* TeakNSStringOrNilFor(id object) {
 @property (strong, nonatomic) NSURLSession* session;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 @property (strong, nonatomic) NSOperation* sessionFinishOperation;
+@property (strong, nonatomic) NSArray* assets;
 
 // Video related
 @property (strong, nonatomic) AVPlayer* player;
-@property (strong, nonatomic) AVPlayerItem* playerItem;
-
-// Image related
-@property (strong, nonatomic) UIImage* image;
 
 // Common parent view for whatever is in the notification.
 @property (strong, nonatomic) UIView* notificationContentView;
@@ -148,32 +145,62 @@ NSString* TeakNSStringOrNilFor(id object) {
 
   // The first object of the attachments array will be displayed as the "preview" in the small view,
   // we can use any subsequent attachments differently
-  UNNotificationAttachment* attachment = [notification.request.content.attachments lastObject];
-  if (attachment == nil || attachment.URL == nil || ![attachment.URL startAccessingSecurityScopedResource]) return;
+  BOOL firstAttachmentChecked = NO;
+  BOOL firstItemWasImage = NO;
+  BOOL assetsAreImages = YES;
+  NSMutableArray* buildingAssets = [[NSMutableArray alloc] init];
+  for (UNNotificationAttachment* attachment in notification.request.content.attachments) {
 
-  if ([[attachment.URL pathExtension] isEqualToString:@"mp4"]) {
-    AVURLAsset* asset = [[AVURLAsset alloc] initWithURL:attachment.URL options:nil];
-    [attachment.URL stopAccessingSecurityScopedResource];
+    // Bail if something has gone wrong with the attachments
+    if (attachment == nil || attachment.URL == nil || ![attachment.URL startAccessingSecurityScopedResource]) return;
 
-    self.playerItem = [[AVPlayerItem alloc] initWithAsset:asset];
-  } else { // if image type
-    NSData* attachmentData = [[NSData alloc] initWithContentsOfURL:attachment.URL];
-    [attachment.URL stopAccessingSecurityScopedResource];
+    // mp4 is video, assume everything else is an image of some type
+    if ([[attachment.URL pathExtension] isEqualToString:@"mp4"]) {
+      if (!firstAttachmentChecked) {
+        firstAttachmentChecked = YES;
+        firstItemWasImage = NO;
+      } else if (firstItemWasImage && buildingAssets.count == 1) {
+        // First item was a preview image, so toss it out
+        [buildingAssets removeAllObjects];
+      }
 
-    self.image = [UIImage imageWithData:attachmentData];
+      AVURLAsset* asset = [[AVURLAsset alloc] initWithURL:attachment.URL options:nil];
+      [attachment.URL stopAccessingSecurityScopedResource];
+      [buildingAssets addObject:[[AVPlayerItem alloc] initWithAsset:asset]];
+      assetsAreImages = NO;
+    } else { // It's an image
+      if (!firstAttachmentChecked) {
+        firstAttachmentChecked = YES;
+        firstItemWasImage = YES;
+      }
+
+      NSData* attachmentData = [[NSData alloc] initWithContentsOfURL:attachment.URL];
+      [attachment.URL stopAccessingSecurityScopedResource];
+      [buildingAssets addObject:[UIImage imageWithData:attachmentData]];
+      assetsAreImages = YES;
+    }
   }
+  self.assets = buildingAssets;
 
   float scaledHeight = 0.0f;
-  if (self.playerItem != nil) {
-    AVAssetTrack* track = [[self.playerItem.asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+  if (assetsAreImages) {
+    UIImage* firstImage = [self.assets firstObject];
+    float imageScaleRatio = self.view.frame.size.width / (firstImage.size.width * firstImage.scale);
+    scaledHeight = firstImage.size.height * firstImage.scale * imageScaleRatio;
+
+    self.notificationContentView = [[UIImageArrayView alloc] initWithImageArray:self.assets];
+    self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
+  } else {
+    AVPlayerItem* firstPlayerItem = [self.assets firstObject];
+    AVAssetTrack* track = [[firstPlayerItem.asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
     CGSize trackSize = CGSizeApplyAffineTransform(track.naturalSize, track.preferredTransform);
     float scaleRatio = self.view.frame.size.width / trackSize.width;
     scaledHeight = trackSize.height * scaleRatio;
 
-    AVQueuePlayer* queuePlayer = [AVQueuePlayer queuePlayerWithItems:@[ self.playerItem ]];
+    AVQueuePlayer* queuePlayer = [AVQueuePlayer queuePlayerWithItems:self.assets];
     if (self.loop) {
       self.player = (AVPlayer*)[AVPlayerLooper playerLooperWithPlayer:queuePlayer
-                                                         templateItem:self.playerItem];
+                                                         templateItem:firstPlayerItem];
     } else {
       self.player = (AVPlayer*)queuePlayer;
     }
@@ -181,14 +208,6 @@ NSString* TeakNSStringOrNilFor(id object) {
     TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
     playerView.player = self.player;
     self.notificationContentView = playerView;
-  } else if (self.image != nil) {
-    float imageScaleRatio = self.view.frame.size.width / (self.image.size.width * self.image.scale);
-    scaledHeight = self.image.size.height * self.image.scale * imageScaleRatio;
-
-    UIImageArrayView* imageView = [[UIImageArrayView alloc] initWithImageArray:@[ self.image ]];
-    imageView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
-
-    self.notificationContentView = imageView;
   }
 
   /////
@@ -209,19 +228,22 @@ NSString* TeakNSStringOrNilFor(id object) {
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption option))completionHandler {
   NSString* action = self.actions[response.actionIdentifier];
-  if (action == nil) {
+
+  // HAX: We need the actions
+  if ((NO)) { //(action == nil) {
+    // Launch the app when the button is pressed
     completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
   } else {
+    // Start playing when button is pressed, launch app when the last asset finishes playing
     [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
-                                                      object:self.playerItem
+                                                      object:[self.assets lastObject]
                                                        queue:nil
                                                   usingBlock:^(NSNotification* notification) {
                                                     [[NSNotificationCenter defaultCenter] removeObserver:self];
                                                     completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
                                                   }];
+    [self.player play];
   }
-
-  [self.player play];
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
