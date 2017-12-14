@@ -1,0 +1,5 @@
+rule-configurations:
+  - key: LONG_LINE
+    value: 200
+  - key: LONG_VARIABLE_NAME
+    value: 51

@@ -10,3 +10,7 @@ infer-out/
 xcuserdata/
 *.xcscmblueprint
 *.xccheckout
+
+compile_commands.json
+oclint.result
+oclint_result.html
