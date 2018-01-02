@@ -6,10 +6,23 @@ IFS=$'\n\t'
 prefix="clang-analyze"
 suffix="$(date +%s)"
 clangTemp="/tmp/$prefix-$suffix"
-xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean analyze | xcpretty #--report junit
+xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean analyze | xcpretty -r json-compilation-database -o compile_commands.json #--report junit
 if [ ! $? -eq 0 ]; then
   rm -fr $clangTemp
-  exit $retVal
+  exit $?
+fi
+
+oclint-json-compilation-database -- -report-type html -o oclint_result.html
+if [ ! $? -eq 0 ]; then
+  echo "oclint found issues"
+  if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
+    open oclint_result.html
+  else
+    oclintArtifacts=$CIRCLE_ARTIFACTS/oclint/
+    mkdir -p $oclintArtifacts
+    cp oclint_result.html $oclintArtifacts
+  fi
+  #exit 1 # TODO: Uncomment when we want oclint to cause fail
 fi
 
 if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
@@ -18,7 +31,7 @@ if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
     find $clangTemp -type f -name *.html | xargs open
   else
     clangArtifacts=$CIRCLE_ARTIFACTS/clang/
-    mkdir -p clangArtifacts
+    mkdir -p $clangArtifacts
     cp `find $clangTemp -type f -name *.html` $clangArtifacts
   fi
   rm -fr $clangTemp

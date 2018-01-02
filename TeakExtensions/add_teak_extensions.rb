@@ -89,6 +89,7 @@ teak_extensions.each do |service, deps|
 
   # Assign build configurations
   target.build_configurations.each do |config|
+    next if not build_settings[config.name]
     config.build_settings = {
       :CODE_SIGN_IDENTITY => build_settings[config.name]['CODE_SIGN_IDENTITY'],
       :DEVELOPMENT_TEAM => build_settings[config.name]['DEVELOPMENT_TEAM'],

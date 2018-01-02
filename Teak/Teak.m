@@ -261,6 +261,31 @@ Teak* _teakSharedInstance;
   }
   teak_catch_report;
 
+  // Register push notification categories
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    NSMutableSet* categories = [[NSMutableSet alloc] init];
+    for (NSString* key in TeakNotificationCategories) {
+      NSDictionary* category = TeakNotificationCategories[key];
+
+      NSMutableArray* actions = [[NSMutableArray alloc] init];
+      for (NSArray* actionPair in category[@"actions"]) {
+        UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionPair[0]
+                                                                            title:actionPair[1]
+                                                                          options:UNNotificationActionOptionForeground];
+        [actions addObject:action];
+      }
+
+      UNNotificationCategory* notifCategory = [UNNotificationCategory categoryWithIdentifier:key
+                                                                                     actions:actions
+                                                                           intentIdentifiers:@[]
+                                                                                     options:UNNotificationCategoryOptionCustomDismissAction];
+      [categories addObject:notifCategory];
+    }
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    center.delegate = self;
+    [center setNotificationCategories:categories];
+  }
+
   // If the app was not running, we need to check these and invoke them afterwards
   if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
@@ -362,6 +387,8 @@ Teak* _teakSharedInstance;
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
   completionHandler();
+
+  // TODO: HERE is where we report metric that a button was pressed
 }
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
