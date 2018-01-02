@@ -12,8 +12,8 @@ if [ ! $? -eq 0 ]; then
   exit $?
 fi
 
-oclint-json-compilation-database -- -report-type html -o oclint_result.html
-if [ ! $? -eq 0 ]; then
+oclint-json-compilation-database -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
+if [ ! $EXIT_CODE -eq 0 ]; then
   echo "oclint found issues"
   if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
     open oclint_result.html
