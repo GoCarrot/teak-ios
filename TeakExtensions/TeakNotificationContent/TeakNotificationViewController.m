@@ -115,8 +115,8 @@ NSString* TeakNSStringOrNilFor(id object) {
   }
 
   // Video options
-  self.autoPlay = (aps[@"autoplay"] == nil || aps[@"autoplay"] == [NSNull null]) ? NO : aps[@"autoplay"];
-  self.loop = (aps[@"loop"] == nil || aps[@"loop"] == [NSNull null]) ? NO : aps[@"loop"];
+  self.autoPlay = (aps[@"autoplay"] == nil || aps[@"autoplay"] == [NSNull null]) ? NO : [aps[@"autoplay"] boolValue];
+  self.loop = (aps[@"loop"] == nil || aps[@"loop"] == [NSNull null]) ? NO : [aps[@"loop"] boolValue];
 }
 
 - (void)didReceiveNotification:(UNNotification*)notification {
