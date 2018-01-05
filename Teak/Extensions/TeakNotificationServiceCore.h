@@ -13,12 +13,8 @@
  * limitations under the License.
  */
 
-#import "TeakNotificationViewController.h"
+#import <UserNotifications/UserNotifications.h>
 
-@implementation TeakNotificationViewController
-
-- (void)viewDidLoad {
-  [super viewDidLoad];
-}
-
+@interface TeakNotificationServiceCore : UNNotificationServiceExtension
+- (void)serviceExtensionTimeWillExpire;
 @end

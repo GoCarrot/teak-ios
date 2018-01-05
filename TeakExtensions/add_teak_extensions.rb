@@ -32,7 +32,7 @@ xcode_proj = Xcodeproj::Project.open(xcode_project_path)
 # List of Teak extensions
 teak_extensions = [
   ["TeakNotificationService", ["MobileCoreServices"]],
-  ["TeakNotificationContent", ["UserNotifications", "UserNotificationsUI", "AVKit"]]
+  ["TeakNotificationContent", ["UserNotifications", "UserNotificationsUI", "AVFoundation"]]
 ]
 teak_extensions.each do |service, deps|
 
@@ -55,6 +55,13 @@ teak_extensions.each do |service, deps|
     file_ref.source_tree = 'SDKROOT'
     target.frameworks_build_phase.add_file_reference(file_ref)
   end
+
+  # Add dependency on libTeak.a
+  libTeak_ref = xcode_proj.frameworks_group.new_reference("Libraries/Teak/Plugins/iOS/libTeak.a") # Unity path
+  libTeak_ref.name = "libTeak.a"
+  libTeak_ref.source_tree = 'SDKROOT'
+  target.frameworks_build_phase.add_file_reference(libTeak_ref)
+
 
   Dir.glob(File.expand_path("#{service}/**/*", File.dirname(__FILE__))).map(&File.method(:realpath)).each do |file|
     target_file = File.join(target_path, File.basename(file))
