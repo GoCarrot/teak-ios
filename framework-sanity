@@ -5,13 +5,15 @@ IFS=$'\n\t'
 err=0
 
 output_should_be=$(cat <<-END
-build/Release-iphoneos/Teak.framework/Versions/A
+build/Release-iphoneos/Teak.framework/Versions/A/
 build/Release-iphoneos/Teak.framework/Versions/Current
-build/Release-iphoneos/Teak.framework/Versions/A/Headers
+build/Release-iphoneos/Teak.framework/Versions/A/Headers/
 build/Release-iphoneos/Teak.framework/Versions/A/Teak
 build/Release-iphoneos/Teak.framework/Versions/A/Headers/Teak.h
 build/Release-iphoneos/Teak.framework/Versions/A/Headers/TeakLink.h
 build/Release-iphoneos/Teak.framework/Versions/A/Headers/TeakNotification.h
+build/Release-iphoneos/Teak.framework/Versions/A/Headers/TeakNotificationServiceCore.h
+build/Release-iphoneos/Teak.framework/Versions/A/Headers/TeakNotificationViewControllerCore.h
 END
 )
 
