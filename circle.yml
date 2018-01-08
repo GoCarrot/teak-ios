@@ -9,7 +9,9 @@ deployment:
     branch: master
     commands:
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
+      - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
+      - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
 compile:
   override:
   - ./validate-code-format
