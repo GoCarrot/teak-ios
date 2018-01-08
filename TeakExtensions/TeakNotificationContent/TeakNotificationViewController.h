@@ -13,7 +13,11 @@
  * limitations under the License.
  */
 
-#import <Teak/Teak.h>
+#import <UIKit/UIKit.h>
+
+@interface TeakNotificationViewControllerCore : UIViewController
+- (void)viewDidLoad;
+@end
 
 @interface TeakNotificationViewController : TeakNotificationViewControllerCore
 - (void)viewDidLoad;

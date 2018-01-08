@@ -13,7 +13,11 @@
  * limitations under the License.
  */
 
-#import <Teak/Teak.h>
+#import <UserNotifications/UserNotifications.h>
+
+@interface TeakNotificationServiceCore : UNNotificationServiceExtension
+- (void)serviceExtensionTimeWillExpire;
+@end
 
 @interface TeakNotificationService : TeakNotificationServiceCore
 - (void)serviceExtensionTimeWillExpire;

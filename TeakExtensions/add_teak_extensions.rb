@@ -19,10 +19,13 @@ xcode_project_name = File.basename(File.dirname(xcode_project_path))
 
 # Configuration
 symlink_instead_of_copy = false
+bundle_id = ""
 
 ARGV[0...-1].each do |arg|
   if arg == '--symlink-instead-of-copy' then
     symlink_instead_of_copy = true
+  elsif arg =~ /--bundle-id=(.*)/ then
+    bundle_id = $1
   end
 end
 
@@ -31,8 +34,8 @@ xcode_proj = Xcodeproj::Project.open(xcode_project_path)
 
 # List of Teak extensions
 teak_extensions = [
-  ["TeakNotificationService", ["MobileCoreServices"]],
-  ["TeakNotificationContent", ["UserNotifications", "UserNotificationsUI", "AVFoundation"]]
+  ["TeakNotificationService", ["MobileCoreServices", "UserNotifications"]],
+  ["TeakNotificationContent", ["UserNotifications", "UserNotificationsUI", "AVFoundation", "UIKit"]]
 ]
 teak_extensions.each do |service, deps|
 
@@ -53,15 +56,14 @@ teak_extensions.each do |service, deps|
     file_ref = xcode_proj.frameworks_group.new_reference("System/Library/Frameworks/#{framework}.framework")
     file_ref.name = "#{framework}.framework"
     file_ref.source_tree = 'SDKROOT'
-    target.frameworks_build_phase.add_file_reference(file_ref)
+    target.frameworks_build_phase.add_file_reference(file_ref, true)
   end
 
   # Add dependency on libTeak.a
-  libTeak_ref = xcode_proj.frameworks_group.new_reference("Libraries/Teak/Plugins/iOS/libTeak.a") # Unity path
-  libTeak_ref.name = "libTeak.a"
-  libTeak_ref.source_tree = 'SDKROOT'
-  target.frameworks_build_phase.add_file_reference(libTeak_ref)
-
+  teak_framework_ref = xcode_proj.frameworks_group.new_reference("libTeak.a")
+  teak_framework_ref.name = "libTeak.a"
+  teak_framework_ref.source_tree = 'SOURCE_ROOT'
+  target.frameworks_build_phase.add_file_reference(teak_framework_ref, true)
 
   Dir.glob(File.expand_path("#{service}/**/*", File.dirname(__FILE__))).map(&File.method(:realpath)).each do |file|
     target_file = File.join(target_path, File.basename(file))
@@ -88,21 +90,22 @@ teak_extensions.each do |service, deps|
   # Add Resources build phase
   target.resources_build_phase
 
-  # Get build settings for debug/release
-  build_settings = {
-    'Debug' => xcode_proj.native_targets.detect { |e| e.name == xcode_project_name }.build_settings('Debug'),
-    'Release' => xcode_proj.native_targets.detect { |e| e.name == xcode_project_name }.build_settings('Release')
-  }
-
   # Assign build configurations
   target.build_configurations.each do |config|
-    next if not build_settings[config.name]
+    build_settings = xcode_proj.native_targets.detect { |e| e.name == xcode_project_name }.build_settings(config.name)
+    next if not build_settings
     config.build_settings = {
-      :CODE_SIGN_IDENTITY => build_settings[config.name]['CODE_SIGN_IDENTITY'],
-      :DEVELOPMENT_TEAM => build_settings[config.name]['DEVELOPMENT_TEAM'],
+      :CODE_SIGN_STYLE => "Automatic",
+      :IPHONEOS_DEPLOYMENT_TARGET => 10.0,
+      :CODE_SIGN_IDENTITY => build_settings['CODE_SIGN_IDENTITY'],
+      :DEVELOPMENT_TEAM => build_settings['DEVELOPMENT_TEAM'],
+      #"CODE_SIGN_IDENTITY[sdk=iphoneos*]" => "iPhone Developer", # Causes parse errors
+      :LIBRARY_SEARCH_PATHS => [
+          "$(SRCROOT)/Libraries/Teak/Plugins/iOS" # Unity path
+      ],
       :INFOPLIST_FILE => "#{service}/Info.plist",
       :LD_RUNPATH_SEARCH_PATHS => "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
-      :PRODUCT_BUNDLE_IDENTIFIER => "#{build_settings[config.name]['PRODUCT_BUNDLE_IDENTIFIER']}.#{service}",
+      :PRODUCT_BUNDLE_IDENTIFIER => "#{bundle_id}.#{service}",
       :PRODUCT_NAME => "$(TARGET_NAME)",
       :SKIP_INSTALL => :YES
     }
