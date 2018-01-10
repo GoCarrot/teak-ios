@@ -73,6 +73,7 @@
 		43C735C11CC1AA2700484B67 /* TeakCExtern.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C735C01CC1AA2700484B67 /* TeakCExtern.m */; };
 		43CEF65C1E4137C20065E4E5 /* TeakLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 43CEF65A1E4137C20065E4E5 /* TeakLink.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		43CEF65D1E4137C20065E4E5 /* TeakLink.m in Sources */ = {isa = PBXBuildFile; fileRef = 43CEF65B1E4137C20065E4E5 /* TeakLink.m */; };
+		43DCD108200595B7009B6514 /* UIImage+animatedGIF.m in Sources */ = {isa = PBXBuildFile; fileRef = 43DCD107200595B7009B6514 /* UIImage+animatedGIF.m */; };
 		43E601BE1FFEF879003A09C5 /* TeakNotificationServiceCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 43E601BA1FFEF879003A09C5 /* TeakNotificationServiceCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		43E601BF1FFEF879003A09C5 /* TeakNotificationServiceCore.m in Sources */ = {isa = PBXBuildFile; fileRef = 43E601BB1FFEF879003A09C5 /* TeakNotificationServiceCore.m */; };
 		43E601C01FFEF879003A09C5 /* TeakNotificationViewControllerCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 43E601BC1FFEF879003A09C5 /* TeakNotificationViewControllerCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -169,6 +170,7 @@
 		43C735C01CC1AA2700484B67 /* TeakCExtern.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakCExtern.m; sourceTree = "<group>"; };
 		43CEF65A1E4137C20065E4E5 /* TeakLink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakLink.h; sourceTree = "<group>"; };
 		43CEF65B1E4137C20065E4E5 /* TeakLink.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakLink.m; sourceTree = "<group>"; };
+		43DCD107200595B7009B6514 /* UIImage+animatedGIF.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "UIImage+animatedGIF.m"; sourceTree = "<group>"; };
 		43E601BA1FFEF879003A09C5 /* TeakNotificationServiceCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakNotificationServiceCore.h; sourceTree = "<group>"; };
 		43E601BB1FFEF879003A09C5 /* TeakNotificationServiceCore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationServiceCore.m; sourceTree = "<group>"; };
 		43E601BC1FFEF879003A09C5 /* TeakNotificationViewControllerCore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakNotificationViewControllerCore.h; sourceTree = "<group>"; };
@@ -342,6 +344,7 @@
 				43E601BB1FFEF879003A09C5 /* TeakNotificationServiceCore.m */,
 				43E601BC1FFEF879003A09C5 /* TeakNotificationViewControllerCore.h */,
 				43E601BD1FFEF879003A09C5 /* TeakNotificationViewControllerCore.m */,
+				43DCD107200595B7009B6514 /* UIImage+animatedGIF.m */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -550,6 +553,7 @@
 				4383727C1D34443D00B01F44 /* TeakState.m in Sources */,
 				4348617C1FA3B5D800E0DA12 /* PurchaseEvent.m in Sources */,
 				438372781D3442EA00B01F44 /* TeakSession.m in Sources */,
+				43DCD108200595B7009B6514 /* UIImage+animatedGIF.m in Sources */,
 				4383726C1D3419D000B01F44 /* TeakDebugConfiguration.m in Sources */,
 				43CEF65D1E4137C20065E4E5 /* TeakLink.m in Sources */,
 				4361E4A01D27529700672694 /* TeakRaven.m in Sources */,

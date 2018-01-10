@@ -20,6 +20,10 @@
 
 /////
 
+extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
+
+/////
+
 @interface TeakAVPlayerView : UIView
 @property (strong, nonatomic, setter=setPlayer:) AVPlayer* player;
 
@@ -165,7 +169,13 @@
 
       NSData* attachmentData = [[NSData alloc] initWithContentsOfURL:attachment.URL];
       [attachment.URL stopAccessingSecurityScopedResource];
-      [buildingAssets addObject:[UIImage imageWithData:attachmentData]];
+      UIImage* image = nil;
+      if ([[attachment.URL pathExtension] isEqualToString:@"gif"]) {
+        image = UIImage_animatedImageWithAnimatedGIFData(attachmentData);
+      } else {
+        image = [UIImage imageWithData:attachmentData];
+      }
+      [buildingAssets addObject:image];
       assetsAreImages = YES;
     }
   }

@@ -25,6 +25,8 @@
 		43B5CE5F1FFEFE3200B3C501 /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C987C1C7E6DF400B19DD5 /* libTeak.a */; };
 		43B5CE601FFEFE3700B3C501 /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C987C1C7E6DF400B19DD5 /* libTeak.a */; };
 		43B5CE611FFEFE5800B3C501 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43E601C51FFEF949003A09C5 /* AVFoundation.framework */; };
+		43DCD10B2005982B009B6514 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43DCD1092005982A009B6514 /* ImageIO.framework */; };
+		43DCD10D2005A725009B6514 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43DCD1092005982A009B6514 /* ImageIO.framework */; };
 		43E601C61FFEF949003A09C5 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43E601C51FFEF949003A09C5 /* AVFoundation.framework */; };
 		43E601C71FFEF96D003A09C5 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43499EE51FB406770082D0F7 /* MobileCoreServices.framework */; };
 		4B42F2E07D5AB45F9FCA756E /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
@@ -121,6 +123,7 @@
 		431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		431FDAF81FB38B6E009C0106 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
 		43499EE51FB406770082D0F7 /* MobileCoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileCoreServices.framework; path = System/Library/Frameworks/MobileCoreServices.framework; sourceTree = SDKROOT; };
+		43DCD1092005982A009B6514 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		43E601C51FFEF949003A09C5 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		6D34458518D7A040139D5987 /* UserNotificationsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotificationsUI.framework; path = System/Library/Frameworks/UserNotificationsUI.framework; sourceTree = SDKROOT; };
 		743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -139,6 +142,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				43DCD10D2005A725009B6514 /* ImageIO.framework in Frameworks */,
 				43E601C71FFEF96D003A09C5 /* MobileCoreServices.framework in Frameworks */,
 				43E601C61FFEF949003A09C5 /* AVFoundation.framework in Frameworks */,
 				435A0C021FAEA140000EF1EF /* UserNotifications.framework in Frameworks */,
@@ -163,6 +167,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				43DCD10B2005982B009B6514 /* ImageIO.framework in Frameworks */,
 				43B5CE611FFEFE5800B3C501 /* AVFoundation.framework in Frameworks */,
 				43B5CE5F1FFEFE3200B3C501 /* libTeak.a in Frameworks */,
 				E6C409BD987F3456FDED7EBE /* Foundation.framework in Frameworks */,
@@ -256,6 +261,7 @@
 		879C4E8A2BF50111224BCCB3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				43DCD1092005982A009B6514 /* ImageIO.framework */,
 				43E601C51FFEF949003A09C5 /* AVFoundation.framework */,
 				43499EE51FB406770082D0F7 /* MobileCoreServices.framework */,
 				431FDAF81FB38B6E009C0106 /* AVKit.framework */,
