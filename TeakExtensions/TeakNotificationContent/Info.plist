@@ -28,7 +28,7 @@
 			<array>
 			</array>
 			<key>UNNotificationExtensionDefaultContentHidden</key>
-			<true/>
+			<false/>
 			<key>UNNotificationExtensionInitialContentSizeRatio</key>
 			<real>1.0</real>
 		</dict>

@@ -15,6 +15,10 @@
 
 #import <UIKit/UIKit.h>
 
-@interface TeakNotificationViewController : UIViewController
+@interface TeakNotificationViewControllerCore : UIViewController
+- (void)viewDidLoad;
+@end
+
+@interface TeakNotificationViewController : TeakNotificationViewControllerCore
 - (void)viewDidLoad;
 @end

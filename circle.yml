@@ -1,6 +1,6 @@
 machine:
   xcode:
-    version: 9.0
+    version: 9.2
 checkout:
   post:
     - git fetch --tags
@@ -9,7 +9,11 @@ deployment:
     branch: master
     commands:
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
+      - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
+      - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
+      - aws s3 cp TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
+      - aws s3 cp TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
 compile:
   override:
   - ./validate-code-format
@@ -32,7 +36,7 @@ test:
         -project Automated/Automated.xcodeproj
         -scheme Automated
         -sdk iphonesimulator
-        -destination 'platform=iOS Simulator,OS=11.0.1,name=iPhone 8'
+        -destination 'platform=iOS Simulator,OS=11.2,name=iPhone X'
         clean build test |
       tee $CIRCLE_ARTIFACTS/xcode_raw.log |
       xcpretty --color --report junit --output $CIRCLE_TEST_REPORTS/xcode/results.xml

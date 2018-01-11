@@ -386,8 +386,11 @@ Teak* _teakSharedInstance;
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
-  completionHandler();
 
+  // Call application:didReceiveRemoteNotification: since that is not called in the UNNotificationCenter
+  // code path.
+  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:response.notification.request.content.userInfo];
+  completionHandler();
   // TODO: HERE is where we report metric that a button was pressed
 }
 

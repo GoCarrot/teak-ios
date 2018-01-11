@@ -15,6 +15,10 @@
 
 #import <UserNotifications/UserNotifications.h>
 
-@interface TeakNotificationService : UNNotificationServiceExtension
+@interface TeakNotificationServiceCore : UNNotificationServiceExtension
+- (void)serviceExtensionTimeWillExpire;
+@end
+
+@interface TeakNotificationService : TeakNotificationServiceCore
 - (void)serviceExtensionTimeWillExpire;
 @end
