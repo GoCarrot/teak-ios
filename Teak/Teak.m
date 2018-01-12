@@ -444,7 +444,7 @@ Teak* _teakSharedInstance;
                                deviceConfiguration:self.configuration.deviceConfiguration];
 
         NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
-        if (aps[@"teakRewardId"] != nil) [teakUserInfo setValue:aps[@"teakRewardId"] forKey:@"teakRewardId"];
+        if (aps[@"teakRewardId"] != nil) [teakUserInfo setValue:[aps[@"teakRewardId"] stringValue] forKey:@"teakRewardId"];
         if (aps[@"teakScheduleName"] != nil) [teakUserInfo setValue:aps[@"teakScheduleName"] forKey:@"teakScheduleName"];
         if (aps[@"teakCreativeName"] != nil) [teakUserInfo setValue:aps[@"teakCreativeName"] forKey:@"teakCreativeName"];
         teakUserInfo[@"incentivized"] = aps[@"teakRewardId"] == nil ? @NO : @YES;
