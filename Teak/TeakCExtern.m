@@ -107,3 +107,7 @@ void TeakOpenSettingsAppToThisAppsSettings() {
 BOOL TeakHasUserDisabledPushNotifications(void (^callback)(BOOL)) {
   return [[Teak sharedInstance] hasUserDisabledPushNotifications:callback];
 }
+
+void TeakSetBadgeCount(int count) {
+  [[Teak sharedInstance] setApplicationBadgeNumber:count];
+}

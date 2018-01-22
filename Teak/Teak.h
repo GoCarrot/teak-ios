@@ -117,6 +117,13 @@ extern NSString* _Nonnull const TeakOnReward;
  * Open Settings.app to the settings for this application.
  */
 - (void)openSettingsAppToThisAppsSettings;
+
+/**
+ * Set the badge number on the icon of the application.
+ *
+ * @param count           The number that should be displayed on the icon.
+ */
+- (void)setApplicationBadgeNumber:(int)count;
 @end
 
 #endif /* __OBJC__ */

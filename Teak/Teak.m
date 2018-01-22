@@ -142,6 +142,19 @@ Teak* _teakSharedInstance;
   [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 }
 
+- (void)setApplicationBadgeNumber:(int)count {
+  // If iOS 8+ then check first to see if we have permission to change badge, otherwise
+  // just go ahead and change it.
+  if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+    UIUserNotificationSettings* notificationSettings = [[UIApplication sharedApplication] currentUserNotificationSettings];
+    if (notificationSettings.types & UIUserNotificationTypeBadge) {
+      [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
+    }
+  } else {
+    [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret {
@@ -381,16 +394,8 @@ Teak* _teakSharedInstance;
 - (void)applicationDidBecomeActive:(UIApplication*)application {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
-  // If iOS 8+ then check first to see if we have permission to change badge, otherwise
-  // just go ahead and change it.
-  if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
-    UIUserNotificationSettings* notificationSettings = [application currentUserNotificationSettings];
-    if (notificationSettings.types & UIUserNotificationTypeBadge) {
-      [application setApplicationIconBadgeNumber:0];
-    }
-  } else {
-    [application setApplicationIconBadgeNumber:0];
-  }
+  // Zero-out the badge count
+  [self setApplicationBadgeNumber:0];
 
   // Lifecycle Event
   [LifecycleEvent applicationActivate];
