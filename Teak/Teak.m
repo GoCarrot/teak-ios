@@ -114,6 +114,34 @@ Teak* _teakSharedInstance;
   [TrackEventEvent trackedEventWithPayload:payload];
 }
 
+- (BOOL)hasUserDisabledPushNotifications:(void (^_Nonnull)(BOOL))callback {
+  if (callback == nil) return NO;
+
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
+      switch (settings.authorizationStatus) {
+        case UNAuthorizationStatusDenied: {
+          callback(YES);
+          break;
+        }
+        // Authorized or NotDetermined means they haven't disabled
+        case UNAuthorizationStatusAuthorized:
+        case UNAuthorizationStatusNotDetermined: {
+          callback(NO);
+        } break;
+      }
+    }];
+    return YES;
+  }
+
+  return NO;
+}
+
+- (void)openSettingsAppToThisAppsSettings {
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret {
