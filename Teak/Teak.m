@@ -477,6 +477,7 @@ Teak* _teakSharedInstance;
                                deviceConfiguration:self.configuration.deviceConfiguration];
 
         NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
+        teakUserInfo[@"teakNotifId"] = teakNotifId;
         if (aps[@"teakRewardId"] != nil) [teakUserInfo setValue:[aps[@"teakRewardId"] stringValue] forKey:@"teakRewardId"];
         if (aps[@"teakScheduleName"] != nil) [teakUserInfo setValue:aps[@"teakScheduleName"] forKey:@"teakScheduleName"];
         if (aps[@"teakCreativeName"] != nil) [teakUserInfo setValue:aps[@"teakCreativeName"] forKey:@"teakCreativeName"];
@@ -490,12 +491,6 @@ Teak* _teakSharedInstance;
               __strong TeakReward* blockReward = weakReward;
 
               [teakUserInfo setValue:blockReward.json == nil ? [NSNull null] : blockReward.json forKey:@"teakReward"];
-              [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                    object:self
-                                                                  userInfo:teakUserInfo];
-              }];
-
               if (blockReward.json != nil) {
                 [teakUserInfo addEntriesFromDictionary:blockReward.json];
                 [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
@@ -504,6 +499,12 @@ Teak* _teakSharedInstance;
                                                                     userInfo:teakUserInfo];
                 }];
               }
+
+              [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                    object:self
+                                                                  userInfo:teakUserInfo];
+              }];
             };
           } else {
             [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
