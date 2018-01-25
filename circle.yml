@@ -26,7 +26,8 @@ dependencies:
   cache_directories:
     - ~/Library/Caches/Homebrew/
 test:
-  override:
+  #override:
+  disabled:
     - ./framework-sanity
     - set -o pipefail &&
       xcodebuild
