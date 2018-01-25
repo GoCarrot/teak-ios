@@ -1,16 +1,22 @@
 machine:
   xcode:
-    version: 8.3
+    version: 8.3.3
 checkout:
   post:
     - git fetch --tags
 deployment:
+  hotfix:
+    branch: /hotfix.*/
+    commands:
+      - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
+      - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
+      - aws s3 cp TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
   prod:
     branch: master
     commands:
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
-      - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
       - aws s3 cp build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
+      - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
       - aws s3 cp build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
       - aws s3 cp TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
       - aws s3 cp TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
@@ -27,7 +33,7 @@ dependencies:
     - ~/Library/Caches/Homebrew/
 test:
   override:
-    - echo Tests disabled for now
+    - echo Tests disabled for Xcode 8
   disabled:
     - ./framework-sanity
     - set -o pipefail &&
