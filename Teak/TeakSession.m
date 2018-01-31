@@ -482,10 +482,18 @@ DefineTeakState(Expired, (@[]));
       reward.onComplete = ^() {
         __strong TeakReward* blockReward = tempWeakReward;
         if (blockReward.json != nil) {
+          NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
+          userInfo[@"teakNotifId"] = [NSNull null];
+          userInfo[@"teakRewardId"] = teakRewardId;
+          userInfo[@"teakScheduleName"] = [NSNull null];
+          userInfo[@"teakCreativeName"] = [NSNull null];
+          userInfo[@"incentivized"] = @YES;
+          [userInfo addEntriesFromDictionary:blockReward.json];
+
           [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
             [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
                                                                 object:self
-                                                              userInfo:blockReward.json];
+                                                              userInfo:userInfo];
           }];
         }
       };
