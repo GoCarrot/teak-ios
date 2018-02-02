@@ -61,6 +61,15 @@
                      self.sdkSentryDsn = sdkSentryDsn;
                      // TODO: assign DSN via KVO?
                    }
+
+                   // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
+                   @try {
+                     BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
+                     NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+                     [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
+                     [userDefaults synchronize];
+                   } @catch (NSException* ignored) {
+                   }
                  }
                }];
     [request send];
