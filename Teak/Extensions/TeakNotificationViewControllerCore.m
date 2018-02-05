@@ -85,7 +85,8 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 @property (strong, nonatomic) NSArray* assets;
 
 // Video related
-@property (strong, nonatomic) AVPlayer* player;
+@property (strong, nonatomic) AVPlayerLooper* playerLooper;
+@property (strong, nonatomic) AVQueuePlayer* queuePlayer;
 
 // Common parent view for whatever is in the notification.
 @property (strong, nonatomic) UIView* notificationContentView;
@@ -163,7 +164,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
       AVURLAsset* asset = [[AVURLAsset alloc] initWithURL:attachment.URL options:nil];
       [attachment.URL stopAccessingSecurityScopedResource];
-      [buildingAssets addObject:[[AVPlayerItem alloc] initWithAsset:asset]];
+      [buildingAssets addObject:[AVPlayerItem playerItemWithAsset:asset]];
       assetsAreImages = NO;
     } else { // It's an image
       if (!firstAttachmentChecked) {
@@ -200,16 +201,14 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     float scaleRatio = self.view.frame.size.width / trackSize.width;
     scaledHeight = trackSize.height * scaleRatio;
 
-    AVQueuePlayer* queuePlayer = [AVQueuePlayer queuePlayerWithItems:self.assets];
+    self.queuePlayer = [AVQueuePlayer queuePlayerWithItems:self.assets];
     if (self.loop) {
-      self.player = (AVPlayer*)[AVPlayerLooper playerLooperWithPlayer:queuePlayer
-                                                         templateItem:firstPlayerItem];
-    } else {
-      self.player = (AVPlayer*)queuePlayer;
+      self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:self.queuePlayer
+                                                    templateItem:firstPlayerItem];
     }
 
     TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
-    playerView.player = self.player;
+    playerView.player = self.queuePlayer;
     self.notificationContentView = playerView;
   }
 
@@ -224,7 +223,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
   // Start video if auto-play
   if (self.autoPlay) {
-    [self.player play];
+    [self.queuePlayer play];
   }
 }
 
@@ -244,7 +243,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
                                                     [[NSNotificationCenter defaultCenter] removeObserver:self];
                                                     completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
                                                   }];
-    [self.player play];
+    [self.queuePlayer play];
   }
 }
 
