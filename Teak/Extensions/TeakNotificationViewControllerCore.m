@@ -83,6 +83,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 @property (strong, nonatomic) NSOperation* sessionFinishOperation;
 @property (strong, nonatomic) NSArray* assets;
+@property (strong, nonatomic) NSDictionary* notificationUserData;
 
 // Video related
 @property (strong, nonatomic) AVPlayerLooper* playerLooper;
@@ -104,31 +105,30 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 }
 
 - (void)configureForNotification:(UNNotification*)notification {
-  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
+  self.notificationUserData = notification.request.content.userInfo[@"aps"];
 
   // Button actions, nil = just launch the app
-  self.actions = aps[@"actions"];
+  self.actions = self.notificationUserData[@"actions"];
   if (self.actions == nil || self.actions == (NSDictionary*)[NSNull null]) {
     self.actions = [[NSDictionary alloc] init];
   }
 
   // Video options
-  self.autoPlay = (aps[@"autoplay"] == nil || aps[@"autoplay"] == [NSNull null]) ? NO : [aps[@"autoplay"] boolValue];
-  self.loop = (aps[@"loop"] == nil || aps[@"loop"] == [NSNull null]) ? NO : [aps[@"loop"] boolValue];
+  self.autoPlay = TeakBoolFor(self.notificationUserData[@"autoplay"]);
+  self.loop = TeakBoolFor(self.notificationUserData[@"loop"]);
 }
 
-- (void)didReceiveNotification:(UNNotification*)notification {
-  [self configureForNotification:notification];
-
+- (void)initURLSession {
   self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
   self.operationQueue = [[NSOperationQueue alloc] init];
   self.sessionFinishOperation = [NSBlockOperation blockOperationWithBlock:^{
     [self.session finishTasksAndInvalidate];
   }];
+}
 
-  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
-  NSString* teakNotifId = TeakNSStringOrNilFor(aps[@"teakNotifId"]);
-  NSString* teakUserId = TeakNSStringOrNilFor(aps[@"teakUserId"]);
+- (void)queueMetricSend {
+  NSString* teakNotifId = TeakNSStringOrNilFor(self.notificationUserData[@"teakNotifId"]);
+  NSString* teakUserId = TeakNSStringOrNilFor(self.notificationUserData[@"teakUserId"]);
   if ([teakNotifId length] > 0 && [teakUserId length] > 0) {
     NSOperation* metricOperation = [self sendMetricForPayload:@{
       @"user_id" : teakUserId,
@@ -137,6 +137,12 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     }];
     [self.sessionFinishOperation addDependency:metricOperation];
   }
+}
+
+- (void)didReceiveNotification:(UNNotification*)notification {
+  [self configureForNotification:notification];
+  [self initURLSession];
+  [self queueMetricSend];
 
   // Move this if more ops are added
   [self.operationQueue addOperation:self.sessionFinishOperation];
