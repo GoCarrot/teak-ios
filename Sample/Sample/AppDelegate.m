@@ -70,6 +70,11 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
                                                name:TeakNotificationAppLaunch
                                              object:nil];
 
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                        selector:@selector(handleTeakReward:)
+                                        name:TeakOnReward
+                                        object:nil];
+
   // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
@@ -104,6 +109,26 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 // is launched from a Push Notification.
 - (void)handleTeakNotification:(NSNotification*)notification {
   NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!");
+}
+
+- (void)handleTeakReward:(NSNotification*)notification {
+  NSDictionary* userInfo = notification.userInfo;
+  NSLog(@"%@", userInfo);
+#ifdef SAMPLE_ALERT_ON_REWARD
+  NSDictionary* reward = userInfo[@"reward"];
+  if(reward) {
+    NSNumber* coins = reward[@"coins"];
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Coins!"
+                                                                   message:[NSString stringWithFormat:@"You just got %@ coins!", coins]
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+
+    UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome" style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction * action) {}];
+
+    [alert addAction:defaultAction];
+    [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+  }
+#endif
 }
 
 // This is for our automated testing.
