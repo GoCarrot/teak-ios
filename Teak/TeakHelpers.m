@@ -30,3 +30,11 @@ NSString* TeakURLEscapedString(NSString* inString) {
   if (inString == nil) return nil;
   return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]];
 }
+
+BOOL TeakBoolFor(id object) {
+  if(object == nil || object == [NSNull null]) {
+    return NO;
+  }
+
+  return [object boolValue];
+}
