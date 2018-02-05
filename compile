@@ -45,7 +45,7 @@ if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
   if [ ! $? -eq 0 ]; then
     exit $retVal
   fi
-elif ! infer --version | grep 0.13.0; then
+elif ! infer --version | grep 0.13.1; then
   echo "New Infer version, check to see if they have that DEAD_STORE stuff fixed."
   exit 1
 fi
