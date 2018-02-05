@@ -100,6 +100,30 @@ extern NSString* _Nonnull const TeakOnReward;
  */
 - (void)trackEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId;
 
+/**
+ * Has the user disabled push notifications.
+ *
+ * If they have disabled push notifications, you can prompt them to re-enable
+ * and use openSettingsAppToThisAppsSettings to open the Settings app.
+ *
+ * @param callback        The callback will be passed YES iff the user has disabled push notifications.
+ *
+ * @return                YES if Teak will be able to determine the status of push notifications, NO otherwise.
+ *                        If the return value is NO, the callback will not be called.
+ */
+- (BOOL)hasUserDisabledPushNotifications:(void (^_Nonnull)(BOOL))callback;
+
+/**
+ * Open Settings.app to the settings for this application.
+ */
+- (void)openSettingsAppToThisAppsSettings;
+
+/**
+ * Set the badge number on the icon of the application.
+ *
+ * @param count           The number that should be displayed on the icon.
+ */
+- (void)setApplicationBadgeNumber:(int)count;
 @end
 
 #endif /* __OBJC__ */

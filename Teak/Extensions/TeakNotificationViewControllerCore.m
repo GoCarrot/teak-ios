@@ -19,6 +19,10 @@
 #import <UserNotificationsUI/UserNotificationsUI.h>
 
 /////
+// For XCode 8.x
+#import <AVFoundation/AVFoundation.h>
+
+/////
 
 extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 

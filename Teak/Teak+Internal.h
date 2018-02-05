@@ -23,6 +23,8 @@
 @class TeakCore;
 @class SKPaymentObserver;
 
+#define kBlackholeUnregisterForRemoteNotifications @"TeakBlackholeUnregisterForRemoteNotifications"
+
 extern NSDictionary* _Nonnull TeakNotificationCategories;
 
 @interface Teak () <UNUserNotificationCenterDelegate>

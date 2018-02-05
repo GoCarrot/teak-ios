@@ -114,6 +114,47 @@ Teak* _teakSharedInstance;
   [TrackEventEvent trackedEventWithPayload:payload];
 }
 
+- (BOOL)hasUserDisabledPushNotifications:(void (^_Nonnull)(BOOL))callback {
+  if (callback == nil) return NO;
+
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
+      switch (settings.authorizationStatus) {
+        case UNAuthorizationStatusDenied: {
+          callback(YES);
+          break;
+        }
+        // Authorized or NotDetermined means they haven't disabled
+        case UNAuthorizationStatusAuthorized:
+        case UNAuthorizationStatusNotDetermined: {
+          callback(NO);
+        } break;
+      }
+    }];
+    return YES;
+  }
+
+  return NO;
+}
+
+- (void)openSettingsAppToThisAppsSettings {
+  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+}
+
+- (void)setApplicationBadgeNumber:(int)count {
+  // If iOS 8+ then check first to see if we have permission to change badge, otherwise
+  // just go ahead and change it.
+  if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+    UIUserNotificationSettings* notificationSettings = [[UIApplication sharedApplication] currentUserNotificationSettings];
+    if (notificationSettings.types & UIUserNotificationTypeBadge) {
+      [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
+    }
+  } else {
+    [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret {
@@ -353,16 +394,8 @@ Teak* _teakSharedInstance;
 - (void)applicationDidBecomeActive:(UIApplication*)application {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
-  // If iOS 8+ then check first to see if we have permission to change badge, otherwise
-  // just go ahead and change it.
-  if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
-    UIUserNotificationSettings* notificationSettings = [application currentUserNotificationSettings];
-    if (notificationSettings.types & UIUserNotificationTypeBadge) {
-      [application setApplicationIconBadgeNumber:0];
-    }
-  } else {
-    [application setApplicationIconBadgeNumber:0];
-  }
+  // Zero-out the badge count
+  [self setApplicationBadgeNumber:0];
 
   // Lifecycle Event
   [LifecycleEvent applicationActivate];
@@ -444,9 +477,12 @@ Teak* _teakSharedInstance;
                                deviceConfiguration:self.configuration.deviceConfiguration];
 
         NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
-        if (aps[@"teakRewardId"] != nil) [teakUserInfo setValue:aps[@"teakRewardId"] forKey:@"teakRewardId"];
-        if (aps[@"teakScheduleName"] != nil) [teakUserInfo setValue:aps[@"teakScheduleName"] forKey:@"teakScheduleName"];
-        if (aps[@"teakCreativeName"] != nil) [teakUserInfo setValue:aps[@"teakCreativeName"] forKey:@"teakCreativeName"];
+        teakUserInfo[@"teakNotifId"] = teakNotifId;
+#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
+        teakUserInfo[@"teakRewardId"] = ValueOrNSNull([aps[@"teakRewardId"] stringValue]);
+        teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(aps[@"teakScheduleName"]);
+        teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(aps[@"teakCreativeName"]);
+#undef ValueOrNSNull
         teakUserInfo[@"incentivized"] = aps[@"teakRewardId"] == nil ? @NO : @YES;
 
         if (notif.teakRewardId != nil) {
@@ -457,12 +493,6 @@ Teak* _teakSharedInstance;
               __strong TeakReward* blockReward = weakReward;
 
               [teakUserInfo setValue:blockReward.json == nil ? [NSNull null] : blockReward.json forKey:@"teakReward"];
-              [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                    object:self
-                                                                  userInfo:teakUserInfo];
-              }];
-
               if (blockReward.json != nil) {
                 [teakUserInfo addEntriesFromDictionary:blockReward.json];
                 [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
@@ -471,6 +501,12 @@ Teak* _teakSharedInstance;
                                                                     userInfo:teakUserInfo];
                 }];
               }
+
+              [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                                    object:self
+                                                                  userInfo:teakUserInfo];
+              }];
             };
           } else {
             [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {

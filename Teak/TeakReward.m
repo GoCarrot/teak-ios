@@ -58,6 +58,7 @@
                    TeakLog_e(@"reward.claim_error", @{@"error" : response});
                  } else {
                    NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:[reply objectForKey:@"response"]];
+                   [rewardResponse setValue:teakRewardId forKey:@"teakRewardId"];
                    if ([rewardResponse objectForKey:@"reward"] != nil &&
                        [[rewardResponse objectForKey:@"reward"] isKindOfClass:[NSString class]]) {
                      NSString* rewardString = [rewardResponse objectForKey:@"reward"];

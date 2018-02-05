@@ -41,6 +41,7 @@
 - (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler;
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler;
+
 @end
 
 static BOOL (*sHostAppDidFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
@@ -53,6 +54,9 @@ static void (*sHostWREIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostDRRNIMP)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 static BOOL (*sHostContinueUserActivityIMP)(id, SEL, UIApplication*, NSUserActivity*, void (^)(NSArray* _Nullable)) = NULL;
 static void (*sHostDRRNFCHIMP)(id, SEL, UIApplication*, NSDictionary*, void (^)(UIBackgroundFetchResult result)) = NULL;
+
+void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd);
+static IMP __App_unregisterForRemoteNotifications = NULL;
 
 extern Teak* _teakSharedInstance;
 
@@ -146,6 +150,16 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     Method ctAppDRRNFCH = class_getInstanceMethod([TeakAppDelegateHooks class], appDRRNFCHMethod.name);
     sHostDRRNFCHIMP = (void (*)(id, SEL, UIApplication*, NSDictionary*, void (^)(UIBackgroundFetchResult result)))class_replaceMethod(appDelegateClass, appDRRNFCHMethod.name, method_getImplementation(ctAppDRRNFCH), appDRRNFCHMethod.types);
   }
+
+  /////
+  // UIApplication
+  Class uiApplicationClass = objc_getClass("UIApplication");
+
+  // unregisterForRemoteNotifications
+  {
+    Method m = class_getInstanceMethod(uiApplicationClass, @selector(unregisterForRemoteNotifications));
+    __App_unregisterForRemoteNotifications = method_setImplementation(m, (IMP)__Teak_unregisterForRemoteNotifications);
+  }
 }
 
 @implementation TeakAppDelegateHooks
@@ -228,4 +242,26 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
 
   return ret;
 }
+
 @end
+
+void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
+  NSArray* stacktrace = [TeakRaven stacktraceSkippingFrames:2];
+  if (stacktrace != nil) {
+    if ([Teak sharedInstance] != nil) {
+      TeakLog_e(@"application.unregisterForRemoteNotifications", @{@"stacktrace" : stacktrace});
+    } else {
+      NSLog(@"[Teak] 'unregisterForRemoteNotifications' was called, this should almost never be called. Callstack: %@", stacktrace);
+    }
+  }
+
+  BOOL blackhole = NO;
+  @try {
+    blackhole = [[[NSUserDefaults standardUserDefaults] objectForKey:kBlackholeUnregisterForRemoteNotifications] boolValue];
+  } @catch (NSException* ignored) {
+  }
+
+  if (!blackhole && __App_unregisterForRemoteNotifications != NULL) {
+    ((void (*)(id, SEL))__App_unregisterForRemoteNotifications)(self, _cmd);
+  }
+}
