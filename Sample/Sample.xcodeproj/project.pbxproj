@@ -37,6 +37,10 @@
 		FAED5FBD20295610004FB297 /* TeakNotificationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FAED5FB9202955F2004FB297 /* TeakNotificationViewController.m */; };
 		FAED5FBE2029563F004FB297 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAED5FB7202955F2004FB297 /* Info.plist */; };
 		FAED5FBF20295642004FB297 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAED5FB1202955DA004FB297 /* Info.plist */; };
+		FAED5FC0202A2CDD004FB297 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431FDAF81FB38B6E009C0106 /* AVKit.framework */; };
+		FAED5FC2202A2CE7004FB297 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */; };
+		FAED5FC3202A2CFD004FB297 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431FDAF81FB38B6E009C0106 /* AVKit.framework */; };
+		FAED5FC4202A2D06004FB297 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,6 +140,7 @@
 		FAED5FB7202955F2004FB297 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../TeakExtensions/TeakNotificationContent/Info.plist; sourceTree = "<group>"; };
 		FAED5FB8202955F2004FB297 /* TeakNotificationViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TeakNotificationViewController.h; path = ../TeakExtensions/TeakNotificationContent/TeakNotificationViewController.h; sourceTree = "<group>"; };
 		FAED5FB9202955F2004FB297 /* TeakNotificationViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TeakNotificationViewController.m; path = ../TeakExtensions/TeakNotificationContent/TeakNotificationViewController.m; sourceTree = "<group>"; };
+		FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		FBFD9BE05552924F99514665 /* TeakNotificationContent.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationContent.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -144,6 +149,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAED5FC4202A2D06004FB297 /* CoreMedia.framework in Frameworks */,
+				FAED5FC3202A2CFD004FB297 /* AVKit.framework in Frameworks */,
 				43DCD10D2005A725009B6514 /* ImageIO.framework in Frameworks */,
 				43E601C71FFEF96D003A09C5 /* MobileCoreServices.framework in Frameworks */,
 				43E601C61FFEF949003A09C5 /* AVFoundation.framework in Frameworks */,
@@ -169,6 +176,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAED5FC2202A2CE7004FB297 /* CoreMedia.framework in Frameworks */,
+				FAED5FC0202A2CDD004FB297 /* AVKit.framework in Frameworks */,
 				43DCD10B2005982B009B6514 /* ImageIO.framework in Frameworks */,
 				43B5CE611FFEFE5800B3C501 /* AVFoundation.framework in Frameworks */,
 				43B5CE5F1FFEFE3200B3C501 /* libTeak.a in Frameworks */,
@@ -243,6 +252,7 @@
 		879C4E8A2BF50111224BCCB3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */,
 				43DCD1092005982A009B6514 /* ImageIO.framework */,
 				43E601C51FFEF949003A09C5 /* AVFoundation.framework */,
 				43499EE51FB406770082D0F7 /* MobileCoreServices.framework */,
