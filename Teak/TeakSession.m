@@ -199,10 +199,7 @@ DefineTeakState(Expired, (@[]));
     }];
 
     // Kick off checking for push notification enabled
-    payload[@"notifications_enabled"] = @"unknown";
-    [[Teak sharedInstance] hasUserDisabledPushNotifications:^(BOOL disabled) {
-      payload[@"notifications_enabled"] = disabled ? @"false" : @"true";
-    }];
+    payload[@"notifications_enabled"] = self.deviceConfiguration.notificationDisplayEnabled;
 
     if ([self.deviceConfiguration.advertisingIdentifier length] > 0) {
       [payload setObject:self.deviceConfiguration.advertisingIdentifier forKey:@"ios_ad_id"];
@@ -231,9 +228,6 @@ DefineTeakState(Expired, (@[]));
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
-
-    // Wait for 500 milliseconds (500,000 microseconds) for the push notification enabled status
-    usleep(500000);
 
     __weak TeakSession* weakSelf = self;
     TeakRequest* request = [[TeakRequest alloc]
@@ -615,6 +609,10 @@ KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
+  [self identifyUserInfoHasChanged];
+}
+
+KeyValueObserverFor(TeakDeviceConfiguration, notificationDisplayEnabled) {
   [self identifyUserInfoHasChanged];
 }
 
