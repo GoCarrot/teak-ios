@@ -87,7 +87,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
 // Video related
 @property (strong, nonatomic) AVPlayerLooper* playerLooper;
-@property (strong, nonatomic) AVQueuePlayer* queuePlayer;
+@property (strong, nonatomic) AVPlayer* videoPlayer;
 
 // Common parent view for whatever is in the notification.
 @property (strong, nonatomic) UIView* notificationContentView;
@@ -137,6 +137,16 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     }];
     [self.sessionFinishOperation addDependency:metricOperation];
   }
+}
+
+- (void)createThumbnailViewForItem:(AVPlayerItem*)item atTime:(CMTime)time {
+  AVAsset* asset = item.asset;
+  AVAssetImageGenerator *imageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+  CGImageRef imageRef = [imageGenerator copyCGImageAtTime:time actualTime:NULL error:NULL];
+  UIImage *thumbnail = [UIImage imageWithCGImage:imageRef];
+  UIImageView* imageView = [[UIImageView alloc] initWithImage:thumbnail];
+  [self.view insertSubview:imageView belowSubview:self.notificationContentView];
+  CGImageRelease(imageRef);  // CGImageRef won't be released by ARC
 }
 
 - (void)didReceiveNotification:(UNNotification*)notification {
@@ -207,14 +217,17 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     float scaleRatio = self.view.frame.size.width / trackSize.width;
     scaledHeight = trackSize.height * scaleRatio;
 
-    self.queuePlayer = [AVQueuePlayer queuePlayerWithItems:self.assets];
     if (self.loop) {
-      self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:self.queuePlayer
+      AVQueuePlayer* videoPlayer = [AVQueuePlayer queuePlayerWithItems:@[firstPlayerItem]];
+      self.videoPlayer = videoPlayer;
+      self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:videoPlayer
                                                     templateItem:firstPlayerItem];
+    } else {
+      self.videoPlayer = [AVPlayer playerWithPlayerItem:firstPlayerItem];
     }
 
     TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
-    playerView.player = self.queuePlayer;
+    playerView.player = self.videoPlayer;
     self.notificationContentView = playerView;
   }
 
@@ -229,7 +242,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
   // Start video if auto-play
   if (self.autoPlay) {
-    [self.queuePlayer play];
+    [self.videoPlayer play];
   }
 }
 
@@ -241,6 +254,13 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     // Launch the app when the button is pressed
     completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
   } else {
+    [self createThumbnailViewForItem:self.videoPlayer.currentItem atTime:[self.videoPlayer currentTime]];
+    [self.playerLooper disableLooping];
+    AVPlayer* newPlayer = [AVPlayer playerWithPlayerItem:self.assets[1]];
+    [newPlayer play];
+    TeakAVPlayerView* playerView = (TeakAVPlayerView*)self.notificationContentView;
+    playerView.player = newPlayer;
+    self.videoPlayer = newPlayer;
     // Start playing when button is pressed, launch app when the last asset finishes playing
     [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
                                                       object:[self.assets lastObject]
@@ -249,7 +269,6 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
                                                     [[NSNotificationCenter defaultCenter] removeObserver:self];
                                                     completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
                                                   }];
-    [self.queuePlayer play];
   }
 }
 
