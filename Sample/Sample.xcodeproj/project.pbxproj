@@ -35,8 +35,6 @@
 		F947CCAE63F557F1DD54C69A /* UserNotificationsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D34458518D7A040139D5987 /* UserNotificationsUI.framework */; };
 		FAED5FBC20295607004FB297 /* TeakNotificationService.m in Sources */ = {isa = PBXBuildFile; fileRef = FAED5FB2202955DA004FB297 /* TeakNotificationService.m */; };
 		FAED5FBD20295610004FB297 /* TeakNotificationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FAED5FB9202955F2004FB297 /* TeakNotificationViewController.m */; };
-		FAED5FBE2029563F004FB297 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAED5FB7202955F2004FB297 /* Info.plist */; };
-		FAED5FBF20295642004FB297 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAED5FB1202955DA004FB297 /* Info.plist */; };
 		FAED5FC0202A2CDD004FB297 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431FDAF81FB38B6E009C0106 /* AVKit.framework */; };
 		FAED5FC2202A2CE7004FB297 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */; };
 		FAED5FC3202A2CFD004FB297 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431FDAF81FB38B6E009C0106 /* AVKit.framework */; };
@@ -358,7 +356,7 @@
 		431C98541C7E6DE200B19DD5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0900;
+				LastUpgradeCheck = 0920;
 				ORGANIZATIONNAME = "GoCarrot Inc.";
 				TargetAttributes = {
 					431C985B1C7E6DE300B19DD5 = {
@@ -443,7 +441,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FAED5FBE2029563F004FB297 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -451,7 +448,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FAED5FBF20295642004FB297 /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
