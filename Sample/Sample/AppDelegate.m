@@ -71,9 +71,9 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
                                              object:nil];
 
   [[NSNotificationCenter defaultCenter] addObserver:self
-                                        selector:@selector(handleTeakReward:)
-                                        name:TeakOnReward
-                                        object:nil];
+                                           selector:@selector(handleTeakReward:)
+                                               name:TeakOnReward
+                                             object:nil];
 
   // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
@@ -116,14 +116,15 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
   NSLog(@"%@", userInfo);
 #ifdef SAMPLE_ALERT_ON_REWARD
   NSDictionary* reward = userInfo[@"reward"];
-  if(reward) {
+  if (reward) {
     NSNumber* coins = reward[@"coins"];
     UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Coins!"
                                                                    message:[NSString stringWithFormat:@"You just got %@ coins!", coins]
                                                             preferredStyle:UIAlertControllerStyleAlert];
 
-    UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome" style:UIAlertActionStyleDefault
-                                                          handler:^(UIAlertAction * action) {}];
+    UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
+                                                            style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction* action){}];
 
     [alert addAction:defaultAction];
     [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];

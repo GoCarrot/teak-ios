@@ -141,12 +141,12 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
 - (void)createThumbnailViewForItem:(AVPlayerItem*)item atTime:(CMTime)time {
   AVAsset* asset = item.asset;
-  AVAssetImageGenerator *imageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+  AVAssetImageGenerator* imageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
   CGImageRef imageRef = [imageGenerator copyCGImageAtTime:time actualTime:NULL error:NULL];
-  UIImage *thumbnail = [UIImage imageWithCGImage:imageRef];
+  UIImage* thumbnail = [UIImage imageWithCGImage:imageRef];
   UIImageView* imageView = [[UIImageView alloc] initWithImage:thumbnail];
   [self.view insertSubview:imageView belowSubview:self.notificationContentView];
-  CGImageRelease(imageRef);  // CGImageRef won't be released by ARC
+  CGImageRelease(imageRef); // CGImageRef won't be released by ARC
 }
 
 - (void)didReceiveNotification:(UNNotification*)notification {
@@ -218,7 +218,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     scaledHeight = trackSize.height * scaleRatio;
 
     if (self.loop) {
-      AVQueuePlayer* videoPlayer = [AVQueuePlayer queuePlayerWithItems:@[firstPlayerItem]];
+      AVQueuePlayer* videoPlayer = [AVQueuePlayer queuePlayerWithItems:@[ firstPlayerItem ]];
       self.videoPlayer = videoPlayer;
       self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:videoPlayer
                                                     templateItem:firstPlayerItem];

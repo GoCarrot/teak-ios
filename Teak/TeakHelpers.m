@@ -32,7 +32,7 @@ NSString* TeakURLEscapedString(NSString* inString) {
 }
 
 BOOL TeakBoolFor(id object) {
-  if(object == nil || object == [NSNull null]) {
+  if (object == nil || object == [NSNull null]) {
     return NO;
   }
 
