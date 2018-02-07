@@ -22,6 +22,7 @@ NSString* TeakNSStringOrNilFor(id object) {
   @try {
     ret = ((object == nil || [object isKindOfClass:[NSString class]]) ? object : [object stringValue]);
   } @catch (NSException* ignored) {
+    ret = nil;
   }
   return ret;
 }

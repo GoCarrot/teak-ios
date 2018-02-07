@@ -63,13 +63,13 @@
                    }
 
                    // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
-                   @try {
+                   teak_try {
                      BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
                      NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
                      [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
                      [userDefaults synchronize];
-                   } @catch (NSException* ignored) {
                    }
+                   teak_catch_report;
                  }
                }];
     [request send];
