@@ -147,7 +147,8 @@ Teak* _teakSharedInstance;
   // just go ahead and change it.
   if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
     UIUserNotificationSettings* notificationSettings = [[UIApplication sharedApplication] currentUserNotificationSettings];
-    if (notificationSettings.types & UIUserNotificationTypeBadge) {
+    BOOL hasBadgeType = notificationSettings.types & UIUserNotificationTypeBadge;
+    if (hasBadgeType) {
       [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
     }
   } else {
