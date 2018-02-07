@@ -85,12 +85,12 @@ void TeakSignalHandler(int signal) {
   [uncaughtExceptionHandlerRaven unsetAsUncaughtExceptionHandler];
 
   NSDictionary* sigToString = @{
-    [NSNumber numberWithInt:SIGABRT] : @"SIGABRT",
-    [NSNumber numberWithInt:SIGILL] : @"SIGILL",
-    [NSNumber numberWithInt:SIGSEGV] : @"SIGSEGV",
-    [NSNumber numberWithInt:SIGFPE] : @"SIGFPE",
-    [NSNumber numberWithInt:SIGBUS] : @"SIGBUS",
-    [NSNumber numberWithInt:SIGPIPE] : @"SIGPIPE"
+    @SIGABRT : @"SIGABRT",
+    @SIGILL : @"SIGILL",
+    @SIGSEGV : @"SIGSEGV",
+    @SIGFPE : @"SIGFPE",
+    @SIGBUS : @"SIGBUS",
+    @SIGPIPE : @"SIGPIPE"
   };
 
   if (AmIBeingDebugged()) {
