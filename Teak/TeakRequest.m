@@ -94,7 +94,7 @@
         @"is_sandbox" : [NSNumber numberWithBool:!session.appConfiguration.isProduction]
       }];
       if (session.userId) {
-        [payloadWithCommon setObject:session.userId forKey:@"api_key"];
+        payloadWithCommon[@"api_key"] = session.userId;
       }
       self.payload = [self signedPayload:payloadWithCommon withSession:session];
     } @catch (NSException* exception) {
@@ -114,7 +114,7 @@
     NSArray* queryKeysSorted = [[payloadToSign allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
     NSMutableString* sortedQueryString = [[NSMutableString alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
-      NSString* key = [queryKeysSorted objectAtIndex:i];
+      NSString* key = queryKeysSorted[i];
       id value = [payloadToSign objectForKey:key];
 
       NSString* valueString = value;
@@ -143,8 +143,8 @@
     // Build params dictionary with JSON object representations
     NSMutableDictionary* retParams = [[NSMutableDictionary alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
-      NSString* key = [queryKeysSorted objectAtIndex:i];
-      id value = [payloadToSign objectForKey:key];
+      NSString* key = queryKeysSorted[i];
+      id value = payloadToSign[key];
       NSString* valueString = value;
       if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
         NSError* error = nil;
@@ -157,9 +157,9 @@
           valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         }
       }
-      [retParams setObject:valueString forKey:key];
+      retParams[key] = valueString;
     }
-    [retParams setObject:sigString forKey:@"sig"];
+    retParams[@"sig"] = sigString;
 
     return retParams;
   }

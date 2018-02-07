@@ -202,29 +202,29 @@ DefineTeakState(Expired, (@[]));
     payload[@"notifications_enabled"] = self.deviceConfiguration.notificationDisplayEnabled;
 
     if ([self.deviceConfiguration.advertisingIdentifier length] > 0) {
-      [payload setObject:self.deviceConfiguration.advertisingIdentifier forKey:@"ios_ad_id"];
-      [payload setObject:[NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking] forKey:@"ios_limit_ad_tracking"];
+      payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
+      payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking];
     }
 
     if (self.userIdentificationSent) {
-      [payload setObject:@YES forKey:@"do_not_track_event"];
+      payload[@"do_not_track_event"] = @YES;
     }
     self.userIdentificationSent = YES;
 
     if ([self.deviceConfiguration.pushToken length] > 0) {
-      [payload setObject:self.deviceConfiguration.pushToken forKey:@"apns_push_key"];
+      payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
     } else {
-      [payload setObject:@"" forKey:@"apns_push_key"];
+      payload[@"apns_push_key"] = @"";
     }
 
     if (self.launchAttribution != nil) {
       for (NSString* key in self.launchAttribution) {
-        [payload setObject:[self.launchAttribution objectForKey:key] forKey:key];
+        payload[key] = self.launchAttribution[key];
       }
     }
 
     if (self.facebookAccessToken != nil) {
-      [payload setObject:self.facebookAccessToken forKey:@"access_token"];
+      payload[@"access_token"] = self.facebookAccessToken;
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
@@ -239,10 +239,10 @@ DefineTeakState(Expired, (@[]));
 
                  // TODO: Check response
                  if (YES) {
-                   bool forceDebug = [[reply valueForKey:@"verbose_logging"] boolValue];
+                   bool forceDebug = [reply[@"verbose_logging"] boolValue];
                    [[TeakConfiguration configuration].debugConfiguration setForceDebugPreference:forceDebug];
                    [Teak sharedInstance].enableDebugOutput |= forceDebug;
-                   blockSelf.countryCode = [reply valueForKey:@"country_code"];
+                   blockSelf.countryCode = reply[@"country_code"];
 
                    // For 'do_not_track_event'
                    if (blockSelf.currentState == [TeakSession Expiring]) {

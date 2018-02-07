@@ -94,9 +94,9 @@ void TeakSignalHandler(int signal) {
   };
 
   if (AmIBeingDebugged()) {
-    NSLog(@"Teak: Build running in debugger, not reporting signal: %@", [sigToString objectForKey:[NSNumber numberWithInt:signal]]);
+    NSLog(@"Teak: Build running in debugger, not reporting signal: %@", sigToString[[NSNumber numberWithInt:signal]]);
   } else {
-    [uncaughtExceptionHandlerRaven reportSignal:[sigToString objectForKey:[NSNumber numberWithInt:signal]]];
+    [uncaughtExceptionHandlerRaven reportSignal:sigToString[[NSNumber numberWithInt:signal]]];
     [uncaughtExceptionHandlerRaven pumpRunLoops];
   }
 }
@@ -167,10 +167,10 @@ void TeakSignalHandler(int signal) {
 - (void)reportWithHelper:(TeakRavenLocationHelper*)helper {
   NSMutableArray* stacktrace = [NSMutableArray arrayWithArray:[TeakRaven stacktraceSkippingFrames:2]];
   NSMutableDictionary* lastFrame = [NSMutableDictionary dictionaryWithDictionary:[stacktrace lastObject]];
-  [lastFrame setObject:helper.file forKey:@"filename"];
-  [lastFrame setObject:helper.line forKey:@"lineno"];
-  [lastFrame setObject:helper.function forKey:@"function"];
-  [stacktrace replaceObjectAtIndex:stacktrace.count - 1 withObject:lastFrame];
+  lastFrame[@"filename"] = helper.file;
+  lastFrame[@"lineno"] = helper.line;
+  lastFrame[@"function"] = helper.function;
+  stacktrace[stacktrace.count - 1] = lastFrame;
 
   NSMutableDictionary* additions = [NSMutableDictionary dictionaryWithDictionary:@{
     @"exception" : @[
@@ -183,7 +183,7 @@ void TeakSignalHandler(int signal) {
       }
     ]
   }];
-  if (helper.breadcrumbs != nil) [additions setObject:helper.breadcrumbs forKey:@"breadcrumbs"];
+  if (helper.breadcrumbs != nil) additions[@"breadcrumbs"] = helper.breadcrumbs;
 
   TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
                                                             level:TeakRavenLevelError

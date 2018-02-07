@@ -457,8 +457,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
-  NSDictionary* aps = [userInfo objectForKey:@"aps"];
-  NSString* teakNotifId = NSStringOrNilFor([aps objectForKey:@"teakNotifId"]);
+  NSDictionary* aps = userInfo[@"aps"];
+  NSString* teakNotifId = NSStringOrNilFor(aps[@"teakNotifId"]);
 
   if (teakNotifId != nil) {
     TeakNotification* notif = [[TeakNotification alloc] initWithDictionary:aps];
@@ -568,7 +568,7 @@ Teak* _teakSharedInstance;
                                                           if (error == nil) {
                                                             NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
                                                             if (error == nil) {
-                                                              NSString* iOSPath = [reply objectForKey:@"iOSPath"];
+                                                              NSString* iOSPath = reply[@"iOSPath"];
                                                               if (iOSPath != nil) {
                                                                 attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath]];
                                                               }
