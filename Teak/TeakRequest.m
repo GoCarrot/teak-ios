@@ -218,6 +218,8 @@
 }
 
 - (void)response:(NSURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
+  TeakUnused(error);
+
   teak_try {
     NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
 
@@ -246,7 +248,7 @@
   return self;
 }
 
-- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
+- (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler {
   completionHandler(NSURLSessionResponseAllow);
 }
 

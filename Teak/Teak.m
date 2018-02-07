@@ -203,10 +203,10 @@ Teak* _teakSharedInstance;
 
     // Teak Core
     // TODO: This should be factory based
-    self.core = [[TeakCore alloc] initForSomething:@"temporary"];
+    self.core = [[TeakCore alloc] init];
 
     // Payment observer
-    self.paymentObserver = [[SKPaymentObserver alloc] initForSomething:@"temporary"];
+    self.paymentObserver = [[SKPaymentObserver alloc] init];
   }
   return self;
 }
@@ -227,6 +227,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)fbAccessTokenChanged_3x:(NSNotification*)notification {
+  TeakUnused(notification);
   Class fbSession = NSClassFromString(@"FBSession");
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
@@ -240,6 +241,9 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
+  TeakUnused(application);
+  TeakUnused(options);
+
   if (url != nil) {
     return [self handleDeepLink:url];
   }
@@ -248,6 +252,10 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
+  TeakUnused(application);
+  TeakUnused(sourceApplication);
+  TeakUnused(annotation);
+
   if (url != nil) {
     return [self handleDeepLink:url];
   }
@@ -257,7 +265,7 @@ Teak* _teakSharedInstance;
 
 - (BOOL)handleDeepLink:(nonnull NSURL*)url {
   // Attribution
-  [TeakSession didLaunchFromDeepLink:url.absoluteString appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
+  [TeakSession didLaunchFromDeepLink:url.absoluteString];
 
   return TeakLink_HandleDeepLink(url);
 }
@@ -392,6 +400,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)applicationDidBecomeActive:(UIApplication*)application {
+  TeakUnused(application);
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
   // Zero-out the badge count
@@ -402,23 +411,29 @@ Teak* _teakSharedInstance;
 }
 
 - (void)applicationWillResignActive:(UIApplication*)application {
+  TeakUnused(application);
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
   [LifecycleEvent applicationDeactivate];
 }
 
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {
+  TeakUnused(notificationSettings);
   [application registerForRemoteNotifications];
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
        willPresentNotification:(UNNotification*)notification
-         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler {
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+  TeakUnused(center);
+  TeakUnused(notification);
+
   // When notification is delivered with app in the foreground, mute it like default behavior
   completionHandler(UNNotificationPresentationOptionNone);
 }
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
+  TeakUnused(center);
 
   // Call application:didReceiveRemoteNotification: since that is not called in the UNNotificationCenter
   // code path.
@@ -428,6 +443,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
+  TeakUnused(application);
+
   if (deviceToken == nil) {
     TeakLog_e(@"notification.registration.error", @"Got nil deviceToken. Push is disabled.");
     return;
@@ -449,6 +466,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error {
+  TeakUnused(application);
+
   if (error != nil) {
     TeakLog_e(@"notification.registration.error", @"Failed to register for push notifications.", @{@"error" : _([error localizedDescription])});
   } else {
@@ -472,9 +491,7 @@ Teak* _teakSharedInstance;
         // App was opened via push notification
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
-        [TeakSession didLaunchFromTeakNotification:teakNotifId
-                                  appConfiguration:self.configuration.appConfiguration
-                               deviceConfiguration:self.configuration.deviceConfiguration];
+        [TeakSession didLaunchFromTeakNotification:teakNotifId];
 
         NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
         teakUserInfo[@"teakNotifId"] = teakNotifId;
@@ -552,6 +569,9 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler {
+  TeakUnused(application);
+  TeakUnused(restorationHandler);
+
   if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
 
     // Make sure the URL we fetch is https
@@ -576,8 +596,7 @@ Teak* _teakSharedInstance;
                                                           }
 
                                                           // Attribution
-                                                          [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString appConfiguration:self.configuration.appConfiguration deviceConfiguration:self.configuration.deviceConfiguration];
-
+                                                          [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString];
                                                           TeakLink_HandleDeepLink(attributionUrl);
                                                         }];
     [task resume];

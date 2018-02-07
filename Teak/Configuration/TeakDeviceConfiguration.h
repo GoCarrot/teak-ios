@@ -31,6 +31,6 @@ extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState
 @property (strong, nonatomic, readonly) NSString* _Nonnull notificationDisplayEnabled;
 @property (nonatomic, readonly) BOOL limitAdTracking;
 
-- (nullable id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
+- (nullable id)init;
 - (nonnull NSDictionary*)to_h;
 @end

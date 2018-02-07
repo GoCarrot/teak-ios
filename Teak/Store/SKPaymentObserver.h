@@ -16,5 +16,5 @@
 #import <Foundation/Foundation.h>
 
 @interface SKPaymentObserver : NSObject
-- (nonnull id)initForSomething:(id _Nullable)foo;
+- (nonnull id)init;
 @end

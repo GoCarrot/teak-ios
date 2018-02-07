@@ -16,7 +16,6 @@
 #import "TeakDeviceConfiguration.h"
 #import "PushRegistrationEvent.h"
 #import "Teak+Internal.h"
-#import "TeakAppConfiguration.h"
 #import <sys/utsname.h>
 
 #import <AdSupport/AdSupport.h>
@@ -40,7 +39,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
 @end
 
 @implementation TeakDeviceConfiguration
-- (id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration {
+- (id)init {
   self = [super init];
   if (self) {
     // Load settings

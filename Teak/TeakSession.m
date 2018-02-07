@@ -397,7 +397,7 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)setLaunchAttribution:(nonnull NSDictionary*)attribution appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)setLaunchAttribution:(nonnull NSDictionary*)attribution {
   @synchronized(currentSessionMutex) {
     // Call getCurrentSession() so the null || Expired logic stays in one place
     [TeakSession currentSession];
@@ -446,13 +446,12 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId {
   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:teakNotifId, @"teak_notif_id", nil];
-  [TeakSession setLaunchAttribution:launchAttribution appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+  [TeakSession setLaunchAttribution:launchAttribution];
 }
 
-+ (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
-
++ (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink {
   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:deepLink, @"deep_link", nil];
 
   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
@@ -474,7 +473,7 @@ DefineTeakState(Expired, (@[]));
     }
   }
 
-  [TeakSession setLaunchAttribution:launchAttribution appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+  [TeakSession setLaunchAttribution:launchAttribution];
 
   // Send off a reward event if one was in this deep link
   NSString* teakRewardId = [launchAttribution objectForKey:@"teak_reward_id"];
@@ -605,26 +604,32 @@ KeyValueObserverFor(TeakSession, currentState) {
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
+  TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
+  TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, notificationDisplayEnabled) {
+  TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
 KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
+  TeakUnusedKVOValues;
   [self setState:[TeakSession Configured]];
 }
 
 KeyValueObserverFor(TeakRemoteConfiguration, sdkSentryDsn) {
+  TeakUnusedKVOValues;
   [[Teak sharedInstance].sdkRaven setDSN:self.remoteConfiguration.sdkSentryDsn];
 }
 
 KeyValueObserverFor(TeakRemoteConfiguration, appSentryDsn) {
+  TeakUnusedKVOValues;
   // TODO:
   //[[Teak sharedInstance].appRaven setDSN:self.remoteConfiguration.appSentryDsn];
 }

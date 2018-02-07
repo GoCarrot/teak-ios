@@ -247,7 +247,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 }
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
-                     completionHandler:(void (^)(UNNotificationContentExtensionResponseOption option))completionHandler {
+                     completionHandler:(void (^)(UNNotificationContentExtensionResponseOption))completionHandler {
   NSString* action = self.actions[response.actionIdentifier];
 
   if (action == nil) {

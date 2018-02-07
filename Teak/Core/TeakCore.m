@@ -21,7 +21,7 @@
 
 @implementation TeakCore
 
-- (id)initForSomething:(id _Nullable)foo {
+- (id)init {
   self = [super init];
   if (self) {
     [TeakEvent addEventHandler:self];

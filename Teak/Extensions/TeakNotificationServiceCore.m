@@ -17,7 +17,7 @@
 #import <Teak/TeakNotificationServiceCore.h>
 
 @interface TeakNotificationServiceCore ()
-@property (strong, nonatomic) void (^contentHandler)(UNNotificationContent* contentToDeliver);
+@property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);
 @property (strong, nonatomic) UNMutableNotificationContent* bestAttemptContent;
 @property (strong, nonatomic) NSURLSession* session;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;

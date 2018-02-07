@@ -51,7 +51,7 @@ TeakConfiguration* TeakConfigurationInstance = nil;
       return nil;
     }
 
-    self.deviceConfiguration = [[TeakDeviceConfiguration alloc] initWithAppConfiguration:self.appConfiguration];
+    self.deviceConfiguration = [[TeakDeviceConfiguration alloc] init];
     if (self.deviceConfiguration == nil) {
       [NSException raise:NSObjectNotAvailableException format:@"Teak Device Configuration is nil."];
       return nil;
