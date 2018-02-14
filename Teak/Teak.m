@@ -78,7 +78,7 @@ Teak* _teakSharedInstance;
 }
 
 + (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andApiKey:(NSString*)apiKey {
-  Teak_Plant(appDelegateClass, appId, apiKey);
+  Teak_Plant(appDelegateClass, [appId copy], [apiKey copy]);
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {
@@ -89,7 +89,7 @@ Teak* _teakSharedInstance;
 
   TeakLog_i(@"identify_user", @{@"userId" : userIdentifier});
 
-  [UserIdEvent userIdentified:userIdentifier];
+  [UserIdEvent userIdentified:[userIdentifier copy]];
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
@@ -107,9 +107,9 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId)});
 
   NSDictionary* payload = @{
-    @"action_type" : actionId,
-    @"object_type" : _(objectTypeId),
-    @"object_instance_id" : _(objectInstanceId)
+    @"action_type" : [actionId copy],
+    @"object_type" : _([objectTypeId copy]),
+    @"object_instance_id" : _([objectInstanceId copy])
   };
   [TrackEventEvent trackedEventWithPayload:payload];
 }
