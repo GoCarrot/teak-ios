@@ -96,6 +96,9 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 @property (strong, nonatomic) NSDictionary* actions;
 @property (nonatomic) BOOL autoPlay;
 @property (nonatomic) BOOL loop;
+
+// Input
+@property (nonatomic) dispatch_once_t inputHandlerDispatchOnce;
 @end
 
 @implementation TeakNotificationViewControllerCore
@@ -248,28 +251,30 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption))completionHandler {
-  NSString* action = self.actions[response.actionIdentifier];
+  dispatch_once(&_inputHandlerDispatchOnce, ^{
+    NSString* action = self.actions[response.actionIdentifier];
 
-  if (action == nil) {
-    // Launch the app when the button is pressed
-    completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
-  } else {
-    [self createThumbnailViewForItem:self.videoPlayer.currentItem atTime:[self.videoPlayer currentTime]];
-    [self.playerLooper disableLooping];
-    AVPlayer* newPlayer = [AVPlayer playerWithPlayerItem:self.assets[1]];
-    [newPlayer play];
-    TeakAVPlayerView* playerView = (TeakAVPlayerView*)self.notificationContentView;
-    playerView.player = newPlayer;
-    self.videoPlayer = newPlayer;
-    // Start playing when button is pressed, launch app when the last asset finishes playing
-    [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
-                                                      object:[self.assets lastObject]
-                                                       queue:nil
-                                                  usingBlock:^(NSNotification* notification) {
-                                                    [[NSNotificationCenter defaultCenter] removeObserver:self];
-                                                    completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
-                                                  }];
-  }
+    if (action == nil) {
+      // Launch the app when the button is pressed
+      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+    } else {
+      [self createThumbnailViewForItem:self.videoPlayer.currentItem atTime:[self.videoPlayer currentTime]];
+      [self.playerLooper disableLooping];
+      AVPlayer* newPlayer = [AVPlayer playerWithPlayerItem:self.assets[1]];
+      [newPlayer play];
+      TeakAVPlayerView* playerView = (TeakAVPlayerView*)self.notificationContentView;
+      playerView.player = newPlayer;
+      self.videoPlayer = newPlayer;
+      // Start playing when button is pressed, launch app when the last asset finishes playing
+      [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
+                                                        object:[self.assets lastObject]
+                                                         queue:nil
+                                                    usingBlock:^(NSNotification* notification) {
+                                                      [[NSNotificationCenter defaultCenter] removeObserver:self];
+                                                      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+                                                    }];
+    }
+  });
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
