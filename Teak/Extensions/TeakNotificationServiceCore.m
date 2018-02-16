@@ -29,7 +29,7 @@
 @property (strong, atomic) NSMutableArray* attachments;
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload;
-- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType;
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType atIndex:(int)index;
 + (NSString*)connectionTypeToHost:(NSString*)host;
 @end
 
@@ -38,15 +38,29 @@
 - (void)didReceiveNotificationRequest:(UNNotificationRequest*)request withContentHandler:(void (^)(UNNotificationContent* _Nonnull))contentHandler {
   self.contentHandler = contentHandler;
   self.bestAttemptContent = [request.content mutableCopy];
-  self.attachments = [[NSMutableArray alloc] init];
   self.operationQueue = [[NSOperationQueue alloc] init];
   self.contentHandlerOperation = [NSBlockOperation blockOperationWithBlock:^{
     [self.session finishTasksAndInvalidate];
     self.contentHandler(self.bestAttemptContent);
   }];
 
-  NSDictionary* notification = request.content.userInfo[@"aps"];
-  NSArray* attachments = notification[@"attachments"];
+  // HAX HAX HAX
+  NSDictionary* haxMerge = @{
+    @"thumbnail" : [NSNull null],
+    @"content" : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][0],
+    @"actions" : @{
+      @"play_now" : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][1]
+    }
+  };
+
+  NSMutableDictionary* haxUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
+  NSMutableDictionary* haxAps = [haxUserInfo[@"aps"] mutableCopy];
+  [haxAps addEntriesFromDictionary:haxMerge];
+  haxUserInfo[@"aps"] = haxAps;
+  self.bestAttemptContent.userInfo = haxUserInfo;
+  // end HAX HAX HAX
+
+  NSDictionary* notification = self.bestAttemptContent.userInfo[@"aps"];
 
   // Get device model, resolution, and if they are on wifi or celular
   NSMutableArray* additionalQueryItems = [[NSMutableArray alloc] init];
@@ -70,12 +84,12 @@
 
   // Wifi?
   NSString* connectionType = @"unknown";
-  if ([attachments count] > 0) {
+  if (notification != nil && notification[@"content"] != nil) {
     @try {
-      NSURLComponents* attachmentUrlComponents = [NSURLComponents componentsWithString:attachments[0][@"url"]];
+      NSURLComponents* attachmentUrlComponents = [NSURLComponents componentsWithString:notification[@"content"][@"url"]];
       connectionType = [TeakNotificationServiceCore connectionTypeToHost:attachmentUrlComponents.host];
     } @finally {
-      connectionType = connectionType; // Satisfy the linker
+      // Chomp exception is fine
     }
   }
   [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"connection_type" value:connectionType]];
@@ -85,13 +99,49 @@
     if ([teakNotifId length] > 0) {
       self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
 
+      // Process APS thumbnail, content and actions into an array of attachments
+      // Replace URL in actions with index into array of attachments
+      NSMutableArray* orderedAttachments = [[NSMutableArray alloc] init];
+      if (notification[@"thumbnail"] != nil && notification[@"thumbnail"] != [NSNull null]) {
+        [orderedAttachments addObject:notification[@"thumbnail"]];
+      }
+
+      NSNumber* contentIndex = [NSNumber numberWithUnsignedInteger:[orderedAttachments count]];
+      [orderedAttachments addObject:notification[@"content"]];
+
+      NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
+      for (NSString* key in notification[@"actions"]) {
+        // If the action is null, launch the app
+        if (notification[@"actions"][key] == nil || notification[@"actions"][key] == [NSNull null]) {
+          processedActions[key] = @-1;
+        } else {
+          processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];
+          [orderedAttachments addObject:notification[@"actions"][key]];
+        }
+      }
+
+      // Assign processed actions dictionary and content index
+      {
+        NSMutableDictionary* mutableUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
+        NSMutableDictionary* mutableAps = [mutableUserInfo[@"aps"] mutableCopy];
+        mutableAps[@"content"] = contentIndex;
+        mutableAps[@"actions"] = processedActions;
+        mutableUserInfo[@"aps"] = mutableAps;
+        self.bestAttemptContent.userInfo = mutableUserInfo;
+        notification = mutableAps;
+      }
+
+      // Allocate attachments array
+      self.attachments = [[NSMutableArray alloc] initWithCapacity:[orderedAttachments count]];
+
       // Load attachments
       NSOperation* assignAttachmentsOperation = [NSBlockOperation blockOperationWithBlock:^{
         self.bestAttemptContent.attachments = self.attachments;
       }];
       [self.contentHandlerOperation addDependency:assignAttachmentsOperation];
 
-      for (NSDictionary* attachment in attachments) {
+      for (int i = 0; i < [orderedAttachments count]; i++) {
+        NSDictionary* attachment = orderedAttachments[i];
         NSURLComponents* attachmentUrlComponents = [NSURLComponents componentsWithString:attachment[@"url"]];
         if (attachmentUrlComponents != nil) {
           // Add width, height, device_model, and wifi
@@ -99,7 +149,7 @@
           [queryItems addObjectsFromArray:additionalQueryItems];
           attachmentUrlComponents.queryItems = queryItems;
 
-          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrlComponents.URL forMIMEType:attachment[@"mime_type"]];
+          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrlComponents.URL forMIMEType:attachment[@"mime_type"] atIndex:i];
           [assignAttachmentsOperation addDependency:attachmentOperation];
         }
       }
@@ -127,11 +177,11 @@
   self.contentHandler(self.bestAttemptContent);
 }
 
-- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType {
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType atIndex:(int)index {
   __block UNNotificationAttachment* attachment;
   NSOperation* attachmentOperation = [NSBlockOperation blockOperationWithBlock:^{
     if (attachment != nil) {
-      [self.attachments addObject:attachment];
+      self.attachments[index] = attachment;
     }
   }];
 
