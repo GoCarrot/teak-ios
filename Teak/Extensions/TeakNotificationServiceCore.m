@@ -14,7 +14,11 @@
  */
 
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <SystemConfiguration/SystemConfiguration.h>
 #import <Teak/TeakNotificationServiceCore.h>
+#import <UIKit/UIKit.h>
+
+#import <sys/utsname.h>
 
 @interface TeakNotificationServiceCore ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);
@@ -26,6 +30,7 @@
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload;
 - (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType;
++ (NSString*)connectionTypeToHost:(NSString*)host;
 @end
 
 @implementation TeakNotificationServiceCore
@@ -40,8 +45,42 @@
     self.contentHandler(self.bestAttemptContent);
   }];
 
+  NSDictionary* notification = request.content.userInfo[@"aps"];
+  NSArray* attachments = notification[@"attachments"];
+
+  // Get device model, resolution, and if they are on wifi or celular
+  NSMutableArray* additionalQueryItems = [[NSMutableArray alloc] init];
+
+  // Width/height
+  CGSize nativeScreenSize = [UIScreen mainScreen].nativeBounds.size;
+  NSString* widthAsString = [NSString stringWithFormat:@"%.1f", nativeScreenSize.width];
+  NSString* heightAsString = [NSString stringWithFormat:@"%.1f", nativeScreenSize.height];
+  [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"width" value:widthAsString]];
+  [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"height" value:heightAsString]];
+
+  // Device model
+  struct utsname systemInfo;
+  uname(&systemInfo);
+  NSString* deviceModel = @"unknown";
   @try {
-    NSDictionary* notification = request.content.userInfo[@"aps"];
+    deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
+  } @finally {
+    [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"device_model" value:deviceModel]];
+  }
+
+  // Wifi?
+  NSString* connectionType = @"unknown";
+  if ([attachments count] > 0) {
+    @try {
+      NSURLComponents* attachmentUrlComponents = [NSURLComponents componentsWithString:attachments[0][@"url"]];
+      connectionType = [TeakNotificationServiceCore connectionTypeToHost:attachmentUrlComponents.host];
+    } @finally {
+      connectionType = connectionType; // Satisfy the linker
+    }
+  }
+  [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"connection_type" value:connectionType]];
+
+  @try {
     NSString* teakNotifId = TeakNSStringOrNilFor(notification[@"teakNotifId"]);
     if ([teakNotifId length] > 0) {
       self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
@@ -52,11 +91,15 @@
       }];
       [self.contentHandlerOperation addDependency:assignAttachmentsOperation];
 
-      NSArray* attachments = notification[@"attachments"];
-      for (NSDictionary* a in attachments) {
-        NSURL* attachmentUrl = [NSURL URLWithString:a[@"url"]];
-        if (attachmentUrl != nil) {
-          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrl forMIMEType:a[@"mime_type"]];
+      for (NSDictionary* attachment in attachments) {
+        NSURLComponents* attachmentUrlComponents = [NSURLComponents componentsWithString:attachment[@"url"]];
+        if (attachmentUrlComponents != nil) {
+          // Add width, height, device_model, and wifi
+          NSMutableArray* queryItems = [attachmentUrlComponents.queryItems mutableCopy];
+          [queryItems addObjectsFromArray:additionalQueryItems];
+          attachmentUrlComponents.queryItems = queryItems;
+
+          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrlComponents.URL forMIMEType:attachment[@"mime_type"]];
           [assignAttachmentsOperation addDependency:attachmentOperation];
         }
       }
@@ -74,8 +117,7 @@
         [self.contentHandlerOperation addDependency:metricOperation];
       }
     }
-  }
-  @finally {
+  } @finally {
     [self.operationQueue addOperation:self.contentHandlerOperation];
   }
 }
@@ -150,6 +192,27 @@
                         }];
   [uploadTask resume];
   return metricOperation;
+}
+
++ (NSString*)connectionTypeToHost:(NSString*)host {
+  SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithName(NULL, [host UTF8String]);
+  SCNetworkReachabilityFlags flags;
+  BOOL success = SCNetworkReachabilityGetFlags(reachability, &flags);
+  CFRelease(reachability);
+  if (!success) {
+    return @"unknown";
+  }
+  BOOL isReachable = ((flags & kSCNetworkReachabilityFlagsReachable) != 0);
+  BOOL needsConnection = ((flags & kSCNetworkReachabilityFlagsConnectionRequired) != 0);
+  BOOL isNetworkReachable = (isReachable && !needsConnection);
+
+  if (!isNetworkReachable) {
+    return @"none";
+  } else if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) {
+    return @"wwan";
+  } else {
+    return @"wifi";
+  }
 }
 
 @end
