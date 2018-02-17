@@ -149,6 +149,10 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
   CGImageRef imageRef = [imageGenerator copyCGImageAtTime:time actualTime:NULL error:NULL];
   UIImage* thumbnail = [UIImage imageWithCGImage:imageRef];
   UIImageView* imageView = [[UIImageView alloc] initWithImage:thumbnail];
+  float imageScaleRatio = self.view.frame.size.width / (thumbnail.size.width * thumbnail.scale);
+  float scaledHeight = thumbnail.size.height * thumbnail.scale * imageScaleRatio;
+
+  imageView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
   [self.view insertSubview:imageView belowSubview:self.notificationContentView];
   CGImageRelease(imageRef); // CGImageRef won't be released by ARC
 }
