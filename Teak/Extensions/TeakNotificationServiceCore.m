@@ -131,8 +131,11 @@
         notification = mutableAps;
       }
 
-      // Allocate attachments array
+      // Allocate attachments array with placeholders
       self.attachments = [[NSMutableArray alloc] initWithCapacity:[orderedAttachments count]];
+      for (int i = 0; i < [orderedAttachments count]; i++) {
+        [self.attachments addObject:[NSNull null]];
+      }
 
       // Load attachments
       NSOperation* assignAttachmentsOperation = [NSBlockOperation blockOperationWithBlock:^{
