@@ -265,14 +265,15 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
       // Will prepare next content view
       self.prepareContentView();
 
-      AVPlayer* newPlayer = [AVPlayer playerWithPlayerItem:self.assets[attachmentIndex]];
+      AVPlayerItem* assetToPlay = self.assets[attachmentIndex];
+      AVPlayer* newPlayer = [AVPlayer playerWithPlayerItem:assetToPlay];
       [newPlayer play];
       TeakAVPlayerView* playerView = (TeakAVPlayerView*)self.notificationContentView;
       playerView.player = newPlayer;
       self.videoPlayer = newPlayer;
       // Start playing when button is pressed, launch app when the last asset finishes playing
       [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
-                                                        object:[self.assets lastObject]
+                                                        object:assetToPlay
                                                          queue:nil
                                                     usingBlock:^(NSNotification* notification) {
                                                       [[NSNotificationCenter defaultCenter] removeObserver:self];
