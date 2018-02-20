@@ -67,7 +67,6 @@
                      BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
                      NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
                      [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
-                     [userDefaults synchronize];
                    }
                    teak_catch_report;
                  }
