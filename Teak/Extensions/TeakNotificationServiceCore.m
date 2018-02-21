@@ -20,6 +20,15 @@
 
 #import <sys/utsname.h>
 
+#define kTeakWorkdayQOSArrayKey @"TeakWorkdayQOSArray"
+#define kTeakNotWorkdayQOSArrayKey @"TeakNotWorkdayQOSArray"
+
+#define TeakQOSBucketSize 12
+#define TeakDefaultQOSBucketEntry @[ @1.0f, @1.0f ]
+
+#define TeakQOSValues @[ @0.1f, @0.5f, @1.0f, @2.0f ]
+#define TeakQOSDescriptions @[ @"low", @"medium", @"high", @"veryhigh" ]
+
 @interface TeakNotificationServiceCore ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);
 @property (strong, nonatomic) UNMutableNotificationContent* bestAttemptContent;
@@ -27,6 +36,8 @@
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 @property (strong, nonatomic) NSOperation* contentHandlerOperation;
 @property (strong, atomic) NSMutableArray* attachments;
+@property (strong, nonatomic) NSMutableArray* qosArray;
+@property (strong, nonatomic) NSString* qosKey;
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload;
 - (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType atIndex:(int)index;
@@ -40,9 +51,44 @@
   self.bestAttemptContent = [request.content mutableCopy];
   self.operationQueue = [[NSOperationQueue alloc] init];
   self.contentHandlerOperation = [NSBlockOperation blockOperationWithBlock:^{
+    [[NSUserDefaults standardUserDefaults] setObject:self.qosArray forKey:self.qosKey];
     [self.session finishTasksAndInvalidate];
+
     self.contentHandler(self.bestAttemptContent);
   }];
+
+  // Get the QOS
+  NSCalendar* currentCalendar = [NSCalendar currentCalendar];
+  NSDate* now = [NSDate date];
+  NSDateComponents* hour = [currentCalendar components:NSCalendarUnitHour fromDate:now];
+  BOOL isProbablyAWorkday = [currentCalendar isDateInWeekend:now] && hour.hour >= 9 && hour.hour < 17;
+  self.qosKey = isProbablyAWorkday ? kTeakWorkdayQOSArrayKey : kTeakNotWorkdayQOSArrayKey;
+  self.qosArray = [[[NSUserDefaults standardUserDefaults] arrayForKey:self.qosKey] mutableCopy];
+
+  NSMutableArray* qosComputeArray = [self.qosArray copy];
+  for (int i = 0; i < TeakQOSBucketSize - [qosComputeArray count]; i++) {
+    [qosComputeArray addObject:TeakDefaultQOSBucketEntry];
+  }
+
+  float sumTime = 0.0f;
+  float sumSize = 0.0f;
+  for (NSArray* qosTuple in qosComputeArray) {
+    sumTime += [qosTuple[0] floatValue];
+    sumSize += [qosTuple[1] floatValue];
+  }
+
+  NSString* qosDescription = @"high";
+  if (sumTime > 0.0f) {
+    float qos = sumSize / sumTime;
+    for (int i = 0; i < [TeakQOSValues count]; i++) {
+      float mbps = [TeakQOSValues[i] floatValue];
+      if (qos < mbps) {
+        break;
+      } else {
+        qosDescription = TeakQOSDescriptions[i];
+      }
+    }
+  }
 
   // HAX -- This will adjust the old content to meet the new content version
   if (self.bestAttemptContent.userInfo[@"aps"][@"content"] == nil ||
@@ -194,15 +240,24 @@
   NSString* uti = CFBridgingRelease(UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (__bridge CFStringRef)mimeType, NULL));
   NSString* extension = (NSString*)CFBridgingRelease(UTTypeCopyPreferredTagWithClass((__bridge CFStringRef)uti, kUTTagClassFilenameExtension));
 
+  NSDate* downloadStart = [NSDate date];
   [[self.session downloadTaskWithURL:attachmentUrl
                    completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
                      if (error != nil) {
                        NSLog(@"%@", error.localizedDescription);
                      } else {
+                       NSTimeInterval downloadTimeInSeconds = [downloadStart timeIntervalSinceNow];
+
                        NSFileManager* fileManager = [NSFileManager defaultManager];
                        NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, extension];
                        NSURL* localUrl = [NSURL fileURLWithPath:pathWithExtension];
                        [fileManager moveItemAtURL:temporaryFileLocation toURL:localUrl error:&error];
+
+                       unsigned long long fileBytes = [[fileManager attributesOfItemAtPath:pathWithExtension error:nil] fileSize];
+                       // Future-Pat, don't use a shift, just make the code clear, FFS
+                       unsigned long long fileMbytes = (fileBytes / 1024) / 1024;
+                       [self.qosArray addObject:@[ [NSNumber numberWithUnsignedLongLong:fileMbytes],
+                                                   [NSNumber numberWithFloat:downloadTimeInSeconds] ]];
 
                        if (error == nil) {
                          attachment = [UNNotificationAttachment attachmentWithIdentifier:@"" URL:localUrl options:nil error:&error];
