@@ -71,7 +71,7 @@ typedef void (^ProductRequestCallback)(NSDictionary*, SKProductsResponse*);
     teak_log_breadcrumb(@"Building date formatter");
     NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
     [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
-    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
+    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZ"];
 
     teak_log_breadcrumb(@"Getting info from App Store receipt");
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
