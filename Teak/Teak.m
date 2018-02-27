@@ -430,7 +430,10 @@ Teak* _teakSharedInstance;
 
 - (void)applicationWillResignActive:(UIApplication*)application {
   TeakUnused(application);
+
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
+  self.skipTheNextOpenUrl = NO;
+
   [LifecycleEvent applicationDeactivate];
 }
 
