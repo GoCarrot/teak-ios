@@ -208,6 +208,8 @@ Teak* _teakSharedInstance;
 
     // Payment observer
     self.paymentObserver = [[SKPaymentObserver alloc] init];
+
+    self.skipTheNextOpenUrl = NO;
   }
   return self;
 }
@@ -265,10 +267,19 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)handleDeepLink:(nonnull NSURL*)url {
-  // Attribution
-  [TeakSession didLaunchFromDeepLink:url.absoluteString];
 
-  return TeakLink_HandleDeepLink(url);
+  // I'm really not happy about this hack, but something is wrong with returning
+  // YES from application:didFinishLaunchingWithOptions: and so we need to not
+  // double-process a deep link if the app was not currently running
+  if (self.skipTheNextOpenUrl) {
+    self.skipTheNextOpenUrl = NO;
+    return NO;
+  } else {
+    // Attribution
+    [TeakSession didLaunchFromDeepLink:url.absoluteString];
+
+    return TeakLink_HandleDeepLink(url);
+  }
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
@@ -340,7 +351,10 @@ Teak* _teakSharedInstance;
   if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
   } else if (launchOptions[UIApplicationLaunchOptionsURLKey]) {
-    [self application:application openURL:launchOptions[UIApplicationLaunchOptionsURLKey] sourceApplication:launchOptions[UIApplicationLaunchOptionsSourceApplicationKey] annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
+    self.skipTheNextOpenUrl = [self application:application
+                                        openURL:launchOptions[UIApplicationLaunchOptionsURLKey]
+                              sourceApplication:launchOptions[UIApplicationLaunchOptionsSourceApplicationKey]
+                                     annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
   }
 
   // Check to see if the user has already enabled push notifications
@@ -397,7 +411,7 @@ Teak* _teakSharedInstance;
   // Lifecycle event
   [LifecycleEvent applicationFinishedLaunching];
 
-  return NO;
+  return self.skipTheNextOpenUrl;
 }
 
 - (void)applicationDidBecomeActive:(UIApplication*)application {
