@@ -106,11 +106,14 @@ Teak* _teakSharedInstance;
 
   TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId)});
 
-  NSDictionary* payload = @{
-    @"action_type" : [actionId copy],
-    @"object_type" : _([objectTypeId copy]),
-    @"object_instance_id" : _([objectInstanceId copy])
-  };
+  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{@"action_type" : [actionId copy]}];
+  if (objectTypeId != nil && [objectTypeId length] > 0) {
+    payload[@"object_type"] = [objectTypeId copy];
+  }
+  if (objectInstanceId != nil && [objectInstanceId length] > 0) {
+    payload[@"object_instance_id"] = [objectInstanceId copy];
+  }
+
   [TrackEventEvent trackedEventWithPayload:payload];
 }
 
