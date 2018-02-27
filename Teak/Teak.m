@@ -93,6 +93,10 @@ Teak* _teakSharedInstance;
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
+  actionId = [actionId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+  objectTypeId = [objectTypeId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+  objectInstanceId = [objectInstanceId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+
   if (actionId == nil || actionId.length == 0) {
     TeakLog_e(@"track_event.error", @"actionId can not be null or empty for trackEvent(), ignoring.");
     return;
@@ -106,12 +110,12 @@ Teak* _teakSharedInstance;
 
   TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId)});
 
-  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{@"action_type" : [actionId copy]}];
-  if (objectTypeId != nil && [objectTypeId length] > 0) {
-    payload[@"object_type"] = [objectTypeId copy];
+  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{@"action_type" : actionId}];
+  if (objectTypeId != nil && objectTypeId.length > 0) {
+    payload[@"object_type"] = objectTypeId;
   }
-  if (objectInstanceId != nil && [objectInstanceId length] > 0) {
-    payload[@"object_instance_id"] = [objectInstanceId copy];
+  if (objectInstanceId != nil && objectInstanceId.length > 0) {
+    payload[@"object_instance_id"] = objectInstanceId;
   }
 
   [TrackEventEvent trackedEventWithPayload:payload];
