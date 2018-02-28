@@ -473,11 +473,12 @@ void TeakSignalHandler(int signal) {
 @implementation TeakRavenLocationHelper
 
 + (NSMutableArray*)helperStack {
-  static NSMutableArray* helperStack;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
+  NSMutableDictionary* threadDictionary = [[NSThread currentThread] threadDictionary];
+  NSMutableArray* helperStack = threadDictionary[@"TeakRavenLocationHelperStack"];
+  if (helperStack == nil) {
     helperStack = [[NSMutableArray alloc] init];
-  });
+    threadDictionary[@"TeakRavenLocationHelperStack"] = helperStack;
+  }
   return helperStack;
 }
 
