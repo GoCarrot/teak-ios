@@ -347,7 +347,12 @@ Teak* _teakSharedInstance;
                                                                                      actions:actions
                                                                            intentIdentifiers:@[]
                                                                                      options:UNNotificationCategoryOptionCustomDismissAction];
+      UNNotificationCategory* buttonOnlyNotifCategory = [UNNotificationCategory categoryWithIdentifier:[NSString stringWithFormat:@"%@_ButtonOnly", key]
+                                                                                               actions:actions
+                                                                                     intentIdentifiers:@[]
+                                                                                               options:UNNotificationCategoryOptionCustomDismissAction];
       [categories addObject:notifCategory];
+      [categories addObject:buttonOnlyNotifCategory];
     }
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
