@@ -35,6 +35,7 @@ extern NSString* _Nonnull const TeakRavenLevelFatal;
 @interface TeakRaven : NSObject <TeakEventHandler>
 
 + (nullable TeakRaven*)ravenForTeak:(nonnull Teak*)teak;
++ (nullable TeakRaven*)ravenForAppWithTeak:(nonnull Teak*)teak;
 
 - (BOOL)setDSN:(nonnull NSString*)dsn;
 - (void)setAsUncaughtExceptionHandler;

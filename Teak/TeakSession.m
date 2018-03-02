@@ -322,8 +322,6 @@ DefineTeakState(Expired, (@[]));
   // This observer is only registered in the 'Created' state
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-    UnRegisterKeyValueObserverFor(self.remoteConfiguration, sdkSentryDsn);
-    UnRegisterKeyValueObserverFor(self.remoteConfiguration, appSentryDsn);
   }
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -540,15 +538,11 @@ KeyValueObserverFor(TeakSession, currentState) {
   @synchronized(self) {
     if (oldValue == [TeakSession Created]) {
       UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-      UnRegisterKeyValueObserverFor(self.remoteConfiguration, sdkSentryDsn);
-      UnRegisterKeyValueObserverFor(self.remoteConfiguration, appSentryDsn);
     }
 
     if (newValue == [TeakSession Created]) {
       self.remoteConfiguration = [[TeakRemoteConfiguration alloc] initForSession:self];
       RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-      RegisterKeyValueObserverFor(self.remoteConfiguration, sdkSentryDsn);
-      RegisterKeyValueObserverFor(self.remoteConfiguration, appSentryDsn);
     } else if (newValue == [TeakSession Configured]) {
       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         if (self.userId != nil) {
@@ -621,17 +615,6 @@ KeyValueObserverFor(TeakDeviceConfiguration, notificationDisplayEnabled) {
 KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
   TeakUnusedKVOValues;
   [self setState:[TeakSession Configured]];
-}
-
-KeyValueObserverFor(TeakRemoteConfiguration, sdkSentryDsn) {
-  TeakUnusedKVOValues;
-  [[Teak sharedInstance].sdkRaven setDSN:self.remoteConfiguration.sdkSentryDsn];
-}
-
-KeyValueObserverFor(TeakRemoteConfiguration, appSentryDsn) {
-  TeakUnusedKVOValues;
-  // TODO:
-  //[[Teak sharedInstance].appRaven setDSN:self.remoteConfiguration.appSentryDsn];
 }
 
 - (BOOL)hasExpired {
