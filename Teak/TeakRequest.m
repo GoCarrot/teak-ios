@@ -228,9 +228,12 @@
     TeakLog_i(@"request.reply", h);
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      if (self.callback) {
-        self.callback(response, payload);
+      teak_try {
+        if (self.callback) {
+          self.callback(response, payload);
+        }
       }
+      teak_catch_report;
     });
   }
   teak_catch_report;
