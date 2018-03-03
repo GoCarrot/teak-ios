@@ -93,9 +93,9 @@ Teak* _teakSharedInstance;
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
-  actionId = [actionId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-  objectTypeId = [objectTypeId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-  objectInstanceId = [objectInstanceId stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+  actionId = [[actionId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+  objectTypeId = [[objectTypeId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+  objectInstanceId = [[objectInstanceId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
   if (actionId == nil || actionId.length == 0) {
     TeakLog_e(@"track_event.error", @"actionId can not be null or empty for trackEvent(), ignoring.");
