@@ -95,7 +95,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 // Configuration
 @property (strong, nonatomic) NSDictionary* actions;
 @property (nonatomic) BOOL autoPlay;
-@property (nonatomic) BOOL loop;
+@property (nonatomic) BOOL loopInitialContent;
 @property (nonatomic, copy) void (^prepareContentView)(void);
 
 // Input
@@ -119,7 +119,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
   // Video options
   self.autoPlay = TeakBoolFor(self.notificationUserData[@"autoplay"]);
-  self.loop = TeakBoolFor(self.notificationUserData[@"loop"]);
+  self.loopInitialContent = TeakBoolFor(self.notificationUserData[@"loopInitialContent"]);
 }
 
 - (void)initURLSession {
@@ -217,7 +217,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     float scaleRatio = self.view.frame.size.width / trackSize.width;
     scaledHeight = trackSize.height * scaleRatio;
 
-    if (self.loop) {
+    if (self.loopInitialContent) {
       AVQueuePlayer* videoPlayer = [AVQueuePlayer queuePlayerWithItems:@[ firstPlayerItem ]];
       self.videoPlayer = videoPlayer;
       self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:videoPlayer
