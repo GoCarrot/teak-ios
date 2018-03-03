@@ -207,6 +207,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     self.prepareContentView = ^{
       __strong typeof(self) blockSelf = weakSelf;
       TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
+      playerView.frame = blockSelf.notificationContentView.frame;
       [blockSelf.view insertSubview:playerView aboveSubview:blockSelf.notificationContentView];
       blockSelf.notificationContentView = playerView;
     };
