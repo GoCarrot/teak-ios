@@ -44,25 +44,6 @@
     self.contentHandler(self.bestAttemptContent);
   }];
 
-  // HAX -- This will adjust the old content to meet the new content version
-  if (self.bestAttemptContent.userInfo[@"aps"][@"content"] == nil ||
-      self.bestAttemptContent.userInfo[@"aps"][@"content"] == [NSNull null]) {
-    id action = self.bestAttemptContent.userInfo[@"aps"][@"attachments"][1] == nil ? [NSNull null] : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][1];
-    NSDictionary* haxMerge = @{
-      @"thumbnail" : [NSNull null],
-      @"content" : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][0],
-      @"actions" : @{
-        @"play_now" : action
-      }
-    };
-
-    NSMutableDictionary* haxUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
-    NSMutableDictionary* haxAps = [haxUserInfo[@"aps"] mutableCopy];
-    [haxAps addEntriesFromDictionary:haxMerge];
-    haxUserInfo[@"aps"] = haxAps;
-    self.bestAttemptContent.userInfo = haxUserInfo;
-  }
-
   NSDictionary* notification = self.bestAttemptContent.userInfo[@"aps"];
 
   // Get device model, resolution, and if they are on wifi or celular
