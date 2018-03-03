@@ -112,7 +112,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
   self.notificationUserData = notification.request.content.userInfo[@"aps"];
 
   // Button actions, nil = just launch the app
-  self.actions = self.notificationUserData[@"actions"];
+  self.actions = self.notificationUserData[@"playableActions"];
   if (self.actions == nil || self.actions == (NSDictionary*)[NSNull null]) {
     self.actions = [[NSDictionary alloc] init];
   }

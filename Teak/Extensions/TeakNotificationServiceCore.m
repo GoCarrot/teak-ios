@@ -94,13 +94,13 @@
       [orderedAttachments addObject:notification[@"content"]];
 
       NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
-      for (NSString* key in notification[@"actions"]) {
+      for (NSString* key in notification[@"playableActions"]) {
         // If the action is null, launch the app
-        if (notification[@"actions"][key] == nil || notification[@"actions"][key] == [NSNull null]) {
+        if (notification[@"playableActions"][key] == nil || notification[@"playableActions"][key] == [NSNull null]) {
           processedActions[key] = @-1;
         } else {
           processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];
-          [orderedAttachments addObject:notification[@"actions"][key]];
+          [orderedAttachments addObject:notification[@"playableActions"][key]];
         }
       }
 
@@ -109,7 +109,7 @@
         NSMutableDictionary* mutableUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
         NSMutableDictionary* mutableAps = [mutableUserInfo[@"aps"] mutableCopy];
         mutableAps[@"content"] = contentIndex;
-        mutableAps[@"actions"] = processedActions;
+        mutableAps[@"playableActions"] = processedActions;
         mutableUserInfo[@"aps"] = mutableAps;
         self.bestAttemptContent.userInfo = mutableUserInfo;
         notification = mutableAps;
