@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0B3EA16D61DB7C106D031058 /* TeakNotificationService.m in Sources */ = {isa = PBXBuildFile; fileRef = B09842D360B36999858F27CC /* TeakNotificationService.m */; };
 		141C19FD24E7CAA4AD44EA6F /* TeakNotificationContent.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = FBFD9BE05552924F99514665 /* TeakNotificationContent.appex */; };
 		431C98611C7E6DE300B19DD5 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C98601C7E6DE300B19DD5 /* main.m */; };
 		431C98641C7E6DE300B19DD5 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C98631C7E6DE300B19DD5 /* AppDelegate.m */; };
@@ -20,6 +19,9 @@
 		431C98851C7E7CC100B19DD5 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98841C7E7CC100B19DD5 /* StoreKit.framework */; };
 		431C98971C7FAB0800B19DD5 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */; };
 		4331D8A31FB64501004A8EEC /* TeakResources.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 430E64741FB63186008DE15B /* TeakResources.bundle */; };
+		4348846C20366C8300EA82D0 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4348846920366B6000EA82D0 /* UIKit.framework */; };
+		4348846E2036715500EA82D0 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4348846D2036715500EA82D0 /* SystemConfiguration.framework */; };
+		4348846F203671CE00EA82D0 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4348846D2036715500EA82D0 /* SystemConfiguration.framework */; };
 		43499EE81FB406770082D0F7 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43499EE51FB406770082D0F7 /* MobileCoreServices.framework */; };
 		435A0C021FAEA140000EF1EF /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
 		43B5CE5F1FFEFE3200B3C501 /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C987C1C7E6DF400B19DD5 /* libTeak.a */; };
@@ -34,7 +36,12 @@
 		A628E016A31A3884318A4A8D /* TeakNotificationService.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = 743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */; };
 		E6C409BD987F3456FDED7EBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
 		F947CCAE63F557F1DD54C69A /* UserNotificationsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D34458518D7A040139D5987 /* UserNotificationsUI.framework */; };
-		FEF918354B8C1D9E23276DD1 /* TeakNotificationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D57C2695070C11A92648E58A /* TeakNotificationViewController.m */; };
+		FAED5FBC20295607004FB297 /* TeakNotificationService.m in Sources */ = {isa = PBXBuildFile; fileRef = FAED5FB2202955DA004FB297 /* TeakNotificationService.m */; };
+		FAED5FBD20295610004FB297 /* TeakNotificationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FAED5FB9202955F2004FB297 /* TeakNotificationViewController.m */; };
+		FAED5FC0202A2CDD004FB297 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431FDAF81FB38B6E009C0106 /* AVKit.framework */; };
+		FAED5FC2202A2CE7004FB297 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */; };
+		FAED5FC3202A2CFD004FB297 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431FDAF81FB38B6E009C0106 /* AVKit.framework */; };
+		FAED5FC4202A2D06004FB297 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,7 +112,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		07349725359D77DE692B57D0 /* TeakNotificationService.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = TeakNotificationService.h; sourceTree = "<group>"; };
 		192F1BCFC30B896DB474AF0F /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS10.3.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		431C985C1C7E6DE300B19DD5 /* Sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		431C98601C7E6DE300B19DD5 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -122,18 +128,22 @@
 		431C98841C7E7CC100B19DD5 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		431C98961C7FAB0800B19DD5 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		431FDAF81FB38B6E009C0106 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
+		4348846920366B6000EA82D0 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		4348846D2036715500EA82D0 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		43499EE51FB406770082D0F7 /* MobileCoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileCoreServices.framework; path = System/Library/Frameworks/MobileCoreServices.framework; sourceTree = SDKROOT; };
 		43DCD1092005982A009B6514 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		43E601C51FFEF949003A09C5 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		6D34458518D7A040139D5987 /* UserNotificationsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotificationsUI.framework; path = System/Library/Frameworks/UserNotificationsUI.framework; sourceTree = SDKROOT; };
 		743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		ABB77BC1C06D19B18BC9AE2B /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B09842D360B36999858F27CC /* TeakNotificationService.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationService.m; sourceTree = "<group>"; };
-		C312C18550196F0615196F9E /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		D2EC9E562952FA69B7E82396 /* TeakNotificationViewController.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = TeakNotificationViewController.h; sourceTree = "<group>"; };
-		D57C2695070C11A92648E58A /* TeakNotificationViewController.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationViewController.m; sourceTree = "<group>"; };
 		E7BB850291E740CCB89F8860 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		FAEB0FB81E4BDB0F00B6069C /* Sample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sample.entitlements; sourceTree = "<group>"; };
+		FAED5FB1202955DA004FB297 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../TeakExtensions/TeakNotificationService/Info.plist; sourceTree = "<group>"; };
+		FAED5FB2202955DA004FB297 /* TeakNotificationService.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TeakNotificationService.m; path = ../TeakExtensions/TeakNotificationService/TeakNotificationService.m; sourceTree = "<group>"; };
+		FAED5FB3202955DA004FB297 /* TeakNotificationService.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TeakNotificationService.h; path = ../TeakExtensions/TeakNotificationService/TeakNotificationService.h; sourceTree = "<group>"; };
+		FAED5FB7202955F2004FB297 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../TeakExtensions/TeakNotificationContent/Info.plist; sourceTree = "<group>"; };
+		FAED5FB8202955F2004FB297 /* TeakNotificationViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TeakNotificationViewController.h; path = ../TeakExtensions/TeakNotificationContent/TeakNotificationViewController.h; sourceTree = "<group>"; };
+		FAED5FB9202955F2004FB297 /* TeakNotificationViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TeakNotificationViewController.m; path = ../TeakExtensions/TeakNotificationContent/TeakNotificationViewController.m; sourceTree = "<group>"; };
+		FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		FBFD9BE05552924F99514665 /* TeakNotificationContent.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationContent.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -142,6 +152,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4348846F203671CE00EA82D0 /* SystemConfiguration.framework in Frameworks */,
+				FAED5FC4202A2D06004FB297 /* CoreMedia.framework in Frameworks */,
+				FAED5FC3202A2CFD004FB297 /* AVKit.framework in Frameworks */,
 				43DCD10D2005A725009B6514 /* ImageIO.framework in Frameworks */,
 				43E601C71FFEF96D003A09C5 /* MobileCoreServices.framework in Frameworks */,
 				43E601C61FFEF949003A09C5 /* AVFoundation.framework in Frameworks */,
@@ -157,6 +170,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4348846E2036715500EA82D0 /* SystemConfiguration.framework in Frameworks */,
+				4348846C20366C8300EA82D0 /* UIKit.framework in Frameworks */,
 				43B5CE601FFEFE3700B3C501 /* libTeak.a in Frameworks */,
 				43499EE81FB406770082D0F7 /* MobileCoreServices.framework in Frameworks */,
 				5F158A8EB9F1FA3311799D7A /* Foundation.framework in Frameworks */,
@@ -167,6 +182,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FAED5FC2202A2CE7004FB297 /* CoreMedia.framework in Frameworks */,
+				FAED5FC0202A2CDD004FB297 /* AVKit.framework in Frameworks */,
 				43DCD10B2005982B009B6514 /* ImageIO.framework in Frameworks */,
 				43B5CE611FFEFE5800B3C501 /* AVFoundation.framework in Frameworks */,
 				43B5CE5F1FFEFE3200B3C501 /* libTeak.a in Frameworks */,
@@ -179,26 +196,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		05F12CB46404D8AF8B0EFD82 /* TeakNotificationContent */ = {
-			isa = PBXGroup;
-			children = (
-				C312C18550196F0615196F9E /* Info.plist */,
-				D2EC9E562952FA69B7E82396 /* TeakNotificationViewController.h */,
-				D57C2695070C11A92648E58A /* TeakNotificationViewController.m */,
-			);
-			path = TeakNotificationContent;
-			sourceTree = "<group>";
-		};
-		06ED73E7C6DE58F06A78DE21 /* TeakNotificationService */ = {
-			isa = PBXGroup;
-			children = (
-				ABB77BC1C06D19B18BC9AE2B /* Info.plist */,
-				07349725359D77DE692B57D0 /* TeakNotificationService.h */,
-				B09842D360B36999858F27CC /* TeakNotificationService.m */,
-			);
-			path = TeakNotificationService;
-			sourceTree = "<group>";
-		};
 		431C98531C7E6DE200B19DD5 = {
 			isa = PBXGroup;
 			children = (
@@ -209,8 +206,8 @@
 				431C985E1C7E6DE300B19DD5 /* Sample */,
 				431C985D1C7E6DE300B19DD5 /* Products */,
 				879C4E8A2BF50111224BCCB3 /* Frameworks */,
-				06ED73E7C6DE58F06A78DE21 /* TeakNotificationService */,
-				05F12CB46404D8AF8B0EFD82 /* TeakNotificationContent */,
+				FAED5FB0202955C4004FB297 /* TeakNotificationService */,
+				FAED5FB6202955DD004FB297 /* TeakNotificationContent */,
 			);
 			sourceTree = "<group>";
 		};
@@ -261,6 +258,9 @@
 		879C4E8A2BF50111224BCCB3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4348846D2036715500EA82D0 /* SystemConfiguration.framework */,
+				4348846920366B6000EA82D0 /* UIKit.framework */,
+				FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */,
 				43DCD1092005982A009B6514 /* ImageIO.framework */,
 				43E601C51FFEF949003A09C5 /* AVFoundation.framework */,
 				43499EE51FB406770082D0F7 /* MobileCoreServices.framework */,
@@ -278,6 +278,26 @@
 				192F1BCFC30B896DB474AF0F /* Foundation.framework */,
 			);
 			name = iOS;
+			sourceTree = "<group>";
+		};
+		FAED5FB0202955C4004FB297 /* TeakNotificationService */ = {
+			isa = PBXGroup;
+			children = (
+				FAED5FB1202955DA004FB297 /* Info.plist */,
+				FAED5FB3202955DA004FB297 /* TeakNotificationService.h */,
+				FAED5FB2202955DA004FB297 /* TeakNotificationService.m */,
+			);
+			name = TeakNotificationService;
+			sourceTree = "<group>";
+		};
+		FAED5FB6202955DD004FB297 /* TeakNotificationContent */ = {
+			isa = PBXGroup;
+			children = (
+				FAED5FB7202955F2004FB297 /* Info.plist */,
+				FAED5FB8202955F2004FB297 /* TeakNotificationViewController.h */,
+				FAED5FB9202955F2004FB297 /* TeakNotificationViewController.m */,
+			);
+			name = TeakNotificationContent;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -346,7 +366,7 @@
 		431C98541C7E6DE200B19DD5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0900;
+				LastUpgradeCheck = 0920;
 				ORGANIZATIONNAME = "GoCarrot Inc.";
 				TargetAttributes = {
 					431C985B1C7E6DE300B19DD5 = {
@@ -458,7 +478,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0B3EA16D61DB7C106D031058 /* TeakNotificationService.m in Sources */,
+				FAED5FBC20295607004FB297 /* TeakNotificationService.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -466,7 +486,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FEF918354B8C1D9E23276DD1 /* TeakNotificationViewController.m in Sources */,
+				FAED5FBD20295610004FB297 /* TeakNotificationViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -566,7 +586,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -611,7 +631,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
@@ -622,6 +642,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_ENTITLEMENTS = Sample/Sample.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -648,6 +669,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_ENTITLEMENTS = Sample/Sample.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -676,6 +698,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -689,6 +712,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationService/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -702,6 +726,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationService/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -715,6 +740,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";

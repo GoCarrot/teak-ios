@@ -57,7 +57,7 @@
                  if (/* DISABLES CODE */ (NO)) {
                    TeakLog_e(@"reward.claim_error", @{@"error" : response});
                  } else {
-                   NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:[reply objectForKey:@"response"]];
+                   NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:reply[@"response"]];
                    [rewardResponse setValue:teakRewardId forKey:@"teakRewardId"];
                    if ([rewardResponse objectForKey:@"reward"] != nil &&
                        [[rewardResponse objectForKey:@"reward"] isKindOfClass:[NSString class]]) {
@@ -68,7 +68,7 @@
                                                                                                  options:kNilOptions
                                                                                                    error:&error];
                      if (error == nil) {
-                       [rewardResponse setObject:parsedReward forKey:@"reward"];
+                       rewardResponse[@"reward"] = parsedReward;
                      }
                    }
                    ret.json = rewardResponse;

@@ -16,12 +16,15 @@
 #import "TeakDeviceConfiguration.h"
 #import "PushRegistrationEvent.h"
 #import "Teak+Internal.h"
-#import "TeakAppConfiguration.h"
 #import <sys/utsname.h>
 
 #import <AdSupport/AdSupport.h>
 
 #define kDeviceIdKey @"TeakDeviceId"
+
+NSString* const TeakDeviceConfiguration_NotificationDisplayState_Enabled = @"true";
+NSString* const TeakDeviceConfiguration_NotificationDisplayState_Disabled = @"false";
+NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unknown";
 
 @interface TeakDeviceConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* deviceId;
@@ -29,13 +32,14 @@
 @property (strong, nonatomic, readwrite) NSString* pushToken;
 @property (strong, nonatomic, readwrite) NSString* platformString;
 @property (strong, nonatomic, readwrite) NSString* advertisingIdentifier;
+@property (strong, nonatomic, readwrite) NSString* notificationDisplayEnabled;
 @property (nonatomic, readwrite) BOOL limitAdTracking;
 
 @property (strong, nonatomic) NSUserDefaults* userDefaults;
 @end
 
 @implementation TeakDeviceConfiguration
-- (id)initWithAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration {
+- (id)init {
   self = [super init];
   if (self) {
     // Load settings
@@ -55,9 +59,8 @@
 
       @try {
         [self.userDefaults setObject:self.deviceId forKey:kDeviceIdKey];
-        [self.userDefaults synchronize];
       } @catch (NSException* exception) {
-        TeakLog_e(@"", @"Error occurred while synchronizing userDefaults.", @{@"error" : exception.reason});
+        TeakLog_e(@"", @"Error occurred while assigning userDefaults.", @{@"error" : exception.reason});
         return nil;
       }
     }
@@ -86,6 +89,12 @@
 
     // Get advertising information
     [self getAdvertisingInformation];
+
+    // Default notification display state
+    self.notificationDisplayEnabled = TeakDeviceConfiguration_NotificationDisplayState_Unknown;
+
+    // Run this for the first time
+    [self updateValuesThatCouldHaveChanged];
   }
   return self;
 }
@@ -115,6 +124,18 @@
   self.pushToken = pushToken;
 }
 
+- (void)updateValuesThatCouldHaveChanged {
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    [[Teak sharedInstance] hasUserDisabledPushNotifications:^(BOOL disabled) {
+      NSString* newNotificationDisplayState = disabled ? TeakDeviceConfiguration_NotificationDisplayState_Disabled : TeakDeviceConfiguration_NotificationDisplayState_Enabled;
+      // Only asign if different for KVO
+      if (![self.notificationDisplayEnabled isEqualToString:newNotificationDisplayState]) {
+        self.notificationDisplayEnabled = newNotificationDisplayState;
+      }
+    }];
+  });
+}
+
 - (NSDictionary*)to_h {
   return @{
     @"deviceId" : self.deviceId,
@@ -122,7 +143,8 @@
     @"pushToken" : self.pushToken,
     @"platformString" : self.platformString,
     @"advertisingIdentifier" : self.advertisingIdentifier,
-    @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking]
+    @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking],
+    @"notificationDisplayEnabled" : self.notificationDisplayEnabled
   };
 }
 
@@ -153,6 +175,9 @@
     } break;
     case PushUnRegistered: {
       if (self.pushToken != nil) self.pushToken = nil;
+    } break;
+    case LifecycleActivate: {
+      [self updateValuesThatCouldHaveChanged];
     } break;
     default:
       break;

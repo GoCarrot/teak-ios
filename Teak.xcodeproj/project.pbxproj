@@ -47,6 +47,8 @@
 		434862491FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */; };
 		4361E49F1D27529700672694 /* TeakRaven.h in Headers */ = {isa = PBXBuildFile; fileRef = 4361E49D1D27529700672694 /* TeakRaven.h */; };
 		4361E4A01D27529700672694 /* TeakRaven.m in Sources */ = {isa = PBXBuildFile; fileRef = 4361E49E1D27529700672694 /* TeakRaven.m */; };
+		437C7933204A00F3006BD4B9 /* RemoteConfigurationEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 437C7931204A00F3006BD4B9 /* RemoteConfigurationEvent.h */; };
+		437C7934204A00F3006BD4B9 /* RemoteConfigurationEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 437C7932204A00F3006BD4B9 /* RemoteConfigurationEvent.m */; };
 		4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372691D3419D000B01F44 /* TeakDebugConfiguration.h */; };
 		4383726C1D3419D000B01F44 /* TeakDebugConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4383726A1D3419D000B01F44 /* TeakDebugConfiguration.m */; };
 		4383726F1D34239900B01F44 /* TeakAppConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 4383726D1D34239900B01F44 /* TeakAppConfiguration.h */; };
@@ -141,6 +143,8 @@
 		434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FacebookAccessTokenEvent.m; sourceTree = "<group>"; };
 		4361E49D1D27529700672694 /* TeakRaven.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRaven.h; sourceTree = "<group>"; };
 		4361E49E1D27529700672694 /* TeakRaven.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRaven.m; sourceTree = "<group>"; };
+		437C7931204A00F3006BD4B9 /* RemoteConfigurationEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteConfigurationEvent.h; sourceTree = "<group>"; };
+		437C7932204A00F3006BD4B9 /* RemoteConfigurationEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RemoteConfigurationEvent.m; sourceTree = "<group>"; };
 		438372691D3419D000B01F44 /* TeakDebugConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakDebugConfiguration.h; sourceTree = "<group>"; };
 		4383726A1D3419D000B01F44 /* TeakDebugConfiguration.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakDebugConfiguration.m; sourceTree = "<group>"; };
 		4383726D1D34239900B01F44 /* TeakAppConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakAppConfiguration.h; sourceTree = "<group>"; };
@@ -324,6 +328,8 @@
 				434861841FA3C08A00E0DA12 /* LifecycleEvent.m */,
 				434862461FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h */,
 				434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */,
+				437C7931204A00F3006BD4B9 /* RemoteConfigurationEvent.h */,
+				437C7932204A00F3006BD4B9 /* RemoteConfigurationEvent.m */,
 			);
 			path = Events;
 			sourceTree = "<group>";
@@ -366,6 +372,7 @@
 				434861771FA2C5E000E0DA12 /* TeakConfiguration.h in Headers */,
 				4361E49F1D27529700672694 /* TeakRaven.h in Headers */,
 				4383726F1D34239900B01F44 /* TeakAppConfiguration.h in Headers */,
+				437C7933204A00F3006BD4B9 /* RemoteConfigurationEvent.h in Headers */,
 				439815BE1FA27799005303F1 /* PushRegistrationEvent.h in Headers */,
 				4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */,
 				43E601C01FFEF879003A09C5 /* TeakNotificationViewControllerCore.h in Headers */,
@@ -565,6 +572,7 @@
 				43F7CFF91EF0957E00361256 /* TeakLog.m in Sources */,
 				438372841D35889800B01F44 /* TeakHelpers.m in Sources */,
 				432EDF0A1CC02CE3007E9C5C /* TeakNotification.m in Sources */,
+				437C7934204A00F3006BD4B9 /* RemoteConfigurationEvent.m in Sources */,
 				439815BF1FA27799005303F1 /* PushRegistrationEvent.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

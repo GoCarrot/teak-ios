@@ -22,7 +22,7 @@
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions;
 @end
 
-typedef void (^ProductRequestCallback)(NSDictionary* priceInfo, SKProductsResponse* response);
+typedef void (^ProductRequestCallback)(NSDictionary*, SKProductsResponse*);
 
 @interface ProductRequest : NSObject <SKProductsRequestDelegate>
 @property (copy, nonatomic) ProductRequestCallback callback;
@@ -34,7 +34,7 @@ typedef void (^ProductRequestCallback)(NSDictionary* priceInfo, SKProductsRespon
 @end
 
 @implementation SKPaymentObserver
-- (id)initForSomething:(id _Nullable)foo {
+- (id)init {
   self = [super init];
   if (self) {
     [TeakEvent addEventHandler:self];
@@ -71,7 +71,7 @@ typedef void (^ProductRequestCallback)(NSDictionary* priceInfo, SKProductsRespon
     teak_log_breadcrumb(@"Building date formatter");
     NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
     [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
-    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mmZ"];
+    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZ"];
 
     teak_log_breadcrumb(@"Getting info from App Store receipt");
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
@@ -133,6 +133,8 @@ typedef void (^ProductRequestCallback)(NSDictionary* priceInfo, SKProductsRespon
 }
 
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions {
+  TeakUnused(queue);
+
   for (SKPaymentTransaction* transaction in transactions) {
     switch (transaction.transactionState) {
       case SKPaymentTransactionStatePurchased:

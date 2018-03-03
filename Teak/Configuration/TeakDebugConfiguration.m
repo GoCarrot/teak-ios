@@ -49,10 +49,9 @@
   } else {
     @try {
       [self.userDefaults setBool:forceDebug forKey:kForceDebugPreferencesKey];
-      [self.userDefaults synchronize];
       NSLog(@"Force debug is now %s, please re-start the app.", forceDebug ? "enabled" : "disabled");
     } @catch (NSException* exception) {
-      NSLog(@"Error occurred while synchronizing userDefaults. %@", exception);
+      NSLog(@"Error occurred while writing to userDefaults. %@", exception);
     }
     self.forceDebug = forceDebug;
   }

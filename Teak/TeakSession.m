@@ -198,30 +198,33 @@ DefineTeakState(Expired, (@[]));
       @"timezone" : timeZoneString
     }];
 
+    // Kick off checking for push notification enabled
+    payload[@"notifications_enabled"] = self.deviceConfiguration.notificationDisplayEnabled;
+
     if ([self.deviceConfiguration.advertisingIdentifier length] > 0) {
-      [payload setObject:self.deviceConfiguration.advertisingIdentifier forKey:@"ios_ad_id"];
-      [payload setObject:[NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking] forKey:@"ios_limit_ad_tracking"];
+      payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
+      payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking];
     }
 
     if (self.userIdentificationSent) {
-      [payload setObject:@YES forKey:@"do_not_track_event"];
+      payload[@"do_not_track_event"] = @YES;
     }
     self.userIdentificationSent = YES;
 
     if ([self.deviceConfiguration.pushToken length] > 0) {
-      [payload setObject:self.deviceConfiguration.pushToken forKey:@"apns_push_key"];
+      payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
     } else {
-      [payload setObject:@"" forKey:@"apns_push_key"];
+      payload[@"apns_push_key"] = @"";
     }
 
     if (self.launchAttribution != nil) {
       for (NSString* key in self.launchAttribution) {
-        [payload setObject:[self.launchAttribution objectForKey:key] forKey:key];
+        payload[key] = self.launchAttribution[key];
       }
     }
 
     if (self.facebookAccessToken != nil) {
-      [payload setObject:self.facebookAccessToken forKey:@"access_token"];
+      payload[@"access_token"] = self.facebookAccessToken;
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
@@ -236,10 +239,10 @@ DefineTeakState(Expired, (@[]));
 
                  // TODO: Check response
                  if (YES) {
-                   bool forceDebug = [[reply valueForKey:@"verbose_logging"] boolValue];
+                   bool forceDebug = [reply[@"verbose_logging"] boolValue];
                    [[TeakConfiguration configuration].debugConfiguration setForceDebugPreference:forceDebug];
                    [Teak sharedInstance].enableDebugOutput |= forceDebug;
-                   blockSelf.countryCode = [reply valueForKey:@"country_code"];
+                   blockSelf.countryCode = reply[@"country_code"];
 
                    // For 'do_not_track_event'
                    if (blockSelf.currentState == [TeakSession Expiring]) {
@@ -319,8 +322,6 @@ DefineTeakState(Expired, (@[]));
   // This observer is only registered in the 'Created' state
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-    UnRegisterKeyValueObserverFor(self.remoteConfiguration, sdkSentryDsn);
-    UnRegisterKeyValueObserverFor(self.remoteConfiguration, appSentryDsn);
   }
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -394,7 +395,7 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)setLaunchAttribution:(nonnull NSDictionary*)attribution appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)setLaunchAttribution:(nonnull NSDictionary*)attribution {
   @synchronized(currentSessionMutex) {
     // Call getCurrentSession() so the null || Expired logic stays in one place
     [TeakSession currentSession];
@@ -443,13 +444,12 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
++ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId {
   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:teakNotifId, @"teak_notif_id", nil];
-  [TeakSession setLaunchAttribution:launchAttribution appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+  [TeakSession setLaunchAttribution:launchAttribution];
 }
 
-+ (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink appConfiguration:(nonnull TeakAppConfiguration*)appConfiguration deviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
-
++ (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink {
   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:deepLink, @"deep_link", nil];
 
   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
@@ -471,7 +471,7 @@ DefineTeakState(Expired, (@[]));
     }
   }
 
-  [TeakSession setLaunchAttribution:launchAttribution appConfiguration:appConfiguration deviceConfiguration:deviceConfiguration];
+  [TeakSession setLaunchAttribution:launchAttribution];
 
   // Send off a reward event if one was in this deep link
   NSString* teakRewardId = [launchAttribution objectForKey:@"teak_reward_id"];
@@ -538,15 +538,11 @@ KeyValueObserverFor(TeakSession, currentState) {
   @synchronized(self) {
     if (oldValue == [TeakSession Created]) {
       UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-      UnRegisterKeyValueObserverFor(self.remoteConfiguration, sdkSentryDsn);
-      UnRegisterKeyValueObserverFor(self.remoteConfiguration, appSentryDsn);
     }
 
     if (newValue == [TeakSession Created]) {
       self.remoteConfiguration = [[TeakRemoteConfiguration alloc] initForSession:self];
       RegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
-      RegisterKeyValueObserverFor(self.remoteConfiguration, sdkSentryDsn);
-      RegisterKeyValueObserverFor(self.remoteConfiguration, appSentryDsn);
     } else if (newValue == [TeakSession Configured]) {
       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         if (self.userId != nil) {
@@ -602,24 +598,23 @@ KeyValueObserverFor(TeakSession, currentState) {
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
+  TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
 KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
+  TeakUnusedKVOValues;
+  [self identifyUserInfoHasChanged];
+}
+
+KeyValueObserverFor(TeakDeviceConfiguration, notificationDisplayEnabled) {
+  TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
 KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
+  TeakUnusedKVOValues;
   [self setState:[TeakSession Configured]];
-}
-
-KeyValueObserverFor(TeakRemoteConfiguration, sdkSentryDsn) {
-  [[Teak sharedInstance].sdkRaven setDSN:self.remoteConfiguration.sdkSentryDsn];
-}
-
-KeyValueObserverFor(TeakRemoteConfiguration, appSentryDsn) {
-  // TODO:
-  //[[Teak sharedInstance].appRaven setDSN:self.remoteConfiguration.appSentryDsn];
 }
 
 - (BOOL)hasExpired {

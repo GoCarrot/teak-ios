@@ -14,10 +14,14 @@
  */
 
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <SystemConfiguration/SystemConfiguration.h>
 #import <Teak/TeakNotificationServiceCore.h>
+#import <UIKit/UIKit.h>
+
+#import <sys/utsname.h>
 
 @interface TeakNotificationServiceCore ()
-@property (strong, nonatomic) void (^contentHandler)(UNNotificationContent* contentToDeliver);
+@property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);
 @property (strong, nonatomic) UNMutableNotificationContent* bestAttemptContent;
 @property (strong, nonatomic) NSURLSession* session;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
@@ -25,7 +29,8 @@
 @property (strong, atomic) NSMutableArray* attachments;
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload;
-- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType;
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType atIndex:(int)index;
++ (NSString*)connectionTypeToHost:(NSString*)host;
 @end
 
 @implementation TeakNotificationServiceCore
@@ -33,18 +38,107 @@
 - (void)didReceiveNotificationRequest:(UNNotificationRequest*)request withContentHandler:(void (^)(UNNotificationContent* _Nonnull))contentHandler {
   self.contentHandler = contentHandler;
   self.bestAttemptContent = [request.content mutableCopy];
-  self.attachments = [[NSMutableArray alloc] init];
   self.operationQueue = [[NSOperationQueue alloc] init];
   self.contentHandlerOperation = [NSBlockOperation blockOperationWithBlock:^{
     [self.session finishTasksAndInvalidate];
     self.contentHandler(self.bestAttemptContent);
   }];
 
+  // HAX -- This will adjust the old content to meet the new content version
+  if (self.bestAttemptContent.userInfo[@"aps"][@"content"] == nil ||
+      self.bestAttemptContent.userInfo[@"aps"][@"content"] == [NSNull null]) {
+    id action = self.bestAttemptContent.userInfo[@"aps"][@"attachments"][1] == nil ? [NSNull null] : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][1];
+    NSDictionary* haxMerge = @{
+      @"thumbnail" : [NSNull null],
+      @"content" : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][0],
+      @"actions" : @{
+        @"play_now" : action
+      }
+    };
+
+    NSMutableDictionary* haxUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
+    NSMutableDictionary* haxAps = [haxUserInfo[@"aps"] mutableCopy];
+    [haxAps addEntriesFromDictionary:haxMerge];
+    haxUserInfo[@"aps"] = haxAps;
+    self.bestAttemptContent.userInfo = haxUserInfo;
+  }
+
+  NSDictionary* notification = self.bestAttemptContent.userInfo[@"aps"];
+
+  // Get device model, resolution, and if they are on wifi or celular
+  NSMutableArray* additionalQueryItems = [[NSMutableArray alloc] init];
+
+  // Width/height
+  CGSize nativeScreenSize = [UIScreen mainScreen].nativeBounds.size;
+  NSString* widthAsString = [NSString stringWithFormat:@"%.1f", nativeScreenSize.width];
+  NSString* heightAsString = [NSString stringWithFormat:@"%.1f", nativeScreenSize.height];
+  [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"width" value:widthAsString]];
+  [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"height" value:heightAsString]];
+
+  // Device model
+  struct utsname systemInfo;
+  uname(&systemInfo);
+  NSString* deviceModel = @"unknown";
   @try {
-    NSDictionary* notification = request.content.userInfo[@"aps"];
+    deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
+  } @finally {
+    [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"device_model" value:deviceModel]];
+  }
+
+  // Wifi?
+  NSString* connectionType = @"unknown";
+  if (notification != nil && notification[@"content"] != nil) {
+    @try {
+      NSURLComponents* attachmentUrlComponents = [NSURLComponents componentsWithString:notification[@"content"][@"url"]];
+      connectionType = [TeakNotificationServiceCore connectionTypeToHost:attachmentUrlComponents.host];
+    } @finally {
+      // Chomp exception is fine
+    }
+  }
+  [additionalQueryItems addObject:[NSURLQueryItem queryItemWithName:@"connection_type" value:connectionType]];
+
+  @try {
     NSString* teakNotifId = TeakNSStringOrNilFor(notification[@"teakNotifId"]);
     if ([teakNotifId length] > 0) {
       self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
+
+      // Process APS thumbnail, content and actions into an array of attachments
+      // Replace URL in actions with index into array of attachments
+      NSMutableArray* orderedAttachments = [[NSMutableArray alloc] init];
+      if (notification[@"thumbnail"] != nil && notification[@"thumbnail"] != [NSNull null]) {
+        [orderedAttachments addObject:notification[@"thumbnail"]];
+      }
+
+      NSNumber* contentIndex = [NSNumber numberWithUnsignedInteger:[orderedAttachments count]];
+      [orderedAttachments addObject:notification[@"content"]];
+
+      NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
+      for (NSString* key in notification[@"actions"]) {
+        // If the action is null, launch the app
+        if (notification[@"actions"][key] == nil || notification[@"actions"][key] == [NSNull null]) {
+          processedActions[key] = @-1;
+        } else {
+          processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];
+          [orderedAttachments addObject:notification[@"actions"][key]];
+        }
+      }
+
+      // Assign processed actions dictionary and content index
+      {
+        NSMutableDictionary* mutableUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
+        NSMutableDictionary* mutableAps = [mutableUserInfo[@"aps"] mutableCopy];
+        mutableAps[@"content"] = contentIndex;
+        mutableAps[@"actions"] = processedActions;
+        mutableUserInfo[@"aps"] = mutableAps;
+        self.bestAttemptContent.userInfo = mutableUserInfo;
+        notification = mutableAps;
+      }
+
+      // Allocate attachments array with placeholders
+      self.attachments = [[NSMutableArray alloc] initWithCapacity:[orderedAttachments count]];
+      for (int i = 0; i < [orderedAttachments count]; i++) {
+        [self.attachments addObject:[NSNull null]];
+      }
 
       // Load attachments
       NSOperation* assignAttachmentsOperation = [NSBlockOperation blockOperationWithBlock:^{
@@ -52,11 +146,16 @@
       }];
       [self.contentHandlerOperation addDependency:assignAttachmentsOperation];
 
-      NSArray* attachments = notification[@"attachments"];
-      for (NSDictionary* a in attachments) {
-        NSURL* attachmentUrl = [NSURL URLWithString:a[@"url"]];
-        if (attachmentUrl != nil) {
-          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrl forMIMEType:a[@"mime_type"]];
+      for (int i = 0; i < [orderedAttachments count]; i++) {
+        NSDictionary* attachment = orderedAttachments[i];
+        NSURLComponents* attachmentUrlComponents = [NSURLComponents componentsWithString:attachment[@"url"]];
+        if (attachmentUrlComponents != nil) {
+          // Add width, height, device_model, and wifi
+          NSMutableArray* queryItems = [attachmentUrlComponents.queryItems mutableCopy];
+          [queryItems addObjectsFromArray:additionalQueryItems];
+          attachmentUrlComponents.queryItems = queryItems;
+
+          NSOperation* attachmentOperation = [self loadAttachment:attachmentUrlComponents.URL forMIMEType:attachment[@"mime_type"] atIndex:i];
           [assignAttachmentsOperation addDependency:attachmentOperation];
         }
       }
@@ -74,8 +173,7 @@
         [self.contentHandlerOperation addDependency:metricOperation];
       }
     }
-  }
-  @finally {
+  } @finally {
     [self.operationQueue addOperation:self.contentHandlerOperation];
   }
 }
@@ -85,11 +183,11 @@
   self.contentHandler(self.bestAttemptContent);
 }
 
-- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType {
+- (NSOperation*)loadAttachment:(NSURL*)attachmentUrl forMIMEType:(NSString*)mimeType atIndex:(int)index {
   __block UNNotificationAttachment* attachment;
   NSOperation* attachmentOperation = [NSBlockOperation blockOperationWithBlock:^{
     if (attachment != nil) {
-      [self.attachments addObject:attachment];
+      self.attachments[index] = attachment;
     }
   }];
 
@@ -130,7 +228,7 @@
 
   for (NSString* key in payload) {
     [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, [payload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
+    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, payload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
   }
   [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
@@ -150,6 +248,27 @@
                         }];
   [uploadTask resume];
   return metricOperation;
+}
+
++ (NSString*)connectionTypeToHost:(NSString*)host {
+  SCNetworkReachabilityRef reachability = SCNetworkReachabilityCreateWithName(NULL, [host UTF8String]);
+  SCNetworkReachabilityFlags flags;
+  BOOL success = SCNetworkReachabilityGetFlags(reachability, &flags);
+  CFRelease(reachability);
+  if (!success) {
+    return @"unknown";
+  }
+  BOOL isReachable = ((flags & kSCNetworkReachabilityFlagsReachable) != 0);
+  BOOL needsConnection = ((flags & kSCNetworkReachabilityFlagsConnectionRequired) != 0);
+  BOOL isNetworkReachable = (isReachable && !needsConnection);
+
+  if (!isNetworkReachable) {
+    return @"none";
+  } else if ((flags & kSCNetworkReachabilityFlagsIsWWAN) != 0) {
+    return @"wwan";
+  } else {
+    return @"wifi";
+  }
 }
 
 @end

@@ -130,7 +130,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
         NSTextCheckingResult* match = [regExp firstMatchInString:deepLink.path options:0 range:range];
         if (match != nil) {
           teak_log_data_breadcrumb(@"Found matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink.path}));
-          TeakLink* link = [deepLinkPatterns objectForKey:key];
+          TeakLink* link = deepLinkPatterns[key];
           NSMutableDictionary* params = [[NSMutableDictionary alloc] init];
           for (NSUInteger i = 0; i < [link.argumentIndicies count]; i++) {
             NSRange argRange = [match rangeAtIndex:i + 1];
@@ -160,7 +160,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
   NSMutableArray* namesAndDescriptions = [[NSMutableArray alloc] init];
   NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistration];
   for (NSString* key in deepLinkPatterns) {
-    TeakLink* link = [deepLinkPatterns objectForKey:key];
+    TeakLink* link = deepLinkPatterns[key];
     if (link.name != nil && link.name.length > 0) {
       [namesAndDescriptions addObject:@{
         @"name" : link.name,

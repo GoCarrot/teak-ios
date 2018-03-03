@@ -22,6 +22,7 @@ NSString* TeakNSStringOrNilFor(id object) {
   @try {
     ret = ((object == nil || [object isKindOfClass:[NSString class]]) ? object : [object stringValue]);
   } @catch (NSException* ignored) {
+    ret = nil;
   }
   return ret;
 }
@@ -29,4 +30,12 @@ NSString* TeakNSStringOrNilFor(id object) {
 NSString* TeakURLEscapedString(NSString* inString) {
   if (inString == nil) return nil;
   return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLHostAllowedCharacterSet]];
+}
+
+BOOL TeakBoolFor(id object) {
+  if (object == nil || object == [NSNull null]) {
+    return NO;
+  }
+
+  return [object boolValue];
 }

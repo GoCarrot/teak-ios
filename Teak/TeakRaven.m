@@ -14,6 +14,7 @@
  */
 
 #import "TeakRaven.h"
+#import "RemoteConfigurationEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
@@ -43,6 +44,7 @@ extern bool AmIBeingDebugged(void);
 @property (strong, nonatomic) NSString* sentryKey;
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
+@property (nonatomic) BOOL isSdkRaven;
 
 @property (strong, nonatomic) NSArray* runLoopModes;
 @property (nonatomic) NSUncaughtExceptionHandler* hException;
@@ -85,18 +87,18 @@ void TeakSignalHandler(int signal) {
   [uncaughtExceptionHandlerRaven unsetAsUncaughtExceptionHandler];
 
   NSDictionary* sigToString = @{
-    [NSNumber numberWithInt:SIGABRT] : @"SIGABRT",
-    [NSNumber numberWithInt:SIGILL] : @"SIGILL",
-    [NSNumber numberWithInt:SIGSEGV] : @"SIGSEGV",
-    [NSNumber numberWithInt:SIGFPE] : @"SIGFPE",
-    [NSNumber numberWithInt:SIGBUS] : @"SIGBUS",
-    [NSNumber numberWithInt:SIGPIPE] : @"SIGPIPE"
+    @SIGABRT : @"SIGABRT",
+    @SIGILL : @"SIGILL",
+    @SIGSEGV : @"SIGSEGV",
+    @SIGFPE : @"SIGFPE",
+    @SIGBUS : @"SIGBUS",
+    @SIGPIPE : @"SIGPIPE"
   };
 
   if (AmIBeingDebugged()) {
-    NSLog(@"Teak: Build running in debugger, not reporting signal: %@", [sigToString objectForKey:[NSNumber numberWithInt:signal]]);
+    NSLog(@"Teak: Build running in debugger, not reporting signal: %@", sigToString[[NSNumber numberWithInt:signal]]);
   } else {
-    [uncaughtExceptionHandlerRaven reportSignal:[sigToString objectForKey:[NSNumber numberWithInt:signal]]];
+    [uncaughtExceptionHandlerRaven reportSignal:sigToString[[NSNumber numberWithInt:signal]]];
     [uncaughtExceptionHandlerRaven pumpRunLoops];
   }
 }
@@ -167,10 +169,10 @@ void TeakSignalHandler(int signal) {
 - (void)reportWithHelper:(TeakRavenLocationHelper*)helper {
   NSMutableArray* stacktrace = [NSMutableArray arrayWithArray:[TeakRaven stacktraceSkippingFrames:2]];
   NSMutableDictionary* lastFrame = [NSMutableDictionary dictionaryWithDictionary:[stacktrace lastObject]];
-  [lastFrame setObject:helper.file forKey:@"filename"];
-  [lastFrame setObject:helper.line forKey:@"lineno"];
-  [lastFrame setObject:helper.function forKey:@"function"];
-  [stacktrace replaceObjectAtIndex:stacktrace.count - 1 withObject:lastFrame];
+  lastFrame[@"filename"] = helper.file;
+  lastFrame[@"lineno"] = helper.line;
+  lastFrame[@"function"] = helper.function;
+  stacktrace[stacktrace.count - 1] = lastFrame;
 
   NSMutableDictionary* additions = [NSMutableDictionary dictionaryWithDictionary:@{
     @"exception" : @[
@@ -183,7 +185,7 @@ void TeakSignalHandler(int signal) {
       }
     ]
   }];
-  if (helper.breadcrumbs != nil) [additions setObject:helper.breadcrumbs forKey:@"breadcrumbs"];
+  if (helper.breadcrumbs != nil) additions[@"breadcrumbs"] = helper.breadcrumbs;
 
   TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
                                                             level:TeakRavenLevelError
@@ -227,10 +229,20 @@ void TeakSignalHandler(int signal) {
   [report send];
 }
 
+- (id)initForAppWithTeak:(Teak*)teak {
+  self = [self initForTeak:teak];
+  if (self) {
+    self.isSdkRaven = NO;
+    // self.appId = @"sdk";
+  }
+  return self;
+}
+
 - (id)initForTeak:(Teak*)teak {
   self = [super init];
   if (self) {
     @try {
+      self.isSdkRaven = YES;
       self.appId = @"sdk";
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary:@{
         @"logger" : @"teak",
@@ -315,6 +327,10 @@ void TeakSignalHandler(int signal) {
   return [[TeakRaven alloc] initForTeak:teak];
 }
 
++ (nullable TeakRaven*)ravenForAppWithTeak:(nonnull Teak*)teak {
+  return [[TeakRaven alloc] initForTeak:teak];
+}
+
 + (NSDictionary*)backtraceStrToSentryFrame:(const char*)str {
   static NSString* progname;
   static dispatch_once_t onceToken;
@@ -392,6 +408,13 @@ void TeakSignalHandler(int signal) {
   if (event.type == UserIdentified) {
     NSMutableDictionary* user = [self.payloadTemplate valueForKey:@"user"];
     [user setValue:((UserIdEvent*)event).userId forKey:@"id"];
+  } else if (event.type == RemoteConfigurationReady) {
+    TeakRemoteConfiguration* remoteConfiguration = ((RemoteConfigurationEvent*)event).remoteConfiguration;
+    if (self.isSdkRaven) {
+      [self setDSN:remoteConfiguration.sdkSentryDsn];
+    } else {
+      [self setDSN:remoteConfiguration.appSentryDsn];
+    }
   }
 }
 
@@ -473,11 +496,12 @@ void TeakSignalHandler(int signal) {
 @implementation TeakRavenLocationHelper
 
 + (NSMutableArray*)helperStack {
-  static NSMutableArray* helperStack;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
+  NSMutableDictionary* threadDictionary = [[NSThread currentThread] threadDictionary];
+  NSMutableArray* helperStack = threadDictionary[@"TeakRavenLocationHelperStack"];
+  if (helperStack == nil) {
     helperStack = [[NSMutableArray alloc] init];
-  });
+    threadDictionary[@"TeakRavenLocationHelperStack"] = helperStack;
+  }
   return helperStack;
 }
 

@@ -13,8 +13,17 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#import "RemoteConfigurationEvent.h"
 
-@interface SKPaymentObserver : NSObject
-- (nonnull id)init;
+@interface RemoteConfigurationEvent ()
+@property (strong, nonatomic, readwrite) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
+@end
+
+@implementation RemoteConfigurationEvent
+
++ (void)remoteConfigurationReady:(TeakRemoteConfiguration* _Nonnull)remoteConfiguration {
+  RemoteConfigurationEvent* event = [[RemoteConfigurationEvent alloc] initWithType:RemoteConfigurationReady];
+  event.remoteConfiguration = remoteConfiguration;
+  [TeakEvent postEvent:event];
+}
 @end

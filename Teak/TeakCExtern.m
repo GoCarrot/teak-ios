@@ -26,9 +26,9 @@ void TeakIdentifyUser(const char* userId) {
 }
 
 void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId) {
-  [[Teak sharedInstance] trackEventWithActionId:[NSString stringWithUTF8String:actionId]
-                                forObjectTypeId:[NSString stringWithUTF8String:objectTypeId]
-                            andObjectInstanceId:[NSString stringWithUTF8String:objectInstanceId]];
+  [[Teak sharedInstance] trackEventWithActionId:actionId == NULL ? nil : [NSString stringWithUTF8String:actionId]
+                                forObjectTypeId:objectTypeId == NULL ? nil : [NSString stringWithUTF8String:objectTypeId]
+                            andObjectInstanceId:objectInstanceId == NULL ? nil : [NSString stringWithUTF8String:objectInstanceId]];
 }
 
 void TeakAssignWaitForDeepLinkOperation(NSOperation* waitForDeepLinkOp) {

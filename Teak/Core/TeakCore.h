@@ -16,5 +16,5 @@
 #import "TeakEvent.h"
 
 @interface TeakCore : NSObject <TeakEventHandler>
-- (nonnull id)initForSomething:(id _Nullable)foo;
+- (nonnull id)init;
 @end

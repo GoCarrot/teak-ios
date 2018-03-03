@@ -15,6 +15,7 @@
 
 #import "TeakRemoteConfiguration.h"
 
+#import "RemoteConfigurationEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 #import "TeakLink.h"
@@ -59,17 +60,17 @@
                    NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
                    if (sdkSentryDsn) {
                      self.sdkSentryDsn = sdkSentryDsn;
-                     // TODO: assign DSN via KVO?
                    }
 
                    // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
-                   @try {
+                   teak_try {
                      BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
                      NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
                      [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
-                     [userDefaults synchronize];
-                   } @catch (NSException* ignored) {
                    }
+                   teak_catch_report;
+
+                   [RemoteConfigurationEvent remoteConfigurationReady:self];
                  }
                }];
     [request send];

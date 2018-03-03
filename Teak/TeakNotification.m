@@ -96,8 +96,8 @@
   ret.completed = NO;
 
   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
-    @"message" : message,
-    @"identifier" : creativeId,
+    @"message" : [message copy],
+    @"identifier" : [creativeId copy],
     @"offset" : [NSNumber numberWithUnsignedLongLong:delay]
   }];
 
@@ -107,10 +107,10 @@
             forEndpoint:@"/me/local_notify"
             withPayload:payload
                callback:^(NSURLResponse* response, NSDictionary* reply) {
-                 ret.status = [reply objectForKey:@"status"];
+                 ret.status = reply[@"status"];
                  if ([ret.status isEqualToString:@"ok"]) {
-                   NSDictionary* event = [reply objectForKey:@"event"];
-                   ret.teakNotifId = [[event objectForKey:@"id"] stringValue];
+                   NSDictionary* event = reply[@"event"];
+                   ret.teakNotifId = [event[@"id"] stringValue];
                    TeakLog_i(@"notification.scheduled", @{@"notification" : ret.teakNotifId});
                  } else {
                    TeakLog_e(@"notification.schedule.error", @"Error scheduling notification.", @{@"response" : reply});
@@ -137,19 +137,20 @@
   TeakNotification* ret = [[TeakNotification alloc] init];
   ret.completed = NO;
 
+  NSString* scheduleIdCopy = [scheduleId copy];
   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
     TeakRequest* request = [[TeakRequest alloc]
         initWithSession:session
             forEndpoint:@"/me/cancel_local_notify"
-            withPayload:@{@"id" : scheduleId}
+            withPayload:@{@"id" : scheduleIdCopy}
                callback:^(NSURLResponse* response, NSDictionary* reply) {
                  // TODO: Check response
                  if (/* DISABLES CODE */ (NO)) {
                  } else {
-                   ret.status = [reply objectForKey:@"status"];
+                   ret.status = reply[@"status"];
                    if ([ret.status isEqualToString:@"ok"]) {
-                     TeakLog_i(@"notification.cancel", @"Canceled notification.", @{@"notification" : scheduleId});
-                     ret.teakNotifId = scheduleId;
+                     TeakLog_i(@"notification.cancel", @"Canceled notification.", @{@"notification" : scheduleIdCopy});
+                     ret.teakNotifId = scheduleIdCopy;
                    } else {
                      TeakLog_e(@"notification.cancel.error", @"Error canceling notification.", @{@"response" : reply});
                    }
@@ -175,13 +176,13 @@
           // TODO: Check response
           if (/* DISABLES CODE */ (NO)) {
           } else {
-            ret.status = [reply objectForKey:@"status"];
+            ret.status = reply[@"status"];
             if ([ret.status isEqualToString:@"ok"]) {
 
               NSError* error = nil;
-              NSData* jsonData = [NSJSONSerialization dataWithJSONObject:[reply objectForKey:@"canceled"] options:0 error:&error];
+              NSData* jsonData = [NSJSONSerialization dataWithJSONObject:reply[@"canceled"] options:0 error:&error];
               if (error) {
-                TeakLog_e(@"notification.cancel_all.error.json", @{@"value" : [reply objectForKey:@"canceled"], @"error" : error});
+                TeakLog_e(@"notification.cancel_all.error.json", @{@"value" : reply[@"canceled"], @"error" : error});
                 ret.teakNotifId = @"[]";
               } else {
                 ret.teakNotifId = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];

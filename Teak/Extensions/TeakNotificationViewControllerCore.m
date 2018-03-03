@@ -83,10 +83,11 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 @property (strong, nonatomic) NSOperation* sessionFinishOperation;
 @property (strong, nonatomic) NSArray* assets;
+@property (strong, nonatomic) NSDictionary* notificationUserData;
 
 // Video related
 @property (strong, nonatomic) AVPlayerLooper* playerLooper;
-@property (strong, nonatomic) AVQueuePlayer* queuePlayer;
+@property (strong, nonatomic) AVPlayer* videoPlayer;
 
 // Common parent view for whatever is in the notification.
 @property (strong, nonatomic) UIView* notificationContentView;
@@ -95,6 +96,10 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 @property (strong, nonatomic) NSDictionary* actions;
 @property (nonatomic) BOOL autoPlay;
 @property (nonatomic) BOOL loop;
+@property (nonatomic, copy) void (^prepareContentView)(void);
+
+// Input
+@property (nonatomic) dispatch_once_t inputHandlerDispatchOnce;
 @end
 
 @implementation TeakNotificationViewControllerCore
@@ -104,31 +109,30 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 }
 
 - (void)configureForNotification:(UNNotification*)notification {
-  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
+  self.notificationUserData = notification.request.content.userInfo[@"aps"];
 
   // Button actions, nil = just launch the app
-  self.actions = aps[@"actions"];
+  self.actions = self.notificationUserData[@"actions"];
   if (self.actions == nil || self.actions == (NSDictionary*)[NSNull null]) {
     self.actions = [[NSDictionary alloc] init];
   }
 
   // Video options
-  self.autoPlay = (aps[@"autoplay"] == nil || aps[@"autoplay"] == [NSNull null]) ? NO : [aps[@"autoplay"] boolValue];
-  self.loop = (aps[@"loop"] == nil || aps[@"loop"] == [NSNull null]) ? NO : [aps[@"loop"] boolValue];
+  self.autoPlay = TeakBoolFor(self.notificationUserData[@"autoplay"]);
+  self.loop = TeakBoolFor(self.notificationUserData[@"loop"]);
 }
 
-- (void)didReceiveNotification:(UNNotification*)notification {
-  [self configureForNotification:notification];
-
+- (void)initURLSession {
   self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
   self.operationQueue = [[NSOperationQueue alloc] init];
   self.sessionFinishOperation = [NSBlockOperation blockOperationWithBlock:^{
     [self.session finishTasksAndInvalidate];
   }];
+}
 
-  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
-  NSString* teakNotifId = TeakNSStringOrNilFor(aps[@"teakNotifId"]);
-  NSString* teakUserId = TeakNSStringOrNilFor(aps[@"teakUserId"]);
+- (void)queueMetricSend {
+  NSString* teakNotifId = TeakNSStringOrNilFor(self.notificationUserData[@"teakNotifId"]);
+  NSString* teakUserId = TeakNSStringOrNilFor(self.notificationUserData[@"teakUserId"]);
   if ([teakNotifId length] > 0 && [teakUserId length] > 0) {
     NSOperation* metricOperation = [self sendMetricForPayload:@{
       @"user_id" : teakUserId,
@@ -137,41 +141,45 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     }];
     [self.sessionFinishOperation addDependency:metricOperation];
   }
+}
+
+- (void)createThumbnailViewForItem:(AVPlayerItem*)item atTime:(CMTime)time {
+  AVAsset* asset = item.asset;
+  AVAssetImageGenerator* imageGenerator = [[AVAssetImageGenerator alloc] initWithAsset:asset];
+  CGImageRef imageRef = [imageGenerator copyCGImageAtTime:time actualTime:NULL error:NULL];
+  UIImage* thumbnail = [UIImage imageWithCGImage:imageRef];
+  UIImageView* imageView = [[UIImageView alloc] initWithImage:thumbnail];
+  float imageScaleRatio = self.view.frame.size.width / (thumbnail.size.width * thumbnail.scale);
+  float scaledHeight = thumbnail.size.height * thumbnail.scale * imageScaleRatio;
+
+  imageView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
+  [self.view insertSubview:imageView belowSubview:self.notificationContentView];
+  CGImageRelease(imageRef); // CGImageRef won't be released by ARC
+}
+
+- (void)didReceiveNotification:(UNNotification*)notification {
+  [self configureForNotification:notification];
+  [self initURLSession];
+  [self queueMetricSend];
 
   // Move this if more ops are added
   [self.operationQueue addOperation:self.sessionFinishOperation];
 
-  // The first object of the attachments array will be displayed as the "preview" in the small view,
-  // we can use any subsequent attachments differently
-  BOOL firstAttachmentChecked = NO;
-  BOOL firstItemWasImage = NO;
-  BOOL assetsAreImages = YES;
+  BOOL startAssetIsImage = NO;
   NSMutableArray* buildingAssets = [[NSMutableArray alloc] init];
-  for (UNNotificationAttachment* attachment in notification.request.content.attachments) {
+  NSUInteger contentIndex = [self.notificationUserData[@"content"] unsignedIntegerValue];
+  for (NSUInteger i = contentIndex; i < [notification.request.content.attachments count]; i++) {
+    UNNotificationAttachment* attachment = notification.request.content.attachments[i];
 
     // Bail if something has gone wrong with the attachments
     if (attachment == nil || attachment.URL == nil || ![attachment.URL startAccessingSecurityScopedResource]) return;
 
     // mp4 is video, assume everything else is an image of some type
     if ([[attachment.URL pathExtension] isEqualToString:@"mp4"]) {
-      if (!firstAttachmentChecked) {
-        firstAttachmentChecked = YES;
-        firstItemWasImage = NO;
-      } else if (firstItemWasImage && buildingAssets.count == 1) {
-        // First item was a preview image, so toss it out
-        [buildingAssets removeAllObjects];
-      }
-
       AVURLAsset* asset = [[AVURLAsset alloc] initWithURL:attachment.URL options:nil];
       [attachment.URL stopAccessingSecurityScopedResource];
       [buildingAssets addObject:[AVPlayerItem playerItemWithAsset:asset]];
-      assetsAreImages = NO;
     } else { // It's an image
-      if (!firstAttachmentChecked) {
-        firstAttachmentChecked = YES;
-        firstItemWasImage = YES;
-      }
-
       NSData* attachmentData = [[NSData alloc] initWithContentsOfURL:attachment.URL];
       [attachment.URL stopAccessingSecurityScopedResource];
       UIImage* image = nil;
@@ -181,19 +189,27 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
         image = [UIImage imageWithData:attachmentData];
       }
       [buildingAssets addObject:image];
-      assetsAreImages = YES;
+      startAssetIsImage = YES;
     }
   }
   self.assets = buildingAssets;
 
   float scaledHeight = 0.0f;
-  if (assetsAreImages) {
+  if (startAssetIsImage) {
     UIImage* firstImage = [self.assets firstObject];
     float imageScaleRatio = self.view.frame.size.width / (firstImage.size.width * firstImage.scale);
     scaledHeight = firstImage.size.height * firstImage.scale * imageScaleRatio;
 
     self.notificationContentView = [[UIImageArrayView alloc] initWithImageArray:self.assets];
     self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
+
+    __weak typeof(self) weakSelf = self;
+    self.prepareContentView = ^{
+      __strong typeof(self) blockSelf = weakSelf;
+      TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
+      [blockSelf.view insertSubview:playerView aboveSubview:blockSelf.notificationContentView];
+      blockSelf.notificationContentView = playerView;
+    };
   } else {
     AVPlayerItem* firstPlayerItem = [self.assets firstObject];
     AVAssetTrack* track = [[firstPlayerItem.asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
@@ -201,15 +217,25 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
     float scaleRatio = self.view.frame.size.width / trackSize.width;
     scaledHeight = trackSize.height * scaleRatio;
 
-    self.queuePlayer = [AVQueuePlayer queuePlayerWithItems:self.assets];
     if (self.loop) {
-      self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:self.queuePlayer
+      AVQueuePlayer* videoPlayer = [AVQueuePlayer queuePlayerWithItems:@[ firstPlayerItem ]];
+      self.videoPlayer = videoPlayer;
+      self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:videoPlayer
                                                     templateItem:firstPlayerItem];
+    } else {
+      self.videoPlayer = [AVPlayer playerWithPlayerItem:firstPlayerItem];
     }
 
     TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
-    playerView.player = self.queuePlayer;
+    playerView.player = self.videoPlayer;
     self.notificationContentView = playerView;
+
+    __weak typeof(self) weakSelf = self;
+    self.prepareContentView = ^{
+      __strong typeof(self) blockSelf = weakSelf;
+      [blockSelf createThumbnailViewForItem:blockSelf.videoPlayer.currentItem atTime:[blockSelf.videoPlayer currentTime]];
+      [blockSelf.playerLooper disableLooping];
+    };
   }
 
   /////
@@ -223,28 +249,38 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
   // Start video if auto-play
   if (self.autoPlay) {
-    [self.queuePlayer play];
+    [self.videoPlayer play];
   }
 }
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
-                     completionHandler:(void (^)(UNNotificationContentExtensionResponseOption option))completionHandler {
-  NSString* action = self.actions[response.actionIdentifier];
+                     completionHandler:(void (^)(UNNotificationContentExtensionResponseOption))completionHandler {
+  dispatch_once(&_inputHandlerDispatchOnce, ^{
+    int attachmentIndex = (self.actions[response.actionIdentifier] == nil || self.actions[response.actionIdentifier] == [NSNull null]) ? -1 : [self.actions[response.actionIdentifier] intValue];
 
-  if (action == nil) {
-    // Launch the app when the button is pressed
-    completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
-  } else {
-    // Start playing when button is pressed, launch app when the last asset finishes playing
-    [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
-                                                      object:[self.assets lastObject]
-                                                       queue:nil
-                                                  usingBlock:^(NSNotification* notification) {
-                                                    [[NSNotificationCenter defaultCenter] removeObserver:self];
-                                                    completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
-                                                  }];
-    [self.queuePlayer play];
-  }
+    if (attachmentIndex < 0) {
+      // Launch the app when the button is pressed
+      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+    } else {
+      // Will prepare next content view
+      self.prepareContentView();
+
+      AVPlayerItem* assetToPlay = self.assets[attachmentIndex];
+      AVPlayer* newPlayer = [AVPlayer playerWithPlayerItem:assetToPlay];
+      [newPlayer play];
+      TeakAVPlayerView* playerView = (TeakAVPlayerView*)self.notificationContentView;
+      playerView.player = newPlayer;
+      self.videoPlayer = newPlayer;
+      // Start playing when button is pressed, launch app when the last asset finishes playing
+      [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
+                                                        object:assetToPlay
+                                                         queue:nil
+                                                    usingBlock:^(NSNotification* notification) {
+                                                      [[NSNotificationCenter defaultCenter] removeObserver:self];
+                                                      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+                                                    }];
+    }
+  });
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
@@ -256,7 +292,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
   for (NSString* key in payload) {
     [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, [payload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
+    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, payload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
   }
   [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
