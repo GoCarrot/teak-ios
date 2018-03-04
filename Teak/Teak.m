@@ -331,32 +331,9 @@ Teak* _teakSharedInstance;
 
   // Register push notification categories
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    NSMutableSet* categories = [[NSMutableSet alloc] init];
-    for (NSString* key in TeakNotificationCategories) {
-      NSDictionary* category = TeakNotificationCategories[key];
-
-      NSMutableArray* actions = [[NSMutableArray alloc] init];
-      for (NSArray* actionPair in category[@"actions"]) {
-        UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionPair[0]
-                                                                            title:actionPair[1]
-                                                                          options:UNNotificationActionOptionForeground];
-        [actions addObject:action];
-      }
-
-      UNNotificationCategory* notifCategory = [UNNotificationCategory categoryWithIdentifier:key
-                                                                                     actions:actions
-                                                                           intentIdentifiers:@[]
-                                                                                     options:UNNotificationCategoryOptionCustomDismissAction];
-      UNNotificationCategory* buttonOnlyNotifCategory = [UNNotificationCategory categoryWithIdentifier:[NSString stringWithFormat:@"%@_ButtonOnly", key]
-                                                                                               actions:actions
-                                                                                     intentIdentifiers:@[]
-                                                                                               options:UNNotificationCategoryOptionCustomDismissAction];
-      [categories addObject:notifCategory];
-      [categories addObject:buttonOnlyNotifCategory];
-    }
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
-    [center setNotificationCategories:categories];
+    [center setNotificationCategories:[[NSSet alloc] init]]; // This is intentional empty set
   }
 
   // If the app was not running, we need to check these and invoke them afterwards
