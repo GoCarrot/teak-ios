@@ -194,63 +194,65 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
   }
   self.assets = buildingAssets;
 
-  float scaledHeight = 0.0f;
-  if (startAssetIsImage) {
-    UIImage* firstImage = [self.assets firstObject];
-    float imageScaleRatio = self.view.frame.size.width / (firstImage.size.width * firstImage.scale);
-    scaledHeight = firstImage.size.height * firstImage.scale * imageScaleRatio;
+  if (self.assets.count > 0) {
+    float scaledHeight = 0.0f;
+    if (startAssetIsImage) {
+      UIImage* firstImage = [self.assets firstObject];
+      float imageScaleRatio = self.view.frame.size.width / (firstImage.size.width * firstImage.scale);
+      scaledHeight = firstImage.size.height * firstImage.scale * imageScaleRatio;
 
-    self.notificationContentView = [[UIImageArrayView alloc] initWithImageArray:self.assets];
-    self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
+      self.notificationContentView = [[UIImageArrayView alloc] initWithImageArray:self.assets];
+      self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
 
-    __weak typeof(self) weakSelf = self;
-    self.prepareContentView = ^{
-      __strong typeof(self) blockSelf = weakSelf;
-      TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
-      playerView.frame = blockSelf.notificationContentView.frame;
-      [blockSelf.view insertSubview:playerView aboveSubview:blockSelf.notificationContentView];
-      blockSelf.notificationContentView = playerView;
-    };
-  } else {
-    AVPlayerItem* firstPlayerItem = [self.assets firstObject];
-    AVAssetTrack* track = [[firstPlayerItem.asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
-    CGSize trackSize = CGSizeApplyAffineTransform(track.naturalSize, track.preferredTransform);
-    float scaleRatio = self.view.frame.size.width / trackSize.width;
-    scaledHeight = trackSize.height * scaleRatio;
-
-    if (self.loopInitialContent) {
-      AVQueuePlayer* videoPlayer = [AVQueuePlayer queuePlayerWithItems:@[ firstPlayerItem ]];
-      self.videoPlayer = videoPlayer;
-      self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:videoPlayer
-                                                    templateItem:firstPlayerItem];
+      __weak typeof(self) weakSelf = self;
+      self.prepareContentView = ^{
+        __strong typeof(self) blockSelf = weakSelf;
+        TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
+        playerView.frame = blockSelf.notificationContentView.frame;
+        [blockSelf.view insertSubview:playerView aboveSubview:blockSelf.notificationContentView];
+        blockSelf.notificationContentView = playerView;
+      };
     } else {
-      self.videoPlayer = [AVPlayer playerWithPlayerItem:firstPlayerItem];
+      AVPlayerItem* firstPlayerItem = [self.assets firstObject];
+      AVAssetTrack* track = [[firstPlayerItem.asset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+      CGSize trackSize = CGSizeApplyAffineTransform(track.naturalSize, track.preferredTransform);
+      float scaleRatio = self.view.frame.size.width / trackSize.width;
+      scaledHeight = trackSize.height * scaleRatio;
+
+      if (self.loopInitialContent) {
+        AVQueuePlayer* videoPlayer = [AVQueuePlayer queuePlayerWithItems:@[ firstPlayerItem ]];
+        self.videoPlayer = videoPlayer;
+        self.playerLooper = [AVPlayerLooper playerLooperWithPlayer:videoPlayer
+                                                      templateItem:firstPlayerItem];
+      } else {
+        self.videoPlayer = [AVPlayer playerWithPlayerItem:firstPlayerItem];
+      }
+
+      TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
+      playerView.player = self.videoPlayer;
+      self.notificationContentView = playerView;
+
+      __weak typeof(self) weakSelf = self;
+      self.prepareContentView = ^{
+        __strong typeof(self) blockSelf = weakSelf;
+        [blockSelf createThumbnailViewForItem:blockSelf.videoPlayer.currentItem atTime:[blockSelf.videoPlayer currentTime]];
+        [blockSelf.playerLooper disableLooping];
+      };
     }
 
-    TeakAVPlayerView* playerView = [[TeakAVPlayerView alloc] init];
-    playerView.player = self.videoPlayer;
-    self.notificationContentView = playerView;
+    /////
 
-    __weak typeof(self) weakSelf = self;
-    self.prepareContentView = ^{
-      __strong typeof(self) blockSelf = weakSelf;
-      [blockSelf createThumbnailViewForItem:blockSelf.videoPlayer.currentItem atTime:[blockSelf.videoPlayer currentTime]];
-      [blockSelf.playerLooper disableLooping];
-    };
-  }
+    self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
 
-  /////
+    self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y,
+                                 self.view.frame.size.width, scaledHeight);
+    self.preferredContentSize = CGSizeMake(self.view.frame.size.width, scaledHeight);
+    [self.view addSubview:self.notificationContentView];
 
-  self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
-
-  self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y,
-                               self.view.frame.size.width, scaledHeight);
-  self.preferredContentSize = CGSizeMake(self.view.frame.size.width, scaledHeight);
-  [self.view addSubview:self.notificationContentView];
-
-  // Start video if auto-play
-  if (self.autoPlay) {
-    [self.videoPlayer play];
+    // Start video if auto-play
+    if (self.autoPlay) {
+      [self.videoPlayer play];
+    }
   }
 }
 

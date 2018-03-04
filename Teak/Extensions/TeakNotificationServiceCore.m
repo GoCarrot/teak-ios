@@ -91,7 +91,10 @@
       }
 
       NSNumber* contentIndex = [NSNumber numberWithUnsignedInteger:[orderedAttachments count]];
-      [orderedAttachments addObject:notification[@"content"]];
+
+      if (notification[@"content"] != nil) {
+        [orderedAttachments addObject:notification[@"content"]];
+      }
 
       NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
       for (NSString* key in notification[@"playableActions"]) {
