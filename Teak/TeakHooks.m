@@ -286,8 +286,8 @@ void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
 
 void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories) {
   if (__App_setNotificationCategories != NULL) {
-    NSMutableSet* categoriesWithTeakAdded = [NSMutableSet setWithSet:categories];
-    [categoriesWithTeakAdded unionSet:TeakNotificationCategorySet];
+    NSMutableSet* categoriesWithTeakAdded = [NSMutableSet setWithSet:TeakNotificationCategorySet];
+    [categoriesWithTeakAdded unionSet:categories];
     ((void (*)(id, SEL, NSSet*))__App_setNotificationCategories)(self, _cmd, categoriesWithTeakAdded);
   }
 }
