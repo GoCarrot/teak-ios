@@ -58,8 +58,7 @@ static void (*sHostDRRNFCHIMP)(id, SEL, UIApplication*, NSDictionary*, void (^)(
 void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd);
 static IMP __App_unregisterForRemoteNotifications = NULL;
 
-NSMutableSet* TeakNotificationCategorySet = nil;
-NSMutableSet* TeakGetNotificationCategorySet(void);
+NSSet* TeakGetNotificationCategorySet(void);
 void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories);
 static IMP __App_setNotificationCategories = NULL;
 
@@ -168,7 +167,6 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
 
   /////
   // UNNotificationCenter
-  TeakNotificationCategorySet = TeakGetNotificationCategorySet();
   Class unUserNotificationCenterClass = objc_getClass("UNUserNotificationCenter");
   if (unUserNotificationCenterClass != nil) {
     // setNotificationCategories
@@ -286,37 +284,44 @@ void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
 
 void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories) {
   if (__App_setNotificationCategories != NULL) {
-    NSMutableSet* categoriesWithTeakAdded = [NSMutableSet setWithSet:TeakNotificationCategorySet];
+    NSMutableSet* categoriesWithTeakAdded = [NSMutableSet setWithSet:TeakGetNotificationCategorySet()];
     [categoriesWithTeakAdded unionSet:categories];
     ((void (*)(id, SEL, NSSet*))__App_setNotificationCategories)(self, _cmd, categoriesWithTeakAdded);
   }
 }
 
-NSMutableSet* TeakGetNotificationCategorySet(void) {
-  NSMutableSet* categories = [[NSMutableSet alloc] init];
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    for (NSString* key in TeakNotificationCategories) {
-      NSDictionary* category = TeakNotificationCategories[key];
+NSSet* TeakGetNotificationCategorySet(void) {
+  static NSSet* nonmutableCategories;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    NSMutableSet* categories = [[NSMutableSet alloc] init];
+    if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+      for (NSString* key in TeakNotificationCategories) {
+        NSDictionary* category = TeakNotificationCategories[key];
 
-      NSMutableArray* actions = [[NSMutableArray alloc] init];
-      for (NSArray* actionPair in category[@"actions"]) {
-        UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionPair[0]
-                                                                            title:actionPair[1]
-                                                                          options:UNNotificationActionOptionForeground];
-        [actions addObject:action];
+        NSMutableArray* actions = [[NSMutableArray alloc] init];
+        for (NSArray* actionPair in category[@"actions"]) {
+          UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionPair[0]
+                                                                              title:actionPair[1]
+                                                                            options:UNNotificationActionOptionForeground];
+          [actions addObject:action];
+        }
+
+        UNNotificationCategory* notifCategory = [UNNotificationCategory categoryWithIdentifier:key
+                                                                                       actions:actions
+                                                                             intentIdentifiers:@[]
+                                                                                       options:UNNotificationCategoryOptionCustomDismissAction];
+        UNNotificationCategory* buttonOnlyNotifCategory = [UNNotificationCategory categoryWithIdentifier:[NSString stringWithFormat:@"%@_ButtonOnly", key]
+                                                                                                 actions:actions
+                                                                                       intentIdentifiers:@[]
+                                                                                                 options:UNNotificationCategoryOptionCustomDismissAction];
+        [categories addObject:notifCategory];
+        [categories addObject:buttonOnlyNotifCategory];
       }
-
-      UNNotificationCategory* notifCategory = [UNNotificationCategory categoryWithIdentifier:key
-                                                                                     actions:actions
-                                                                           intentIdentifiers:@[]
-                                                                                     options:UNNotificationCategoryOptionCustomDismissAction];
-      UNNotificationCategory* buttonOnlyNotifCategory = [UNNotificationCategory categoryWithIdentifier:[NSString stringWithFormat:@"%@_ButtonOnly", key]
-                                                                                               actions:actions
-                                                                                     intentIdentifiers:@[]
-                                                                                               options:UNNotificationCategoryOptionCustomDismissAction];
-      [categories addObject:notifCategory];
-      [categories addObject:buttonOnlyNotifCategory];
+      nonmutableCategories = [NSSet setWithSet:categories];
+    } else {
+      NSLog(@"Teak: Class 'UNUserNotificationCenter' not found. Expanded view notifications are disabled.");
     }
-  }
-  return categories;
+  });
+  return nonmutableCategories;
 }
