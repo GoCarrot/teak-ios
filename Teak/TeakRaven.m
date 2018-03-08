@@ -278,6 +278,8 @@ void TeakSignalHandler(int signal) {
 }
 
 - (BOOL)setDSN:(NSString*)dsn {
+  if (dsn == nil) return NO;
+
   BOOL ret = NO;
   @try {
     NSURL* dsnUrl = [NSURL URLWithString:dsn];
