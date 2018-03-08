@@ -14,6 +14,7 @@
  */
 
 #import "TeakRaven.h"
+#import "RemoteConfigurationEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
@@ -43,6 +44,7 @@ extern bool AmIBeingDebugged(void);
 @property (strong, nonatomic) NSString* sentryKey;
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
+@property (nonatomic) BOOL isSdkRaven;
 
 @property (strong, nonatomic) NSArray* runLoopModes;
 @property (nonatomic) NSUncaughtExceptionHandler* hException;
@@ -227,10 +229,20 @@ void TeakSignalHandler(int signal) {
   [report send];
 }
 
+- (id)initForAppWithTeak:(Teak*)teak {
+  self = [self initForTeak:teak];
+  if (self) {
+    self.isSdkRaven = NO;
+    // self.appId = @"sdk";
+  }
+  return self;
+}
+
 - (id)initForTeak:(Teak*)teak {
   self = [super init];
   if (self) {
     @try {
+      self.isSdkRaven = YES;
       self.appId = @"sdk";
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary:@{
         @"logger" : @"teak",
@@ -266,6 +278,8 @@ void TeakSignalHandler(int signal) {
 }
 
 - (BOOL)setDSN:(NSString*)dsn {
+  if (dsn == nil) return NO;
+
   BOOL ret = NO;
   @try {
     NSURL* dsnUrl = [NSURL URLWithString:dsn];
@@ -312,6 +326,10 @@ void TeakSignalHandler(int signal) {
 }
 
 + (TeakRaven*)ravenForTeak:(nonnull Teak*)teak {
+  return [[TeakRaven alloc] initForTeak:teak];
+}
+
++ (nullable TeakRaven*)ravenForAppWithTeak:(nonnull Teak*)teak {
   return [[TeakRaven alloc] initForTeak:teak];
 }
 
@@ -392,6 +410,13 @@ void TeakSignalHandler(int signal) {
   if (event.type == UserIdentified) {
     NSMutableDictionary* user = [self.payloadTemplate valueForKey:@"user"];
     [user setValue:((UserIdEvent*)event).userId forKey:@"id"];
+  } else if (event.type == RemoteConfigurationReady) {
+    TeakRemoteConfiguration* remoteConfiguration = ((RemoteConfigurationEvent*)event).remoteConfiguration;
+    if (self.isSdkRaven) {
+      [self setDSN:remoteConfiguration.sdkSentryDsn];
+    } else {
+      [self setDSN:remoteConfiguration.appSentryDsn];
+    }
   }
 }
 

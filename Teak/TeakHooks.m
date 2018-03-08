@@ -58,6 +58,10 @@ static void (*sHostDRRNFCHIMP)(id, SEL, UIApplication*, NSDictionary*, void (^)(
 void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd);
 static IMP __App_unregisterForRemoteNotifications = NULL;
 
+NSSet* TeakGetNotificationCategorySet(void);
+void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories);
+static IMP __App_setNotificationCategories = NULL;
+
 extern Teak* _teakSharedInstance;
 
 void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
@@ -159,6 +163,17 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   {
     Method m = class_getInstanceMethod(uiApplicationClass, @selector(unregisterForRemoteNotifications));
     __App_unregisterForRemoteNotifications = method_setImplementation(m, (IMP)__Teak_unregisterForRemoteNotifications);
+  }
+
+  /////
+  // UNNotificationCenter
+  Class unUserNotificationCenterClass = objc_getClass("UNUserNotificationCenter");
+  if (unUserNotificationCenterClass != nil) {
+    // setNotificationCategories
+    {
+      Method m = class_getInstanceMethod(unUserNotificationCenterClass, @selector(setNotificationCategories:));
+      __App_setNotificationCategories = method_setImplementation(m, (IMP)__Teak_setNotificationCategories);
+    }
   }
 }
 
@@ -265,4 +280,48 @@ void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
   if (!blackhole && __App_unregisterForRemoteNotifications != NULL) {
     ((void (*)(id, SEL))__App_unregisterForRemoteNotifications)(self, _cmd);
   }
+}
+
+void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories) {
+  if (__App_setNotificationCategories != NULL) {
+    NSMutableSet* categoriesWithTeakAdded = [NSMutableSet setWithSet:TeakGetNotificationCategorySet()];
+    [categoriesWithTeakAdded unionSet:categories];
+    ((void (*)(id, SEL, NSSet*))__App_setNotificationCategories)(self, _cmd, categoriesWithTeakAdded);
+  }
+}
+
+NSSet* TeakGetNotificationCategorySet(void) {
+  static NSSet* nonmutableCategories;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    NSMutableSet* categories = [[NSMutableSet alloc] init];
+    if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+      for (NSString* key in TeakNotificationCategories) {
+        NSDictionary* category = TeakNotificationCategories[key];
+
+        NSMutableArray* actions = [[NSMutableArray alloc] init];
+        for (NSArray* actionPair in category[@"actions"]) {
+          UNNotificationAction* action = [UNNotificationAction actionWithIdentifier:actionPair[0]
+                                                                              title:actionPair[1]
+                                                                            options:UNNotificationActionOptionForeground];
+          [actions addObject:action];
+        }
+
+        UNNotificationCategory* notifCategory = [UNNotificationCategory categoryWithIdentifier:key
+                                                                                       actions:actions
+                                                                             intentIdentifiers:@[]
+                                                                                       options:UNNotificationCategoryOptionCustomDismissAction];
+        UNNotificationCategory* buttonOnlyNotifCategory = [UNNotificationCategory categoryWithIdentifier:[NSString stringWithFormat:@"%@_ButtonOnly", key]
+                                                                                                 actions:actions
+                                                                                       intentIdentifiers:@[]
+                                                                                                 options:UNNotificationCategoryOptionCustomDismissAction];
+        [categories addObject:notifCategory];
+        [categories addObject:buttonOnlyNotifCategory];
+      }
+      nonmutableCategories = [NSSet setWithSet:categories];
+    } else {
+      NSLog(@"Teak: Class 'UNUserNotificationCenter' not found. Expanded view notifications are disabled.");
+    }
+  });
+  return nonmutableCategories;
 }

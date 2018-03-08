@@ -44,25 +44,6 @@
     self.contentHandler(self.bestAttemptContent);
   }];
 
-  // HAX -- This will adjust the old content to meet the new content version
-  if (self.bestAttemptContent.userInfo[@"aps"][@"content"] == nil ||
-      self.bestAttemptContent.userInfo[@"aps"][@"content"] == [NSNull null]) {
-    id action = self.bestAttemptContent.userInfo[@"aps"][@"attachments"][1] == nil ? [NSNull null] : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][1];
-    NSDictionary* haxMerge = @{
-      @"thumbnail" : [NSNull null],
-      @"content" : self.bestAttemptContent.userInfo[@"aps"][@"attachments"][0],
-      @"actions" : @{
-        @"play_now" : action
-      }
-    };
-
-    NSMutableDictionary* haxUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
-    NSMutableDictionary* haxAps = [haxUserInfo[@"aps"] mutableCopy];
-    [haxAps addEntriesFromDictionary:haxMerge];
-    haxUserInfo[@"aps"] = haxAps;
-    self.bestAttemptContent.userInfo = haxUserInfo;
-  }
-
   NSDictionary* notification = self.bestAttemptContent.userInfo[@"aps"];
 
   // Get device model, resolution, and if they are on wifi or celular
@@ -110,16 +91,19 @@
       }
 
       NSNumber* contentIndex = [NSNumber numberWithUnsignedInteger:[orderedAttachments count]];
-      [orderedAttachments addObject:notification[@"content"]];
+
+      if (notification[@"content"] != nil) {
+        [orderedAttachments addObject:notification[@"content"]];
+      }
 
       NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
-      for (NSString* key in notification[@"actions"]) {
+      for (NSString* key in notification[@"playableActions"]) {
         // If the action is null, launch the app
-        if (notification[@"actions"][key] == nil || notification[@"actions"][key] == [NSNull null]) {
+        if (notification[@"playableActions"][key] == nil || notification[@"playableActions"][key] == [NSNull null]) {
           processedActions[key] = @-1;
         } else {
           processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];
-          [orderedAttachments addObject:notification[@"actions"][key]];
+          [orderedAttachments addObject:notification[@"playableActions"][key]];
         }
       }
 
@@ -128,7 +112,7 @@
         NSMutableDictionary* mutableUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
         NSMutableDictionary* mutableAps = [mutableUserInfo[@"aps"] mutableCopy];
         mutableAps[@"content"] = contentIndex;
-        mutableAps[@"actions"] = processedActions;
+        mutableAps[@"playableActions"] = processedActions;
         mutableUserInfo[@"aps"] = mutableAps;
         self.bestAttemptContent.userInfo = mutableUserInfo;
         notification = mutableAps;

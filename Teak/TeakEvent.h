@@ -28,7 +28,8 @@ typedef enum {
   LifecycleFinishedLaunching,
   LifecycleActivate,
   LifecycleDeactivate,
-  FacebookAccessToken
+  FacebookAccessToken,
+  RemoteConfigurationReady
 } TeakEventType;
 
 typedef void (^TeakEventHandlerBlock)(TeakEvent* _Nonnull);
