@@ -47,32 +47,31 @@
     NSDictionary* payload = @{@"id" : session.appConfiguration.appId,
                               @"deep_link_routes" : [TeakLink routeNamesAndDescriptions]};
 
-    TeakRequest* request = [[TeakRequest alloc]
-        initWithSession:session
-            forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
-            withPayload:payload
-               callback:^(NSURLResponse* response, NSDictionary* reply) {
-                 // TODO: Check response
-                 if (NO) {
-                 } else {
-                   self.hostname = @"gocarrot.com";
+    TeakRequest* request = [TeakRequest requestWithSession:session
+                                               forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
+                                               withPayload:payload
+                                                  callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                                    // TODO: Check response
+                                                    if (NO) {
+                                                    } else {
+                                                      self.hostname = @"gocarrot.com";
 
-                   NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
-                   if (sdkSentryDsn) {
-                     self.sdkSentryDsn = sdkSentryDsn;
-                   }
+                                                      NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
+                                                      if (sdkSentryDsn) {
+                                                        self.sdkSentryDsn = sdkSentryDsn;
+                                                      }
 
-                   // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
-                   teak_try {
-                     BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
-                     NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-                     [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
-                   }
-                   teak_catch_report;
+                                                      // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
+                                                      teak_try {
+                                                        BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
+                                                        NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+                                                        [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
+                                                      }
+                                                      teak_catch_report;
 
-                   [RemoteConfigurationEvent remoteConfigurationReady:self];
-                 }
-               }];
+                                                      [RemoteConfigurationEvent remoteConfigurationReady:self];
+                                                    }
+                                                  }];
     [request send];
   }];
 
