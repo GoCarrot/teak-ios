@@ -152,7 +152,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   }
 
   // Log remotely
-  if ([Teak sharedInstance].enableDebugOutput) {
+  if ([Teak sharedInstance].enableRemoteLogging) {
     NSString* urlString = nil;
     if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
       urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];

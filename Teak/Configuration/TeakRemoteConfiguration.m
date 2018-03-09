@@ -57,7 +57,7 @@
                                                       self.hostname = @"gocarrot.com";
 
                                                       NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
-                                                      if (sdkSentryDsn) {
+                                                      if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {
                                                         self.sdkSentryDsn = sdkSentryDsn;
                                                       }
 

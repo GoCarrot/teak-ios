@@ -29,6 +29,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 
 @interface Teak () <UNUserNotificationCenterDelegate>
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
+@property (nonatomic) BOOL enableRemoteLogging;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull sdkVersion;
 

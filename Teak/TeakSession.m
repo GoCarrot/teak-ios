@@ -238,9 +238,13 @@ DefineTeakState(Expired, (@[]));
 
                                                     // TODO: Check response
                                                     if (YES) {
-                                                      bool forceDebug = [reply[@"verbose_logging"] boolValue];
-                                                      [[TeakConfiguration configuration].debugConfiguration setForceDebugPreference:forceDebug];
-                                                      [Teak sharedInstance].enableDebugOutput |= forceDebug;
+                                                      bool logLocal = [reply[@"verbose_logging"] boolValue];
+                                                      bool logRemote = [reply[@"log_remote"] boolValue];
+                                                      [[TeakConfiguration configuration].debugConfiguration setLogLocal:logLocal logRemote:logRemote];
+
+                                                      [Teak sharedInstance].enableDebugOutput |= logLocal;
+                                                      [Teak sharedInstance].enableRemoteLogging |= logRemote;
+
                                                       blockSelf.countryCode = reply[@"country_code"];
 
                                                       // For 'do_not_track_event'
@@ -251,6 +255,7 @@ DefineTeakState(Expired, (@[]));
                                                       }
                                                     }
                                                   }];
+
     [request send];
   }
 }

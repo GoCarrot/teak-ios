@@ -16,7 +16,8 @@
 #import <Foundation/Foundation.h>
 
 @interface TeakDebugConfiguration : NSObject
-@property (nonatomic, readonly) BOOL forceDebug;
+@property (nonatomic, readonly) BOOL logLocal;
+@property (nonatomic, readonly) BOOL logRemote;
 
-- (void)setForceDebugPreference:(BOOL)forceDebug;
+- (void)setLogLocal:(BOOL)logLocal logRemote:(BOOL)logRemote;
 @end

@@ -188,8 +188,11 @@ Teak* _teakSharedInstance;
     [TeakConfiguration configureForAppId:appId andSecret:appSecret];
     self.configuration = [TeakConfiguration configuration];
 
-    self.enableDebugOutput = self.configuration.debugConfiguration.forceDebug;
+    self.enableDebugOutput = self.configuration.debugConfiguration.logLocal;
     self.enableDebugOutput |= !self.configuration.appConfiguration.isProduction;
+
+    self.enableRemoteLogging = self.configuration.debugConfiguration.logRemote;
+    self.enableRemoteLogging |= !self.configuration.appConfiguration.isProduction;
 
     // Add Unity/Air SDK version if applicable
     NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
