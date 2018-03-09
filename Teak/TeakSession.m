@@ -230,28 +230,31 @@ DefineTeakState(Expired, (@[]));
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
 
     __weak TeakSession* weakSelf = self;
-    TeakRequest* request = [[TeakRequest alloc]
-        initWithSession:self
-            forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
-            withPayload:payload
-               callback:^(NSURLResponse* response, NSDictionary* reply) {
-                 __strong TeakSession* blockSelf = weakSelf;
+    TeakRequest* request = [[TeakRequest alloc] initWithSession:self
+                                                    forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
+                                                    withPayload:payload
+                                                       callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                                         __strong TeakSession* blockSelf = weakSelf;
 
-                 // TODO: Check response
-                 if (YES) {
-                   bool forceDebug = [reply[@"verbose_logging"] boolValue];
-                   [[TeakConfiguration configuration].debugConfiguration setForceDebugPreference:forceDebug];
-                   [Teak sharedInstance].enableDebugOutput |= forceDebug;
-                   blockSelf.countryCode = reply[@"country_code"];
+                                                         // TODO: Check response
+                                                         if (YES) {
+                                                           bool logLocal = [reply[@"verbose_logging"] boolValue];
+                                                           bool logRemote = [reply[@"log_remote"] boolValue];
+                                                           [[TeakConfiguration configuration].debugConfiguration setLogLocal:logLocal logRemote:logRemote];
 
-                   // For 'do_not_track_event'
-                   if (blockSelf.currentState == [TeakSession Expiring]) {
-                     blockSelf.previousState = [TeakSession UserIdentified];
-                   } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
-                     [blockSelf setState:[TeakSession UserIdentified]];
-                   }
-                 }
-               }];
+                                                           [Teak sharedInstance].enableDebugOutput |= logLocal;
+                                                           [Teak sharedInstance].enableRemoteLogging |= logRemote;
+
+                                                           blockSelf.countryCode = reply[@"country_code"];
+
+                                                           // For 'do_not_track_event'
+                                                           if (blockSelf.currentState == [TeakSession Expiring]) {
+                                                             blockSelf.previousState = [TeakSession UserIdentified];
+                                                           } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
+                                                             [blockSelf setState:[TeakSession UserIdentified]];
+                                                           }
+                                                         }
+                                                       }];
     [request send];
   }
 }

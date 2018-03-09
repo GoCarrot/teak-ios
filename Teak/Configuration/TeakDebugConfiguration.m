@@ -16,10 +16,12 @@
 #import "TeakDebugConfiguration.h"
 #import "Teak+Internal.h"
 
-#define kForceDebugPreferencesKey @"TeakForceDebug"
+#define kLogLocalPreferencesKey @"TeakLogLocal"
+#define kLogRemotePreferencesKey @"TeakLogRemote"
 
 @interface TeakDebugConfiguration ()
-@property (nonatomic, readwrite) BOOL forceDebug;
+@property (nonatomic, readwrite) BOOL logLocal;
+@property (nonatomic, readwrite) BOOL logRemote;
 
 @property (strong, nonatomic) NSUserDefaults* userDefaults;
 @end
@@ -37,29 +39,30 @@
     if (self.userDefaults == nil) {
       NSLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
     } else {
-      self.forceDebug = [self.userDefaults boolForKey:kForceDebugPreferencesKey];
+      self.logLocal = [self.userDefaults boolForKey:kLogLocalPreferencesKey];
     }
   }
   return self;
 }
 
-- (void)setForceDebugPreference:(BOOL)forceDebug {
+- (void)setLogLocal:(BOOL)logLocal logRemote:(BOOL)logRemote {
   if (self.userDefaults == nil) {
     TeakLog_e(@"debug_configuration", @"[NSUserDefaults standardUserDefaults] returned nil. Setting force debug is disabled.");
   } else {
     @try {
-      [self.userDefaults setBool:forceDebug forKey:kForceDebugPreferencesKey];
-      NSLog(@"Force debug is now %s, please re-start the app.", forceDebug ? "enabled" : "disabled");
+      [self.userDefaults setBool:logLocal forKey:kLogLocalPreferencesKey];
+      [self.userDefaults setBool:logRemote forKey:kLogRemotePreferencesKey];
     } @catch (NSException* exception) {
       NSLog(@"Error occurred while writing to userDefaults. %@", exception);
     }
-    self.forceDebug = forceDebug;
+    self.logLocal = logLocal;
+    self.logRemote = logLocal;
   }
 }
 
 - (NSString*)description {
-  return [NSString stringWithFormat:@"<%@: %@> forceDebug %@", NSStringFromClass([self class]),
+  return [NSString stringWithFormat:@"<%@: %@> logLocal %@, logRemote %@", NSStringFromClass([self class]),
                                     [NSString stringWithFormat:@"0x%16@", self],
-                                    self.forceDebug ? @"YES" : @"NO"];
+                                    self.logLocal ? @"YES" : @"NO", self.logRemote ? @"YES" : @"NO"];
 }
 @end
