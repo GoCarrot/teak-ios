@@ -30,6 +30,7 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readonly) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
 @property (strong, nonatomic, readonly) NSString* _Nullable userId;
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
+@property (strong, nonatomic, readonly) TeakState* _Nonnull currentState;
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);

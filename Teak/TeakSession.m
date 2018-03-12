@@ -30,7 +30,7 @@ TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
 @interface TeakSession ()
-@property (strong, nonatomic) TeakState* currentState;
+@property (strong, nonatomic, readwrite) TeakState* currentState;
 @property (strong, nonatomic) TeakState* previousState;
 @property (strong, nonatomic) NSDate* startDate;
 @property (strong, nonatomic) NSDate* endDate;
