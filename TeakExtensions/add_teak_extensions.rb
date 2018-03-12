@@ -107,7 +107,8 @@ teak_extensions.each do |service, deps|
       :LD_RUNPATH_SEARCH_PATHS => "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks",
       :PRODUCT_BUNDLE_IDENTIFIER => "#{bundle_id}.#{service}",
       :PRODUCT_NAME => "$(TARGET_NAME)",
-      :SKIP_INSTALL => :YES
+      :SKIP_INSTALL => :YES,
+      :TARGETED_DEVICE_FAMILY => "1,2"
     }
   end
 
