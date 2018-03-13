@@ -134,7 +134,7 @@
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
       }
-      self.payload = [self signedPayload:payloadWithCommon withSession:self.session];
+      self.payload = payloadWithCommon;
     } @catch (NSException* exception) {
       TeakLog_e(@"request.error.payload", @{@"error" : exception.reason});
       return nil;
@@ -209,14 +209,14 @@
 - (void)send {
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
-
+    NSDictionary* signedPayload = [self signedPayload:self.payload withSession:self.session];
     NSString* boundry = @"-===-httpB0unDarY-==-";
 
     NSMutableData* postData = [[NSMutableData alloc] init];
 
-    for (NSString* key in self.payload) {
+    for (NSString* key in signedPayload) {
       [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, [self.payload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
+      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, [signedPayload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
     }
     [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
