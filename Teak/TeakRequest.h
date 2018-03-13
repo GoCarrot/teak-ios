@@ -18,7 +18,7 @@
 @class TeakRequest;
 @class TeakSession;
 
-typedef void (^TeakRequestResponse)(NSURLResponse* _Nonnull response, NSDictionary* _Nonnull reply);
+typedef void (^TeakRequestResponse)(NSHTTPURLResponse* _Nonnull response, NSDictionary* _Nonnull reply);
 
 @interface TeakRequest : NSObject
 @property (strong, nonatomic, readonly) NSString* _Nonnull endpoint;

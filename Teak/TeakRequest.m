@@ -255,7 +255,7 @@
                                     self.payload];
 }
 
-- (void)response:(NSURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
+- (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
   TeakUnused(error);
 
   teak_try {
@@ -388,7 +388,7 @@
   [self.responseData removeObjectForKey:@(dataTask.taskIdentifier)];
   TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
   if (request) {
-    [request response:dataTask.response payload:reply withError:error];
+    [request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error];
     [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
   }
 }
