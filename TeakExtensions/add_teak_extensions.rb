@@ -99,7 +99,7 @@ teak_extensions.each do |service, deps|
       :IPHONEOS_DEPLOYMENT_TARGET => 10.0,
       :CODE_SIGN_IDENTITY => build_settings['CODE_SIGN_IDENTITY'],
       :DEVELOPMENT_TEAM => build_settings['DEVELOPMENT_TEAM'],
-      #"CODE_SIGN_IDENTITY[sdk=iphoneos*]" => "iPhone Developer", # Causes parse errors
+      #:"CODE_SIGN_IDENTITY[sdk=iphoneos*]" => "iPhone Developer", # Causes error
       :LIBRARY_SEARCH_PATHS => [
           "$(SRCROOT)/Libraries/Teak/Plugins/iOS" # Unity path
       ],
