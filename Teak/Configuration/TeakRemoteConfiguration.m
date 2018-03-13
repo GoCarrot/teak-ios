@@ -26,6 +26,7 @@
 @property (strong, nonatomic, readwrite) NSString* hostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
 @property (strong, nonatomic, readwrite) NSString* appSentryDsn;
+@property (strong, nonatomic, readwrite) NSDictionary* batching;
 @end
 
 @implementation TeakRemoteConfiguration
@@ -68,6 +69,23 @@
                                                         [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
                                                       }
                                                       teak_catch_report;
+
+                                                      // Batching configuration
+                                                      // HAX: Hard coded for now
+                                                      self.batching = @{
+                                                        @"parsnip" : @{
+                                                          @"timeout" : @5.0,
+                                                          @"batch_size" : @50
+                                                        },
+                                                        @"track_event" : @{
+                                                          @"timeout" : @5.0,
+                                                          @"batch_size" : @50
+                                                        },
+                                                        @"user_profile" : @{
+                                                          @"timeout" : @5.0,
+                                                          @"batch_size" : @50
+                                                        },
+                                                      };
 
                                                       [RemoteConfigurationEvent remoteConfigurationReady:self];
                                                     }
