@@ -538,7 +538,7 @@ DefineTeakState(Expired, (@[]));
   }];
 }
 
-KeyValueObserverFor(TeakSession, currentState) {
+KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   @synchronized(self) {
     if (oldValue == [TeakSession Created]) {
       UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
@@ -601,22 +601,22 @@ KeyValueObserverFor(TeakSession, currentState) {
   }
 }
 
-KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
+KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, advertisingIdentifier) {
   TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
-KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
+KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, pushToken) {
   TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
-KeyValueObserverFor(TeakDeviceConfiguration, notificationDisplayEnabled) {
+KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, notificationDisplayEnabled) {
   TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
-KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
+KeyValueObserverFor(TeakSession, TeakRemoteConfiguration, hostname) {
   TeakUnusedKVOValues;
   [self setState:[TeakSession Configured]];
 }
@@ -631,7 +631,7 @@ KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
 }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-KeyValueObserverSupported;
+KeyValueObserverSupported(TeakSession);
 #pragma clang diagnostic pop
 
 @end
