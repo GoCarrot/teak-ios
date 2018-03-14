@@ -220,6 +220,7 @@ Teak* _teakSharedInstance;
     self.paymentObserver = [[SKPaymentObserver alloc] init];
 
     self.skipTheNextOpenUrl = NO;
+    self.skipTheNextDidReceiveNotificationResponse = NO;
   }
   return self;
 }
@@ -341,6 +342,7 @@ Teak* _teakSharedInstance;
 
   // If the app was not running, we need to check these and invoke them afterwards
   if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
+    self.skipTheNextDidReceiveNotificationResponse = YES;
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
   } else if (launchOptions[UIApplicationLaunchOptionsURLKey]) {
     self.skipTheNextOpenUrl = [self application:application
@@ -447,8 +449,15 @@ Teak* _teakSharedInstance;
 
   // Call application:didReceiveRemoteNotification: since that is not called in the UNNotificationCenter
   // code path.
-  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:response.notification.request.content.userInfo];
+  if (self.skipTheNextDidReceiveNotificationResponse) {
+    self.skipTheNextDidReceiveNotificationResponse = NO;
+  } else {
+    [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:response.notification.request.content.userInfo];
+  }
+
+  // Completion handler
   completionHandler();
+
   // TODO: HERE is where we report metric that a button was pressed
 }
 
