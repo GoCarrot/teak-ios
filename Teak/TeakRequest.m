@@ -18,6 +18,7 @@
 
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakRemoteConfiguration.h"
 #import "TeakSession.h"
 
 #include <CommonCrypto/CommonHMAC.h>
@@ -42,16 +43,28 @@
 @property (strong, nonatomic) dispatch_block_t scheduledBlock;
 @property (strong, nonatomic) NSMutableArray* callbacks;
 @property (strong, nonatomic) NSMutableArray* batch;
-@property (nonatomic) long delayTimeInSeconds;
+@property (nonatomic) float delayTimeInSeconds;
+@property (nonatomic) long maxBatchSize;
+@property (nonatomic) BOOL sent;
 
-- (void)send;
-- (BOOL)addPayload:(nonnull NSDictionary*)payload forEndpoint:(nonnull NSString*)endpoint withCallback:(nullable TeakRequestResponse)callback;
+- (void)send;               // No-op
+- (void)reallyActuallySend; // Actually send
+
+- (void)sendNow;
+- (void)prepareAndSend;
+- (BOOL)cancel;
+
++ (nullable TeakBatchedRequest*)addRequestIntoBatch:(nonnull TeakBatchedRequest*)batchedRequest withSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback;
+
++ (nullable TeakBatchedRequest*)batchRequestWithSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback;
 @end
 
 ///// TeakTrackEventBatchedRequest
 
 @interface TeakTrackEventBatchedRequest : TeakBatchedRequest
-+ (TeakTrackEventBatchedRequest*)currentBatchForSession:(TeakSession*)session;
+- (void)prepareAndSend;
+
++ (nullable TeakBatchedRequest*)batchRequestWithSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback;
 @end
 
 ///// TeakRequestURLDelegate
@@ -96,7 +109,7 @@
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
   TeakRequest* ret = nil;
   if ([@"/me/events" isEqualToString:endpoint]) {
-
+    ret = [TeakTrackEventBatchedRequest batchRequestWithSession:session forEndpoint:endpoint withPayload:payload andCallback:callback];
   } else {
     ret = [[TeakRequest alloc] initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload callback:callback addCommonPayload:YES];
   }
@@ -281,13 +294,63 @@
 
 ///// TeakTrackEventBatchedRequest impl
 
+static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBatchedRequest";
+
 @implementation TeakTrackEventBatchedRequest
+
+- (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session {
+  self = [super initWithSession:session
+      forHostname:@"gocarrot.com"
+      withEndpoint:@"/me/events"
+      withPayload:@{}
+      callback:^(NSHTTPURLResponse* response, NSDictionary* reply) {
+        // All TrackEvent responses with a 5xx response code should be retried as is.
+        if (response.statusCode >= 500) {
+          [self reallyActuallySend];
+        } else {
+          for (TeakRequestResponse callback in self.callbacks) {
+            callback(response, reply);
+          }
+        }
+      }
+      addCommonPayload:YES];
+  return self;
+}
 
 + (TeakTrackEventBatchedRequest*)currentBatchForSession:(TeakSession*)session {
   static TeakTrackEventBatchedRequest* currentBatch = nil;
-  if (currentBatch == nil) {
-    //currentBatch =
+  @synchronized(TeakTrackEventBatchedRequestMutex) {
+    if (currentBatch == nil) {
+      currentBatch = [[TeakTrackEventBatchedRequest alloc] initWithSession:session];
+
+      // Assign configuration
+      if (session.remoteConfiguration.batching[@"track_event"] != nil &&
+          [session.remoteConfiguration.batching[@"track_event"] isKindOfClass:NSDictionary.class]) {
+        NSDictionary* trackEventConfiguration = session.remoteConfiguration.batching[@"track_event"];
+        currentBatch.delayTimeInSeconds = [trackEventConfiguration[@"timeout"] respondsToSelector:@selector(floatValue)] ? [trackEventConfiguration[@"timeout"] floatValue] : currentBatch.delayTimeInSeconds;
+        currentBatch.maxBatchSize = [trackEventConfiguration[@"batch_size"] respondsToSelector:@selector(longValue)] ? [trackEventConfiguration[@"batch_size"] longValue] : currentBatch.maxBatchSize;
+      }
+    }
   }
+  return currentBatch;
+}
+
+- (void)prepareAndSend {
+  @synchronized(self) {
+    NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:self.payload];
+    payload[@"batch"] = self.batch;
+    self.payload = payload;
+  }
+  [super prepareAndSend];
+}
+
++ (nullable TeakBatchedRequest*)batchRequestWithSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback {
+  TeakBatchedRequest* currentBatch = [TeakTrackEventBatchedRequest currentBatchForSession:session];
+  currentBatch = [TeakBatchedRequest addRequestIntoBatch:currentBatch
+                                             withSession:session
+                                             forEndpoint:endpoint
+                                             withPayload:payload
+                                             andCallback:callback];
   return currentBatch;
 }
 
@@ -297,39 +360,95 @@
 
 @implementation TeakBatchedRequest
 
-- (id)init {
-  self = [super init];
++ (nullable TeakBatchedRequest*)batchRequestWithSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback {
+  return nil;
+}
+
+- (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
+  self = [super initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload callback:callback addCommonPayload:addCommonToPayload];
   if (self) {
+    self.sent = NO;
     self.callbacks = [[NSMutableArray alloc] init];
     self.batch = [[NSMutableArray alloc] init];
-    self.delayTimeInSeconds = 5; // HAX
+
+    // Defaults
+    self.delayTimeInSeconds = 5.0f;
+    self.maxBatchSize = 50;
+
+    RegisterKeyValueObserverFor(self.session, currentState);
   }
   return self;
 }
 
-- (BOOL)addPayload:(nonnull NSDictionary*)payload forEndpoint:(nonnull NSString*)endpoint withCallback:(nullable TeakRequestResponse)callback {
-  if (payload == nil || endpoint == nil) return NO;
+- (void)dealloc {
+  UnRegisterKeyValueObserverFor(self.session, currentState);
+}
 
-  if (self.scheduledBlock != nil) {
+// Returns YES if this request will not be sent
+// Returns NO if the request has already been sent or will be sent anyway
+- (BOOL)cancel {
+  @synchronized(self) {
+    if (self.sent == YES) return NO;
+    if (self.scheduledBlock == nil) return YES;
+
     dispatch_block_cancel(self.scheduledBlock);
-    if (dispatch_block_testcancel(self.scheduledBlock) == 0) {
-      // TODO: This needs to be tested in-depth, maybe dispatch_block_notifiy should be used
-      return NO;
+    return dispatch_block_testcancel(self.scheduledBlock) != 0;
+  }
+}
+
+KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
+  TeakUnusedKVOValues;
+  @synchronized(self) {
+    if (newValue == [TeakSession UserIdentified] || newValue == [TeakSession Expiring]) {
+      [self sendNow];
+    }
+  }
+}
+
+- (void)sendNow {
+  if ([self cancel]) {
+    [self prepareAndSend];
+  }
+}
+
++ (nullable TeakBatchedRequest*)addRequestIntoBatch:(nonnull TeakBatchedRequest*)batchedRequest withSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback {
+  if (payload == nil || endpoint == nil || batchedRequest == nil) return batchedRequest;
+
+  if (![batchedRequest cancel]) {
+    // Future-Pat, don't forget about this reassignment and move the @synchronized
+    batchedRequest = [batchedRequest.class batchRequestWithSession:session
+                                                       forEndpoint:endpoint
+                                                       withPayload:payload
+                                                       andCallback:callback];
+    if (batchedRequest == nil) return nil;
+  }
+
+  @synchronized(batchedRequest) {
+    // Check for black-holed requests
+    if (batchedRequest.maxBatchSize < 0 || batchedRequest.delayTimeInSeconds < 0) {
+      return batchedRequest;
+    }
+
+    if (callback != nil) {
+      [batchedRequest.callbacks addObject:[callback copy]];
+    }
+
+    [batchedRequest.batch addObject:payload];
+
+    // If we've hit the limit, or delay time is 0.0, send now; otherwise schedule
+    if (batchedRequest.batch.count >= batchedRequest.maxBatchSize || batchedRequest.delayTimeInSeconds == 0.0f) {
+      [batchedRequest prepareAndSend];
+    } else {
+      batchedRequest.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        [batchedRequest prepareAndSend];
+      });
+
+      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.delayTimeInSeconds * NSEC_PER_SEC);
+      dispatch_after(delayTime, dispatch_get_main_queue(), batchedRequest.scheduledBlock);
     }
   }
 
-  if (callback != nil) {
-    [self.callbacks addObject:[callback copy]];
-  }
-
-  [self.batch addObject:payload];
-  self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-    [self prepareAndSend];
-  });
-
-  dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.delayTimeInSeconds * NSEC_PER_SEC);
-  dispatch_after(delayTime, dispatch_get_main_queue(), self.scheduledBlock);
-  return YES;
+  return batchedRequest;
 }
 
 - (void)send {
@@ -337,8 +456,23 @@
 }
 
 - (void)prepareAndSend {
+  @synchronized(self) {
+    if (self.sent == NO) {
+      self.sent = YES;
+      UnRegisterKeyValueObserverFor(self.session, currentState);
+      [self reallyActuallySend];
+    }
+  }
+}
+
+- (void)reallyActuallySend {
   [super send];
 }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+KeyValueObserverSupported(TeakBatchedRequest);
+#pragma clang diagnostic pop
 
 @end
 
@@ -373,7 +507,7 @@
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)dataTask didCompleteWithError:(NSError*)error {
   NSDictionary* reply = @{};
   if (error) {
-    // TODO: Handle error
+    // TODO: Server errors don't come in here, not certain what should be handled here
   } else {
     teak_try {
       reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
