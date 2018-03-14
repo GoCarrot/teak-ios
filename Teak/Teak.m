@@ -424,6 +424,7 @@ Teak* _teakSharedInstance;
 
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
   self.skipTheNextOpenUrl = NO;
+  self.skipTheNextDidReceiveNotificationResponse = NO;
 
   [LifecycleEvent applicationDeactivate];
 }
