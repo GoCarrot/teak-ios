@@ -200,6 +200,7 @@ DefineTeakState(Expired, (@[]));
 
     // Kick off checking for push notification enabled
     payload[@"notifications_enabled"] = self.deviceConfiguration.notificationDisplayEnabled;
+    payload[@"supports_content_extensions"] = @([[UNUserNotificationCenter currentNotificationCenter] supportsContentExtensions]);
 
     if ([self.deviceConfiguration.advertisingIdentifier length] > 0) {
       payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
