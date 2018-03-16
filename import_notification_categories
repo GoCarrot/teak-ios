@@ -31,7 +31,9 @@ teak_notification_categories_template_path = File.join(this_path, "TeakNotificat
 
 # Load Plist and clear existing categories
 teak_notification_content_plist = Plist.parse_xml(teak_notification_content_plist_path)
-teak_notification_content_plist['NSExtension']['NSExtensionAttributes']['UNNotificationExtensionCategory'] = []
+
+# Make sure it always contains TeakNotificationContent
+teak_notification_content_plist['NSExtension']['NSExtensionAttributes']['UNNotificationExtensionCategory'] = ['TeakNotificationContent']
 
 categories = []
 CSV.foreach(csv_filename) do |row|
