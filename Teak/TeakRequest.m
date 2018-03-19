@@ -357,8 +357,10 @@
       teak_try {
         if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
           // Retry with delay + jitter
-          float jitter = drand48() * self.retry.jitter;
+          float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
+          if (delay < 0.0f) delay = 0.0f;
+
           self.retry.retryIndex++;
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
