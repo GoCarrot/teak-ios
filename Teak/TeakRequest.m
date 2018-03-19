@@ -320,7 +320,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 + (TeakTrackEventBatchedRequest*)currentBatchForSession:(TeakSession*)session {
   static TeakTrackEventBatchedRequest* currentBatch = nil;
   @synchronized(TeakTrackEventBatchedRequestMutex) {
-    if (currentBatch == nil) {
+    if (currentBatch == nil || currentBatch.sent) {
       currentBatch = [[TeakTrackEventBatchedRequest alloc] initWithSession:session];
 
       // Assign configuration
