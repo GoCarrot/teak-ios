@@ -187,7 +187,7 @@
         // Batching configuration
         if ([configuration[@"batch"] isKindOfClass:NSDictionary.class]) {
           self.batch.count = [configuration[@"batch"][@"count"] respondsToSelector:@selector(longValue)] ? [configuration[@"batch"][@"count"] longValue] : self.batch.count;
-          self.batch.count = [configuration[@"batch"][@"time"] respondsToSelector:@selector(floatValue)] ? [configuration[@"batch"][@"time"] floatValue] : self.batch.time;
+          self.batch.time = [configuration[@"batch"][@"time"] respondsToSelector:@selector(floatValue)] ? [configuration[@"batch"][@"time"] floatValue] : self.batch.time;
 
           // Last write wins means no maximum size, just time-based
           if ([configuration[@"batch"][@"lww"] respondsToSelector:@selector(boolValue)] &&
