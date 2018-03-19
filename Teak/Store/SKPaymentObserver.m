@@ -75,7 +75,7 @@ typedef void (^ProductRequestCallback)(NSDictionary*, SKProductsResponse*);
 
     teak_log_breadcrumb(@"Getting info from App Store receipt");
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
-    NSData* receipt = [NSData dataWithContentsOfURL:receiptURL];
+    NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
 
     [ProductRequest productRequestForSku:transaction.payment.productIdentifier
                                 callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
@@ -83,7 +83,8 @@ typedef void (^ProductRequestCallback)(NSDictionary*, SKProductsResponse*);
                                   NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
                                     @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
                                     @"product_id" : transaction.payment.productIdentifier,
-                                    @"purchase_token" : [receipt base64EncodedStringWithOptions:0]
+                                    @"transaction_identifier" : transaction.transactionIdentifier,
+                                    @"purchase_token" : _([receipt base64EncodedStringWithOptions:0])
                                   }];
 
                                   if (priceInfo != nil) {
