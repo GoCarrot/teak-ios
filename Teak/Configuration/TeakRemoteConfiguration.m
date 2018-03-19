@@ -26,7 +26,7 @@
 @property (strong, nonatomic, readwrite) NSString* hostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
 @property (strong, nonatomic, readwrite) NSString* appSentryDsn;
-@property (strong, nonatomic, readwrite) NSDictionary* batching;
+@property (strong, nonatomic, readwrite) NSDictionary* endpointConfigurations;
 @end
 
 @implementation TeakRemoteConfiguration
@@ -57,35 +57,21 @@
                                                     } else {
                                                       self.hostname = @"gocarrot.com";
 
-                                                      NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
+                                                      NSString* sdkSentryDsn = reply[@"sdk_sentry_dsn"];
                                                       if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {
                                                         self.sdkSentryDsn = sdkSentryDsn;
                                                       }
 
                                                       // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
                                                       teak_try {
-                                                        BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
+                                                        BOOL blackholeUnregisterForRemoteNotifications = [reply[@"blackhole_unregister_for_remote_notifications"] boolValue];
                                                         NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
                                                         [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
                                                       }
                                                       teak_catch_report;
 
-                                                      // Batching configuration
-                                                      // HAX: Hard coded for now
-                                                      self.batching = @{
-                                                        @"parsnip" : @{
-                                                          @"timeout" : @5.0,
-                                                          @"batch_size" : @50
-                                                        },
-                                                        @"track_event" : @{
-                                                          @"timeout" : @5.0,
-                                                          @"batch_size" : @50
-                                                        },
-                                                        @"user_profile" : @{
-                                                          @"timeout" : @5.0,
-                                                          @"batch_size" : @50
-                                                        },
-                                                      };
+                                                      // Batching/endpoint configuration
+                                                      self.endpointConfigurations = reply[@"endpoint_configurations"];
 
                                                       [RemoteConfigurationEvent remoteConfigurationReady:self];
                                                     }

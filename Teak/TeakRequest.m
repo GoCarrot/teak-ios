@@ -23,6 +23,42 @@
 
 #include <CommonCrypto/CommonHMAC.h>
 
+///// Structs to match JSON
+
+@interface TeakBatchConfiguration : NSObject
+@property (nonatomic) float time;
+@property (nonatomic) long count;
+@end
+
+@implementation TeakBatchConfiguration
+- (TeakBatchConfiguration*)init {
+  self = [super init];
+  if (self) {
+    self.time = 0.0f;
+    self.count = 1L;
+  }
+  return self;
+}
+@end
+
+@interface TeakRetryConfiguration : NSObject
+@property (nonatomic) float jitter;
+@property (strong, nonatomic) NSArray* times;
+@property (nonatomic) NSUInteger retryIndex;
+@end
+
+@implementation TeakRetryConfiguration
+- (TeakRetryConfiguration*)init {
+  self = [super init];
+  if (self) {
+    self.jitter = 0.0f;
+    self.times = nil;
+    self.retryIndex = 0;
+  }
+  return self;
+}
+@end
+
 ///// TeakRequest
 
 @interface TeakRequest ()
@@ -34,6 +70,10 @@
 @property (strong, nonatomic) TeakSession* session;
 @property (strong, nonatomic) NSDate* sendDate;
 
+@property (strong, nonatomic) TeakBatchConfiguration* batch;
+@property (strong, nonatomic) TeakRetryConfiguration* retry;
+@property (nonatomic) BOOL blackhole;
+
 - (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 @end
 
@@ -42,9 +82,7 @@
 @interface TeakBatchedRequest : TeakRequest
 @property (strong, nonatomic) dispatch_block_t scheduledBlock;
 @property (strong, nonatomic) NSMutableArray* callbacks;
-@property (strong, nonatomic) NSMutableArray* batch;
-@property (nonatomic) float delayTimeInSeconds;
-@property (nonatomic) long maxBatchSize;
+@property (strong, nonatomic) NSMutableArray* batchContents;
 @property (nonatomic) BOOL sent;
 
 - (void)send;               // No-op
@@ -89,6 +127,9 @@
     session = [NSURLSession sessionWithConfiguration:sessionConfiguration
                                             delegate:[[TeakRequestURLDelegate alloc] init]
                                        delegateQueue:nil];
+
+    // Srand
+    srand48(time(0));
   });
   return session;
 }
@@ -129,7 +170,39 @@
     self.hostname = hostname;
     self.session = session;
 
+    // Default configuration - Send imediately, no batching, no retry
+    self.retry = [[TeakRetryConfiguration alloc] init];
+    self.batch = [[TeakBatchConfiguration alloc] init];
+    self.blackhole = NO;
+
     @try {
+      // Assign configuration
+      NSDictionary* endpointConfigurations = session.remoteConfiguration.endpointConfigurations;
+      if ([endpointConfigurations[hostname] isKindOfClass:NSDictionary.class] &&
+          [endpointConfigurations[hostname][endpoint] isKindOfClass:NSDictionary.class]) {
+        NSDictionary* configuration = endpointConfigurations[hostname][endpoint];
+
+        self.blackhole = [configuration[@"blackhole"] respondsToSelector:@selector(boolValue)] ? [configuration[@"blackhole"] boolValue] : self.blackhole;
+
+        // Batching configuration
+        if ([configuration[@"batch"] isKindOfClass:NSDictionary.class]) {
+          self.batch.count = [configuration[@"batch"][@"count"] respondsToSelector:@selector(longValue)] ? [configuration[@"batch"][@"count"] longValue] : self.batch.count;
+          self.batch.count = [configuration[@"batch"][@"time"] respondsToSelector:@selector(floatValue)] ? [configuration[@"batch"][@"time"] floatValue] : self.batch.time;
+
+          // Last write wins means no maximum size, just time-based
+          if ([configuration[@"batch"][@"lww"] respondsToSelector:@selector(boolValue)] &&
+              [configuration[@"batch"][@"lww"] boolValue]) {
+            self.batch.count = LONG_MAX;
+          }
+        }
+
+        // Retry configuration
+        if ([configuration[@"retry"] isKindOfClass:NSDictionary.class]) {
+          self.retry.times = [configuration[@"retry"][@"times"] isKindOfClass:NSArray.class] ? configuration[@"retry"][@"times"] : self.retry.times;
+          self.retry.jitter = [configuration[@"retry"][@"jitter"] respondsToSelector:@selector(floatValue)] ? [configuration[@"retry"][@"jitter"] floatValue] : self.retry.jitter;
+        }
+      }
+
       NSMutableDictionary* payloadWithCommon = [NSMutableDictionary dictionaryWithDictionary:payload];
       if (addCommonToPayload) {
         [payloadWithCommon addEntriesFromDictionary:@{
@@ -220,6 +293,8 @@
 }
 
 - (void)send {
+  if (self.blackhole) return;
+
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
     NSDictionary* signedPayload = [self signedPayload:self.payload withSession:self.session];
@@ -280,8 +355,20 @@
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
-        if (self.callback) {
-          self.callback(response, payload);
+        if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
+          // Retry with delay + jitter
+          float jitter = drand48() * self.retry.jitter;
+          float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
+          self.retry.retryIndex++;
+
+          dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
+          dispatch_after(delayTime, dispatch_get_main_queue(), ^{
+            [self send];
+          });
+        } else {
+          if (self.callback) {
+            self.callback(response, payload);
+          }
         }
       }
       teak_catch_report;
@@ -304,13 +391,9 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
       withEndpoint:@"/me/events"
       withPayload:@{}
       callback:^(NSHTTPURLResponse* response, NSDictionary* reply) {
-        // All TrackEvent responses with a 5xx response code should be retried as is.
-        if (response.statusCode >= 500) {
-          [self reallyActuallySend];
-        } else {
-          for (TeakRequestResponse callback in self.callbacks) {
-            callback(response, reply);
-          }
+        // Trigger any callbacks
+        for (TeakRequestResponse callback in self.callbacks) {
+          callback(response, reply);
         }
       }
       addCommonPayload:YES];
@@ -322,14 +405,6 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
   @synchronized(TeakTrackEventBatchedRequestMutex) {
     if (currentBatch == nil || currentBatch.sent) {
       currentBatch = [[TeakTrackEventBatchedRequest alloc] initWithSession:session];
-
-      // Assign configuration
-      if (session.remoteConfiguration.batching[@"track_event"] != nil &&
-          [session.remoteConfiguration.batching[@"track_event"] isKindOfClass:NSDictionary.class]) {
-        NSDictionary* trackEventConfiguration = session.remoteConfiguration.batching[@"track_event"];
-        currentBatch.delayTimeInSeconds = [trackEventConfiguration[@"timeout"] respondsToSelector:@selector(floatValue)] ? [trackEventConfiguration[@"timeout"] floatValue] : currentBatch.delayTimeInSeconds;
-        currentBatch.maxBatchSize = [trackEventConfiguration[@"batch_size"] respondsToSelector:@selector(longValue)] ? [trackEventConfiguration[@"batch_size"] longValue] : currentBatch.maxBatchSize;
-      }
     }
   }
   return currentBatch;
@@ -338,7 +413,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 - (void)prepareAndSend {
   @synchronized(self) {
     NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:self.payload];
-    payload[@"batch"] = self.batch;
+    payload[@"batch"] = self.batchContents;
     self.payload = payload;
   }
   [super prepareAndSend];
@@ -369,11 +444,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
   if (self) {
     self.sent = NO;
     self.callbacks = [[NSMutableArray alloc] init];
-    self.batch = [[NSMutableArray alloc] init];
-
-    // Defaults
-    self.delayTimeInSeconds = 5.0f;
-    self.maxBatchSize = 50;
+    self.batchContents = [[NSMutableArray alloc] init];
 
     RegisterKeyValueObserverFor(self.session, currentState);
   }
@@ -425,7 +496,7 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
 
   @synchronized(batchedRequest) {
     // Check for black-holed requests
-    if (batchedRequest.maxBatchSize < 0 || batchedRequest.delayTimeInSeconds < 0) {
+    if (batchedRequest.blackhole) {
       return batchedRequest;
     }
 
@@ -433,17 +504,17 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
       [batchedRequest.callbacks addObject:[callback copy]];
     }
 
-    [batchedRequest.batch addObject:payload];
+    [batchedRequest.batchContents addObject:payload];
 
     // If we've hit the limit, or delay time is 0.0, send now; otherwise schedule
-    if (batchedRequest.batch.count >= batchedRequest.maxBatchSize || batchedRequest.delayTimeInSeconds == 0.0f) {
+    if (batchedRequest.batch.count >= batchedRequest.batch.count || batchedRequest.batch.time == 0.0f) {
       [batchedRequest prepareAndSend];
     } else {
       batchedRequest.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
         [batchedRequest prepareAndSend];
       });
 
-      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.delayTimeInSeconds * NSEC_PER_SEC);
+      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.batch.time * NSEC_PER_SEC);
       dispatch_after(delayTime, dispatch_get_main_queue(), batchedRequest.scheduledBlock);
     }
   }
