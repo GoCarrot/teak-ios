@@ -367,10 +367,8 @@
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
             [self send];
           });
-        } else {
-          if (self.callback) {
-            self.callback(response, payload);
-          }
+        } else if (self.callback) {
+          self.callback(response, payload);
         }
       }
       teak_catch_report;
