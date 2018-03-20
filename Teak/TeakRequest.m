@@ -507,7 +507,7 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
     [batchedRequest.batchContents addObject:payload];
 
     // If we've hit the limit, or delay time is 0.0, send now; otherwise schedule
-    if (batchedRequest.batch.count >= batchedRequest.batch.count || batchedRequest.batch.time == 0.0f) {
+    if (batchedRequest.batchContents.count >= batchedRequest.batch.count || batchedRequest.batch.time == 0.0f) {
       [batchedRequest prepareAndSend];
     } else {
       batchedRequest.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
