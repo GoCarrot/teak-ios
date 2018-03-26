@@ -108,6 +108,14 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
   [super viewDidLoad];
 }
 
+- (void)viewWillDisappear:(BOOL)animated {
+  [super viewWillDisappear:animated];
+
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
+  [self.videoPlayer pause];
+  self.videoPlayer = nil;
+}
+
 - (void)configureForNotification:(UNNotification*)notification {
   self.notificationUserData = notification.request.content.userInfo[@"aps"];
 
@@ -279,7 +287,6 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
                                                         object:assetToPlay
                                                          queue:nil
                                                     usingBlock:^(NSNotification* notification) {
-                                                      [[NSNotificationCenter defaultCenter] removeObserver:self];
                                                       completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
                                                     }];
     }
