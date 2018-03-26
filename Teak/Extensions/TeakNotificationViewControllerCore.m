@@ -125,8 +125,10 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 - (void)initURLSession {
   self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
   self.operationQueue = [[NSOperationQueue alloc] init];
+  __weak typeof(self) weakSelf = self;
   self.sessionFinishOperation = [NSBlockOperation blockOperationWithBlock:^{
-    [self.session finishTasksAndInvalidate];
+    __strong typeof(self) blockSelf = weakSelf;
+    [blockSelf.session finishTasksAndInvalidate];
   }];
 }
 
