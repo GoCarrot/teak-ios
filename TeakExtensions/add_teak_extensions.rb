@@ -95,6 +95,7 @@ teak_extensions.each do |service, deps|
     build_settings = xcode_proj.native_targets.detect { |e| e.name == xcode_project_name }.build_settings(config.name)
     next if not build_settings
     config.build_settings = {
+      :ARCHS => "arm64",
       :CODE_SIGN_STYLE => "Automatic",
       :IPHONEOS_DEPLOYMENT_TARGET => 10.0,
       :CODE_SIGN_IDENTITY => build_settings['CODE_SIGN_IDENTITY'],
@@ -108,7 +109,8 @@ teak_extensions.each do |service, deps|
       :PRODUCT_BUNDLE_IDENTIFIER => "#{bundle_id}.#{service}",
       :PRODUCT_NAME => "$(TARGET_NAME)",
       :SKIP_INSTALL => :YES,
-      :TARGETED_DEVICE_FAMILY => "1,2"
+      :TARGETED_DEVICE_FAMILY => "1,2",
+      :VALID_ARCHS => "arm64"
     }
   end
 
