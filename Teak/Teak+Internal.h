@@ -49,6 +49,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;
 
 + (NSURLSession* _Nonnull)sharedURLSession;
++ (dispatch_queue_t _Nonnull)operationQueue;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"

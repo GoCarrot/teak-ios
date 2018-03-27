@@ -22,6 +22,7 @@
 #import "TeakRemoteConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakReward.h"
+#import "TeakUserProfile.h"
 #import "UserIdEvent.h"
 
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
@@ -46,6 +47,8 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
+
+@property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
 @end
@@ -254,6 +257,9 @@ DefineTeakState(Expired, (@[]));
                                                       } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
                                                         [blockSelf setState:[TeakSession UserIdentified]];
                                                       }
+
+                                                      // User profile
+                                                      blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
                                                     }
                                                   }];
 

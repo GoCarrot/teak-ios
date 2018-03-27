@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#import "TeakRequest.h"
 #import "Teak+Internal.h"
+#import "TeakRequest+Internal.h"
 
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
@@ -24,11 +24,6 @@
 #include <CommonCrypto/CommonHMAC.h>
 
 ///// Structs to match JSON
-
-@interface TeakBatchConfiguration : NSObject
-@property (nonatomic) float time;
-@property (nonatomic) long count;
-@end
 
 @implementation TeakBatchConfiguration
 - (TeakBatchConfiguration*)init {
@@ -41,40 +36,16 @@
 }
 @end
 
-@interface TeakRetryConfiguration : NSObject
-@property (nonatomic) float jitter;
-@property (strong, nonatomic) NSArray* times;
-@property (nonatomic) NSUInteger retryIndex;
-@end
-
 @implementation TeakRetryConfiguration
 - (TeakRetryConfiguration*)init {
   self = [super init];
   if (self) {
     self.jitter = 0.0f;
-    self.times = nil;
+    self.times = @[];
     self.retryIndex = 0;
   }
   return self;
 }
-@end
-
-///// TeakRequest
-
-@interface TeakRequest ()
-@property (strong, nonatomic, readwrite) NSString* endpoint;
-@property (strong, nonatomic, readwrite) NSDictionary* payload;
-@property (copy, nonatomic, readwrite) TeakRequestResponse callback;
-@property (strong, nonatomic) NSString* hostname;
-@property (strong, nonatomic) NSString* requestId;
-@property (strong, nonatomic) TeakSession* session;
-@property (strong, nonatomic) NSDate* sendDate;
-
-@property (strong, nonatomic) TeakBatchConfiguration* batch;
-@property (strong, nonatomic) TeakRetryConfiguration* retry;
-@property (nonatomic) BOOL blackhole;
-
-- (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 @end
 
 ///// TeakBatchedRequest
