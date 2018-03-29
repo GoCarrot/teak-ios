@@ -34,9 +34,9 @@
 - (TeakRemoteConfiguration*)initForSession:(nonnull TeakSession*)session {
   self = [super init];
   if (self) {
-    __weak TeakRemoteConfiguration* weakSelf = self;
+    __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      __strong TeakRemoteConfiguration* blockSelf = weakSelf;
+      __strong typeof(self) blockSelf = weakSelf;
       [blockSelf configureForSession:session];
     });
   }

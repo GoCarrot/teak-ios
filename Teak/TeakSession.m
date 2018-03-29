@@ -233,12 +233,12 @@ DefineTeakState(Expired, (@[]));
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
 
-    __weak TeakSession* weakSelf = self;
+    __weak typeof(self) weakSelf = self;
     TeakRequest* request = [TeakRequest requestWithSession:self
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
                                                withPayload:payload
                                                   callback:^(NSURLResponse* response, NSDictionary* reply) {
-                                                    __strong TeakSession* blockSelf = weakSelf;
+                                                    __strong typeof(self) blockSelf = weakSelf;
 
                                                     // TODO: Check response
                                                     if (YES) {
@@ -572,10 +572,10 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
 
       // Heartbeat
-      __weak TeakSession* weakSelf = self;
+      __weak typeof(self) weakSelf = self;
       self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
       dispatch_source_set_event_handler(self.heartbeat, ^{
-        __strong TeakSession* blockSelf = weakSelf;
+        __strong typeof(self) blockSelf = weakSelf;
         [blockSelf sendHeartbeat];
       });
 
