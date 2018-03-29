@@ -77,9 +77,7 @@
   }];
   self.payload = payload;
 
-  dispatch_async([Teak operationQueue], ^{
-    [super send];
-  });
+  [super send];
 }
 
 @end

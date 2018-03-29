@@ -602,6 +602,15 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       }
       self.heartbeat = nil;
       self.heartbeatQueue = nil;
+
+      // Send user profile out now
+      if (self.userProfile != nil) {
+        __weak typeof(self) weakSelf = self;
+        dispatch_async([Teak operationQueue], ^{
+          __strong typeof(self) blockSelf = weakSelf;
+          [blockSelf.userProfile send];
+        });
+      }
     } else if (newValue == [TeakSession Expired]) {
       // TODO: Report Session to server, once we collect that info.
     }
