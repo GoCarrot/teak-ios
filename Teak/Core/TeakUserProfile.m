@@ -35,12 +35,17 @@
   return self;
 }
 
-- (void)setNumericAttribute:(double)value forKey:(NSString*)key {
-  [self setAttribute:[NSNumber numberWithDouble:value] forKey:key inDictionary:self.numberAttributes];
+- (void)setNumericAttribute:(double)d_value forKey:(NSString*)key {
+  NSNumber* value = [NSNumber numberWithDouble:d_value];
+  if (![value isEqualToNumber:self.numberAttributes[key]]) {
+    [self setAttribute:value forKey:key inDictionary:self.numberAttributes];
+  }
 }
 
 - (void)setStringAttribute:(NSString*)value forKey:(NSString*)key {
-  [self setAttribute:value forKey:key inDictionary:self.stringAttributes];
+  if (![value isEqualToString:self.stringAttributes[key]]) {
+    [self setAttribute:value forKey:key inDictionary:self.stringAttributes];
+  }
 }
 
 - (void)setAttribute:(id)value forKey:(NSString*)key inDictionary:(NSMutableDictionary*)dictionary {
