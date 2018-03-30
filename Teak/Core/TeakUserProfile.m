@@ -44,7 +44,7 @@
 }
 
 - (void)setStringAttribute:(NSString*)value forKey:(NSString*)key {
-  if ([self.stringAttributes[key] isKindOfClass:NSString.class] ||
+  if (![self.stringAttributes[key] isKindOfClass:NSString.class] ||
       ![value isEqualToString:self.stringAttributes[key]]) {
     [self setAttribute:value forKey:key inDictionary:self.stringAttributes];
   }
