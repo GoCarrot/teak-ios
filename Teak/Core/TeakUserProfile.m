@@ -64,20 +64,20 @@
 }
 
 - (void)send {
-  // This could be in-progress, doesn't matter
+  // No scheduledBlock means no pending update
   if (self.scheduledBlock != nil) {
     dispatch_block_cancel(self.scheduledBlock);
+
+    NSMutableDictionary* payload = [self.payload mutableCopy];
+    [payload addEntriesFromDictionary:@{
+      @"string_attributes" : [self.stringAttributes copy],
+      @"number_attributes" : [self.numberAttributes copy],
+      @"context" : [self.context copy]
+    }];
+    self.payload = payload;
+
+    [super send];
   }
-
-  NSMutableDictionary* payload = [self.payload mutableCopy];
-  [payload addEntriesFromDictionary:@{
-    @"string_attributes" : [self.stringAttributes copy],
-    @"number_attributes" : [self.numberAttributes copy],
-    @"context" : [self.context copy]
-  }];
-  self.payload = payload;
-
-  [super send];
 }
 
 @end
