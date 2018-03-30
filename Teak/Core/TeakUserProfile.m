@@ -75,6 +75,7 @@
   // No scheduledBlock means no pending update
   if (self.scheduledBlock != nil) {
     dispatch_block_cancel(self.scheduledBlock);
+    self.scheduledBlock = nil;
 
     NSMutableDictionary* payload = [self.payload mutableCopy];
     [payload addEntriesFromDictionary:@{
