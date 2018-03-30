@@ -37,13 +37,15 @@
 
 - (void)setNumericAttribute:(double)d_value forKey:(NSString*)key {
   NSNumber* value = [NSNumber numberWithDouble:d_value];
-  if (![value isEqualToNumber:self.numberAttributes[key]]) {
+  if (![self.numberAttributes[key] isKindOfClass:NSNumber.class] ||
+      ![value isEqualToNumber:self.numberAttributes[key]]) {
     [self setAttribute:value forKey:key inDictionary:self.numberAttributes];
   }
 }
 
 - (void)setStringAttribute:(NSString*)value forKey:(NSString*)key {
-  if (![value isEqualToString:self.stringAttributes[key]]) {
+  if ([self.stringAttributes[key] isKindOfClass:NSString.class] ||
+      ![value isEqualToString:self.stringAttributes[key]]) {
     [self setAttribute:value forKey:key inDictionary:self.stringAttributes];
   }
 }
@@ -51,11 +53,11 @@
 - (void)setAttribute:(id)value forKey:(NSString*)key inDictionary:(NSMutableDictionary*)dictionary {
   // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
   if (dictionary[key] != nil) {
-    if (self.scheduledBlock != nil) {
-      dispatch_block_cancel(self.scheduledBlock);
-    }
-
     dispatch_async([Teak operationQueue], ^{
+      if (self.scheduledBlock != nil) {
+        dispatch_block_cancel(self.scheduledBlock);
+      }
+
       dictionary[key] = value;
 
       self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
