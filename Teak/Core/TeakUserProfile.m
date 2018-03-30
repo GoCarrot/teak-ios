@@ -35,37 +35,38 @@
   return self;
 }
 
-- (void)setNumericAttribute:(double)d_value forKey:(NSString*)key {
-  NSNumber* value = [NSNumber numberWithDouble:d_value];
-  if (![self.numberAttributes[key] isKindOfClass:NSNumber.class] ||
-      ![value isEqualToNumber:self.numberAttributes[key]]) {
-    [self setAttribute:value forKey:key inDictionary:self.numberAttributes];
-  }
+- (void)setNumericAttribute:(double)value forKey:(NSString*)key {
+  [self setAttribute:[NSNumber numberWithDouble:value] forKey:key inDictionary:self.numberAttributes];
 }
 
 - (void)setStringAttribute:(NSString*)value forKey:(NSString*)key {
-  if (![self.stringAttributes[key] isKindOfClass:NSString.class] ||
-      ![value isEqualToString:self.stringAttributes[key]]) {
-    [self setAttribute:value forKey:key inDictionary:self.stringAttributes];
-  }
+  [self setAttribute:value forKey:key inDictionary:self.stringAttributes];
 }
 
 - (void)setAttribute:(id)value forKey:(NSString*)key inDictionary:(NSMutableDictionary*)dictionary {
   // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
   if (dictionary[key] != nil) {
     dispatch_async([Teak operationQueue], ^{
-      if (self.scheduledBlock != nil) {
-        dispatch_block_cancel(self.scheduledBlock);
+      BOOL safeNotEquals = YES;
+      @try {
+        safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
+      } @finally {
       }
 
-      dictionary[key] = value;
+      if (safeNotEquals) {
+        if (self.scheduledBlock != nil) {
+          dispatch_block_cancel(self.scheduledBlock);
+        }
 
-      self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-        [self send];
-      });
+        dictionary[key] = value;
 
-      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
-      dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
+        self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+          [self send];
+        });
+
+        dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
+        dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
+      }
     });
   }
 }
