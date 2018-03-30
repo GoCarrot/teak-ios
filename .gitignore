@@ -3,8 +3,6 @@ build/*
 !build/.gitkeep
 *.pem
 
-infer-out/
-
 .irb-history
 
 xcuserdata/

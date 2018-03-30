@@ -695,6 +695,7 @@
 		5649BAF7D6ECE9B4845C9FB9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
@@ -703,12 +704,14 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				VALID_ARCHS = arm64;
 			};
 			name = Release;
 		};
 		6B98CE36BE51F753B738A090 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationService/Info.plist;
@@ -717,12 +720,14 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				VALID_ARCHS = arm64;
 			};
 			name = Release;
 		};
 		D5EA76D27F41B262D48CE174 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationService/Info.plist;
@@ -731,12 +736,14 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				VALID_ARCHS = arm64;
 			};
 			name = Debug;
 		};
 		F4AAA9B659C4B3F362137F84 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
 				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
@@ -745,6 +752,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				VALID_ARCHS = arm64;
 			};
 			name = Debug;
 		};

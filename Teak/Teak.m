@@ -77,6 +77,15 @@ Teak* _teakSharedInstance;
   return session;
 }
 
++ (dispatch_queue_t _Nonnull)operationQueue {
+  static dispatch_queue_t operationQueue = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    operationQueue = dispatch_queue_create("io.teak.sdk.operationQueue", DISPATCH_QUEUE_SERIAL);
+  });
+  return operationQueue;
+}
+
 + (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andApiKey:(NSString*)apiKey {
   Teak_Plant(appDelegateClass, [appId copy], [apiKey copy]);
 }
@@ -161,6 +170,18 @@ Teak* _teakSharedInstance;
   } else {
     [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
   }
+}
+
+- (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key {
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+    [session.userProfile setNumericAttribute:value forKey:key];
+  }];
+}
+
+- (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key {
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+    [session.userProfile setStringAttribute:value forKey:key];
+  }];
 }
 
 ////////////////////////////////////////////////////////////////////////////////

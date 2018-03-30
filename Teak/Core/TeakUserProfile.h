@@ -1,4 +1,4 @@
-/* Teak -- Copyright (C) 2016 GoCarrot Inc.
+/* Teak -- Copyright (C) 2018 GoCarrot Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,13 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#import "TeakRequest+Internal.h"
 
-@class TeakAppConfiguration;
 @class TeakSession;
 
-@interface TeakRemoteConfiguration : NSObject
-@property (strong, nonatomic, readonly) NSString* _Nonnull hostname;
-@property (strong, nonatomic, readonly) NSString* _Nullable sdkSentryDsn;
-@property (strong, nonatomic, readonly) NSString* _Nullable appSentryDsn;
-@property (strong, nonatomic, readonly) NSDictionary* _Nonnull endpointConfigurations;
+@interface TeakUserProfile : TeakRequest
 
-- (TeakRemoteConfiguration* _Nullable)initForSession:(TeakSession* _Nonnull)session;
-- (nonnull NSDictionary*)to_h;
+- (TeakUserProfile*)initForSession:(TeakSession*)session withDictionary:(NSDictionary*)dictionary;
+- (void)setNumericAttribute:(double)value forKey:(NSString*)key;
+- (void)setStringAttribute:(NSString*)value forKey:(NSString*)key;
 @end

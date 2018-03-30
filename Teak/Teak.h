@@ -124,6 +124,22 @@ extern NSString* _Nonnull const TeakOnReward;
  * @param count           The number that should be displayed on the icon.
  */
 - (void)setApplicationBadgeNumber:(int)count;
+
+/**
+ * Track a numeric player profile attribute.
+ *
+ * @param attributeName  The name of the numeric attribute.
+ * @param attributeValue The numeric value to assign.
+ */
+- (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key;
+
+/**
+ * Track a string player profile attribute.
+ *
+ * @param attributeName  The name of the string attribute.
+ * @param attributeValue The string value to assign.
+ */
+- (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key;
 @end
 
 #endif /* __OBJC__ */

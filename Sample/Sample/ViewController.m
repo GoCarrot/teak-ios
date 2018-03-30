@@ -44,6 +44,12 @@
 }
 
 - (IBAction)crashApp {
+  /*[[Teak sharedInstance] trackEventWithActionId:@"test0" forObjectTypeId:nil andObjectInstanceId:nil];
+  [[Teak sharedInstance] trackEventWithActionId:@"test1" forObjectTypeId:nil andObjectInstanceId:nil];
+  [[Teak sharedInstance] trackEventWithActionId:@"test2" forObjectTypeId:nil andObjectInstanceId:nil];*/
+  [[Teak sharedInstance] setNumericAttribute:(drand48() * 1000000.0) forKey:@"coins"];
+  return;
+
   //raise (SIGABRT);
   //return;
   NSString* bar = nil;

@@ -15,6 +15,7 @@
 
 #import "TeakEvent.h"
 #import "TeakState.h"
+#import "TeakUserProfile.h"
 #import <UIKit/UIKit.h>
 
 @class TeakSession;
@@ -30,6 +31,8 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readonly) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
 @property (strong, nonatomic, readonly) NSString* _Nullable userId;
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
+@property (strong, nonatomic, readonly) TeakState* _Nonnull currentState;
+@property (strong, nonatomic, readonly) TeakUserProfile* _Nonnull userProfile;
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);

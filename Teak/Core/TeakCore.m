@@ -40,11 +40,10 @@
   switch (event.type) {
     case TrackedEvent: {
       [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        TeakRequest* request = [[TeakRequest alloc]
-            initWithSession:session
-                forEndpoint:@"/me/events"
-                withPayload:((TrackEventEvent*)event).payload
-                   callback:nil];
+        TeakRequest* request = [TeakRequest requestWithSession:session
+                                                   forEndpoint:@"/me/events"
+                                                   withPayload:((TrackEventEvent*)event).payload
+                                                      callback:nil];
         [request send];
       }];
     } break;
@@ -53,11 +52,10 @@
     case PurchaseFailed:
     case PurchaseSucceeded: {
       [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        TeakRequest* request = [[TeakRequest alloc]
-            initWithSession:session
-                forEndpoint:@"/me/purchase"
-                withPayload:((PurchaseEvent*)event).payload
-                   callback:nil];
+        TeakRequest* request = [TeakRequest requestWithSession:session
+                                                   forEndpoint:@"/me/purchase"
+                                                   withPayload:((PurchaseEvent*)event).payload
+                                                      callback:nil];
         [request send];
       }];
     } break;

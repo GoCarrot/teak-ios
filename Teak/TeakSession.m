@@ -22,6 +22,7 @@
 #import "TeakRemoteConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakReward.h"
+#import "TeakUserProfile.h"
 #import "UserIdEvent.h"
 
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
@@ -30,7 +31,7 @@ TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
 @interface TeakSession ()
-@property (strong, nonatomic) TeakState* currentState;
+@property (strong, nonatomic, readwrite) TeakState* currentState;
 @property (strong, nonatomic) TeakState* previousState;
 @property (strong, nonatomic) NSDate* startDate;
 @property (strong, nonatomic) NSDate* endDate;
@@ -46,6 +47,8 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
+
+@property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
 @end
@@ -200,6 +203,7 @@ DefineTeakState(Expired, (@[]));
 
     // Kick off checking for push notification enabled
     payload[@"notifications_enabled"] = self.deviceConfiguration.notificationDisplayEnabled;
+    payload[@"supports_content_extensions"] = @([[UNUserNotificationCenter currentNotificationCenter] supportsContentExtensions]);
 
     if ([self.deviceConfiguration.advertisingIdentifier length] > 0) {
       payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
@@ -229,32 +233,36 @@ DefineTeakState(Expired, (@[]));
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
 
-    __weak TeakSession* weakSelf = self;
-    TeakRequest* request = [[TeakRequest alloc] initWithSession:self
-                                                    forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
-                                                    withPayload:payload
-                                                       callback:^(NSURLResponse* response, NSDictionary* reply) {
-                                                         __strong TeakSession* blockSelf = weakSelf;
+    __weak typeof(self) weakSelf = self;
+    TeakRequest* request = [TeakRequest requestWithSession:self
+                                               forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
+                                               withPayload:payload
+                                                  callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                                    __strong typeof(self) blockSelf = weakSelf;
 
-                                                         // TODO: Check response
-                                                         if (YES) {
-                                                           bool logLocal = [reply[@"verbose_logging"] boolValue];
-                                                           bool logRemote = [reply[@"log_remote"] boolValue];
-                                                           [[TeakConfiguration configuration].debugConfiguration setLogLocal:logLocal logRemote:logRemote];
+                                                    // TODO: Check response
+                                                    if (YES) {
+                                                      bool logLocal = [reply[@"verbose_logging"] boolValue];
+                                                      bool logRemote = [reply[@"log_remote"] boolValue];
+                                                      [[TeakConfiguration configuration].debugConfiguration setLogLocal:logLocal logRemote:logRemote];
 
-                                                           [Teak sharedInstance].enableDebugOutput |= logLocal;
-                                                           [Teak sharedInstance].enableRemoteLogging |= logRemote;
+                                                      [Teak sharedInstance].enableDebugOutput |= logLocal;
+                                                      [Teak sharedInstance].enableRemoteLogging |= logRemote;
 
-                                                           blockSelf.countryCode = reply[@"country_code"];
+                                                      blockSelf.countryCode = reply[@"country_code"];
 
-                                                           // For 'do_not_track_event'
-                                                           if (blockSelf.currentState == [TeakSession Expiring]) {
-                                                             blockSelf.previousState = [TeakSession UserIdentified];
-                                                           } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
-                                                             [blockSelf setState:[TeakSession UserIdentified]];
-                                                           }
-                                                         }
-                                                       }];
+                                                      // For 'do_not_track_event'
+                                                      if (blockSelf.currentState == [TeakSession Expiring]) {
+                                                        blockSelf.previousState = [TeakSession UserIdentified];
+                                                      } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
+                                                        [blockSelf setState:[TeakSession UserIdentified]];
+                                                      }
+
+                                                      // User profile
+                                                      blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
+                                                    }
+                                                  }];
+
     [request send];
   }
 }
@@ -537,7 +545,7 @@ DefineTeakState(Expired, (@[]));
   }];
 }
 
-KeyValueObserverFor(TeakSession, currentState) {
+KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   @synchronized(self) {
     if (oldValue == [TeakSession Created]) {
       UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
@@ -564,10 +572,10 @@ KeyValueObserverFor(TeakSession, currentState) {
       self.heartbeatQueue = dispatch_queue_create("io.teak.sdk.heartbeat", NULL);
 
       // Heartbeat
-      __weak TeakSession* weakSelf = self;
+      __weak typeof(self) weakSelf = self;
       self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
       dispatch_source_set_event_handler(self.heartbeat, ^{
-        __strong TeakSession* blockSelf = weakSelf;
+        __strong typeof(self) blockSelf = weakSelf;
         [blockSelf sendHeartbeat];
       });
 
@@ -594,28 +602,37 @@ KeyValueObserverFor(TeakSession, currentState) {
       }
       self.heartbeat = nil;
       self.heartbeatQueue = nil;
+
+      // Send user profile out now
+      if (self.userProfile != nil) {
+        __weak typeof(self) weakSelf = self;
+        dispatch_async([Teak operationQueue], ^{
+          __strong typeof(self) blockSelf = weakSelf;
+          [blockSelf.userProfile send];
+        });
+      }
     } else if (newValue == [TeakSession Expired]) {
       // TODO: Report Session to server, once we collect that info.
     }
   }
 }
 
-KeyValueObserverFor(TeakDeviceConfiguration, advertisingIdentifier) {
+KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, advertisingIdentifier) {
   TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
-KeyValueObserverFor(TeakDeviceConfiguration, pushToken) {
+KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, pushToken) {
   TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
-KeyValueObserverFor(TeakDeviceConfiguration, notificationDisplayEnabled) {
+KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, notificationDisplayEnabled) {
   TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }
 
-KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
+KeyValueObserverFor(TeakSession, TeakRemoteConfiguration, hostname) {
   TeakUnusedKVOValues;
   [self setState:[TeakSession Configured]];
 }
@@ -630,7 +647,7 @@ KeyValueObserverFor(TeakRemoteConfiguration, hostname) {
 }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-KeyValueObserverSupported;
+KeyValueObserverSupported(TeakSession);
 #pragma clang diagnostic pop
 
 @end

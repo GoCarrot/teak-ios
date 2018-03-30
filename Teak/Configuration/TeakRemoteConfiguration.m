@@ -26,6 +26,7 @@
 @property (strong, nonatomic, readwrite) NSString* hostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
 @property (strong, nonatomic, readwrite) NSString* appSentryDsn;
+@property (strong, nonatomic, readwrite) NSDictionary* endpointConfigurations;
 @end
 
 @implementation TeakRemoteConfiguration
@@ -33,9 +34,9 @@
 - (TeakRemoteConfiguration*)initForSession:(nonnull TeakSession*)session {
   self = [super init];
   if (self) {
-    __weak TeakRemoteConfiguration* weakSelf = self;
+    __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      __strong TeakRemoteConfiguration* blockSelf = weakSelf;
+      __strong typeof(self) blockSelf = weakSelf;
       [blockSelf configureForSession:session];
     });
   }
@@ -47,32 +48,34 @@
     NSDictionary* payload = @{@"id" : session.appConfiguration.appId,
                               @"deep_link_routes" : [TeakLink routeNamesAndDescriptions]};
 
-    TeakRequest* request = [[TeakRequest alloc]
-        initWithSession:session
-            forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
-            withPayload:payload
-               callback:^(NSURLResponse* response, NSDictionary* reply) {
-                 // TODO: Check response
-                 if (NO) {
-                 } else {
-                   self.hostname = @"gocarrot.com";
+    TeakRequest* request = [TeakRequest requestWithSession:session
+                                               forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
+                                               withPayload:payload
+                                                  callback:^(NSURLResponse* response, NSDictionary* reply) {
+                                                    // TODO: Check response
+                                                    if (NO) {
+                                                    } else {
+                                                      self.hostname = @"gocarrot.com";
 
-                   NSString* sdkSentryDsn = [reply valueForKey:@"sdk_sentry_dsn"];
-                   if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {
-                     self.sdkSentryDsn = sdkSentryDsn;
-                   }
+                                                      NSString* sdkSentryDsn = reply[@"sdk_sentry_dsn"];
+                                                      if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {
+                                                        self.sdkSentryDsn = sdkSentryDsn;
+                                                      }
 
-                   // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
-                   teak_try {
-                     BOOL blackholeUnregisterForRemoteNotifications = [[reply valueForKey:@"blackhole_unregister_for_remote_notifications"] boolValue];
-                     NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-                     [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
-                   }
-                   teak_catch_report;
+                                                      // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
+                                                      teak_try {
+                                                        BOOL blackholeUnregisterForRemoteNotifications = [reply[@"blackhole_unregister_for_remote_notifications"] boolValue];
+                                                        NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+                                                        [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
+                                                      }
+                                                      teak_catch_report;
 
-                   [RemoteConfigurationEvent remoteConfigurationReady:self];
-                 }
-               }];
+                                                      // Batching/endpoint configuration
+                                                      self.endpointConfigurations = reply[@"endpoint_configurations"];
+
+                                                      [RemoteConfigurationEvent remoteConfigurationReady:self];
+                                                    }
+                                                  }];
     [request send];
   }];
 

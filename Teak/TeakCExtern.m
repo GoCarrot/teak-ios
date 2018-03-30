@@ -111,3 +111,18 @@ BOOL TeakHasUserDisabledPushNotifications(void (^callback)(BOOL)) {
 void TeakSetBadgeCount(int count) {
   [[Teak sharedInstance] setApplicationBadgeNumber:count];
 }
+
+void TeakSetNumericAttribute(const char* cstr_key, double value) {
+  NSString* key = [NSString stringWithUTF8String:cstr_key];
+  if (key != nil) {
+    [[Teak sharedInstance] setNumericAttribute:value forKey:key];
+  }
+}
+
+void TeakSetStringAttribute(const char* cstr_key, const char* cstr_value) {
+  NSString* key = [NSString stringWithUTF8String:cstr_key];
+  NSString* value = [NSString stringWithUTF8String:cstr_value];
+  if (key != nil) {
+    [[Teak sharedInstance] setStringAttribute:value forKey:key];
+  }
+}
