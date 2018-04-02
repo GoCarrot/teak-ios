@@ -44,6 +44,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 @property (strong, nonatomic) SKPaymentObserver* _Nonnull paymentObserver;
 
 @property (nonatomic) BOOL skipTheNextOpenUrl;
+@property (nonatomic) BOOL skipTheNextDidReceiveNotificationResponse;
 
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;

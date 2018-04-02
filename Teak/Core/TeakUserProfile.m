@@ -46,38 +46,47 @@
 - (void)setAttribute:(id)value forKey:(NSString*)key inDictionary:(NSMutableDictionary*)dictionary {
   // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
   if (dictionary[key] != nil) {
-    if (self.scheduledBlock != nil) {
-      dispatch_block_cancel(self.scheduledBlock);
-    }
-
     dispatch_async([Teak operationQueue], ^{
-      dictionary[key] = value;
+      BOOL safeNotEquals = YES;
+      @try {
+        safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
+      } @finally {
+      }
 
-      self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-        [self send];
-      });
+      if (safeNotEquals) {
+        if (self.scheduledBlock != nil) {
+          dispatch_block_cancel(self.scheduledBlock);
+        }
 
-      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
-      dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
+        dictionary[key] = value;
+
+        self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+          [self send];
+        });
+
+        dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
+        dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
+      }
     });
   }
 }
 
 - (void)send {
-  // This could be in-progress, doesn't matter
+  // No scheduledBlock means no pending update
   if (self.scheduledBlock != nil) {
     dispatch_block_cancel(self.scheduledBlock);
+    self.scheduledBlock = nil;
+
+    NSMutableDictionary* payload = [self.payload mutableCopy];
+    [payload addEntriesFromDictionary:@{
+      @"string_attributes" : [self.stringAttributes copy],
+      @"number_attributes" : [self.numberAttributes copy],
+      @"context" : [self.context copy]
+    }];
+    self.payload = payload;
+
+    [super send];
   }
-
-  NSMutableDictionary* payload = [self.payload mutableCopy];
-  [payload addEntriesFromDictionary:@{
-    @"string_attributes" : [self.stringAttributes copy],
-    @"number_attributes" : [self.numberAttributes copy],
-    @"context" : [self.context copy]
-  }];
-  self.payload = payload;
-
-  [super send];
 }
 
 @end

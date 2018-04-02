@@ -48,6 +48,7 @@
   [[Teak sharedInstance] trackEventWithActionId:@"test1" forObjectTypeId:nil andObjectInstanceId:nil];
   [[Teak sharedInstance] trackEventWithActionId:@"test2" forObjectTypeId:nil andObjectInstanceId:nil];*/
   [[Teak sharedInstance] setNumericAttribute:(drand48() * 1000000.0) forKey:@"coins"];
+  [[Teak sharedInstance] setStringAttribute:[[NSProcessInfo processInfo] globallyUniqueString] forKey:@"last_slot"];
   return;
 
   //raise (SIGABRT);
