@@ -130,28 +130,9 @@ Teak* _teakSharedInstance;
   [TrackEventEvent trackedEventWithPayload:payload];
 }
 
-- (BOOL)hasUserDisabledPushNotifications:(void (^_Nonnull)(BOOL))callback {
-  if (callback == nil) return NO;
-
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
-      switch (settings.authorizationStatus) {
-        case UNAuthorizationStatusDenied: {
-          callback(YES);
-          break;
-        }
-        // Authorized or NotDetermined means they haven't disabled
-        case UNAuthorizationStatusAuthorized:
-        case UNAuthorizationStatusNotDetermined: {
-          callback(NO);
-        } break;
-      }
-    }];
-    return YES;
-  }
-
-  return NO;
+- (BOOL)hasUserDisabledPushNotifications {
+  [self.pushNotificationDisabledCheck waitUntilFinished];
+  return self.pushNotificationsDisabled;
 }
 
 - (BOOL)openSettingsAppToThisAppsSettings {
@@ -214,6 +195,8 @@ Teak* _teakSharedInstance;
 
     self.enableRemoteLogging = self.configuration.debugConfiguration.logRemote;
     self.enableRemoteLogging |= !self.configuration.appConfiguration.isProduction;
+
+    self.pushNotificationsDisabled = NO;
 
     // Add Unity/Air SDK version if applicable
     NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
@@ -432,6 +415,29 @@ Teak* _teakSharedInstance;
 - (void)applicationDidBecomeActive:(UIApplication*)application {
   TeakUnused(application);
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
+
+  // Check to see if the user has disabled push notifications
+  self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{
+      // Empty
+  }];
+
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
+      switch (settings.authorizationStatus) {
+        case UNAuthorizationStatusDenied: {
+          self.pushNotificationsDisabled = YES;
+          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
+        } break;
+          // Authorized or NotDetermined means they haven't disabled
+        case UNAuthorizationStatusAuthorized:
+        case UNAuthorizationStatusNotDetermined: {
+          self.pushNotificationsDisabled = NO;
+          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
+        } break;
+      }
+    }];
+  }
 
   // Zero-out the badge count
   [self setApplicationBadgeNumber:0];

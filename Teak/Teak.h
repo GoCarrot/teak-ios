@@ -106,12 +106,10 @@ extern NSString* _Nonnull const TeakOnReward;
  * If they have disabled push notifications, you can prompt them to re-enable
  * and use openSettingsAppToThisAppsSettings to open the Settings app.
  *
- * @param callback        The callback will be passed YES iff the user has disabled push notifications.
- *
- * @return                YES if Teak will be able to determine the status of push notifications, NO otherwise.
- *                        If the return value is NO, the callback will not be called.
+ * @return                YES if the user has disabled push notifications, NO if Teak was unable to determine
+ *                        push notification status or if push notifications are not disabled
  */
-- (BOOL)hasUserDisabledPushNotifications:(void (^_Nonnull)(BOOL))callback;
+- (BOOL)hasUserDisabledPushNotifications;
 
 /**
  * Open Settings.app to the settings for this application.
