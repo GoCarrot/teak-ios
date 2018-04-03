@@ -100,8 +100,8 @@ void TeakRegisterRoute(const char* route, const char* name, const char* descript
   [TeakLink registerRoute:[NSString stringWithUTF8String:route] name:[NSString stringWithUTF8String:name] description:[NSString stringWithUTF8String:description] block:block];
 }
 
-void TeakOpenSettingsAppToThisAppsSettings() {
-  [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
+BOOL TeakOpenSettingsAppToThisAppsSettings() {
+  return [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
 }
 
 BOOL TeakHasUserDisabledPushNotifications(void (^callback)(BOOL)) {

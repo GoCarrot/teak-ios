@@ -115,8 +115,10 @@ extern NSString* _Nonnull const TeakOnReward;
 
 /**
  * Open Settings.app to the settings for this application.
+ *
+ * @return                YES if Settings.app was opened.
  */
-- (void)openSettingsAppToThisAppsSettings;
+- (BOOL)openSettingsAppToThisAppsSettings;
 
 /**
  * Set the badge number on the icon of the application.

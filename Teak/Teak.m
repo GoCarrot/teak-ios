@@ -154,8 +154,8 @@ Teak* _teakSharedInstance;
   return NO;
 }
 
-- (void)openSettingsAppToThisAppsSettings {
-  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+- (BOOL)openSettingsAppToThisAppsSettings {
+  return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 }
 
 - (void)setApplicationBadgeNumber:(int)count {
