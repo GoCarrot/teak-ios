@@ -460,6 +460,10 @@ void TeakSignalHandler(int signal) {
 }
 
 - (void)send {
+  if ([Teak sharedInstance].log != nil) {
+    TeakLog_e(@"exception", self.payload);
+  }
+
   if (self.raven.endpoint == nil) return;
 
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:self.raven.endpoint];
