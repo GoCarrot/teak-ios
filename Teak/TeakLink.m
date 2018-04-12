@@ -118,6 +118,8 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 }
 
 + (BOOL)handleDeepLink:(NSURL*)deepLink {
+  if (deepLink == nil || deepLink.path == nil) return NO;
+
   NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistration];
   for (NSString* key in deepLinkPatterns) {
     NSError* error = nil;
