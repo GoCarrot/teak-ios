@@ -205,7 +205,6 @@ Teak* _teakSharedInstance;
     }
     TeakVersionDict = sdkDict;
 
-    // TODO
     [self.log useSdk:TeakVersionDict];
     [self.log useAppConfiguration:self.configuration.appConfiguration];
     [self.log useDeviceConfiguration:self.configuration.deviceConfiguration];
@@ -222,6 +221,9 @@ Teak* _teakSharedInstance;
 
     // Payment observer
     self.paymentObserver = [[SKPaymentObserver alloc] init];
+
+    // Set up internal deep link routes
+    [self setupInternalDeepLinkRoutes];
 
     self.skipTheNextOpenUrl = NO;
     self.skipTheNextDidReceiveNotificationResponse = NO;
@@ -295,6 +297,25 @@ Teak* _teakSharedInstance;
 
     return TeakLink_HandleDeepLink(url);
   }
+}
+
+- (void)setupInternalDeepLinkRoutes {
+  // Register default purchase deep link
+  [TeakLink registerRoute:@"/teak_internal/store/:sku"
+                     name:@""
+              description:@""
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      [ProductRequest productRequestForSku:parameters[@"sku"]
+                                                  callback:^(NSDictionary* unused, SKProductsResponse* response) {
+                                                    if (response.products.count > 0) {
+                                                      SKProduct* product = [response.products objectAtIndex:0];
+
+                                                      SKMutablePayment* payment = [SKMutablePayment paymentWithProduct:product];
+                                                      payment.quantity = 1;
+                                                      [[SKPaymentQueue defaultQueue] addPayment:payment];
+                                                    }
+                                                  }];
+                    }];
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {

@@ -16,21 +16,14 @@
 #import "SKPaymentObserver.h"
 #import "PurchaseEvent.h"
 #import "Teak+Internal.h"
-#import <StoreKit/StoreKit.h>
 
 @interface SKPaymentObserver () <SKPaymentTransactionObserver, TeakEventHandler>
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions;
 @end
 
-typedef void (^ProductRequestCallback)(NSDictionary*, SKProductsResponse*);
-
-@interface ProductRequest : NSObject <SKProductsRequestDelegate>
+@interface ProductRequest ()
 @property (copy, nonatomic) ProductRequestCallback callback;
 @property (strong, nonatomic) SKProductsRequest* productsRequest;
-
-+ (ProductRequest*)productRequestForSku:(NSString*)sku callback:(ProductRequestCallback)callback;
-
-- (void)productsRequest:(SKProductsRequest*)request didReceiveResponse:(SKProductsResponse*)response;
 @end
 
 @implementation SKPaymentObserver
@@ -38,24 +31,6 @@ typedef void (^ProductRequestCallback)(NSDictionary*, SKProductsResponse*);
   self = [super init];
   if (self) {
     [TeakEvent addEventHandler:self];
-
-    // Register default purchase deep link
-    // TODO: Should this be here, or somewhere else
-    [TeakLink registerRoute:@"/teak_internal/store/:sku"
-                       name:@""
-                description:@""
-                      block:^(NSDictionary* _Nonnull parameters) {
-                        [ProductRequest productRequestForSku:parameters[@"sku"]
-                                                    callback:^(NSDictionary* unused, SKProductsResponse* response) {
-                                                      if (response.products.count > 0) {
-                                                        SKProduct* product = [response.products objectAtIndex:0];
-
-                                                        SKMutablePayment* payment = [SKMutablePayment paymentWithProduct:product];
-                                                        payment.quantity = 1;
-                                                        [[SKPaymentQueue defaultQueue] addPayment:payment];
-                                                      }
-                                                    }];
-                      }];
   }
   return self;
 }
