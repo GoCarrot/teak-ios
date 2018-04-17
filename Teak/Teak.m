@@ -316,6 +316,37 @@ Teak* _teakSharedInstance;
                                                     }
                                                   }];
                     }];
+
+  // Register callback for Teak companion app
+  [TeakLink registerRoute:@"/teak_internal/companion"
+                     name:@""
+              description:@""
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+                        NSDictionary* responseDict = @{
+                          @"user_id" : session.userId,
+                          @"device_id" : session.deviceConfiguration.deviceId
+                        };
+                        NSError* error = nil;
+                        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:responseDict options:0 error:&error];
+
+                        NSString* valueString;
+                        NSString* keyString;
+                        if (error) {
+                          TeakLog_e(@"companion.error", @{@"dictionary" : responseDict, @"error" : error});
+                          keyString = @"error";
+                          valueString = URLEscapedString([error description]);
+                        } else {
+                          keyString = @"response";
+                          valueString = URLEscapedString([[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding]);
+                        }
+
+                        NSString* openUrlString = [NSString stringWithFormat:@"teak:///callback?%@=%@", keyString, valueString];
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                          [[UIApplication sharedApplication] openURL:[NSURL URLWithString:openUrlString]];
+                        });
+                      }];
+                    }];
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
