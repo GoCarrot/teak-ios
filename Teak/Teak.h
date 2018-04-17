@@ -140,6 +140,20 @@ extern NSString* _Nonnull const TeakOnReward;
  * @param attributeValue The string value to assign.
  */
 - (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key;
+
+/**
+ * Get Teak's configuration data about the current device.
+ *
+ * @return JSON string containing device info, or null if it's not ready
+ */
+- (NSString* _Nullable)getDeviceConfiguration;
+
+/**
+ * Get Teak's configuration data about the current app.
+ *
+ * @return JSON string containing device info, or null if it's not ready
+ */
+- (NSString* _Nullable)getAppConfiguration;
 @end
 
 #endif /* __OBJC__ */

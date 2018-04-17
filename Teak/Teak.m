@@ -165,6 +165,32 @@ Teak* _teakSharedInstance;
   }];
 }
 
+- (NSString*)getConfiguration:(NSString*)configuration {
+  NSDictionary* configurationDict;
+  if ([@"appConfiguration" isEqualToString:configuration]) {
+    configurationDict = [[TeakConfiguration configuration].appConfiguration to_h];
+  } else if ([@"deviceConfiguration" isEqualToString:configuration]) {
+    configurationDict = [[TeakConfiguration configuration].deviceConfiguration to_h];
+  }
+  if (configurationDict == nil) return nil;
+
+  NSError* error = nil;
+  NSData* jsonData = [NSJSONSerialization dataWithJSONObject:configurationDict options:0 error:&error];
+  if (error != nil) {
+    return nil;
+  }
+
+  return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+}
+
+- (NSString*)getDeviceConfiguration {
+  return [self getConfiguration:@"deviceConfiguration"];
+}
+
+- (NSString*)getAppConfiguration {
+  return [self getConfiguration:@"appConfiguration"];
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret {

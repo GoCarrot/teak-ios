@@ -126,3 +126,11 @@ void TeakSetStringAttribute(const char* cstr_key, const char* cstr_value) {
     [[Teak sharedInstance] setStringAttribute:value forKey:key];
   }
 }
+
+const char* TeakGetAppConfiguration() {
+  return [[[Teak sharedInstance] getAppConfiguration] UTF8String];
+}
+
+const char* TeakGetDeviceConfiguration() {
+  return [[[Teak sharedInstance] getDeviceConfiguration] UTF8String];
+}
