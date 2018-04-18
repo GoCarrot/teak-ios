@@ -163,7 +163,7 @@
       NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
       NSDecimalNumber* price = product.price;
 
-      self.callback(@{@"price_currency_code" : _(currencyCode), @"price_float" : price}, response);
+      self.callback(@{@"price_currency_code" : _(currencyCode), @"price_float" : _(price)}, response);
     }
     teak_catch_report;
   } else {
