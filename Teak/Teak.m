@@ -424,8 +424,9 @@ Teak* _teakSharedInstance;
 
   // If the app was not running, we need to check these and invoke them afterwards
   if (launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]) {
-    self.skipTheNextDidReceiveNotificationResponse = YES;
+    self.skipTheNextDidReceiveNotificationResponse = NO;
     [self application:application didReceiveRemoteNotification:launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey]];
+    self.skipTheNextDidReceiveNotificationResponse = YES; // Be sure to assign 'YES' *after* the call
   } else if (launchOptions[UIApplicationLaunchOptionsURLKey]) {
     self.skipTheNextOpenUrl = [self application:application
                                         openURL:launchOptions[UIApplicationLaunchOptionsURLKey]
@@ -555,11 +556,7 @@ Teak* _teakSharedInstance;
 
   // Call application:didReceiveRemoteNotification: since that is not called in the UNNotificationCenter
   // code path.
-  if (self.skipTheNextDidReceiveNotificationResponse) {
-    self.skipTheNextDidReceiveNotificationResponse = NO;
-  } else {
-    [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:response.notification.request.content.userInfo];
-  }
+  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:response.notification.request.content.userInfo];
 
   // Completion handler
   completionHandler();
@@ -601,6 +598,12 @@ Teak* _teakSharedInstance;
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
+  // Check to see if this should be skipped
+  if (self.skipTheNextDidReceiveNotificationResponse) {
+    self.skipTheNextDidReceiveNotificationResponse = NO;
+    return;
+  }
+
   NSDictionary* aps = userInfo[@"aps"];
   NSString* teakNotifId = NSStringOrNilFor(aps[@"teakNotifId"]);
 
