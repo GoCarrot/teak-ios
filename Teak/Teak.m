@@ -333,7 +333,7 @@ Teak* _teakSharedInstance;
                     block:^(NSDictionary* _Nonnull parameters) {
                       [ProductRequest productRequestForSku:parameters[@"sku"]
                                                   callback:^(NSDictionary* unused, SKProductsResponse* response) {
-                                                    if (response.products.count > 0) {
+                                                    if (response != nil && response.products != nil && response.products.count > 0) {
                                                       SKProduct* product = [response.products objectAtIndex:0];
 
                                                       SKMutablePayment* payment = [SKMutablePayment paymentWithProduct:product];
