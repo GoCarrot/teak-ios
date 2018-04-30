@@ -212,7 +212,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     NSMutableString* sortedQueryString = [[NSMutableString alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
-      id value = [payloadToSign objectForKey:key];
+      id value = payloadToSign[key];
 
       NSString* valueString = value;
       if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
@@ -277,7 +277,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     for (NSString* key in signedPayload) {
       [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, [signedPayload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
+      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, signedPayload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
     }
     [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
