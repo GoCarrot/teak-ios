@@ -202,17 +202,19 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return self;
 }
 
-- (nonnull NSDictionary*)signedPayload:(nonnull NSDictionary*)payloadToSign withSession:(nonnull TeakSession*)session {
+- (nonnull NSDictionary*)signedPayload {
+  NSMutableDictionary* signedPayload = [[NSMutableDictionary alloc] init];
+
   teak_try {
     NSString* path = self.endpoint;
     if (path == nil || path.length < 1) path = @"/";
 
     // Build query string to sign
-    NSArray* queryKeysSorted = [[payloadToSign allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
+    NSArray* queryKeysSorted = [[self.payload allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
     NSMutableString* sortedQueryString = [[NSMutableString alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
-      id value = payloadToSign[key];
+      id value = self.payload[key];
 
       NSString* valueString = value;
       if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
@@ -232,16 +234,15 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     NSData* dataToSign = [stringToSign dataUsingEncoding:NSUTF8StringEncoding];
     uint8_t digestBytes[CC_SHA256_DIGEST_LENGTH];
-    CCHmac(kCCHmacAlgSHA256, [session.appConfiguration.apiKey UTF8String], session.appConfiguration.apiKey.length, [dataToSign bytes], [dataToSign length], &digestBytes);
+    CCHmac(kCCHmacAlgSHA256, [self.session.appConfiguration.apiKey UTF8String], self.session.appConfiguration.apiKey.length, [dataToSign bytes], [dataToSign length], &digestBytes);
 
     NSData* digestData = [NSData dataWithBytes:digestBytes length:CC_SHA256_DIGEST_LENGTH];
     NSString* sigString = [digestData base64EncodedStringWithOptions:0];
 
     // Build params dictionary with JSON object representations
-    NSMutableDictionary* retParams = [[NSMutableDictionary alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
-      id value = payloadToSign[key];
+      id value = self.payload[key];
       NSString* valueString = value;
       if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
         NSError* error = nil;
@@ -254,15 +255,15 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         }
       }
-      retParams[key] = valueString;
+      signedPayload[key] = valueString;
     }
-    retParams[@"sig"] = sigString;
+    signedPayload[@"sig"] = sigString;
 
-    return retParams;
+    return signedPayload;
   }
   teak_catch_report;
 
-  return payloadToSign;
+  return signedPayload;
 }
 
 - (void)send {
@@ -270,7 +271,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
-    NSDictionary* signedPayload = [self signedPayload:self.payload withSession:self.session];
+    NSDictionary* signedPayload = [self signedPayload];
     NSString* boundry = @"-===-httpB0unDarY-==-";
 
     NSMutableData* postData = [[NSMutableData alloc] init];
