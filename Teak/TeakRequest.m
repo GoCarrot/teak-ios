@@ -84,6 +84,8 @@
 
 ///// TeakRequest impl
 
+NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
+
 @implementation TeakRequest
 
 + (NSURLSession*)sharedURLSession {
@@ -286,7 +288,9 @@
     [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
 
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];
-    [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = self;
+    @synchronized(TeakRequestsInFlightMutex) {
+      [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = self;
+    }
     self.sendDate = [NSDate date];
     [dataTask resume];
 
@@ -536,11 +540,13 @@ KeyValueObserverSupported(TeakBatchedRequest);
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
   teak_try {
-    NSMutableData* responseData = self.responseData[@(dataTask.taskIdentifier)];
-    if (!responseData) {
-      self.responseData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
-    } else {
-      [responseData appendData:data];
+    @synchronized(self) {
+      NSMutableData* responseData = self.responseData[@(dataTask.taskIdentifier)];
+      if (!responseData) {
+        self.responseData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
+      } else {
+        [responseData appendData:data];
+      }
     }
   }
   teak_catch_report;
@@ -552,20 +558,29 @@ KeyValueObserverSupported(TeakBatchedRequest);
     // TODO: Server errors don't come in here, not certain what should be handled here
   } else {
     teak_try {
-      reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
-                                                             options:kNilOptions
-                                                               error:&error];
+      @synchronized(self) {
+        reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
+                                                               options:kNilOptions
+                                                                 error:&error];
+      }
+
       if (error) {
         reply = @{};
       }
     }
     teak_catch_report;
   }
-  [self.responseData removeObjectForKey:@(dataTask.taskIdentifier)];
-  TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
-  if (request) {
-    [request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error];
-    [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
+
+  @synchronized(self) {
+    [self.responseData removeObjectForKey:@(dataTask.taskIdentifier)];
+  }
+
+  @synchronized(TeakRequestsInFlightMutex) {
+    TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
+    if (request) {
+      [request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error];
+      [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
+    }
   }
 }
 
