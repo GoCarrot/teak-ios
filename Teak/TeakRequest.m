@@ -202,9 +202,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return self;
 }
 
-- (nonnull NSDictionary*)signedPayload {
-  NSMutableDictionary* signedPayload = [[NSMutableDictionary alloc] init];
-
+- (nullable NSDictionary*)signedPayload {
   teak_try {
     NSString* path = self.endpoint;
     if (path == nil || path.length < 1) path = @"/";
@@ -240,6 +238,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     NSString* sigString = [digestData base64EncodedStringWithOptions:0];
 
     // Build params dictionary with JSON object representations
+    NSMutableDictionary* signedPayload = [[NSMutableDictionary alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
       id value = self.payload[key];
@@ -263,7 +262,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   }
   teak_catch_report;
 
-  return signedPayload;
+  return nil;
 }
 
 - (void)send {
@@ -272,6 +271,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
     NSDictionary* signedPayload = [self signedPayload];
+    if (signedPayload == nil) {
+      TeakLog_e(@"request.send", @"[self signedPayload] failed.");
+      return;
+    }
+
     NSString* boundry = @"-===-httpB0unDarY-==-";
 
     NSMutableData* postData = [[NSMutableData alloc] init];
