@@ -220,6 +220,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
         if (error) {
           TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
+          teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
           valueString = [value description];
         } else {
           valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
@@ -249,6 +250,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
         if (error) {
           TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
+          teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
           valueString = [value description];
         } else {
           valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
@@ -277,6 +279,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     }
 
     NSString* boundry = @"-===-httpB0unDarY-==-";
+    teak_log_data_breadcrumb(@"request.send.signedPayload", signedPayload);
 
     NSMutableData* postData = [[NSMutableData alloc] init];
 
@@ -291,6 +294,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     [request setHTTPBody:postData];
     NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
     [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
+    teak_log_breadcrumb(@"request.send.constructed");
 
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];
     @synchronized(TeakRequestsInFlightMutex) {
@@ -300,6 +304,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     [dataTask resume];
 
     TeakLog_i(@"request.send", [self to_h]);
+    teak_log_breadcrumb(@"request.send.sent");
   }
   teak_catch_report;
 }
