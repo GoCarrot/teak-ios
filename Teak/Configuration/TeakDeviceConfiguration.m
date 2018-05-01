@@ -126,13 +126,13 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
 
 - (void)updateValuesThatCouldHaveChanged {
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    [[Teak sharedInstance] hasUserDisabledPushNotifications:^(BOOL disabled) {
-      NSString* newNotificationDisplayState = disabled ? TeakDeviceConfiguration_NotificationDisplayState_Disabled : TeakDeviceConfiguration_NotificationDisplayState_Enabled;
-      // Only asign if different for KVO
-      if (![self.notificationDisplayEnabled isEqualToString:newNotificationDisplayState]) {
-        self.notificationDisplayEnabled = newNotificationDisplayState;
-      }
-    }];
+    BOOL disabled = [[Teak sharedInstance] hasUserDisabledPushNotifications];
+    NSString* newNotificationDisplayState = disabled ? TeakDeviceConfiguration_NotificationDisplayState_Disabled : TeakDeviceConfiguration_NotificationDisplayState_Enabled;
+
+    // Only asign if different for KVO
+    if (![self.notificationDisplayEnabled isEqualToString:newNotificationDisplayState]) {
+      self.notificationDisplayEnabled = newNotificationDisplayState;
+    }
   });
 }
 

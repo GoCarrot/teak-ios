@@ -84,6 +84,8 @@
 
 ///// TeakRequest impl
 
+NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
+
 @implementation TeakRequest
 
 + (NSURLSession*)sharedURLSession {
@@ -200,17 +202,17 @@
   return self;
 }
 
-- (nonnull NSDictionary*)signedPayload:(nonnull NSDictionary*)payloadToSign withSession:(nonnull TeakSession*)session {
+- (nonnull NSDictionary*)signedPayload {
   teak_try {
     NSString* path = self.endpoint;
     if (path == nil || path.length < 1) path = @"/";
 
     // Build query string to sign
-    NSArray* queryKeysSorted = [[payloadToSign allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
+    NSArray* queryKeysSorted = [[self.payload allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
     NSMutableString* sortedQueryString = [[NSMutableString alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
-      id value = [payloadToSign objectForKey:key];
+      id value = self.payload[key];
 
       NSString* valueString = value;
       if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
@@ -218,6 +220,7 @@
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
         if (error) {
           TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
+          teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
           valueString = [value description];
         } else {
           valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
@@ -230,16 +233,16 @@
 
     NSData* dataToSign = [stringToSign dataUsingEncoding:NSUTF8StringEncoding];
     uint8_t digestBytes[CC_SHA256_DIGEST_LENGTH];
-    CCHmac(kCCHmacAlgSHA256, [session.appConfiguration.apiKey UTF8String], session.appConfiguration.apiKey.length, [dataToSign bytes], [dataToSign length], &digestBytes);
+    CCHmac(kCCHmacAlgSHA256, [self.session.appConfiguration.apiKey UTF8String], self.session.appConfiguration.apiKey.length, [dataToSign bytes], [dataToSign length], &digestBytes);
 
     NSData* digestData = [NSData dataWithBytes:digestBytes length:CC_SHA256_DIGEST_LENGTH];
     NSString* sigString = [digestData base64EncodedStringWithOptions:0];
 
     // Build params dictionary with JSON object representations
-    NSMutableDictionary* retParams = [[NSMutableDictionary alloc] init];
+    NSMutableDictionary* signedPayload = [[NSMutableDictionary alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
-      id value = payloadToSign[key];
+      id value = self.payload[key];
       NSString* valueString = value;
       if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
         NSError* error = nil;
@@ -247,20 +250,21 @@
 
         if (error) {
           TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
+          teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
           valueString = [value description];
         } else {
           valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         }
       }
-      retParams[key] = valueString;
+      signedPayload[key] = valueString;
     }
-    retParams[@"sig"] = sigString;
+    signedPayload[@"sig"] = sigString;
 
-    return retParams;
+    return self.payload;
   }
   teak_catch_report;
 
-  return payloadToSign;
+  return nil;
 }
 
 - (void)send {
@@ -268,14 +272,16 @@
 
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
-    NSDictionary* signedPayload = [self signedPayload:self.payload withSession:self.session];
+    NSDictionary* signedPayload = [self signedPayload];
+
     NSString* boundry = @"-===-httpB0unDarY-==-";
+    teak_log_data_breadcrumb(@"request.send.signedPayload", signedPayload);
 
     NSMutableData* postData = [[NSMutableData alloc] init];
 
     for (NSString* key in signedPayload) {
       [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, [signedPayload objectForKey:key]] dataUsingEncoding:NSUTF8StringEncoding]];
+      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, signedPayload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
     }
     [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
@@ -284,13 +290,17 @@
     [request setHTTPBody:postData];
     NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
     [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
+    teak_log_breadcrumb(@"request.send.constructed");
 
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];
-    [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = self;
+    @synchronized(TeakRequestsInFlightMutex) {
+      [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = self;
+    }
     self.sendDate = [NSDate date];
     [dataTask resume];
 
     TeakLog_i(@"request.send", [self to_h]);
+    teak_log_breadcrumb(@"request.send.sent");
   }
   teak_catch_report;
 }
@@ -326,7 +336,7 @@
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
-        if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
+        if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
           // Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
@@ -339,7 +349,7 @@
             [self send];
           });
         } else if (self.callback) {
-          self.callback(response, payload);
+          self.callback(payload);
         }
       }
       teak_catch_report;
@@ -361,10 +371,10 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
       forHostname:@"gocarrot.com"
       withEndpoint:@"/me/events"
       withPayload:@{}
-      callback:^(NSHTTPURLResponse* response, NSDictionary* reply) {
+      callback:^(NSDictionary* reply) {
         // Trigger any callbacks
         for (TeakRequestResponse callback in self.callbacks) {
-          callback(response, reply);
+          callback(reply);
         }
       }
       addCommonPayload:YES];
@@ -536,11 +546,13 @@ KeyValueObserverSupported(TeakBatchedRequest);
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveData:(NSData*)data {
   teak_try {
-    NSMutableData* responseData = self.responseData[@(dataTask.taskIdentifier)];
-    if (!responseData) {
-      self.responseData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
-    } else {
-      [responseData appendData:data];
+    @synchronized(self) {
+      NSMutableData* responseData = self.responseData[@(dataTask.taskIdentifier)];
+      if (!responseData) {
+        self.responseData[@(dataTask.taskIdentifier)] = [NSMutableData dataWithData:data];
+      } else {
+        [responseData appendData:data];
+      }
     }
   }
   teak_catch_report;
@@ -552,20 +564,29 @@ KeyValueObserverSupported(TeakBatchedRequest);
     // TODO: Server errors don't come in here, not certain what should be handled here
   } else {
     teak_try {
-      reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
-                                                             options:kNilOptions
-                                                               error:&error];
+      @synchronized(self) {
+        reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
+                                                               options:kNilOptions
+                                                                 error:&error];
+      }
+
       if (error) {
         reply = @{};
       }
     }
     teak_catch_report;
   }
-  [self.responseData removeObjectForKey:@(dataTask.taskIdentifier)];
-  TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
-  if (request) {
-    [request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error];
-    [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
+
+  @synchronized(self) {
+    [self.responseData removeObjectForKey:@(dataTask.taskIdentifier)];
+  }
+
+  @synchronized(TeakRequestsInFlightMutex) {
+    TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
+    if (request) {
+      [request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error];
+      [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
+    }
   }
 }
 

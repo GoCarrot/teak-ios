@@ -18,7 +18,7 @@
 @class TeakRequest;
 @class TeakSession;
 
-typedef void (^TeakRequestResponse)(NSHTTPURLResponse* _Nonnull response, NSDictionary* _Nonnull reply);
+typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 
 @interface TeakBatchConfiguration : NSObject
 @property (nonatomic) float time;

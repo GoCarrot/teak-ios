@@ -100,12 +100,12 @@ void TeakRegisterRoute(const char* route, const char* name, const char* descript
   [TeakLink registerRoute:[NSString stringWithUTF8String:route] name:[NSString stringWithUTF8String:name] description:[NSString stringWithUTF8String:description] block:block];
 }
 
-void TeakOpenSettingsAppToThisAppsSettings() {
-  [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
+BOOL TeakOpenSettingsAppToThisAppsSettings() {
+  return [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
 }
 
-BOOL TeakHasUserDisabledPushNotifications(void (^callback)(BOOL)) {
-  return [[Teak sharedInstance] hasUserDisabledPushNotifications:callback];
+BOOL TeakHasUserDisabledPushNotifications() {
+  return [[Teak sharedInstance] hasUserDisabledPushNotifications];
 }
 
 void TeakSetBadgeCount(int count) {
@@ -125,4 +125,12 @@ void TeakSetStringAttribute(const char* cstr_key, const char* cstr_value) {
   if (key != nil) {
     [[Teak sharedInstance] setStringAttribute:value forKey:key];
   }
+}
+
+const char* TeakGetAppConfiguration() {
+  return [[[Teak sharedInstance] getAppConfiguration] UTF8String];
+}
+
+const char* TeakGetDeviceConfiguration() {
+  return [[[Teak sharedInstance] getDeviceConfiguration] UTF8String];
 }

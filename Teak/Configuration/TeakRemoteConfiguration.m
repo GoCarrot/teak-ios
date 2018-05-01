@@ -51,30 +51,26 @@
     TeakRequest* request = [TeakRequest requestWithSession:session
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
                                                withPayload:payload
-                                                  callback:^(NSURLResponse* response, NSDictionary* reply) {
-                                                    // TODO: Check response
-                                                    if (NO) {
-                                                    } else {
-                                                      self.hostname = @"gocarrot.com";
+                                                  callback:^(NSDictionary* reply) {
+                                                    self.hostname = @"gocarrot.com";
 
-                                                      NSString* sdkSentryDsn = reply[@"sdk_sentry_dsn"];
-                                                      if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {
-                                                        self.sdkSentryDsn = sdkSentryDsn;
-                                                      }
-
-                                                      // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
-                                                      teak_try {
-                                                        BOOL blackholeUnregisterForRemoteNotifications = [reply[@"blackhole_unregister_for_remote_notifications"] boolValue];
-                                                        NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-                                                        [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
-                                                      }
-                                                      teak_catch_report;
-
-                                                      // Batching/endpoint configuration
-                                                      self.endpointConfigurations = reply[@"endpoint_configurations"];
-
-                                                      [RemoteConfigurationEvent remoteConfigurationReady:self];
+                                                    NSString* sdkSentryDsn = reply[@"sdk_sentry_dsn"];
+                                                    if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {
+                                                      self.sdkSentryDsn = sdkSentryDsn;
                                                     }
+
+                                                    // Optionally blackhole calls to [UIApplication unregisterForRemoteNotifications]
+                                                    teak_try {
+                                                      BOOL blackholeUnregisterForRemoteNotifications = [reply[@"blackhole_unregister_for_remote_notifications"] boolValue];
+                                                      NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+                                                      [userDefaults setBool:blackholeUnregisterForRemoteNotifications forKey:kBlackholeUnregisterForRemoteNotifications];
+                                                    }
+                                                    teak_catch_report;
+
+                                                    // Batching/endpoint configuration
+                                                    self.endpointConfigurations = reply[@"endpoint_configurations"];
+
+                                                    [RemoteConfigurationEvent remoteConfigurationReady:self];
                                                   }];
     [request send];
   }];

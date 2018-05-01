@@ -46,6 +46,9 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 @property (nonatomic) BOOL skipTheNextOpenUrl;
 @property (nonatomic) BOOL skipTheNextDidReceiveNotificationResponse;
 
+@property (nonatomic) BOOL pushNotificationsDisabled;
+@property (strong, nonatomic) NSOperation* _Nonnull pushNotificationDisabledCheck;
+
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;
 

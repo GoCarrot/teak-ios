@@ -118,6 +118,8 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 }
 
 + (BOOL)handleDeepLink:(NSURL*)deepLink {
+  if (deepLink == nil || deepLink.path == nil) return NO;
+
   NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistration];
   for (NSString* key in deepLinkPatterns) {
     NSError* error = nil;
@@ -126,10 +128,11 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
       TeakLog_e(@"deep_link.parse_error", @{@"error" : [error localizedDescription]});
     } else {
       teak_try {
+        teak_log_data_breadcrumb(@"Looking for matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink.path}));
         NSRange range = NSMakeRange(0, [deepLink.path length]);
         NSTextCheckingResult* match = [regExp firstMatchInString:deepLink.path options:0 range:range];
         if (match != nil) {
-          teak_log_data_breadcrumb(@"Found matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink.path}));
+          teak_log_data_breadcrumb(@"Found matching pattern", (@{@"match" : [match description]}));
           TeakLink* link = deepLinkPatterns[key];
           NSMutableDictionary* params = [[NSMutableDictionary alloc] init];
           for (NSUInteger i = 0; i < [link.argumentIndicies count]; i++) {

@@ -130,32 +130,13 @@ Teak* _teakSharedInstance;
   [TrackEventEvent trackedEventWithPayload:payload];
 }
 
-- (BOOL)hasUserDisabledPushNotifications:(void (^_Nonnull)(BOOL))callback {
-  if (callback == nil) return NO;
-
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
-      switch (settings.authorizationStatus) {
-        case UNAuthorizationStatusDenied: {
-          callback(YES);
-          break;
-        }
-        // Authorized or NotDetermined means they haven't disabled
-        case UNAuthorizationStatusAuthorized:
-        case UNAuthorizationStatusNotDetermined: {
-          callback(NO);
-        } break;
-      }
-    }];
-    return YES;
-  }
-
-  return NO;
+- (BOOL)hasUserDisabledPushNotifications {
+  [self.pushNotificationDisabledCheck waitUntilFinished];
+  return self.pushNotificationsDisabled;
 }
 
-- (void)openSettingsAppToThisAppsSettings {
-  [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+- (BOOL)openSettingsAppToThisAppsSettings {
+  return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 }
 
 - (void)setApplicationBadgeNumber:(int)count {
@@ -182,6 +163,32 @@ Teak* _teakSharedInstance;
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
     [session.userProfile setStringAttribute:value forKey:key];
   }];
+}
+
+- (NSString*)getConfiguration:(NSString*)configuration {
+  NSDictionary* configurationDict;
+  if ([@"appConfiguration" isEqualToString:configuration]) {
+    configurationDict = [[TeakConfiguration configuration].appConfiguration to_h];
+  } else if ([@"deviceConfiguration" isEqualToString:configuration]) {
+    configurationDict = [[TeakConfiguration configuration].deviceConfiguration to_h];
+  }
+  if (configurationDict == nil) return nil;
+
+  NSError* error = nil;
+  NSData* jsonData = [NSJSONSerialization dataWithJSONObject:configurationDict options:0 error:&error];
+  if (error != nil) {
+    return nil;
+  }
+
+  return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+}
+
+- (NSString*)getDeviceConfiguration {
+  return [self getConfiguration:@"deviceConfiguration"];
+}
+
+- (NSString*)getAppConfiguration {
+  return [self getConfiguration:@"appConfiguration"];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -215,6 +222,8 @@ Teak* _teakSharedInstance;
     self.enableRemoteLogging = self.configuration.debugConfiguration.logRemote;
     self.enableRemoteLogging |= !self.configuration.appConfiguration.isProduction;
 
+    self.pushNotificationsDisabled = NO;
+
     // Add Unity/Air SDK version if applicable
     NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
     if (TeakWrapperSDK != nil) {
@@ -222,7 +231,6 @@ Teak* _teakSharedInstance;
     }
     TeakVersionDict = sdkDict;
 
-    // TODO
     [self.log useSdk:TeakVersionDict];
     [self.log useAppConfiguration:self.configuration.appConfiguration];
     [self.log useDeviceConfiguration:self.configuration.deviceConfiguration];
@@ -239,6 +247,9 @@ Teak* _teakSharedInstance;
 
     // Payment observer
     self.paymentObserver = [[SKPaymentObserver alloc] init];
+
+    // Set up internal deep link routes
+    [self setupInternalDeepLinkRoutes];
 
     self.skipTheNextOpenUrl = NO;
     self.skipTheNextDidReceiveNotificationResponse = NO;
@@ -312,6 +323,56 @@ Teak* _teakSharedInstance;
 
     return TeakLink_HandleDeepLink(url);
   }
+}
+
+- (void)setupInternalDeepLinkRoutes {
+  // Register default purchase deep link
+  [TeakLink registerRoute:@"/teak_internal/store/:sku"
+                     name:@""
+              description:@""
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      [ProductRequest productRequestForSku:parameters[@"sku"]
+                                                  callback:^(NSDictionary* unused, SKProductsResponse* response) {
+                                                    if (response != nil && response.products != nil && response.products.count > 0) {
+                                                      SKProduct* product = [response.products objectAtIndex:0];
+
+                                                      SKMutablePayment* payment = [SKMutablePayment paymentWithProduct:product];
+                                                      payment.quantity = 1;
+                                                      [[SKPaymentQueue defaultQueue] addPayment:payment];
+                                                    }
+                                                  }];
+                    }];
+
+  // Register callback for Teak companion app
+  [TeakLink registerRoute:@"/teak_internal/companion"
+                     name:@""
+              description:@""
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+                        NSDictionary* responseDict = @{
+                          @"user_id" : session.userId,
+                          @"device_id" : session.deviceConfiguration.deviceId
+                        };
+                        NSError* error = nil;
+                        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:responseDict options:0 error:&error];
+
+                        NSString* valueString;
+                        NSString* keyString;
+                        if (error) {
+                          TeakLog_e(@"companion.error", @{@"dictionary" : responseDict, @"error" : error});
+                          keyString = @"error";
+                          valueString = URLEscapedString([error description]);
+                        } else {
+                          keyString = @"response";
+                          valueString = URLEscapedString([[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding]);
+                        }
+
+                        NSString* openUrlString = [NSString stringWithFormat:@"teak:///callback?%@=%@", keyString, valueString];
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                          [[UIApplication sharedApplication] openURL:[NSURL URLWithString:openUrlString]];
+                        });
+                      }];
+                    }];
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
@@ -433,6 +494,29 @@ Teak* _teakSharedInstance;
 - (void)applicationDidBecomeActive:(UIApplication*)application {
   TeakUnused(application);
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
+
+  // Check to see if the user has disabled push notifications
+  self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{
+      // Empty
+  }];
+
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
+      switch (settings.authorizationStatus) {
+        case UNAuthorizationStatusDenied: {
+          self.pushNotificationsDisabled = YES;
+          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
+        } break;
+          // Authorized or NotDetermined means they haven't disabled
+        case UNAuthorizationStatusAuthorized:
+        case UNAuthorizationStatusNotDetermined: {
+          self.pushNotificationsDisabled = NO;
+          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
+        } break;
+      }
+    }];
+  }
 
   // Zero-out the badge count
   [self setApplicationBadgeNumber:0];

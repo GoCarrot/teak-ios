@@ -15,6 +15,7 @@
 
 #import "AppDelegate.h"
 #import <UserNotifications/UserNotifications.h>
+#import <sys/utsname.h>
 
 // Step 3:
 // Import Teak into your UIApplicationDelegate implementation.
@@ -51,11 +52,12 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
                       NSLog(@"IT CALLED THE THING!! SKU: %@", parameters[@"sku"]);
                     }];
 
-  // For this example, we are simply using the IDFA for a user id. In your game, you will
-  // want to use the same user id that you use in your database.
+  // In your game, you will want to use the same user id that you use in your database.
   //
   // These user ids should be unique, no two players should have the same user id.
-  NSString* userId = [[ASIdentifierManager sharedManager].advertisingIdentifier UUIDString];
+  struct utsname systemInfo;
+  uname(&systemInfo);
+  NSString* userId = [NSString stringWithFormat:@"native-%@", [[NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding] lowercaseString]];
 
   // Step 4:
   // Call identifyUser as soon as you know the user id of the current player.

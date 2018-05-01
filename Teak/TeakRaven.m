@@ -169,6 +169,9 @@ void TeakSignalHandler(int signal) {
 - (void)reportWithHelper:(TeakRavenLocationHelper*)helper {
   NSMutableArray* stacktrace = [NSMutableArray arrayWithArray:[TeakRaven stacktraceSkippingFrames:2]];
   NSMutableDictionary* lastFrame = [NSMutableDictionary dictionaryWithDictionary:[stacktrace lastObject]];
+
+  // Future-Pat, you can't get a fully symbolicated stack trace because we're a static framework
+  // and even if we weren't, bitcode means we don't get dSYM anyway.
   lastFrame[@"filename"] = helper.file;
   lastFrame[@"lineno"] = helper.line;
   lastFrame[@"function"] = helper.function;
@@ -460,6 +463,10 @@ void TeakSignalHandler(int signal) {
 }
 
 - (void)send {
+  if ([Teak sharedInstance].log != nil) {
+    TeakLog_e(@"exception", self.payload);
+  }
+
   if (self.raven.endpoint == nil) return;
 
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:self.raven.endpoint];
