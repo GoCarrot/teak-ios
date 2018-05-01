@@ -340,7 +340,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
-        if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
+        if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
           // Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
@@ -353,7 +353,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
             [self send];
           });
         } else if (self.callback) {
-          self.callback(response, payload);
+          self.callback(payload);
         }
       }
       teak_catch_report;
@@ -375,10 +375,10 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
       forHostname:@"gocarrot.com"
       withEndpoint:@"/me/events"
       withPayload:@{}
-      callback:^(NSHTTPURLResponse* response, NSDictionary* reply) {
+      callback:^(NSDictionary* reply) {
         // Trigger any callbacks
         for (TeakRequestResponse callback in self.callbacks) {
-          callback(response, reply);
+          callback(reply);
         }
       }
       addCommonPayload:YES];

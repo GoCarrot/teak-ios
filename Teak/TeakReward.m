@@ -51,44 +51,40 @@
                                                forHostname:@"rewards.gocarrot.com"
                                               withEndpoint:urlString
                                                withPayload:@{@"clicking_user_id" : session.userId}
-                                                  callback:^(NSURLResponse* response, NSDictionary* reply) {
-                                                    // TODO: Check response
-                                                    if (/* DISABLES CODE */ (NO)) {
-                                                      TeakLog_e(@"reward.claim_error", @{@"error" : response});
-                                                    } else {
-                                                      NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:reply[@"response"]];
-                                                      [rewardResponse setValue:teakRewardId forKey:@"teakRewardId"];
-                                                      if ([rewardResponse objectForKey:@"reward"] != nil &&
-                                                          [[rewardResponse objectForKey:@"reward"] isKindOfClass:[NSString class]]) {
-                                                        NSString* rewardString = [rewardResponse objectForKey:@"reward"];
-                                                        NSData* rewardStringData = [rewardString dataUsingEncoding:NSUTF8StringEncoding];
-                                                        NSError* error = nil;
-                                                        NSDictionary* parsedReward = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:rewardStringData
-                                                                                                                                    options:kNilOptions
-                                                                                                                                      error:&error];
-                                                        if (error == nil) {
-                                                          rewardResponse[@"reward"] = parsedReward;
-                                                        }
-                                                      }
-                                                      ret.json = rewardResponse;
-
-                                                      NSString* status = [rewardResponse objectForKey:@"status"];
-                                                      if ([status isEqualToString:@"grant_reward"]) {
-                                                        ret.rewardStatus = kTeakRewardStatusGrantReward;
-                                                      } else if ([status isEqualToString:@"self_click"]) {
-                                                        ret.rewardStatus = kTeakRewardStatusSelfClick;
-                                                      } else if ([status isEqualToString:@"already_clicked"]) {
-                                                        ret.rewardStatus = kTeakRewardStatusAlreadyClicked;
-                                                      } else if ([status isEqualToString:@"too_many_clicks"]) {
-                                                        ret.rewardStatus = kTeakRewardStatusTooManyClicks;
-                                                      } else if ([status isEqualToString:@"exceed_max_clicks_for_day"]) {
-                                                        ret.rewardStatus = kTeakRewardStatusExceedMaxClicksForDay;
-                                                      } else if ([status isEqualToString:@"expired"]) {
-                                                        ret.rewardStatus = kTeakRewardStatusExpired;
-                                                      } else if ([status isEqualToString:@"invalid_post"]) {
-                                                        ret.rewardStatus = kTeakRewardStatusInvalidPost;
+                                                  callback:^(NSDictionary* reply) {
+                                                    NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:reply[@"response"]];
+                                                    [rewardResponse setValue:teakRewardId forKey:@"teakRewardId"];
+                                                    if ([rewardResponse objectForKey:@"reward"] != nil &&
+                                                        [[rewardResponse objectForKey:@"reward"] isKindOfClass:[NSString class]]) {
+                                                      NSString* rewardString = [rewardResponse objectForKey:@"reward"];
+                                                      NSData* rewardStringData = [rewardString dataUsingEncoding:NSUTF8StringEncoding];
+                                                      NSError* error = nil;
+                                                      NSDictionary* parsedReward = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:rewardStringData
+                                                                                                                                  options:kNilOptions
+                                                                                                                                    error:&error];
+                                                      if (error == nil) {
+                                                        rewardResponse[@"reward"] = parsedReward;
                                                       }
                                                     }
+                                                    ret.json = rewardResponse;
+
+                                                    NSString* status = [rewardResponse objectForKey:@"status"];
+                                                    if ([status isEqualToString:@"grant_reward"]) {
+                                                      ret.rewardStatus = kTeakRewardStatusGrantReward;
+                                                    } else if ([status isEqualToString:@"self_click"]) {
+                                                      ret.rewardStatus = kTeakRewardStatusSelfClick;
+                                                    } else if ([status isEqualToString:@"already_clicked"]) {
+                                                      ret.rewardStatus = kTeakRewardStatusAlreadyClicked;
+                                                    } else if ([status isEqualToString:@"too_many_clicks"]) {
+                                                      ret.rewardStatus = kTeakRewardStatusTooManyClicks;
+                                                    } else if ([status isEqualToString:@"exceed_max_clicks_for_day"]) {
+                                                      ret.rewardStatus = kTeakRewardStatusExceedMaxClicksForDay;
+                                                    } else if ([status isEqualToString:@"expired"]) {
+                                                      ret.rewardStatus = kTeakRewardStatusExpired;
+                                                    } else if ([status isEqualToString:@"invalid_post"]) {
+                                                      ret.rewardStatus = kTeakRewardStatusInvalidPost;
+                                                    }
+
                                                     ret.completed = YES;
 
                                                     if (ret.onComplete != nil) {
