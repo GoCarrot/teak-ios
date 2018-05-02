@@ -260,11 +260,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     }
     signedPayload[@"sig"] = sigString;
 
-    return self.payload;
+    return signedPayload;
   }
   teak_catch_report;
 
-  return nil;
+  return self.payload;
 }
 
 - (void)send {
