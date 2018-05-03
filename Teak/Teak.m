@@ -131,6 +131,8 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)hasUserDisabledPushNotifications {
+  if (self.pushNotificationDisabledCheck == nil) return NO;
+
   [self.pushNotificationDisabledCheck waitUntilFinished];
   return self.pushNotificationsDisabled;
 }
@@ -496,11 +498,11 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
   // Check to see if the user has disabled push notifications
-  self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{
-      // Empty
-  }];
-
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{
+        // Empty
+    }];
+
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
     [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
       switch (settings.authorizationStatus) {
@@ -516,6 +518,8 @@ Teak* _teakSharedInstance;
         } break;
       }
     }];
+  } else {
+    self.pushNotificationDisabledCheck = nil;
   }
 
   // Zero-out the badge count
