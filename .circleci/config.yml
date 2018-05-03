@@ -2,11 +2,14 @@ version: 2
 jobs:
   build:
     macos:
-      xcode: 8.3.3
+      xcode: "8.3.3"
     steps:
       - checkout
       - restore_cache:
           key: v0-{{ checksum "setup" }}
+      - run:
+          name: Fix 'Homebrew must be run under Ruby 2.3!'
+          command: brew update
       - run:
           name: Homebrew Depenendcies
           command: ./setup
@@ -29,3 +32,30 @@ jobs:
             - build/Release-iphoneos/Teak.framework.zip
             - build/Release-iphoneos/TeakResources.bundle.zip
             - TeakExtensions/TeakNotificationContent/Info.plist
+  deploy:
+    docker:
+      - image: circleci/ruby:latest
+    steps:
+      - attach_workspace:
+          at: workspace/
+      - run: git fetch --tags
+      - run:
+          name: Upload SDK to S3
+          command: |
+            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
+            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
+            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: [master, /hotfix.*/]
