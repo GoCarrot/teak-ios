@@ -1,0 +1,31 @@
+version: 2
+jobs:
+  build:
+    macos:
+      xcode: 8.3.3
+    steps:
+      - checkout
+      - restore_cache:
+          key: v0-{{ checksum "setup" }}
+      - run:
+          name: Homebrew Depenendcies
+          command: ./setup
+      - save_cache:
+          paths:
+            - ~/Library/Caches/Homebrew/
+          key: v0-{{ checksum "setup" }}
+      - run:
+          name: Validate Code Formatting
+          command: ./validate-code-format
+      - run:
+          name: Import Teak Notification Category Data
+          command: ./import_notification_categories notification_categories.csv
+      - run:
+          name: Build Teak SDK
+          command: ./compile
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build/Release-iphoneos/Teak.framework.zip
+            - build/Release-iphoneos/TeakResources.bundle.zip
+            - TeakExtensions/TeakNotificationContent/Info.plist
