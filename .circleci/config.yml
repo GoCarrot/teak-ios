@@ -26,7 +26,7 @@ jobs:
           command: ./validate-code-format
       - run:
           name: Import Teak Notification Category Data
-          command: ./import_notification_categories notification_categories.csv
+          command: bundler exec import_notification_categories notification_categories.csv
       - run:
           name: Build Teak SDK
           command: ./compile
