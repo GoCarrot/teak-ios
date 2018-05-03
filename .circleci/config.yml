@@ -9,9 +9,6 @@ jobs:
       - restore_cache:
           key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}
       - run:
-          name: Fix 'Homebrew must be run under Ruby 2.3!'
-          command: brew update
-      - run:
           name: Homebrew Depenendcies
           command: ./setup
       - run:
