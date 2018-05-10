@@ -41,9 +41,13 @@ jobs:
     docker:
       - image: circleci/ruby:latest
     steps:
+      - checkout
+      - run: git fetch --tags
+      - run:
+          name: Install AWS CLI
+          command: sudo apt-get -y -qq install awscli
       - attach_workspace:
           at: workspace/
-      - run: git fetch --tags
       - run:
           name: Upload SDK to S3
           command: |
