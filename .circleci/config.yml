@@ -51,9 +51,9 @@ jobs:
       - run:
           name: Upload SDK to S3
           command: |
-            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak$TEAK_DEPLOY_VERSION_STRING.framework.zip --acl public-read
-            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources$TEAK_DEPLOY_VERSION_STRING.bundle.zip --acl public-read
-            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info$TEAK_DEPLOY_VERSION_STRING.plist --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak$TEAK_DEPLOY_VERSION_STRING.framework.zip --acl public-read --dryrun
+            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources$TEAK_DEPLOY_VERSION_STRING.bundle.zip --acl public-read --dryrun
+            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info$TEAK_DEPLOY_VERSION_STRING.plist --acl public-read --dryrun
 workflows:
   version: 2
   build_and_deploy:
@@ -64,18 +64,18 @@ workflows:
           requires:
             - build
           context: deploy-versioned
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
+          # filters:
+          #   tags:
+          #     only: /.*/
+          #   branches:
+          #     ignore: /.*/
       # Deploy 'latest' SDK to S3, requires manual approval
       - deploy:
           type: approval
           requires:
             - build
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
+          # filters:
+          #   tags:
+          #     only: /.*/
+          #   branches:
+          #     ignore: /.*/
