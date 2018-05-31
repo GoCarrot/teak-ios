@@ -483,6 +483,7 @@ DefineTeakState(Expired, (@[]));
 
   // Send off a reward event if one was in this deep link
   NSString* teakRewardId = [launchAttribution objectForKey:@"teak_reward_id"];
+  NSString* teakRewardLinkName = [launchAttribution objectForKey:@"teak_rewardlink_name"];
   if (teakRewardId != nil) {
     TeakReward* reward = [TeakReward rewardForRewardId:teakRewardId];
     if (reward != nil) {
@@ -494,7 +495,7 @@ DefineTeakState(Expired, (@[]));
           userInfo[@"teakNotifId"] = [NSNull null];
           userInfo[@"teakRewardId"] = teakRewardId;
           userInfo[@"teakScheduleName"] = [NSNull null];
-          userInfo[@"teakCreativeName"] = [NSNull null];
+          userInfo[@"teakCreativeName"] = teakRewardLinkName == nil ? [NSNull null] : teakRewardLinkName;
           userInfo[@"incentivized"] = @YES;
           [userInfo addEntriesFromDictionary:blockReward.json];
 
