@@ -37,7 +37,7 @@ jobs:
             - build/Release-iphoneos/Teak.framework.zip
             - build/Release-iphoneos/TeakResources.bundle.zip
             - TeakExtensions/TeakNotificationContent/Info.plist
-  deploy:
+  deploy_versioned:
     docker:
       - image: circleci/ruby:latest
     steps:
@@ -51,26 +51,40 @@ jobs:
       - run:
           name: Upload SDK to S3
           command: |
-            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak$TEAK_DEPLOY_VERSION_STRING.framework.zip --acl public-read
-            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources$TEAK_DEPLOY_VERSION_STRING.bundle.zip --acl public-read
-            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info$TEAK_DEPLOY_VERSION_STRING.plist --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
+            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
+  deploy_latest:
+    docker:
+      - image: circleci/ruby:latest
+    steps:
+      - checkout
+      - run: git fetch --tags
+      - run:
+          name: Install AWS CLI
+          command: sudo apt-get -y -qq install awscli
+      - attach_workspace:
+          at: workspace/
+      - run:
+          name: Upload SDK to S3
+          command: |
+            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
+            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
 workflows:
   version: 2
   build_and_deploy:
     jobs:
       - build
-      # Deploy versioned SDK to S3
-      - deploy:
+      - deploy_versioned:
           requires:
             - build
-          context: deploy-versioned
           filters:
             tags:
               only: /.*/
             branches:
               ignore: /.*/
-      # Deploy 'latest' SDK to S3, requires manual approval
-      - deploy:
+      - deploy_latest:
           type: approval
           requires:
             - build
