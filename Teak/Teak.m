@@ -131,6 +131,8 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)hasUserDisabledPushNotifications {
+  if (self.pushNotificationDisabledCheck == nil) return NO;
+
   [self.pushNotificationDisabledCheck waitUntilFinished];
   return self.pushNotificationsDisabled;
 }
@@ -375,6 +377,20 @@ Teak* _teakSharedInstance;
                     }];
 }
 
+- (BOOL)applicationHasRemoteNotificationsEnabled:(UIApplication*)application {
+  BOOL pushEnabled = NO;
+  if ([application respondsToSelector:@selector(isRegisteredForRemoteNotifications)]) {
+    pushEnabled = [application isRegisteredForRemoteNotifications];
+  } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
+    pushEnabled = types & UIRemoteNotificationTypeAlert;
+#pragma clang diagnostic pop
+  }
+  return pushEnabled;
+}
+
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
@@ -435,16 +451,8 @@ Teak* _teakSharedInstance;
   }
 
   // Check to see if the user has already enabled push notifications
-  BOOL pushEnabled = NO;
-  if ([application respondsToSelector:@selector(isRegisteredForRemoteNotifications)]) {
-    pushEnabled = [application isRegisteredForRemoteNotifications];
-  } else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
-    pushEnabled = types & UIRemoteNotificationTypeAlert;
-#pragma clang diagnostic pop
-  }
+  BOOL pushEnabled = [self applicationHasRemoteNotificationsEnabled:application];
+  self.pushNotificationsDisabled = !pushEnabled;
 
   // If they've already enabled push, go ahead and register since it won't pop up a box.
   // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
@@ -496,11 +504,11 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
   // Check to see if the user has disabled push notifications
-  self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{
-      // Empty
-  }];
-
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{
+        // Empty
+    }];
+
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
     [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
       switch (settings.authorizationStatus) {
@@ -516,6 +524,9 @@ Teak* _teakSharedInstance;
         } break;
       }
     }];
+  } else {
+    self.pushNotificationDisabledCheck = nil;
+    self.pushNotificationsDisabled = ![self applicationHasRemoteNotificationsEnabled:application];
   }
 
   // Zero-out the badge count
