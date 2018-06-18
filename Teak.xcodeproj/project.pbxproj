@@ -64,6 +64,8 @@
 		438372801D34696500B01F44 /* TeakRemoteConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 4383727E1D34696500B01F44 /* TeakRemoteConfiguration.h */; };
 		438372811D34696500B01F44 /* TeakRemoteConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4383727F1D34696500B01F44 /* TeakRemoteConfiguration.m */; };
 		438372841D35889800B01F44 /* TeakHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 438372831D35889800B01F44 /* TeakHelpers.m */; };
+		4388FB0920D85D5000D1B6FF /* TeakDataCollectionConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 4388FB0720D85D5000D1B6FF /* TeakDataCollectionConfiguration.h */; };
+		4388FB0A20D85D5000D1B6FF /* TeakDataCollectionConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4388FB0820D85D5000D1B6FF /* TeakDataCollectionConfiguration.m */; };
 		439815B91FA2651D005303F1 /* TeakEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815B81FA2651B005303F1 /* TeakEvent.m */; };
 		439815BE1FA27799005303F1 /* PushRegistrationEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 439815BC1FA27799005303F1 /* PushRegistrationEvent.h */; };
 		439815BF1FA27799005303F1 /* PushRegistrationEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815BD1FA27799005303F1 /* PushRegistrationEvent.m */; };
@@ -165,6 +167,8 @@
 		4383727F1D34696500B01F44 /* TeakRemoteConfiguration.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRemoteConfiguration.m; sourceTree = "<group>"; };
 		438372821D3481A000B01F44 /* TeakKVOHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakKVOHelpers.h; sourceTree = "<group>"; };
 		438372831D35889800B01F44 /* TeakHelpers.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakHelpers.m; sourceTree = "<group>"; };
+		4388FB0720D85D5000D1B6FF /* TeakDataCollectionConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakDataCollectionConfiguration.h; sourceTree = "<group>"; };
+		4388FB0820D85D5000D1B6FF /* TeakDataCollectionConfiguration.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakDataCollectionConfiguration.m; sourceTree = "<group>"; };
 		439815B71FA2651A005303F1 /* TeakEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakEvent.h; sourceTree = "<group>"; };
 		439815B81FA2651B005303F1 /* TeakEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakEvent.m; sourceTree = "<group>"; };
 		439815BC1FA27799005303F1 /* PushRegistrationEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PushRegistrationEvent.h; sourceTree = "<group>"; };
@@ -315,6 +319,8 @@
 				4383727F1D34696500B01F44 /* TeakRemoteConfiguration.m */,
 				434861751FA2C5E000E0DA12 /* TeakConfiguration.h */,
 				434861761FA2C5E000E0DA12 /* TeakConfiguration.m */,
+				4388FB0720D85D5000D1B6FF /* TeakDataCollectionConfiguration.h */,
+				4388FB0820D85D5000D1B6FF /* TeakDataCollectionConfiguration.m */,
 			);
 			path = Configuration;
 			sourceTree = "<group>";
@@ -372,6 +378,7 @@
 			files = (
 				439815CB1FA29A6E005303F1 /* TrackEventEvent.h in Headers */,
 				431C98201C7E679900B19DD5 /* TeakRequest.h in Headers */,
+				4388FB0920D85D5000D1B6FF /* TeakDataCollectionConfiguration.h in Headers */,
 				434861851FA3C08A00E0DA12 /* LifecycleEvent.h in Headers */,
 				439815C71FA299F8005303F1 /* TeakCore.h in Headers */,
 				439815C21FA2909F005303F1 /* UserIdEvent.h in Headers */,
@@ -553,6 +560,7 @@
 				431C98211C7E679900B19DD5 /* TeakRequest.m in Sources */,
 				439815C31FA2909F005303F1 /* UserIdEvent.m in Sources */,
 				430E64541FB62468008DE15B /* TeakNotificationCategories.m in Sources */,
+				4388FB0A20D85D5000D1B6FF /* TeakDataCollectionConfiguration.m in Sources */,
 				FAA4DCFD1DC32AD100374B93 /* TeakReward.m in Sources */,
 				434861781FA2C5E000E0DA12 /* TeakConfiguration.m in Sources */,
 				431C98001C7E609800B19DD5 /* Teak.m in Sources */,

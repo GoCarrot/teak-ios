@@ -47,6 +47,7 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
+@property (strong, nonatomic, readwrite) TeakDataCollectionConfiguration* dataCollectionConfiguration;
 
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
@@ -205,7 +206,7 @@ DefineTeakState(Expired, (@[]));
     payload[@"notifications_enabled"] = self.deviceConfiguration.notificationDisplayEnabled;
     payload[@"supports_content_extensions"] = @([[UNUserNotificationCenter currentNotificationCenter] supportsContentExtensions]);
 
-    if ([self.deviceConfiguration.advertisingIdentifier length] > 0) {
+    if ([self.deviceConfiguration.advertisingIdentifier length] > 0 && self.dataCollectionConfiguration.enableIDFA) {
       payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
       payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking];
     }
@@ -227,7 +228,7 @@ DefineTeakState(Expired, (@[]));
       }
     }
 
-    if (self.facebookAccessToken != nil) {
+    if (self.facebookAccessToken != nil && self.dataCollectionConfiguration.enableFacebookAccessToken) {
       payload[@"access_token"] = self.facebookAccessToken;
     }
 
@@ -295,6 +296,7 @@ DefineTeakState(Expired, (@[]));
     self.startDate = [[NSDate alloc] init];
     self.appConfiguration = configuration.appConfiguration;
     self.deviceConfiguration = configuration.deviceConfiguration;
+    self.dataCollectionConfiguration = configuration.dataCollectionConfiguration;
     self.attributionChain = [[NSMutableArray alloc] init];
 
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
