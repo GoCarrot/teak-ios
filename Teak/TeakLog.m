@@ -106,22 +106,22 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 }
 
 - (void)useDeviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
-  [self logEvent:@"device_configuration" level:INFO eventData:[deviceConfiguration to_h]];
+  [self logEvent:@"configuration.device" level:INFO eventData:[deviceConfiguration to_h]];
   self.deviceConfiguration = deviceConfiguration;
 }
 
 - (void)useAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration {
-  [self logEvent:@"app_configuration" level:INFO eventData:[appConfiguration to_h]];
+  [self logEvent:@"configuration.app" level:INFO eventData:[appConfiguration to_h]];
   self.appConfiguration = appConfiguration;
 }
 
 - (void)useRemoteConfiguration:(nonnull TeakRemoteConfiguration*)remoteConfiguration {
-  [self logEvent:@"remote_configuration" level:INFO eventData:[remoteConfiguration to_h]];
+  [self logEvent:@"configuration.remote" level:INFO eventData:[remoteConfiguration to_h]];
   self.remoteConfiguration = remoteConfiguration;
 }
 
 - (void)useDataCollectionConfiguration:(nonnull TeakDataCollectionConfiguration*)dataCollectionConfiguration {
-  [self logEvent:@"data_collection_configuration" level:INFO eventData:[dataCollectionConfiguration to_h]];
+  [self logEvent:@"configuration.data_collection" level:INFO eventData:[dataCollectionConfiguration to_h]];
   self.dataCollectionConfiguration = dataCollectionConfiguration;
 }
 
