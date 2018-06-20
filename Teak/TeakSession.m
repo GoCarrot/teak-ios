@@ -216,7 +216,7 @@ DefineTeakState(Expired, (@[]));
     }
     self.userIdentificationSent = YES;
 
-    if ([self.deviceConfiguration.pushToken length] > 0) {
+    if ([self.deviceConfiguration.pushToken length] > 0 && self.dataCollectionConfiguration.enablePushKey) {
       payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
     } else {
       payload[@"apns_push_key"] = @"";

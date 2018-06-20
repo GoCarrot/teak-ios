@@ -19,5 +19,6 @@
 
 @property (nonatomic, readonly) BOOL enableIDFA;
 @property (nonatomic, readonly) BOOL enableFacebookAccessToken;
+@property (nonatomic, readonly) BOOL enablePushKey;
 
 @end
