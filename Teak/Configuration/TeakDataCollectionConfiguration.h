@@ -21,4 +21,6 @@
 @property (nonatomic, readonly) BOOL enableFacebookAccessToken;
 @property (nonatomic, readonly) BOOL enablePushKey;
 
+- (NSDictionary*)to_h;
+
 @end

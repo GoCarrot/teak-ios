@@ -18,12 +18,14 @@
 @class TeakDeviceConfiguration;
 @class TeakAppConfiguration;
 @class TeakRemoteConfiguration;
+@class TeakDataCollectionConfiguration;
 
 @interface TeakLog : NSObject
 - (void)useSdk:(nonnull NSDictionary*)sdkVersion;
 - (void)useDeviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 - (void)useAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
 - (void)useRemoteConfiguration:(nonnull TeakRemoteConfiguration*)remoteConfiguration;
+- (void)useDataCollectionConfiguration:(nonnull TeakDataCollectionConfiguration*)dataCollectionConfiguration;
 - (void)logEvent:(nonnull NSString*)eventType level:(nonnull NSString*)logLevel eventData:(nullable NSDictionary*)eventData;
 
 - (nullable id)initWithAppId:(nonnull NSString*)appId;

@@ -37,4 +37,12 @@
   }
   return self;
 }
+
+- (NSDictionary*)to_h {
+  return @{
+    @"enableIDFA" : [NSNumber numberWithBool:self.enableIDFA],
+    @"enableFacebookAccessToken" : [NSNumber numberWithBool:self.enableFacebookAccessToken],
+    @"enablePushKey" : [NSNumber numberWithBool:self.enablePushKey],
+  };
+}
 @end

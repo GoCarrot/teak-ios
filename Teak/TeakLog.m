@@ -16,6 +16,7 @@
 #import "TeakLog.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
+#import "TeakDataCollectionConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakRaven.h"
 #import "TeakRemoteConfiguration.h"
@@ -72,6 +73,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @property (strong, nonatomic) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic) TeakRemoteConfiguration* remoteConfiguration;
+@property (strong, nonatomic) TeakDataCollectionConfiguration* dataCollectionConfiguration;
 
 @property (strong, nonatomic) NSString* runId;
 @property (nonatomic) volatile OSAtomic_int64_aligned64_t eventCounter;
@@ -118,6 +120,11 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 - (void)useRemoteConfiguration:(nonnull TeakRemoteConfiguration*)remoteConfiguration {
   [self logEvent:@"remote_configuration" level:INFO eventData:[remoteConfiguration to_h]];
   self.remoteConfiguration = remoteConfiguration;
+}
+
+- (void)useDataCollectionConfiguration:(nonnull TeakDataCollectionConfiguration*)dataCollectionConfiguration {
+  [self logEvent:@"data_collection_configuration" level:INFO eventData:[dataCollectionConfiguration to_h]];
+  self.dataCollectionConfiguration = dataCollectionConfiguration;
 }
 
 - (void)logEvent:(nonnull NSString*)eventType level:(nonnull NSString*)logLevel eventData:(nullable NSDictionary*)eventData {

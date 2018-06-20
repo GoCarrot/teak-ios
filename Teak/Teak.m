@@ -236,6 +236,7 @@ Teak* _teakSharedInstance;
     [self.log useSdk:TeakVersionDict];
     [self.log useAppConfiguration:self.configuration.appConfiguration];
     [self.log useDeviceConfiguration:self.configuration.deviceConfiguration];
+    [self.log useDataCollectionConfiguration:self.configuration.dataCollectionConfiguration];
 
     // Set up SDK Raven
     self.sdkRaven = [TeakRaven ravenForTeak:self];
