@@ -68,6 +68,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 }
 
 @interface TeakLog ()
+@property (strong, nonatomic) Teak* teak;
 @property (strong, nonatomic) NSDictionary* sdkVersion;
 @property (strong, nonatomic) NSString* appId;
 @property (strong, nonatomic) TeakDeviceConfiguration* deviceConfiguration;
@@ -85,7 +86,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
 @implementation TeakLog
 
-- (id)initWithAppId:(nonnull NSString*)appId {
+- (nullable id)initForTeak:(nonnull Teak*)teak withAppId:(nonnull NSString*)appId {
   self = [super init];
   if (self) {
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
@@ -96,6 +97,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
     self.eventCounter = 0;
     self.appId = appId;
+    self.teak = teak;
   }
   return self;
 }
@@ -154,7 +156,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   }
 
   // Log remotely
-  if ([Teak sharedInstance].enableRemoteLogging) {
+  if ([self.teak enableRemoteLogging]) {
     NSString* urlString = nil;
     if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
       urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
@@ -166,7 +168,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   }
 
   // Log locally
-  if ([Teak sharedInstance].enableDebugOutput) {
+  if ([self.teak enableDebugOutput]) {
     NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
     const static int maxLogLength = 900; // 1024 but leave space for formatting
     int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);

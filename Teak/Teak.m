@@ -213,7 +213,7 @@ Teak* _teakSharedInstance;
     self.sdkVersion = [NSString stringWithUTF8String:TEAK_SDK_VERSION];
 
     // Log messages
-    self.log = [[TeakLog alloc] initWithAppId:appId];
+    self.log = [[TeakLog alloc] initForTeak:self withAppId:appId];
 
     [TeakConfiguration configureForAppId:appId andSecret:appSecret];
     self.configuration = [TeakConfiguration configuration];
