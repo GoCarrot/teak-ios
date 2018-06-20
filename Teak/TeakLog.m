@@ -80,8 +80,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @end
 
 @interface TeakLogSender : NSObject
-@property (strong, nonatomic) TeakLog* log;
-
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint;
 @end
 
@@ -185,19 +183,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @end
 
 @implementation TeakLogSender
-
-- (id)init {
-  self = [super init];
-  if (self) {
-    @try {
-      self.log = [Teak sharedInstance].log;
-
-    } @catch (NSException* exception) {
-      return nil;
-    }
-  }
-  return self;
-}
 
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];
