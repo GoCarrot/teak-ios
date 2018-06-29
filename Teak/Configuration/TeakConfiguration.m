@@ -18,6 +18,7 @@
 @property (strong, nonatomic, readwrite) TeakDebugConfiguration* _Nonnull debugConfiguration;
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* _Nonnull appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* _Nonnull deviceConfiguration;
+@property (strong, nonatomic, readwrite) TeakDataCollectionConfiguration* _Nonnull dataCollectionConfiguration;
 @end
 
 TeakConfiguration* TeakConfigurationInstance = nil;
@@ -54,6 +55,12 @@ TeakConfiguration* TeakConfigurationInstance = nil;
     self.deviceConfiguration = [[TeakDeviceConfiguration alloc] init];
     if (self.deviceConfiguration == nil) {
       [NSException raise:NSObjectNotAvailableException format:@"Teak Device Configuration is nil."];
+      return nil;
+    }
+
+    self.dataCollectionConfiguration = [[TeakDataCollectionConfiguration alloc] init];
+    if (self.dataCollectionConfiguration == nil) {
+      [NSException raise:NSObjectNotAvailableException format:@"Teak Data Collection Configuration is nil."];
       return nil;
     }
   }

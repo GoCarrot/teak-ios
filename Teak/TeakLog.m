@@ -16,6 +16,7 @@
 #import "TeakLog.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
+#import "TeakDataCollectionConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakRaven.h"
 #import "TeakRemoteConfiguration.h"
@@ -67,25 +68,25 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 }
 
 @interface TeakLog ()
+@property (weak, nonatomic) Teak* teak;
 @property (strong, nonatomic) NSDictionary* sdkVersion;
 @property (strong, nonatomic) NSString* appId;
 @property (strong, nonatomic) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic) TeakRemoteConfiguration* remoteConfiguration;
+@property (strong, nonatomic) TeakDataCollectionConfiguration* dataCollectionConfiguration;
 
 @property (strong, nonatomic) NSString* runId;
 @property (nonatomic) volatile OSAtomic_int64_aligned64_t eventCounter;
 @end
 
 @interface TeakLogSender : NSObject
-@property (strong, nonatomic) TeakLog* log;
-
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint;
 @end
 
 @implementation TeakLog
 
-- (id)initWithAppId:(nonnull NSString*)appId {
+- (nullable id)initForTeak:(nonnull Teak*)teak withAppId:(nonnull NSString*)appId {
   self = [super init];
   if (self) {
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
@@ -96,6 +97,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
     self.eventCounter = 0;
     self.appId = appId;
+    self.teak = teak;
   }
   return self;
 }
@@ -106,18 +108,23 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 }
 
 - (void)useDeviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
-  [self logEvent:@"device_configuration" level:INFO eventData:[deviceConfiguration to_h]];
+  [self logEvent:@"configuration.device" level:INFO eventData:[deviceConfiguration to_h]];
   self.deviceConfiguration = deviceConfiguration;
 }
 
 - (void)useAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration {
-  [self logEvent:@"app_configuration" level:INFO eventData:[appConfiguration to_h]];
+  [self logEvent:@"configuration.app" level:INFO eventData:[appConfiguration to_h]];
   self.appConfiguration = appConfiguration;
 }
 
 - (void)useRemoteConfiguration:(nonnull TeakRemoteConfiguration*)remoteConfiguration {
-  [self logEvent:@"remote_configuration" level:INFO eventData:[remoteConfiguration to_h]];
+  [self logEvent:@"configuration.remote" level:INFO eventData:[remoteConfiguration to_h]];
   self.remoteConfiguration = remoteConfiguration;
+}
+
+- (void)useDataCollectionConfiguration:(nonnull TeakDataCollectionConfiguration*)dataCollectionConfiguration {
+  [self logEvent:@"configuration.data_collection" level:INFO eventData:[dataCollectionConfiguration to_h]];
+  self.dataCollectionConfiguration = dataCollectionConfiguration;
 }
 
 - (void)logEvent:(nonnull NSString*)eventType level:(nonnull NSString*)logLevel eventData:(nullable NSDictionary*)eventData {
@@ -149,7 +156,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   }
 
   // Log remotely
-  if ([Teak sharedInstance].enableRemoteLogging) {
+  if ([self.teak enableRemoteLogging]) {
     NSString* urlString = nil;
     if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
       urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
@@ -161,7 +168,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   }
 
   // Log locally
-  if ([Teak sharedInstance].enableDebugOutput) {
+  if ([self.teak enableDebugOutput]) {
     NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
     const static int maxLogLength = 900; // 1024 but leave space for formatting
     int numLogLines = ceil((float)[jsonString length] / (float)maxLogLength);
@@ -178,19 +185,6 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @end
 
 @implementation TeakLogSender
-
-- (id)init {
-  self = [super init];
-  if (self) {
-    @try {
-      self.log = [Teak sharedInstance].log;
-
-    } @catch (NSException* exception) {
-      return nil;
-    }
-  }
-  return self;
-}
 
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];

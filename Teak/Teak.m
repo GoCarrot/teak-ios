@@ -213,7 +213,7 @@ Teak* _teakSharedInstance;
     self.sdkVersion = [NSString stringWithUTF8String:TEAK_SDK_VERSION];
 
     // Log messages
-    self.log = [[TeakLog alloc] initWithAppId:appId];
+    self.log = [[TeakLog alloc] initForTeak:self withAppId:appId];
 
     [TeakConfiguration configureForAppId:appId andSecret:appSecret];
     self.configuration = [TeakConfiguration configuration];
@@ -236,6 +236,7 @@ Teak* _teakSharedInstance;
     [self.log useSdk:TeakVersionDict];
     [self.log useAppConfiguration:self.configuration.appConfiguration];
     [self.log useDeviceConfiguration:self.configuration.deviceConfiguration];
+    [self.log useDataCollectionConfiguration:self.configuration.dataCollectionConfiguration];
 
     // Set up SDK Raven
     self.sdkRaven = [TeakRaven ravenForTeak:self];
