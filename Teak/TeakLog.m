@@ -68,7 +68,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 }
 
 @interface TeakLog ()
-@property (strong, nonatomic) Teak* teak;
+@property (weak, nonatomic) Teak* teak;
 @property (strong, nonatomic) NSDictionary* sdkVersion;
 @property (strong, nonatomic) NSString* appId;
 @property (strong, nonatomic) TeakDeviceConfiguration* deviceConfiguration;
