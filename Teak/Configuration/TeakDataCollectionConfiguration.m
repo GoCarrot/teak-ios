@@ -15,6 +15,8 @@
 
 #import "TeakDataCollectionConfiguration.h"
 
+#import <AdSupport/AdSupport.h>
+
 #define kTeakEnableIDFA @"TeakEnableIDFA"
 #define kTeakEnableFacebook @"TeakEnableFacebook"
 #define kTeakEnablePushKey @"TeakEnablePushKey"
@@ -34,6 +36,10 @@
     self.enableFacebookAccessToken = IS_FEATURE_ENABLED(kTeakEnableFacebook);
     self.enablePushKey = IS_FEATURE_ENABLED(kTeakEnablePushKey);
 #undef IS_FEATURE_ENABLED
+
+    // Check to see if IDFA has been disabled by the OS
+    ASIdentifierManager* asIdentifierManager = [ASIdentifierManager sharedManager];
+    if (asIdentifierManager != nil) self.enableIDFA &= [asIdentifierManager isAdvertisingTrackingEnabled];
   }
   return self;
 }

@@ -206,9 +206,12 @@ DefineTeakState(Expired, (@[]));
     payload[@"notifications_enabled"] = self.deviceConfiguration.notificationDisplayEnabled;
     payload[@"supports_content_extensions"] = @([[UNUserNotificationCenter currentNotificationCenter] supportsContentExtensions]);
 
+    // Always send if ad tracking is limited, send empty string if it is limited (by either the game, or the OS)
+    payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:self.dataCollectionConfiguration.enableIDFA];
     if ([self.deviceConfiguration.advertisingIdentifier length] > 0 && self.dataCollectionConfiguration.enableIDFA) {
       payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
-      payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:self.deviceConfiguration.limitAdTracking];
+    } else {
+      payload[@"ios_ad_id"] = @"";
     }
 
     if (self.userIdentificationSent) {
