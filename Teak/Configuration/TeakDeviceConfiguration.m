@@ -77,7 +77,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
 
     self.platformString = @"ios_0.0";
     teak_try {
-      self.platformString = [NSString stringWithFormat:@"ios_%f", [[[UIDevice currentDevice] systemVersion] floatValue]];
+      self.platformString = [NSString stringWithFormat:@"ios_%@", [[UIDevice currentDevice] systemVersion]];
     }
     teak_catch_report;
 
