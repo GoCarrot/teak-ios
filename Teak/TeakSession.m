@@ -262,6 +262,9 @@ DefineTeakState(Expired, (@[]));
 
                                                     // User profile
                                                     blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
+
+                                                    // Per-user opt-out
+                                                    [[TeakConfiguration configuration].dataCollectionConfiguration extend:reply[@"data_collection_configuration"]];
                                                   }];
 
     [request send];

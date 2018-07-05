@@ -23,4 +23,6 @@
 
 - (NSDictionary*)to_h;
 
+- (void)extend:(NSDictionary*)json;
+
 @end
