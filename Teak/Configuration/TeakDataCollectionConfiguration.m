@@ -52,7 +52,7 @@
   };
 }
 
-- (void)extend:(NSDictionary*)json {
+- (void)addConfigurationFromDeveloper:(NSDictionary*)json {
   if (json != nil) {
 #define IS_FEATURE_ENABLED(_feature) ([json objectForKey:_feature] == nil) ? YES : [[json objectForKey:_feature] boolValue]
     self.enableIDFA &= IS_FEATURE_ENABLED(@"enable_idfa");
