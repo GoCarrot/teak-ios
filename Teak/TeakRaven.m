@@ -411,7 +411,7 @@ void TeakSignalHandler(int signal) {
 
 - (void)handleEvent:(TeakEvent* _Nonnull)event {
   if (event.type == UserIdentified) {
-    NSMutableDictionary* user = [self.payloadTemplate valueForKey:@"user"];
+    NSMutableDictionary* user = [self.payloadTemplate objectForKey:@"user"];
     [user setValue:((UserIdEvent*)event).userId forKey:@"id"];
   } else if (event.type == RemoteConfigurationReady) {
     TeakRemoteConfiguration* remoteConfiguration = ((RemoteConfigurationEvent*)event).remoteConfiguration;

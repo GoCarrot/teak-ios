@@ -31,7 +31,7 @@
 - (id)init {
   self = [super init];
   if (self) {
-#define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] valueForKey:_feature] == nil) ? YES : [[[[NSBundle mainBundle] infoDictionary] valueForKey:_feature] boolValue]
+#define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? YES : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
     self.enableIDFA = IS_FEATURE_ENABLED(kTeakEnableIDFA);
     self.enableFacebookAccessToken = IS_FEATURE_ENABLED(kTeakEnableFacebook);
     self.enablePushKey = IS_FEATURE_ENABLED(kTeakEnablePushKey);
