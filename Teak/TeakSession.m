@@ -47,7 +47,6 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
-@property (strong, nonatomic, readwrite) TeakDataCollectionConfiguration* dataCollectionConfiguration;
 
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
@@ -181,6 +180,8 @@ DefineTeakState(Expired, (@[]));
       return;
     }
 
+    TeakDataCollectionConfiguration* dataCollectionConfiguration = [[TeakConfiguration configuration] dataCollectionConfiguration];
+
     // Time zone
     NSTimeZone* timeZone = [NSTimeZone localTimeZone];
     float timeZoneOffset = (((float)[timeZone secondsFromGMT]) / 60.0f) / 60.0f;
@@ -207,8 +208,8 @@ DefineTeakState(Expired, (@[]));
     payload[@"supports_content_extensions"] = @([[UNUserNotificationCenter currentNotificationCenter] supportsContentExtensions]);
 
     // Always send if ad tracking is limited, send empty string if it is limited (by either the game, or the OS)
-    payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:!self.dataCollectionConfiguration.enableIDFA];
-    if ([self.deviceConfiguration.advertisingIdentifier length] > 0 && self.dataCollectionConfiguration.enableIDFA) {
+    payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:!dataCollectionConfiguration.enableIDFA];
+    if ([self.deviceConfiguration.advertisingIdentifier length] > 0 && dataCollectionConfiguration.enableIDFA) {
       payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
     } else {
       payload[@"ios_ad_id"] = @"";
@@ -219,7 +220,7 @@ DefineTeakState(Expired, (@[]));
     }
     self.userIdentificationSent = YES;
 
-    if ([self.deviceConfiguration.pushToken length] > 0 && self.dataCollectionConfiguration.enablePushKey) {
+    if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
       payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
     } else {
       payload[@"apns_push_key"] = @"";
@@ -231,7 +232,7 @@ DefineTeakState(Expired, (@[]));
       }
     }
 
-    if (self.facebookAccessToken != nil && self.dataCollectionConfiguration.enableFacebookAccessToken) {
+    if (self.facebookAccessToken != nil && dataCollectionConfiguration.enableFacebookAccessToken) {
       payload[@"access_token"] = self.facebookAccessToken;
     }
 
@@ -299,7 +300,6 @@ DefineTeakState(Expired, (@[]));
     self.startDate = [[NSDate alloc] init];
     self.appConfiguration = configuration.appConfiguration;
     self.deviceConfiguration = configuration.deviceConfiguration;
-    self.dataCollectionConfiguration = configuration.dataCollectionConfiguration;
     self.attributionChain = [[NSMutableArray alloc] init];
 
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
@@ -365,6 +365,11 @@ DefineTeakState(Expired, (@[]));
     handler = [TeakEventBlockHandler handlerWithBlock:^(TeakEvent* _Nonnull event) {
       switch (event.type) {
         case UserIdentified: {
+          TeakConfiguration* configuration = [TeakConfiguration configuration];
+          if (configuration != nil) {
+            [configuration.dataCollectionConfiguration addConfigurationFromDeveloper:((UserIdEvent*)event).optOut];
+          }
+
           [TeakSession setUserId:((UserIdEvent*)event).userId];
         } break;
         case LifecycleActivate: {

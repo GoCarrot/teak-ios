@@ -38,6 +38,10 @@
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 
+NSString* const TeakOptOutIdfa = @"opt_out_idfa";
+NSString* const TeakOptOutPushKey = @"opt_out_push_key";
+NSString* const TeakOptOutFacebook = @"opt_out_facebook";
+
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
 
@@ -91,14 +95,20 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {
+  [self identifyUser:userIdentifier withOptOutList:@[]];
+}
+
+- (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut {
   if (userIdentifier == nil || userIdentifier.length == 0) {
     TeakLog_e(@"identify_user.error", @"User identifier can not be null or empty.");
     return;
   }
 
-  TeakLog_i(@"identify_user", @{@"userId" : userIdentifier});
+  if (optOut == nil) optOut = @[];
 
-  [UserIdEvent userIdentified:[userIdentifier copy]];
+  TeakLog_i(@"identify_user", @{@"userId" : userIdentifier, @"optOut" : optOut});
+
+  [UserIdEvent userIdentified:[userIdentifier copy] withOptOutList:[optOut copy]];
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {

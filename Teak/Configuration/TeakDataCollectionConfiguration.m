@@ -14,6 +14,7 @@
  */
 
 #import "TeakDataCollectionConfiguration.h"
+#import <Teak/Teak.h>
 
 #import <AdSupport/AdSupport.h>
 
@@ -52,13 +53,11 @@
   };
 }
 
-- (void)addConfigurationFromDeveloper:(NSDictionary*)json {
-  if (json != nil) {
-#define IS_FEATURE_ENABLED(_feature) ([json objectForKey:_feature] == nil) ? YES : [[json objectForKey:_feature] boolValue]
-    self.enableIDFA &= IS_FEATURE_ENABLED(@"enable_idfa");
-    self.enableFacebookAccessToken &= IS_FEATURE_ENABLED(@"enable_facebook");
-    self.enablePushKey &= IS_FEATURE_ENABLED(@"enable_push_key");
-#undef IS_FEATURE_ENABLED
+- (void)addConfigurationFromDeveloper:(NSArray*)optOutList {
+  if (optOutList != nil) {
+    self.enableIDFA &= ![optOutList containsObject:TeakOptOutIdfa];
+    self.enableFacebookAccessToken &= ![optOutList containsObject:TeakOptOutFacebook];
+    self.enablePushKey &= ![optOutList containsObject:TeakOptOutPushKey];
   }
 }
 @end

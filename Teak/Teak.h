@@ -33,6 +33,30 @@ extern NSString* _Nonnull const TeakNotificationAppLaunch;
  */
 extern NSString* _Nonnull const TeakOnReward;
 
+/**
+ * Value provided to identifyUser:withOptOutList: to opt out of collecting an IDFA for this specific user.
+ *
+ * If you prevent Teak from collecting the Identifier For Advertisers (IDFA),
+ * Teak will no longer be able to add this user to Facebook Ad Audiences.
+ */
+extern NSString* _Nonnull const TeakOptOutIdfa;
+
+/**
+ * Value provided to identifyUser:withOptOutList: to opt out of collecting a Push Key for this specific user.
+ *
+ * If you prevent Teak from collecting the Push Key, Teak will no longer be able
+ * to send Local Notifications or Push Notifications for this user.
+ */
+extern NSString* _Nonnull const TeakOptOutPushKey;
+
+/**
+ * Value provided to identifyUser:withOptOutList: to opt out of collecting a Facebook Access Token for this specific user.
+ *
+ * If you prevent Teak from collecting the Facebook Access Token,
+ * Teak will no longer be able to correlate this user across multiple devices.
+ */
+extern NSString* _Nonnull const TeakOptOutFacebook;
+
 #ifdef __OBJC__
 
 #import <Teak/TeakLink.h>
@@ -90,6 +114,16 @@ extern NSString* _Nonnull const TeakOnReward;
  * @param userId           The string Teak should use to identify the current user.
  */
 - (void)identifyUser:(nonnull NSString*)userId;
+
+/**
+ * Tell Teak how to identify the current user, with data collection opt-out.
+ *
+ * This should be how you identify the user in your back-end.
+ *
+ * @param userId           The string Teak should use to identify the current user.
+ * @param optOut           A list containing zero or more of: TeakOptOutIdfa, TeakOptOutPushKey, TeakOptOutFacebook
+ */
+- (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut;
 
 /**
  * Track an arbitrary event in Teak.

@@ -21,8 +21,19 @@ void TeakSetDebugOutputEnabled(int enabled) {
   [Teak sharedInstance].enableDebugOutput = (enabled > 0);
 }
 
-void TeakIdentifyUser(const char* userId) {
-  [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]];
+void TeakIdentifyUser(const char* userId, const char* optOutJsonArray) {
+  NSArray* optOutList = @[];
+  if (optOutJsonArray != NULL) {
+    @try {
+      NSError* error = nil;
+      NSData* jsonData = [[NSString stringWithUTF8String:optOutJsonArray] dataUsingEncoding:NSUTF8StringEncoding];
+      optOutList = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+      if (error != nil || ![optOutList isKindOfClass:NSArray.class]) optOutList = @[];
+    } @catch (NSException* ignored) {
+    }
+  }
+
+  [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId] withOptOutList:optOutList];
 }
 
 void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId) {

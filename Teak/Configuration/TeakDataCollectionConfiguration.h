@@ -25,6 +25,6 @@
 
 // Future-Pat: No, we do *not* want to ever configure what data is collected as the result of a server call,
 //             because that would change us from being a "data processor" to a "data controller" under the GDPR
-- (void)addConfigurationFromDeveloper:(NSDictionary*)json;
+- (void)addConfigurationFromDeveloper:(NSArray*)optOutList;
 
 @end
