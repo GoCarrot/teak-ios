@@ -35,6 +35,10 @@
 #import "TrackEventEvent.h"
 #import "UserIdEvent.h"
 
+#ifndef __IPHONE_12_0
+#define __IPHONE_12_0 120000
+#endif
+
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 
