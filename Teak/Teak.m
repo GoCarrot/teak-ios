@@ -489,6 +489,11 @@ Teak* _teakSharedInstance;
         case UNAuthorizationStatusNotDetermined:
           // They haven't been asked
           break;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
+        case UNAuthorizationStatusProvisional:
+          // iOS 12 thing that is not yet well defined
+          break;
+#endif
       }
     }];
   } else if (pushEnabled) {
@@ -533,6 +538,14 @@ Teak* _teakSharedInstance;
           self.pushNotificationsDisabled = NO;
           [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
         } break;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
+        case UNAuthorizationStatusProvisional: {
+          // TODO: This is an iOS 12 thing that is not really well defined
+          // https://developer.apple.com/documentation/usernotifications/unauthorizationstatus/unauthorizationstatusprovisional?language=objc
+          self.pushNotificationsDisabled = NO;
+          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
+        } break;
+#endif
       }
     }];
   } else {
