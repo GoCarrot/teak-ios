@@ -80,7 +80,11 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
   // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
+    UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge;
+    if (@available(iOS 12.0, *)) {
+      //authOptions |= UNAuthorizationOptionProvisional;
+    }
+    [center requestAuthorizationWithOptions:authOptions
                           completionHandler:^(BOOL granted, NSError* _Nullable error) {
                             if (granted) {
                               dispatch_async(dispatch_get_main_queue(), ^{

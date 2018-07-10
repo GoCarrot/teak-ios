@@ -494,9 +494,19 @@ Teak* _teakSharedInstance;
           // They haven't been asked
           break;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
-        case UNAuthorizationStatusProvisional:
-          // iOS 12 thing that is not yet well defined
-          break;
+        case UNAuthorizationStatusProvisional: {
+          // Provisional authorization, they have not yet gotten their first push
+          if (@available(iOS 12.0, *)) {
+            [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
+                                  completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                                    if (granted) {
+                                      dispatch_async(dispatch_get_main_queue(), ^{
+                                        [application registerForRemoteNotifications];
+                                      });
+                                    }
+                                  }];
+          }
+        } break;
 #endif
       }
     }];
@@ -536,20 +546,16 @@ Teak* _teakSharedInstance;
           self.pushNotificationsDisabled = YES;
           [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
         } break;
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
+          // Provisional means they have not disabled, but also have not been asked
+        case UNAuthorizationStatusProvisional:
+#endif
           // Authorized or NotDetermined means they haven't disabled
         case UNAuthorizationStatusAuthorized:
         case UNAuthorizationStatusNotDetermined: {
           self.pushNotificationsDisabled = NO;
           [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
         } break;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
-        case UNAuthorizationStatusProvisional: {
-          // TODO: This is an iOS 12 thing that is not really well defined
-          // https://developer.apple.com/documentation/usernotifications/unauthorizationstatus/unauthorizationstatusprovisional?language=objc
-          self.pushNotificationsDisabled = NO;
-          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
-        } break;
-#endif
       }
     }];
   } else {
