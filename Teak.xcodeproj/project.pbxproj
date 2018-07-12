@@ -23,6 +23,8 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		4306C02620F7DD8500216F18 /* TeakPushState.h in Headers */ = {isa = PBXBuildFile; fileRef = 4306C02420F7DD8500216F18 /* TeakPushState.h */; };
+		4306C02720F7DD8500216F18 /* TeakPushState.m in Sources */ = {isa = PBXBuildFile; fileRef = 4306C02520F7DD8500216F18 /* TeakPushState.m */; };
 		430E64541FB62468008DE15B /* TeakNotificationCategories.m in Sources */ = {isa = PBXBuildFile; fileRef = 430E64531FB62468008DE15B /* TeakNotificationCategories.m */; };
 		430E647B1FB63249008DE15B /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 430E647D1FB63249008DE15B /* Localizable.strings */; };
 		4311B883206AC8CB00E542E3 /* TeakUserProfile.h in Headers */ = {isa = PBXBuildFile; fileRef = 4311B881206AC8CB00E542E3 /* TeakUserProfile.h */; };
@@ -121,6 +123,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4306C02420F7DD8500216F18 /* TeakPushState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakPushState.h; sourceTree = "<group>"; };
+		4306C02520F7DD8500216F18 /* TeakPushState.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakPushState.m; sourceTree = "<group>"; };
 		430E64531FB62468008DE15B /* TeakNotificationCategories.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakNotificationCategories.m; sourceTree = "<group>"; };
 		430E64671FB62EEE008DE15B /* TeakResources.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TeakResources.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
 		430E64691FB62EEE008DE15B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -284,6 +288,8 @@
 				43F7CFF71EF0957E00361256 /* TeakLog.m */,
 				430E64531FB62468008DE15B /* TeakNotificationCategories.m */,
 				4311B885206AD16C00E542E3 /* TeakRequest+Internal.h */,
+				4306C02420F7DD8500216F18 /* TeakPushState.h */,
+				4306C02520F7DD8500216F18 /* TeakPushState.m */,
 			);
 			path = Teak;
 			sourceTree = "<group>";
@@ -381,6 +387,7 @@
 				4388FB0920D85D5000D1B6FF /* TeakDataCollectionConfiguration.h in Headers */,
 				434861851FA3C08A00E0DA12 /* LifecycleEvent.h in Headers */,
 				439815C71FA299F8005303F1 /* TeakCore.h in Headers */,
+				4306C02620F7DD8500216F18 /* TeakPushState.h in Headers */,
 				439815C21FA2909F005303F1 /* UserIdEvent.h in Headers */,
 				434862481FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h in Headers */,
 				431C98081C7E612400B19DD5 /* Teak.h in Headers */,
@@ -585,6 +592,7 @@
 				439815B91FA2651D005303F1 /* TeakEvent.m in Sources */,
 				4311B884206AC8CB00E542E3 /* TeakUserProfile.m in Sources */,
 				439815C81FA299F8005303F1 /* TeakCore.m in Sources */,
+				4306C02720F7DD8500216F18 /* TeakPushState.m in Sources */,
 				438372741D34285A00B01F44 /* TeakDeviceConfiguration.m in Sources */,
 				43C735C11CC1AA2700484B67 /* TeakCExtern.m in Sources */,
 				43F7CFF91EF0957E00361256 /* TeakLog.m in Sources */,
