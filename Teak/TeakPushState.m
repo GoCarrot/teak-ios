@@ -67,8 +67,8 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   return operation;
 }
 
-- (NSOperation*)currentPushStateOpteration {
-  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:TeakState.class selector:@selector(determineCurrentPushState) object:nil];
+- (NSOperation*)currentPushStateOperation {
+  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:TeakState.class selector:@selector(determineCurrentPushStateBlocking) object:nil];
   __weak typeof(self) weakSelf = self;
   __weak NSInvocationOperation* weakOperation = operation;
   operation.completionBlock = ^{
@@ -89,7 +89,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   [self.operationQueue addOperation:operation];
 }
 
-+ (TeakState*)determineCurrentPushState {
++ (TeakState*)determineCurrentPushStateBlocking {
   __block TeakState* pushState = [TeakPushState Unknown];
 
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
