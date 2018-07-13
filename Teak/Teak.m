@@ -25,7 +25,6 @@
 #import "SKPaymentObserver.h"
 #import "TeakCore.h"
 #import "TeakNotification.h"
-#import "TeakPushState.h"
 #import "TeakReward.h"
 #import "TeakVersion.h"
 
@@ -146,10 +145,9 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)hasUserDisabledPushNotifications {
-  if (self.pushNotificationDisabledCheck == nil) return NO;
-
-  [self.pushNotificationDisabledCheck waitUntilFinished];
-  return self.pushNotificationsDisabled;
+  NSInvocationOperation* op = [self.pushState currentPushState];
+  [op waitUntilFinished];
+  return (op.result == [TeakPushState Denied]);
 }
 
 - (BOOL)openSettingsAppToThisAppsSettings {
@@ -239,8 +237,6 @@ Teak* _teakSharedInstance;
     self.enableRemoteLogging = self.configuration.debugConfiguration.logRemote;
     self.enableRemoteLogging |= !self.configuration.appConfiguration.isProduction;
 
-    self.pushNotificationsDisabled = NO;
-
     // Add Unity/Air SDK version if applicable
     NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
     if (TeakWrapperSDK != nil) {
@@ -265,6 +261,9 @@ Teak* _teakSharedInstance;
 
     // Payment observer
     self.paymentObserver = [[SKPaymentObserver alloc] init];
+
+    // Push State
+    self.pushState = [[TeakPushState alloc] init];
 
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
@@ -452,17 +451,15 @@ Teak* _teakSharedInstance;
                                      annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
   }
 
-  // Check to see if the user has already enabled push notifications
-  BOOL pushEnabled = [TeakPushState applicationHasRemoteNotificationsEnabled:application];
-  self.pushNotificationsDisabled = !pushEnabled;
-
+  // Check to see if the user has already enabled push notifications.
+  //
   // If they've already enabled push, go ahead and register since it won't pop up a box.
   // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
   // even if the app developer doesn't follow Apple's best practices.
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [TeakPushState determineCurrentPushState:^(TeakState* pushState) {
-      if (pushState == [TeakPushState Authorized]) {
+  [self.pushState currentPushStateWithCompletionHandler:^(TeakState* pushState) {
+    if (pushState == [TeakPushState Authorized]) {
+      if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
         [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
                               completionHandler:^(BOOL granted, NSError* _Nullable error) {
                                 if (granted) {
@@ -471,34 +468,35 @@ Teak* _teakSharedInstance;
                                   });
                                 }
                               }];
-      }
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
-      else if (pushState == [TeakPushState Provisional]) {
-        if (@available(iOS 12.0, *)) {
-          [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
-                                completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                                  if (granted) {
-                                    dispatch_async(dispatch_get_main_queue(), ^{
-                                      [application registerForRemoteNotifications];
-                                    });
-                                  }
-                                }];
-        }
-      }
-#endif
-    }];
-  } else if (pushEnabled) {
-    if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
-      UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
-      [application registerUserNotificationSettings:settings];
-    } else {
+      } else {
+        if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+          UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
+          [application registerUserNotificationSettings:settings];
+        } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-      UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
-      [application registerForRemoteNotificationTypes:types];
+          UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
+          [application registerForRemoteNotificationTypes:types];
 #pragma clang diagnostic pop
+        }
+      }
     }
-  }
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
+    else if (pushState == [TeakPushState Provisional]) {
+      if (@available(iOS 12.0, *)) {
+        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+        [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
+                              completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                                if (granted) {
+                                  dispatch_async(dispatch_get_main_queue(), ^{
+                                    [application registerForRemoteNotifications];
+                                  });
+                                }
+                              }];
+      }
+    }
+#endif
+  }];
 
   // Lifecycle event
   [LifecycleEvent applicationFinishedLaunching];
@@ -509,13 +507,6 @@ Teak* _teakSharedInstance;
 - (void)applicationDidBecomeActive:(UIApplication*)application {
   TeakUnused(application);
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
-
-  // Check to see if the user has disabled push notifications
-  self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{}];
-  [TeakPushState determineCurrentPushState:^(TeakState* pushState) {
-    self.pushNotificationsDisabled = (pushState == [TeakPushState Denied]);
-    [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
-  }];
 
   // Zero-out the badge count
   [self setApplicationBadgeNumber:0];

@@ -25,7 +25,7 @@ DeclareTeakState(Provisional);
 DeclareTeakState(Authorized);
 DeclareTeakState(Denied);
 
-+ (BOOL)applicationHasRemoteNotificationsEnabled:(nonnull UIApplication*)application;
-+ (void)determineCurrentPushState:(void (^)(TeakState* pushState))completionBlock;
+- (NSInvocationOperation* _Nonnull)currentPushState;
+- (void)currentPushStateWithCompletionHandler:(void (^_Nonnull)(TeakState* _Nonnull))completionHandler;
 
 @end
