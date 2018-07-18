@@ -14,6 +14,7 @@
  */
 
 #import "TeakPushState.h"
+#import "TeakLog.h"
 #import <UserNotifications/UNNotificationSettings.h>
 #import <UserNotifications/UNUserNotificationCenter.h>
 
@@ -21,12 +22,73 @@
 #define __IPHONE_12_0 120000
 #endif
 
+#define kStateChainPreferencesKey @"TeakPushStateChain"
+#define kStateChainEntryDateKey @"date"
+#define kStateChainEntryStateKey @"state"
+
+@interface TeakPushStateChainEntry : NSObject
++ (NSDictionary*)chainEntryForState:(TeakState*)state;
++ (TeakState*)getState:(NSDictionary*)dictionary;
++ (NSDate*)getDate:(NSDictionary*)dictionary;
+@end
+
+@implementation TeakPushStateChainEntry
+
++ (TeakState*)getState:(NSDictionary*)dictionary {
+  return [TeakPushStateChainEntry numberToState:[dictionary objectForKey:kStateChainEntryStateKey]];
+}
+
++ (NSDate*)getDate:(NSDictionary*)dictionary {
+  return [NSDate dateWithTimeIntervalSince1970:[[dictionary objectForKey:kStateChainEntryDateKey] doubleValue]];
+}
+
++ (TeakState*)numberToState:(NSNumber*)number {
+  switch ([number integerValue]) {
+    case 1:
+      return [TeakPushState Provisional];
+    case 2:
+      return [TeakPushState Authorized];
+    case 3:
+      return [TeakPushState Denied];
+    default:
+      return [TeakPushState Unknown];
+  }
+}
+
++ (NSNumber*)stateToNumber:(TeakState*)state {
+  if (state == [TeakPushState Provisional]) return [NSNumber numberWithInteger:1];
+  if (state == [TeakPushState Authorized]) return [NSNumber numberWithInteger:2];
+  if (state == [TeakPushState Denied]) return [NSNumber numberWithInteger:3];
+  return [NSNumber numberWithInteger:0];
+}
+
++ (nullable NSDictionary*)chainEntryForState:(TeakState*)state {
+  return [TeakPushStateChainEntry chainEntryWithDictionary:@{
+    kStateChainEntryStateKey : [TeakPushStateChainEntry stateToNumber:state],
+    kStateChainEntryDateKey : [NSNumber numberWithDouble:[[[NSDate alloc] init] timeIntervalSince1970]]
+  }];
+}
+
++ (nullable NSDictionary*)chainEntryWithDictionary:(NSDictionary*)dictionary {
+  if ([dictionary objectForKey:kStateChainEntryDateKey] == nil) {
+    TeakLog_e(@"push_state.entry", @"chainEntryWithDictionary: did not include date key.");
+    return nil;
+  }
+  if ([dictionary objectForKey:kStateChainEntryStateKey] == nil) {
+    TeakLog_e(@"push_state.entry", @"chainEntryWithDictionary: did not include state key.");
+    return nil;
+  }
+  return dictionary;
+}
+
+@end
+
 @interface TeakPushState ()
 
-@property (strong, nonatomic, readwrite) TeakState* currentState;
-
+@property (strong, nonatomic) NSArray* stateChain;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 
+- (TeakState*)determineCurrentPushStateBlocking;
 @end
 
 @implementation TeakPushState
@@ -39,9 +101,19 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 - (TeakPushState*)init {
   self = [super init];
   if (self) {
+    // Get the current state chain, or assign Unknown
+    NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+    self.stateChain = [userDefaults arrayForKey:kStateChainPreferencesKey];
+    if (self.stateChain == nil || self.stateChain.count < 1) {
+      self.stateChain = @[ [TeakPushStateChainEntry chainEntryForState:[TeakPushState Unknown]] ];
+    }
+
+    // Create serial NSOperationQueue, and enqueue operation to update the current state chain
     self.operationQueue = [[NSOperationQueue alloc] init];
     self.operationQueue.maxConcurrentOperationCount = 1;
-    //[self.operationQueue addOperation:];
+    [self.operationQueue addOperation:[self assignCurrentPushStateOperation]];
+
+    // Listen for LifecycleActivate
     [TeakEvent addEventHandler:self];
   }
   return self;
@@ -50,15 +122,40 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 - (void)handleEvent:(TeakEvent*)event {
   switch (event.type) {
     case LifecycleActivate: {
-
+      [self.operationQueue addOperation:[self assignCurrentPushStateOperation]];
+    } break;
+    case PushRegistered: {
+      [self.operationQueue addOperation:[self assignCurrentPushStateOperation]];
     } break;
     default:
       break;
   }
 }
 
+- (void)updateCurrentState:(TeakState*)newState {
+  @synchronized(self) {
+    TeakState* oldState = [TeakPushStateChainEntry getState:[self.stateChain lastObject]];
+    if ([oldState canTransitionToState:newState]) {
+      TeakState* oldState = [self.stateChain lastObject];
+      NSMutableArray* mutableStateChain = [self.stateChain mutableCopy];
+      NSDictionary* newChainEntry = [TeakPushStateChainEntry chainEntryForState:newState];
+      if (newChainEntry != nil) {
+        [mutableStateChain addObject:newChainEntry];
+        self.stateChain = mutableStateChain;
+
+        // Persist
+        NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+        [userDefaults setObject:self.stateChain forKey:kStateChainPreferencesKey];
+        [userDefaults synchronize];
+
+        TeakLog_i(@"push_state.new_state", @{@"old_state" : oldState});
+      }
+    }
+  }
+}
+
 - (TeakState*)invocationOperationPushState {
-  return self.currentState;
+  return [self.stateChain lastObject];
 }
 
 - (NSInvocationOperation*)currentPushState {
@@ -67,14 +164,14 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   return operation;
 }
 
-- (NSOperation*)currentPushStateOperation {
-  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:TeakState.class selector:@selector(determineCurrentPushStateBlocking) object:nil];
+- (NSInvocationOperation*)assignCurrentPushStateOperation {
+  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(determineCurrentPushStateBlocking) object:nil];
   __weak typeof(self) weakSelf = self;
   __weak NSInvocationOperation* weakOperation = operation;
   operation.completionBlock = ^{
     __strong typeof(self) blockSelf = weakSelf;
     __strong NSInvocationOperation* blockOperation = weakOperation;
-    blockSelf.currentState = blockOperation.result;
+    [blockSelf updateCurrentState:blockOperation.result];
   };
   return operation;
 }
@@ -89,7 +186,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   [self.operationQueue addOperation:operation];
 }
 
-+ (TeakState*)determineCurrentPushStateBlocking {
+- (TeakState*)determineCurrentPushStateBlocking {
   __block TeakState* pushState = [TeakPushState Unknown];
 
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
@@ -135,6 +232,12 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 #pragma clang diagnostic pop
   }
   return pushEnabled;
+}
+
+- (NSDictionary*)to_h {
+  return @{
+    @"state_chain" : self.stateChain
+  };
 }
 
 @end

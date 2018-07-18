@@ -262,8 +262,9 @@ Teak* _teakSharedInstance;
     // Payment observer
     self.paymentObserver = [[SKPaymentObserver alloc] init];
 
-    // Push State
+    // Push State - Log it here, since sharedInstance has not yet been assigned at this point
     self.pushState = [[TeakPushState alloc] init];
+    [self.log logEvent:@"push_state.init" level:@"INFO" eventData:[self.pushState to_h]];
 
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
