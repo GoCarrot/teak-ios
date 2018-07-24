@@ -23,8 +23,8 @@
 #include <execinfo.h>
 
 NSString* const SentryProtocolVersion = @"7";
-NSString* const TeakSentryVersion = @"1.0.0";
-NSString* const TeakSentryClient = @"teak-ios/1.0.0";
+NSString* const TeakSentryVersion = @"1.1.0";
+NSString* const TeakSentryClient = @"teak-ios/1.1.0";
 
 NSString* const TeakRavenLevelError = @"error";
 NSString* const TeakRavenLevelFatal = @"fatal";
@@ -251,23 +251,31 @@ void TeakSignalHandler(int signal) {
         @"logger" : @"teak",
         @"platform" : @"objc",
         @"release" : teak.sdkVersion,
-        @"server_name" : [[NSBundle mainBundle] bundleIdentifier],
-        @"tags" : @{
-          @"app_id" : teak.configuration.appConfiguration.appId,
-          @"app_version" : teak.configuration.appConfiguration.appVersion
-        },
+        @"tags" : @{},
         @"sdk" : @{
           @"name" : @"teak",
           @"version" : TeakSentryVersion
         },
-        @"device" : @{
-          @"name" : teak.configuration.deviceConfiguration.deviceModel,
-          @"version" : teak.configuration.deviceConfiguration.platformString,
-          @"build" : @""
-        },
         @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
           @"device_id" : teak.configuration.deviceConfiguration.deviceId
-        }]
+        }],
+        @"contexts" : @{
+          @"os" : @{
+            @"name" : @"iOS",
+            @"version" : [[UIDevice currentDevice] systemVersion]
+          },
+          @"app" : @{
+            @"app_identifier" : [[NSBundle mainBundle] bundleIdentifier],
+            @"teak_app_identifier" : teak.configuration.appConfiguration.appId,
+            @"app_version" : teak.configuration.appConfiguration.appVersion,
+            @"build_type" : teak.configuration.appConfiguration.isProduction ? @"production" : @"debug"
+          },
+          @"device" : @{
+            @"name" : teak.configuration.deviceConfiguration.deviceModel,
+            @"version" : teak.configuration.deviceConfiguration.platformString,
+            @"build" : @""
+          }
+        }
       }];
 
       // Listener for User Id
