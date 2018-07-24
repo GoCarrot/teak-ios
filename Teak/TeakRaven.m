@@ -21,6 +21,7 @@
 #import "UserIdEvent.h"
 
 #include <execinfo.h>
+#include <sys/sysctl.h>
 
 NSString* const SentryProtocolVersion = @"7";
 NSString* const TeakSentryVersion = @"1.1.0";
@@ -245,6 +246,21 @@ void TeakSignalHandler(int signal) {
   self = [super init];
   if (self) {
     @try {
+      size_t size;
+      sysctlbyname("hw.machine", NULL, &size, NULL, 0);
+      char* tempStr = malloc(size);
+      sysctlbyname("hw.machine", tempStr, &size, NULL, 0);
+      NSString* hwMachine = [NSString stringWithCString:tempStr encoding:NSUTF8StringEncoding];
+      free(tempStr);
+
+      sysctlbyname("hw.model", NULL, &size, NULL, 0);
+      tempStr = malloc(size);
+      sysctlbyname("hw.model", tempStr, &size, NULL, 0);
+      NSString* hwModel = [NSString stringWithCString:tempStr encoding:NSUTF8StringEncoding];
+      free(tempStr);
+
+      NSString* family = [[hwMachine componentsSeparatedByCharactersInSet:[NSCharacterSet decimalDigitCharacterSet]] firstObject];
+
       self.isSdkRaven = YES;
       self.appId = @"sdk";
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary:@{
@@ -271,9 +287,9 @@ void TeakSignalHandler(int signal) {
             @"build_type" : teak.configuration.appConfiguration.isProduction ? @"production" : @"debug"
           },
           @"device" : @{
-            @"name" : teak.configuration.deviceConfiguration.deviceModel,
-            @"version" : teak.configuration.deviceConfiguration.platformString,
-            @"build" : @""
+            @"family" : family,
+            @"model" : hwMachine,
+            @"model_id" : hwModel
           }
         }
       }];
