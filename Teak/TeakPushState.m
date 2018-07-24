@@ -133,9 +133,9 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 
 - (void)updateCurrentState:(TeakState*)newState {
   @synchronized(self) {
-    TeakState* oldState = [TeakPushStateChainEntry getState:[self.stateChain lastObject]];
+    NSDictionary* oldStateChainEntry = [self.stateChain lastObject];
+    TeakState* oldState = [TeakPushStateChainEntry getState:oldStateChainEntry];
     if ([oldState canTransitionToState:newState]) {
-      TeakState* oldState = [self.stateChain lastObject];
       NSMutableArray* mutableStateChain = [self.stateChain mutableCopy];
       NSDictionary* newChainEntry = [TeakPushStateChainEntry chainEntryForState:newState];
       if (newChainEntry != nil) {
@@ -147,7 +147,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
         [userDefaults setObject:self.stateChain forKey:kStateChainPreferencesKey];
         [userDefaults synchronize];
 
-        TeakLog_i(@"push_state.new_state", @{@"old_state" : oldState});
+        TeakLog_i(@"push_state.new_state", @{@"old_state" : oldStateChainEntry, @"new_state" : newChainEntry});
       }
     }
   }
