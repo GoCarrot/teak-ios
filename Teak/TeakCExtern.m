@@ -145,3 +145,7 @@ const char* TeakGetAppConfiguration() {
 const char* TeakGetDeviceConfiguration() {
   return [[[Teak sharedInstance] getDeviceConfiguration] UTF8String];
 }
+
+void TeakReportTestException() {
+  [[Teak sharedInstance] reportTestException];
+}

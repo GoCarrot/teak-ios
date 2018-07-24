@@ -208,6 +208,13 @@ Teak* _teakSharedInstance;
   return [self getConfiguration:@"appConfiguration"];
 }
 
+- (void)reportTestException {
+  teak_try {
+    @throw([NSException exceptionWithName:@"ReportTestException" reason:[NSString stringWithFormat:@"Version: %@", self.sdkVersion] userInfo:nil]);
+  }
+  teak_catch_report;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 - (id)initWithApplicationId:(NSString*)appId andSecret:(NSString*)appSecret {
