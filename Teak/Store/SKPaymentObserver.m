@@ -159,9 +159,16 @@
     teak_try {
       teak_log_breadcrumb(@"Collecting product response info");
       SKProduct* product = [response.products objectAtIndex:0];
+      teak_log_breadcrumb(([NSString stringWithFormat:@"Product: %@", product]));
+
       NSLocale* priceLocale = product.priceLocale;
+      teak_log_breadcrumb(([NSString stringWithFormat:@"Product Price Locale: %@", priceLocale]));
+
       NSString* currencyCode = [priceLocale objectForKey:NSLocaleCurrencyCode];
+      teak_log_breadcrumb(([NSString stringWithFormat:@"Product Currency Code: %@", currencyCode]));
+
       NSDecimalNumber* price = product.price;
+      teak_log_breadcrumb(([NSString stringWithFormat:@"Product Price: %@", price]));
 
       self.callback(@{@"price_currency_code" : _(currencyCode), @"price_float" : _(price)}, response);
     }
