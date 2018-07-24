@@ -158,7 +158,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 }
 
 - (NSInvocationOperation*)currentPushState {
-  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:TeakState.class selector:@selector(invocationOperationPushState) object:nil];
+  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationOperationPushState) object:nil];
   [self.operationQueue addOperation:operation];
   return operation;
 }
@@ -176,7 +176,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 }
 
 - (void)currentPushStateWithCompletionHandler:(void (^_Nonnull)(TeakState* _Nonnull))completionHandler {
-  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:TeakState.class selector:@selector(invocationOperationPushState) object:nil];
+  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationOperationPushState) object:nil];
   __weak NSInvocationOperation* weakOperation = operation;
   operation.completionBlock = ^{
     __strong NSInvocationOperation* blockOperation = weakOperation;
