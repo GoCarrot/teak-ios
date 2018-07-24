@@ -26,7 +26,7 @@ DeclareTeakState(Authorized);
 DeclareTeakState(Denied);
 
 - (NSInvocationOperation* _Nonnull)currentPushState;
-- (void)currentPushStateWithCompletionHandler:(void (^_Nonnull)(TeakState* _Nonnull))completionHandler;
+- (void)determineCurrentPushStateWithCompletionHandler:(void (^_Nonnull)(TeakState* _Nonnull))completionHandler;
 - (nonnull NSDictionary*)to_h;
 
 @end

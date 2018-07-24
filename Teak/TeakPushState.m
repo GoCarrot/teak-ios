@@ -175,8 +175,8 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   return operation;
 }
 
-- (void)currentPushStateWithCompletionHandler:(void (^_Nonnull)(TeakState* _Nonnull))completionHandler {
-  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(invocationOperationPushState) object:nil];
+- (void)determineCurrentPushStateWithCompletionHandler:(void (^_Nonnull)(TeakState* _Nonnull))completionHandler {
+  NSInvocationOperation* operation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(determineCurrentPushStateBlocking) object:nil];
   __weak NSInvocationOperation* weakOperation = operation;
   operation.completionBlock = ^{
     __strong NSInvocationOperation* blockOperation = weakOperation;

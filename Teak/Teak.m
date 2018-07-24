@@ -39,6 +39,8 @@
 #define __IPHONE_12_0 120000
 #endif
 
+#define iOS12OrGreater() ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0)
+
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 
@@ -457,7 +459,7 @@ Teak* _teakSharedInstance;
   // If they've already enabled push, go ahead and register since it won't pop up a box.
   // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
   // even if the app developer doesn't follow Apple's best practices.
-  [self.pushState currentPushStateWithCompletionHandler:^(TeakState* pushState) {
+  [self.pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
     if (pushState == [TeakPushState Authorized]) {
       if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
         UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
@@ -483,18 +485,21 @@ Teak* _teakSharedInstance;
       }
     }
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
-    else if (pushState == [TeakPushState Provisional]) {
-      if (@available(iOS 12.0, *)) {
-        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-        [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
-                              completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                                if (granted) {
-                                  dispatch_async(dispatch_get_main_queue(), ^{
-                                    [application registerForRemoteNotifications];
-                                  });
-                                }
-                              }];
-      }
+    else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
+
+      // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+      UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
+                            completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                              if (granted) {
+                                dispatch_async(dispatch_get_main_queue(), ^{
+                                  [application registerForRemoteNotifications];
+                                });
+                              }
+                            }];
+#pragma clang diagnostic pop
     }
 #endif
   }];
