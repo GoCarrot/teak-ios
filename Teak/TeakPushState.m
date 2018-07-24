@@ -108,10 +108,9 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
       self.stateChain = @[ [TeakPushStateChainEntry chainEntryForState:[TeakPushState Unknown]] ];
     }
 
-    // Create serial NSOperationQueue, and enqueue operation to update the current state chain
+    // Create serial NSOperationQueue
     self.operationQueue = [[NSOperationQueue alloc] init];
     self.operationQueue.maxConcurrentOperationCount = 1;
-    [self.operationQueue addOperation:[self assignCurrentPushStateOperation]];
 
     // Listen for LifecycleActivate
     [TeakEvent addEventHandler:self];
