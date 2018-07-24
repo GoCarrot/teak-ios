@@ -56,9 +56,9 @@
                                 callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
                                   teak_log_breadcrumb(@"Building payload");
                                   NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
-                                    @"purchase_time" : [formatter stringFromDate:transaction.transactionDate],
+                                    @"purchase_time" : _([formatter stringFromDate:transaction.transactionDate]),
                                     @"product_id" : transaction.payment.productIdentifier,
-                                    @"transaction_identifier" : transaction.transactionIdentifier,
+                                    @"transaction_identifier" : _(transaction.transactionIdentifier),
                                     @"purchase_token" : _([receipt base64EncodedStringWithOptions:0])
                                   }];
 
