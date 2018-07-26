@@ -164,16 +164,9 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
       NSMutableArray* mutableStateChain = self.stateChain == nil ? [[NSMutableArray alloc] init] : [self.stateChain mutableCopy];
       [mutableStateChain addObject:newChainEntry];
       self.stateChain = mutableStateChain;
-
-      // Turn stateChain into something serializable
-      NSMutableArray* serializedStateChain = [[NSMutableArray alloc] init];
-      for (TeakPushStateChainEntry* entry in self.stateChain) {
-        [serializedStateChain addObject:[entry to_h]];
-      }
-
       // Persist
       NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-      [userDefaults setObject:serializedStateChain forKey:kStateChainPreferencesKey];
+      [userDefaults setObject:[self serializedStateChain] forKey:kStateChainPreferencesKey];
       [userDefaults synchronize];
 
       TeakLog_i(@"push_state.new_state", @{@"old_state" : [oldStateChainEntry to_h], @"new_state" : [newChainEntry to_h]});
@@ -264,8 +257,16 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 
 - (NSDictionary*)to_h {
   return @{
-    @"state_chain" : self.stateChain
+    @"push_state_chain" : [self serializedStateChain]
   };
+}
+
+- (NSArray*)serializedStateChain {
+  NSMutableArray* serializedStateChain = [[NSMutableArray alloc] init];
+  for (TeakPushStateChainEntry* entry in self.stateChain) {
+    [serializedStateChain addObject:[entry to_h]];
+  }
+  return serializedStateChain;
 }
 
 @end

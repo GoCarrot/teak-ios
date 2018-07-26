@@ -222,6 +222,7 @@ DefineTeakState(Expired, (@[]));
 
     if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
       payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
+      [payload addEntriesFromDictionary:[[Teak sharedInstance].pushState to_h]];
     } else {
       payload[@"apns_push_key"] = @"";
     }
