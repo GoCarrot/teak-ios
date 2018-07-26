@@ -123,17 +123,19 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 #ifdef SAMPLE_ALERT_ON_REWARD
   NSDictionary* reward = userInfo[@"reward"];
   if (reward) {
-    NSNumber* coins = reward[@"coins"];
-    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Coins!"
-                                                                   message:[NSString stringWithFormat:@"You just got %@ coins!", coins]
-                                                            preferredStyle:UIAlertControllerStyleAlert];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      NSNumber* coins = reward[@"coins"];
+      UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Coins!"
+                                                                     message:[NSString stringWithFormat:@"You just got %@ coins!", coins]
+                                                              preferredStyle:UIAlertControllerStyleAlert];
 
-    UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
-                                                            style:UIAlertActionStyleDefault
-                                                          handler:^(UIAlertAction* action){}];
+      UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
+                                                              style:UIAlertActionStyleDefault
+                                                            handler:^(UIAlertAction* action){}];
 
-    [alert addAction:defaultAction];
-    [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+      [alert addAction:defaultAction];
+      [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+    });
   }
 #endif
 }
