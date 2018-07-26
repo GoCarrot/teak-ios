@@ -233,10 +233,4 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   return pushEnabled;
 }
 
-- (NSDictionary*)to_h {
-  return @{
-    @"state_chain" : self.stateChain
-  };
-}
-
 @end
