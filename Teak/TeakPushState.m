@@ -54,13 +54,17 @@
 }
 
 - (id)initWithState:(nonnull TeakState*)state {
+  return [self initWithState:state canShowOnLockscreen:YES canShowBadge:YES canShowInNotificationCenter:YES];
+}
+
+- (id)initWithState:(nonnull TeakState*)state canShowOnLockscreen:(BOOL)canShowOnLockscreen canShowBadge:(BOOL)canShowBadge canShowInNotificationCenter:(BOOL)canShowInNotificationCenter {
   self = [super init];
   if (self) {
     self.state = state;
     self.date = [[NSDate alloc] init];
-    self.canShowOnLockscreen = YES;
-    self.canShowBadge = YES;
-    self.canShowInNotificationCenter = YES;
+    self.canShowOnLockscreen = canShowOnLockscreen;
+    self.canShowBadge = canShowBadge;
+    self.canShowInNotificationCenter = canShowInNotificationCenter;
   }
   return self;
 }
@@ -218,15 +222,21 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
         case UNAuthorizationStatusDenied: {
           pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Denied]];
         } break;
-        case UNAuthorizationStatusAuthorized: {
-          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]];
-        } break;
         case UNAuthorizationStatusNotDetermined: {
           // Remains as state 'Unknown'
         } break;
+        case UNAuthorizationStatusAuthorized: {
+          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]
+                                                 canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
+                                                        canShowBadge:(settings.badgeSetting == UNNotificationSettingEnabled)
+                                         canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
+        } break;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
         case UNAuthorizationStatusProvisional: {
-          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Provisional]];
+          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Provisional]
+                                                 canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
+                                                        canShowBadge:(settings.badgeSetting == UNNotificationSettingEnabled)
+                                         canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
         } break;
 #endif
       }
