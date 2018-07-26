@@ -171,14 +171,18 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key {
+  double copiedValue = value;
+  NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    [session.userProfile setNumericAttribute:value forKey:key];
+    [session.userProfile setNumericAttribute:copiedValue forKey:copiedKey];
   }];
 }
 
 - (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key {
+  NSString* copiedValue = [value copy];
+  NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    [session.userProfile setStringAttribute:value forKey:key];
+    [session.userProfile setStringAttribute:copiedValue forKey:copiedKey];
   }];
 }
 
