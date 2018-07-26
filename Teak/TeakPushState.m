@@ -23,64 +23,82 @@
 #endif
 
 #define kStateChainPreferencesKey @"TeakPushStateChain"
-#define kStateChainEntryDateKey @"date"
-#define kStateChainEntryStateKey @"state"
 
 @interface TeakPushStateChainEntry : NSObject
-+ (NSDictionary*)chainEntryForState:(TeakState*)state;
-+ (TeakState*)getState:(NSDictionary*)dictionary;
-+ (NSDate*)getDate:(NSDictionary*)dictionary;
+@property (strong, nonatomic) TeakState* state;
+@property (strong, nonatomic) NSDate* date;
+@property (nonatomic) BOOL canShowOnLockscreen;
+@property (nonatomic) BOOL canShowBadge;
+@property (nonatomic) BOOL canShowInNotificationCenter;
+
+- (NSDictionary*)to_h;
 @end
 
 @implementation TeakPushStateChainEntry
 
-+ (TeakState*)getState:(NSDictionary*)dictionary {
-  return [TeakPushStateChainEntry numberToState:[dictionary objectForKey:kStateChainEntryStateKey]];
-}
-
-+ (NSDate*)getDate:(NSDictionary*)dictionary {
-  return [NSDate dateWithTimeIntervalSince1970:[[dictionary objectForKey:kStateChainEntryDateKey] doubleValue]];
-}
-
-+ (TeakState*)numberToState:(NSNumber*)number {
-  switch ([number integerValue]) {
-    case 1:
-      return [TeakPushState Provisional];
-    case 2:
-      return [TeakPushState Authorized];
-    case 3:
-      return [TeakPushState Denied];
-    default:
-      return [TeakPushState Unknown];
-  }
-}
-
-+ (NSNumber*)stateToNumber:(TeakState*)state {
-  if (state == [TeakPushState Provisional]) return [NSNumber numberWithInteger:1];
-  if (state == [TeakPushState Authorized]) return [NSNumber numberWithInteger:2];
-  if (state == [TeakPushState Denied]) return [NSNumber numberWithInteger:3];
-  return [NSNumber numberWithInteger:0];
-}
-
-+ (nullable NSDictionary*)chainEntryForState:(TeakState*)state {
-  return [TeakPushStateChainEntry chainEntryWithDictionary:@{
-    kStateChainEntryStateKey : [TeakPushStateChainEntry stateToNumber:state],
-    kStateChainEntryDateKey : [NSNumber numberWithDouble:[[[NSDate alloc] init] timeIntervalSince1970]]
+- (NSDictionary*)to_h {
+  NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:@{
+    @"state" : [self stateAsString],
+    @"date" : [NSNumber numberWithDouble:[self.date timeIntervalSince1970]],
   }];
+
+  if (self.state == [TeakPushState Provisional] || self.state == [TeakPushState Authorized]) {
+    [ret addEntriesFromDictionary:@{
+      @"canShowOnLockscreen" : [NSNumber numberWithBool:self.canShowOnLockscreen],
+      @"canShowBadge" : [NSNumber numberWithBool:self.canShowBadge],
+      @"canShowInNotificationCenter" : [NSNumber numberWithBool:self.canShowInNotificationCenter],
+    }];
+  }
+
+  return ret;
 }
 
-+ (nullable NSDictionary*)chainEntryWithDictionary:(NSDictionary*)dictionary {
-  if ([dictionary objectForKey:kStateChainEntryDateKey] == nil) {
-    TeakLog_e(@"push_state.entry", @"chainEntryWithDictionary: did not include date key.");
-    return nil;
+- (id)initWithState:(nonnull TeakState*)state {
+  self = [super init];
+  if (self) {
+    self.state = state;
+    self.date = [[NSDate alloc] init];
+    self.canShowOnLockscreen = YES;
+    self.canShowBadge = YES;
+    self.canShowInNotificationCenter = YES;
   }
-  if ([dictionary objectForKey:kStateChainEntryStateKey] == nil) {
-    TeakLog_e(@"push_state.entry", @"chainEntryWithDictionary: did not include state key.");
-    return nil;
-  }
-  return dictionary;
+  return self;
 }
 
+- (id)initWithDictionary:(nonnull NSDictionary*)dictionary {
+  self = [super init];
+  if (self) {
+    NSString* stateString = dictionary[@"state"];
+    if ([stateString isEqualToString:@"provisional"])
+      self.state = [TeakPushState Provisional];
+    else if ([stateString isEqualToString:@"authorized"])
+      self.state = [TeakPushState Authorized];
+    else if ([stateString isEqualToString:@"denied"])
+      self.state = [TeakPushState Denied];
+    else
+      self.state = [TeakPushState Unknown];
+
+    self.date = [NSDate dateWithTimeIntervalSince1970:[dictionary[@"date"] doubleValue]];
+    self.canShowOnLockscreen = [dictionary[@"canShowOnLockscreen"] boolValue];
+    self.canShowBadge = [dictionary[@"canShowBadge"] boolValue];
+    self.canShowInNotificationCenter = [dictionary[@"canShowInNotificationCenter"] boolValue];
+  }
+  return self;
+}
+
+- (NSString*)stateAsString {
+  if (self.state == [TeakPushState Provisional]) return @"provisional";
+  if (self.state == [TeakPushState Authorized]) return @"authorized";
+  if (self.state == [TeakPushState Denied]) return @"denied";
+  return @"unknown";
+}
+
+- (BOOL)isUpdatedState:(nonnull TeakPushStateChainEntry*)entry {
+  if ([self.state canTransitionToState:entry.state]) return YES;
+
+  //if (self.state == entry.state)
+  return NO;
+}
 @end
 
 @interface TeakPushState ()
@@ -88,7 +106,7 @@
 @property (strong, nonatomic) NSArray* stateChain;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 
-- (TeakState*)determineCurrentPushStateBlocking;
+- (TeakPushStateChainEntry*)determineCurrentPushStateBlocking;
 @end
 
 @implementation TeakPushState
@@ -101,11 +119,15 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 - (TeakPushState*)init {
   self = [super init];
   if (self) {
-    // Get the current state chain, or assign Unknown
+    // Get the current state chain
     NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-    self.stateChain = [userDefaults arrayForKey:kStateChainPreferencesKey];
-    if (self.stateChain == nil || self.stateChain.count < 1) {
-      self.stateChain = @[ [TeakPushStateChainEntry chainEntryForState:[TeakPushState Unknown]] ];
+    NSArray* serializedStateChain = [userDefaults arrayForKey:kStateChainPreferencesKey];
+    NSMutableArray* deserialziedStateChain = [[NSMutableArray alloc] init];
+    if (serializedStateChain != nil && serializedStateChain.count > 0) {
+      for (NSDictionary* entry in serializedStateChain) {
+        [deserialziedStateChain addObject:[[TeakPushStateChainEntry alloc] initWithDictionary:entry]];
+      }
+      self.stateChain = deserialziedStateChain;
     }
 
     // Create serial NSOperationQueue
@@ -131,24 +153,30 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   }
 }
 
-- (void)updateCurrentState:(TeakState*)newState {
+- (void)updateCurrentState:(TeakPushStateChainEntry*)newChainEntry {
+  if (newChainEntry == nil) return;
+
   @synchronized(self) {
-    NSDictionary* oldStateChainEntry = [self.stateChain lastObject];
-    TeakState* oldState = [TeakPushStateChainEntry getState:oldStateChainEntry];
-    if ([oldState canTransitionToState:newState]) {
-      NSMutableArray* mutableStateChain = [self.stateChain mutableCopy];
-      NSDictionary* newChainEntry = [TeakPushStateChainEntry chainEntryForState:newState];
-      if (newChainEntry != nil) {
-        [mutableStateChain addObject:newChainEntry];
-        self.stateChain = mutableStateChain;
+    TeakPushStateChainEntry* oldStateChainEntry = [self.stateChain lastObject];
+    if (oldStateChainEntry == nil) oldStateChainEntry = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Unknown]];
 
-        // Persist
-        NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
-        [userDefaults setObject:self.stateChain forKey:kStateChainPreferencesKey];
-        [userDefaults synchronize];
+    if ([oldStateChainEntry isUpdatedState:newChainEntry]) {
+      NSMutableArray* mutableStateChain = self.stateChain == nil ? [[NSMutableArray alloc] init] : [self.stateChain mutableCopy];
+      [mutableStateChain addObject:newChainEntry];
+      self.stateChain = mutableStateChain;
 
-        TeakLog_i(@"push_state.new_state", @{@"old_state" : oldStateChainEntry, @"new_state" : newChainEntry});
+      // Turn stateChain into something serializable
+      NSMutableArray* serializedStateChain = [[NSMutableArray alloc] init];
+      for (TeakPushStateChainEntry* entry in self.stateChain) {
+        [serializedStateChain addObject:[entry to_h]];
       }
+
+      // Persist
+      NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
+      [userDefaults setObject:serializedStateChain forKey:kStateChainPreferencesKey];
+      [userDefaults synchronize];
+
+      TeakLog_i(@"push_state.new_state", @{@"old_state" : [oldStateChainEntry to_h], @"new_state" : [newChainEntry to_h]});
     }
   }
 }
@@ -185,8 +213,8 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   [self.operationQueue addOperation:operation];
 }
 
-- (TeakState*)determineCurrentPushStateBlocking {
-  __block TeakState* pushState = [TeakPushState Unknown];
+- (TeakPushStateChainEntry*)determineCurrentPushStateBlocking {
+  __block TeakPushStateChainEntry* pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Unknown]];
 
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
@@ -194,26 +222,27 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
     [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
       switch (settings.authorizationStatus) {
         case UNAuthorizationStatusDenied: {
-          pushState = [TeakPushState Denied];
+          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Denied]];
         } break;
         case UNAuthorizationStatusAuthorized: {
-          pushState = [TeakPushState Authorized];
+          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]];
         } break;
         case UNAuthorizationStatusNotDetermined: {
-          pushState = [TeakPushState Unknown];
+          // Remains as state 'Unknown'
         } break;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
         case UNAuthorizationStatusProvisional: {
-          pushState = [TeakPushState Provisional];
+          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Provisional]];
         } break;
 #endif
       }
       dispatch_semaphore_signal(sema);
     }];
+
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
   } else {
     BOOL pushEnabled = [TeakPushState applicationHasRemoteNotificationsEnabled:[UIApplication sharedApplication]];
-    pushState = (pushEnabled ? [TeakPushState Authorized] : [TeakPushState Denied]);
+    pushState = [[TeakPushStateChainEntry alloc] initWithState:(pushEnabled ? [TeakPushState Authorized] : [TeakPushState Denied])];
   }
 
   return pushState;
