@@ -53,10 +53,10 @@
                                                withPayload:@{@"clicking_user_id" : session.userId}
                                                   callback:^(NSDictionary* reply) {
                                                     NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:reply[@"response"]];
-                                                    [rewardResponse setValue:teakRewardId forKey:@"teakRewardId"];
-                                                    if ([rewardResponse objectForKey:@"reward"] != nil &&
-                                                        [[rewardResponse objectForKey:@"reward"] isKindOfClass:[NSString class]]) {
-                                                      NSString* rewardString = [rewardResponse objectForKey:@"reward"];
+                                                    rewardResponse[@"teakRewardId"] = teakRewardId;
+                                                    if (rewardResponse[@"reward"] != nil &&
+                                                        [rewardResponse[@"reward"] isKindOfClass:[NSString class]]) {
+                                                      NSString* rewardString = rewardResponse[@"reward"];
                                                       NSData* rewardStringData = [rewardString dataUsingEncoding:NSUTF8StringEncoding];
                                                       NSError* error = nil;
                                                       NSDictionary* parsedReward = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:rewardStringData
@@ -68,7 +68,7 @@
                                                     }
                                                     ret.json = rewardResponse;
 
-                                                    NSString* status = [rewardResponse objectForKey:@"status"];
+                                                    NSString* status = rewardResponse[@"status"];
                                                     if ([status isEqualToString:@"grant_reward"]) {
                                                       ret.rewardStatus = kTeakRewardStatusGrantReward;
                                                     } else if ([status isEqualToString:@"self_click"]) {
