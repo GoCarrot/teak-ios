@@ -631,11 +631,11 @@ Teak* _teakSharedInstance;
         NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
         teakUserInfo[@"teakNotifId"] = teakNotifId;
 #define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
-        teakUserInfo[@"teakRewardId"] = ValueOrNSNull([aps[@"teakRewardId"] stringValue]);
+        teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
         teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(aps[@"teakScheduleName"]);
         teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(aps[@"teakCreativeName"]);
 #undef ValueOrNSNull
-        teakUserInfo[@"incentivized"] = aps[@"teakRewardId"] == nil ? @NO : @YES;
+        teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
 
         if (notif.teakRewardId != nil) {
           TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
