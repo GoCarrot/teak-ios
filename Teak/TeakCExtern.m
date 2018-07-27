@@ -76,31 +76,8 @@ const char* TeakNotificationGetStatus(TeakNotification* notif) {
   return [notif.status UTF8String];
 }
 
-TeakReward* TeakRewardRewardForId(NSString* teakRewardId) {
-  return [TeakReward rewardForRewardId:teakRewardId];
-}
-
 BOOL TeakRewardIsCompleted(TeakReward* reward) {
   return reward.completed;
-}
-
-const char* TeakRewardGetJson(TeakReward* reward) {
-  if (reward == nil || reward.json == nil) {
-    return "";
-  }
-
-  NSError* error = nil;
-  NSData* jsonData = [NSJSONSerialization dataWithJSONObject:reward.json
-                                                     options:0
-                                                       error:&error];
-
-  if (error != nil) {
-    TeakLog_e(@"reward.error.json", @{@"error" : [error localizedDescription]});
-  } else {
-    NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-    return [jsonString UTF8String];
-  }
-  return "";
 }
 
 void TeakRegisterRoute(const char* route, const char* name, const char* description, TeakLinkBlock block) {
