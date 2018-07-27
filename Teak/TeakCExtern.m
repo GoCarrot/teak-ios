@@ -64,10 +64,6 @@ TeakNotification* TeakNotificationCancelAll() {
   return [TeakNotification cancelAll];
 }
 
-BOOL TeakNotificationHasReward(TeakNotification* notif) {
-  return ([notif.originalJson objectForKey:@"teakRewardId"] != nil);
-}
-
 BOOL TeakNotificationIsCompleted(TeakNotification* notif) {
   return notif.completed;
 }
