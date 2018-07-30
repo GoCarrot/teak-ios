@@ -551,6 +551,7 @@ Teak* _teakSharedInstance;
   // When notification is delivered with app in the foreground, mute it like default behavior
   completionHandler(UNNotificationPresentationOptionNone);
 }
+
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
