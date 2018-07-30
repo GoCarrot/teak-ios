@@ -39,8 +39,6 @@
 #define __IPHONE_12_0 120000
 #endif
 
-#define iOS12OrGreater() ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0)
-
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 
