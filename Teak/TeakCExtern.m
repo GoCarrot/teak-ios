@@ -123,7 +123,7 @@ void TeakReportTestException() {
   [[Teak sharedInstance] reportTestException];
 }
 
-void TeakRequestProvisionalPushAuthorization() {
+BOOL TeakRequestProvisionalPushAuthorization() {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability-new"
   if (iOS12OrGreater() && NSClassFromString(@"UNUserNotificationCenter") != nil) {
@@ -137,6 +137,8 @@ void TeakRequestProvisionalPushAuthorization() {
                               });
                             }
                           }];
+    return YES;
   }
 #pragma clang diagnostic pop
+  return NO;
 }
