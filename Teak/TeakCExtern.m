@@ -122,3 +122,21 @@ const char* TeakGetDeviceConfiguration() {
 void TeakReportTestException() {
   [[Teak sharedInstance] reportTestException];
 }
+
+void TeakRequestProvisionalPushAuthorization() {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+  if (iOS12OrGreater() && NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional;
+    [center requestAuthorizationWithOptions:authOptions
+                          completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                            if (granted) {
+                              dispatch_async(dispatch_get_main_queue(), ^{
+                                [[UIApplication sharedApplication] registerForRemoteNotifications];
+                              });
+                            }
+                          }];
+  }
+#pragma clang diagnostic pop
+}
