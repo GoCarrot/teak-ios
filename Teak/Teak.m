@@ -492,15 +492,13 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic pop
         }
       }
-    }
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
-    else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
+    } else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
 
       // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability-new"
       UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
+      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
                             completionHandler:^(BOOL granted, NSError* _Nullable error) {
                               if (granted) {
                                 dispatch_async(dispatch_get_main_queue(), ^{
@@ -510,7 +508,6 @@ Teak* _teakSharedInstance;
                             }];
 #pragma clang diagnostic pop
     }
-#endif
   }];
 
   // Lifecycle event
