@@ -25,6 +25,7 @@
 @class SKPaymentObserver;
 
 #define kBlackholeUnregisterForRemoteNotifications @"TeakBlackholeUnregisterForRemoteNotifications"
+#define kForceProvisionalPushAuthorization @"TeakForceProvisionalPushAuthorization"
 
 extern NSDictionary* _Nonnull TeakNotificationCategories;
 
