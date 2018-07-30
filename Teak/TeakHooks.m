@@ -61,8 +61,6 @@ static IMP __App_unregisterForRemoteNotifications = NULL;
 NSSet* TeakGetNotificationCategorySet(void);
 void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories);
 static IMP __App_setNotificationCategories = NULL;
-void __Teak_requestAuthorizationWithOptions(id self, SEL _cmd, UNAuthorizationOptions options, void (^completionHandler)(BOOL granted, NSError* error));
-static IMP __App_requestAuthorizationWithOptions = NULL;
 
 extern Teak* _teakSharedInstance;
 
@@ -171,16 +169,10 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   // UNNotificationCenter
   Class unUserNotificationCenterClass = objc_getClass("UNUserNotificationCenter");
   if (unUserNotificationCenterClass != nil) {
-    // setNotificationCategories:
+    // setNotificationCategories
     {
       Method m = class_getInstanceMethod(unUserNotificationCenterClass, @selector(setNotificationCategories:));
       __App_setNotificationCategories = method_setImplementation(m, (IMP)__Teak_setNotificationCategories);
-    }
-
-    // - (void)requestAuthorizationWithOptions:(UNAuthorizationOptions)options completionHandler:(void (^)(BOOL granted, NSError *error))completionHandler;
-    {
-      Method m = class_getInstanceMethod(unUserNotificationCenterClass, @selector(requestAuthorizationWithOptions:completionHandler:));
-      __App_requestAuthorizationWithOptions = method_setImplementation(m, (IMP)__Teak_requestAuthorizationWithOptions);
     }
   }
 }
@@ -295,26 +287,6 @@ void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories) {
     NSMutableSet* categoriesWithTeakAdded = [NSMutableSet setWithSet:TeakGetNotificationCategorySet()];
     [categoriesWithTeakAdded unionSet:categories];
     ((void (*)(id, SEL, NSSet*))__App_setNotificationCategories)(self, _cmd, categoriesWithTeakAdded);
-  }
-}
-
-void __Teak_requestAuthorizationWithOptions(id self, SEL _cmd, UNAuthorizationOptions options, void (^completionHandler)(BOOL granted, NSError* error)) {
-  if (__App_requestAuthorizationWithOptions != NULL) {
-    BOOL addProvisional = NO;
-    @try {
-      addProvisional = [[[NSBundle mainBundle] objectForInfoDictionaryKey:kForceProvisionalPushAuthorization] boolValue];
-    } @catch (NSException* ignored) {
-      addProvisional = NO;
-    }
-
-    if (addProvisional && iOS12OrGreater()) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability-new"
-      options |= TeakUNAuthorizationOptionProvisional;
-#pragma clang diagnostic pop
-    }
-
-    ((void (*)(id, SEL, UNAuthorizationOptions, void (^)(BOOL granted, NSError* error)))__App_requestAuthorizationWithOptions)(self, _cmd, options, completionHandler);
   }
 }
 
