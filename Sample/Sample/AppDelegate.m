@@ -17,6 +17,8 @@
 #import <UserNotifications/UserNotifications.h>
 #import <sys/utsname.h>
 
+#define SAMPLE_ALERT_ON_REWARD 1
+
 // Step 3:
 // Import Teak into your UIApplicationDelegate implementation.
 #import <Teak/Teak.h>
@@ -80,7 +82,11 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
   // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
     UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
+    UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge;
+    if (@available(iOS 12.0, *)) {
+      //authOptions |= UNAuthorizationOptionProvisional;
+    }
+    [center requestAuthorizationWithOptions:authOptions
                           completionHandler:^(BOOL granted, NSError* _Nullable error) {
                             if (granted) {
                               dispatch_async(dispatch_get_main_queue(), ^{
@@ -119,17 +125,19 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 #ifdef SAMPLE_ALERT_ON_REWARD
   NSDictionary* reward = userInfo[@"reward"];
   if (reward) {
-    NSNumber* coins = reward[@"coins"];
-    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Coins!"
-                                                                   message:[NSString stringWithFormat:@"You just got %@ coins!", coins]
-                                                            preferredStyle:UIAlertControllerStyleAlert];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      NSNumber* coins = reward[@"coins"];
+      UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Coins!"
+                                                                     message:[NSString stringWithFormat:@"You just got %@ coins!", coins]
+                                                              preferredStyle:UIAlertControllerStyleAlert];
 
-    UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
-                                                            style:UIAlertActionStyleDefault
-                                                          handler:^(UIAlertAction* action){}];
+      UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
+                                                              style:UIAlertActionStyleDefault
+                                                            handler:^(UIAlertAction* action){}];
 
-    [alert addAction:defaultAction];
-    [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+      [alert addAction:defaultAction];
+      [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+    });
   }
 #endif
 }

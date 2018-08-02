@@ -30,4 +30,8 @@ extern BOOL TeakBoolFor(id object);
 
 #define _(_id) (_id == nil ? [NSNull null] : _id)
 
+#define iOS12OrGreater() ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0)
+
+#define TeakUNAuthorizationOptionProvisional (1 << 6)
+
 #endif /* Teak_h */

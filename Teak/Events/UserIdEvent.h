@@ -17,6 +17,7 @@
 
 @interface UserIdEvent : TeakEvent
 @property (strong, nonatomic, readonly) NSString* _Nonnull userId;
+@property (strong, nonatomic, readonly) NSArray* _Nonnull optOut;
 
-+ (void)userIdentified:(NSString* _Nonnull)userId;
++ (void)userIdentified:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut;
 @end

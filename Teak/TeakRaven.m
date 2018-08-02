@@ -21,10 +21,11 @@
 #import "UserIdEvent.h"
 
 #include <execinfo.h>
+#include <sys/sysctl.h>
 
 NSString* const SentryProtocolVersion = @"7";
-NSString* const TeakSentryVersion = @"1.0.0";
-NSString* const TeakSentryClient = @"teak-ios/1.0.0";
+NSString* const TeakSentryVersion = @"1.1.0";
+NSString* const TeakSentryClient = @"teak-ios/1.1.0";
 
 NSString* const TeakRavenLevelError = @"error";
 NSString* const TeakRavenLevelFatal = @"fatal";
@@ -245,29 +246,52 @@ void TeakSignalHandler(int signal) {
   self = [super init];
   if (self) {
     @try {
+      size_t size;
+      sysctlbyname("hw.machine", NULL, &size, NULL, 0);
+      char* tempStr = malloc(size);
+      sysctlbyname("hw.machine", tempStr, &size, NULL, 0);
+      NSString* hwMachine = [NSString stringWithCString:tempStr encoding:NSUTF8StringEncoding];
+      free(tempStr);
+
+      sysctlbyname("hw.model", NULL, &size, NULL, 0);
+      tempStr = malloc(size);
+      sysctlbyname("hw.model", tempStr, &size, NULL, 0);
+      NSString* hwModel = [NSString stringWithCString:tempStr encoding:NSUTF8StringEncoding];
+      free(tempStr);
+
+      NSString* family = [[hwMachine componentsSeparatedByCharactersInSet:[NSCharacterSet decimalDigitCharacterSet]] firstObject];
+
       self.isSdkRaven = YES;
       self.appId = @"sdk";
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary:@{
         @"logger" : @"teak",
         @"platform" : @"objc",
         @"release" : teak.sdkVersion,
-        @"server_name" : [[NSBundle mainBundle] bundleIdentifier],
-        @"tags" : @{
-          @"app_id" : teak.configuration.appConfiguration.appId,
-          @"app_version" : teak.configuration.appConfiguration.appVersion
-        },
+        @"tags" : @{},
         @"sdk" : @{
           @"name" : @"teak",
           @"version" : TeakSentryVersion
         },
-        @"device" : @{
-          @"name" : teak.configuration.deviceConfiguration.deviceModel,
-          @"version" : teak.configuration.deviceConfiguration.platformString,
-          @"build" : @""
-        },
         @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
           @"device_id" : teak.configuration.deviceConfiguration.deviceId
-        }]
+        }],
+        @"contexts" : @{
+          @"os" : @{
+            @"name" : @"iOS",
+            @"version" : [[UIDevice currentDevice] systemVersion]
+          },
+          @"app" : @{
+            @"app_identifier" : [[NSBundle mainBundle] bundleIdentifier],
+            @"teak_app_identifier" : teak.configuration.appConfiguration.appId,
+            @"app_version" : teak.configuration.appConfiguration.appVersion,
+            @"build_type" : teak.configuration.appConfiguration.isProduction ? @"production" : @"debug"
+          },
+          @"device" : @{
+            @"family" : family,
+            @"model" : hwMachine,
+            @"model_id" : hwModel
+          }
+        }
       }];
 
       // Listener for User Id
@@ -411,7 +435,7 @@ void TeakSignalHandler(int signal) {
 
 - (void)handleEvent:(TeakEvent* _Nonnull)event {
   if (event.type == UserIdentified) {
-    NSMutableDictionary* user = [self.payloadTemplate valueForKey:@"user"];
+    NSMutableDictionary* user = [self.payloadTemplate objectForKey:@"user"];
     [user setValue:((UserIdEvent*)event).userId forKey:@"id"];
   } else if (event.type == RemoteConfigurationReady) {
     TeakRemoteConfiguration* remoteConfiguration = ((RemoteConfigurationEvent*)event).remoteConfiguration;
@@ -484,8 +508,15 @@ void TeakSignalHandler(int signal) {
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[payloadData length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:payloadData];
 
-  NSURLSessionDataTask* dataTask = [[Teak sharedURLSession] dataTaskWithRequest:request];
-  [dataTask resume];
+  [[[Teak sharedURLSession] dataTaskWithRequest:request
+                              completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+                                NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
+                                NSInteger statusCode = httpResponse.statusCode;
+                                if (statusCode >= 200 && statusCode < 300) {
+                                  NSString* responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                                  TeakLog_i(@"exception.reported", responseString);
+                                }
+                              }] resume];
 }
 
 + (NSDateFormatter*)dateFormatter {

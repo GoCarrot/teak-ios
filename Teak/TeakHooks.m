@@ -272,7 +272,7 @@ void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
 
   BOOL blackhole = NO;
   @try {
-    blackhole = [[[NSUserDefaults standardUserDefaults] objectForKey:kBlackholeUnregisterForRemoteNotifications] boolValue];
+    blackhole = [[[NSBundle mainBundle] objectForInfoDictionaryKey:kBlackholeUnregisterForRemoteNotifications] boolValue];
   } @catch (NSException* ignored) {
     blackhole = NO;
   }

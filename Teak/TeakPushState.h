@@ -13,18 +13,20 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
-@interface TeakDataCollectionConfiguration : NSObject
+#import "TeakEvent.h"
+#import "TeakState.h"
 
-@property (nonatomic, readonly) BOOL enableIDFA;
-@property (nonatomic, readonly) BOOL enableFacebookAccessToken;
-@property (nonatomic, readonly) BOOL enablePushKey;
+@interface TeakPushState : NSObject <TeakEventHandler>
 
-- (NSDictionary*)to_h;
+DeclareTeakState(Unknown);
+DeclareTeakState(Provisional);
+DeclareTeakState(Authorized);
+DeclareTeakState(Denied);
 
-// Future-Pat: No, we do *not* want to ever configure what data is collected as the result of a server call,
-//             because that would change us from being a "data processor" to a "data controller" under the GDPR
-- (void)addConfigurationFromDeveloper:(NSArray*)optOutList;
+- (NSInvocationOperation* _Nonnull)currentPushState;
+- (void)determineCurrentPushStateWithCompletionHandler:(void (^_Nonnull)(TeakState* _Nonnull))completionHandler;
+- (nonnull NSDictionary*)to_h;
 
 @end

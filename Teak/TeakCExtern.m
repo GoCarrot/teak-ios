@@ -21,8 +21,19 @@ void TeakSetDebugOutputEnabled(int enabled) {
   [Teak sharedInstance].enableDebugOutput = (enabled > 0);
 }
 
-void TeakIdentifyUser(const char* userId) {
-  [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]];
+void TeakIdentifyUser(const char* userId, const char* optOutJsonArray) {
+  NSArray* optOutList = @[];
+  if (optOutJsonArray != NULL) {
+    @try {
+      NSError* error = nil;
+      NSData* jsonData = [[NSString stringWithUTF8String:optOutJsonArray] dataUsingEncoding:NSUTF8StringEncoding];
+      optOutList = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+      if (error != nil || ![optOutList isKindOfClass:NSArray.class]) optOutList = @[];
+    } @catch (NSException* ignored) {
+    }
+  }
+
+  [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId] withOptOutList:optOutList];
 }
 
 void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId) {
@@ -53,10 +64,6 @@ TeakNotification* TeakNotificationCancelAll() {
   return [TeakNotification cancelAll];
 }
 
-BOOL TeakNotificationHasReward(TeakNotification* notif) {
-  return ([notif.originalJson objectForKey:@"teakRewardId"] != nil);
-}
-
 BOOL TeakNotificationIsCompleted(TeakNotification* notif) {
   return notif.completed;
 }
@@ -69,31 +76,8 @@ const char* TeakNotificationGetStatus(TeakNotification* notif) {
   return [notif.status UTF8String];
 }
 
-TeakReward* TeakRewardRewardForId(NSString* teakRewardId) {
-  return [TeakReward rewardForRewardId:teakRewardId];
-}
-
 BOOL TeakRewardIsCompleted(TeakReward* reward) {
   return reward.completed;
-}
-
-const char* TeakRewardGetJson(TeakReward* reward) {
-  if (reward == nil || reward.json == nil) {
-    return "";
-  }
-
-  NSError* error = nil;
-  NSData* jsonData = [NSJSONSerialization dataWithJSONObject:reward.json
-                                                     options:0
-                                                       error:&error];
-
-  if (error != nil) {
-    TeakLog_e(@"reward.error.json", @{@"error" : [error localizedDescription]});
-  } else {
-    NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-    return [jsonString UTF8String];
-  }
-  return "";
 }
 
 void TeakRegisterRoute(const char* route, const char* name, const char* description, TeakLinkBlock block) {
@@ -133,4 +117,28 @@ const char* TeakGetAppConfiguration() {
 
 const char* TeakGetDeviceConfiguration() {
   return [[[Teak sharedInstance] getDeviceConfiguration] UTF8String];
+}
+
+void TeakReportTestException() {
+  [[Teak sharedInstance] reportTestException];
+}
+
+BOOL TeakRequestProvisionalPushAuthorization() {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+  if (iOS12OrGreater() && NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional;
+    [center requestAuthorizationWithOptions:authOptions
+                          completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                            if (granted) {
+                              dispatch_async(dispatch_get_main_queue(), ^{
+                                [[UIApplication sharedApplication] registerForRemoteNotifications];
+                              });
+                            }
+                          }];
+    return YES;
+  }
+#pragma clang diagnostic pop
+  return NO;
 }

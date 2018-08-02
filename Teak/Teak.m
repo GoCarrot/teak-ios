@@ -35,8 +35,16 @@
 #import "TrackEventEvent.h"
 #import "UserIdEvent.h"
 
+#ifndef __IPHONE_12_0
+#define __IPHONE_12_0 120000
+#endif
+
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
+
+NSString* const TeakOptOutIdfa = @"opt_out_idfa";
+NSString* const TeakOptOutPushKey = @"opt_out_push_key";
+NSString* const TeakOptOutFacebook = @"opt_out_facebook";
 
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
@@ -91,14 +99,20 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {
+  [self identifyUser:userIdentifier withOptOutList:@[]];
+}
+
+- (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut {
   if (userIdentifier == nil || userIdentifier.length == 0) {
     TeakLog_e(@"identify_user.error", @"User identifier can not be null or empty.");
     return;
   }
 
-  TeakLog_i(@"identify_user", @{@"userId" : userIdentifier});
+  if (optOut == nil) optOut = @[];
 
-  [UserIdEvent userIdentified:[userIdentifier copy]];
+  TeakLog_i(@"identify_user", @{@"userId" : userIdentifier, @"optOut" : optOut});
+
+  [UserIdEvent userIdentified:[userIdentifier copy] withOptOutList:[optOut copy]];
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
@@ -131,10 +145,9 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)hasUserDisabledPushNotifications {
-  if (self.pushNotificationDisabledCheck == nil) return NO;
-
-  [self.pushNotificationDisabledCheck waitUntilFinished];
-  return self.pushNotificationsDisabled;
+  NSInvocationOperation* op = [self.pushState currentPushState];
+  [op waitUntilFinished];
+  return (op.result == [TeakPushState Denied]);
 }
 
 - (BOOL)openSettingsAppToThisAppsSettings {
@@ -156,14 +169,18 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key {
+  double copiedValue = value;
+  NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    [session.userProfile setNumericAttribute:value forKey:key];
+    [session.userProfile setNumericAttribute:copiedValue forKey:copiedKey];
   }];
 }
 
 - (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key {
+  NSString* copiedValue = [value copy];
+  NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    [session.userProfile setStringAttribute:value forKey:key];
+    [session.userProfile setStringAttribute:copiedValue forKey:copiedKey];
   }];
 }
 
@@ -191,6 +208,13 @@ Teak* _teakSharedInstance;
 
 - (NSString*)getAppConfiguration {
   return [self getConfiguration:@"appConfiguration"];
+}
+
+- (void)reportTestException {
+  teak_try {
+    @throw([NSException exceptionWithName:@"ReportTestException" reason:[NSString stringWithFormat:@"Version: %@", self.sdkVersion] userInfo:nil]);
+  }
+  teak_catch_report;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -224,8 +248,6 @@ Teak* _teakSharedInstance;
     self.enableRemoteLogging = self.configuration.debugConfiguration.logRemote;
     self.enableRemoteLogging |= !self.configuration.appConfiguration.isProduction;
 
-    self.pushNotificationsDisabled = NO;
-
     // Add Unity/Air SDK version if applicable
     NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
     if (TeakWrapperSDK != nil) {
@@ -250,6 +272,10 @@ Teak* _teakSharedInstance;
 
     // Payment observer
     self.paymentObserver = [[SKPaymentObserver alloc] init];
+
+    // Push State - Log it here, since sharedInstance has not yet been assigned at this point
+    self.pushState = [[TeakPushState alloc] init];
+    [self.log logEvent:@"push_state.init" level:@"INFO" eventData:[self.pushState to_h]];
 
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
@@ -378,20 +404,6 @@ Teak* _teakSharedInstance;
                     }];
 }
 
-- (BOOL)applicationHasRemoteNotificationsEnabled:(UIApplication*)application {
-  BOOL pushEnabled = NO;
-  if ([application respondsToSelector:@selector(isRegisteredForRemoteNotifications)]) {
-    pushEnabled = [application isRegisteredForRemoteNotifications];
-  } else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
-    pushEnabled = types & UIRemoteNotificationTypeAlert;
-#pragma clang diagnostic pop
-  }
-  return pushEnabled;
-}
-
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
@@ -451,48 +463,52 @@ Teak* _teakSharedInstance;
                                      annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
   }
 
-  // Check to see if the user has already enabled push notifications
-  BOOL pushEnabled = [self applicationHasRemoteNotificationsEnabled:application];
-  self.pushNotificationsDisabled = !pushEnabled;
-
+  // Check to see if the user has already enabled push notifications.
+  //
   // If they've already enabled push, go ahead and register since it won't pop up a box.
   // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
   // even if the app developer doesn't follow Apple's best practices.
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
-      switch (settings.authorizationStatus) {
-        case UNAuthorizationStatusDenied:
-          // They need to go into the Settings and enable it
-          break;
-        case UNAuthorizationStatusAuthorized: {
-          // Already enabled
-          [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
-                                completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                                  if (granted) {
-                                    dispatch_async(dispatch_get_main_queue(), ^{
-                                      [application registerForRemoteNotifications];
-                                    });
-                                  }
-                                }];
-        } break;
-        case UNAuthorizationStatusNotDetermined:
-          // They haven't been asked
-          break;
-      }
-    }];
-  } else if (pushEnabled) {
-    if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
-      UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
-      [application registerUserNotificationSettings:settings];
-    } else {
+  [self.pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
+    if (pushState == [TeakPushState Authorized]) {
+      if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+        [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
+                              completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                                if (granted) {
+                                  dispatch_async(dispatch_get_main_queue(), ^{
+                                    [application registerForRemoteNotifications];
+                                  });
+                                }
+                              }];
+      } else {
+        if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+          UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
+          [application registerUserNotificationSettings:settings];
+        } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-      UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
-      [application registerForRemoteNotificationTypes:types];
+          UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
+          [application registerForRemoteNotificationTypes:types];
+#pragma clang diagnostic pop
+        }
+      }
+    } else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
+
+      // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+      UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
+                            completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                              if (granted) {
+                                dispatch_async(dispatch_get_main_queue(), ^{
+                                  [application registerForRemoteNotifications];
+                                });
+                              }
+                            }];
 #pragma clang diagnostic pop
     }
-  }
+  }];
 
   // Lifecycle event
   [LifecycleEvent applicationFinishedLaunching];
@@ -503,32 +519,6 @@ Teak* _teakSharedInstance;
 - (void)applicationDidBecomeActive:(UIApplication*)application {
   TeakUnused(application);
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
-
-  // Check to see if the user has disabled push notifications
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    self.pushNotificationDisabledCheck = [NSBlockOperation blockOperationWithBlock:^{
-        // Empty
-    }];
-
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
-      switch (settings.authorizationStatus) {
-        case UNAuthorizationStatusDenied: {
-          self.pushNotificationsDisabled = YES;
-          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
-        } break;
-          // Authorized or NotDetermined means they haven't disabled
-        case UNAuthorizationStatusAuthorized:
-        case UNAuthorizationStatusNotDetermined: {
-          self.pushNotificationsDisabled = NO;
-          [self.operationQueue addOperation:self.pushNotificationDisabledCheck];
-        } break;
-      }
-    }];
-  } else {
-    self.pushNotificationDisabledCheck = nil;
-    self.pushNotificationsDisabled = ![self applicationHasRemoteNotificationsEnabled:application];
-  }
 
   // Zero-out the badge count
   [self setApplicationBadgeNumber:0];
@@ -561,6 +551,7 @@ Teak* _teakSharedInstance;
   // When notification is delivered with app in the foreground, mute it like default behavior
   completionHandler(UNNotificationPresentationOptionNone);
 }
+
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
@@ -636,11 +627,11 @@ Teak* _teakSharedInstance;
         NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
         teakUserInfo[@"teakNotifId"] = teakNotifId;
 #define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
-        teakUserInfo[@"teakRewardId"] = ValueOrNSNull([aps[@"teakRewardId"] stringValue]);
+        teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
         teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(aps[@"teakScheduleName"]);
         teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(aps[@"teakCreativeName"]);
 #undef ValueOrNSNull
-        teakUserInfo[@"incentivized"] = aps[@"teakRewardId"] == nil ? @NO : @YES;
+        teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
 
         if (notif.teakRewardId != nil) {
           TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];

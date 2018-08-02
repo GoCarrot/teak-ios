@@ -34,7 +34,7 @@
   self = [super init];
   if (self) {
     self.teakNotifId = NSStringOrNilFor([dictionary objectForKey:@"teakNotifId"]);
-    self.teakRewardId = NSStringOrNilFor([dictionary objectForKey:@"teakRewardId"]);
+    self.teakRewardId = NSStringOrNilFor([dictionary objectForKey:@"teakRewardIdStr"]);
     self.originalJson = dictionary;
     self.completed = YES;
     self.status = nil;

@@ -60,7 +60,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
       @try {
         [self.userDefaults setObject:self.deviceId forKey:kDeviceIdKey];
       } @catch (NSException* exception) {
-        TeakLog_e(@"", @"Error occurred while assigning userDefaults.", @{@"error" : exception.reason});
+        TeakLog_e(@"device_configuration", @"Error occurred while assigning userDefaults.", @{@"error" : exception.reason});
         return nil;
       }
     }
@@ -77,7 +77,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
 
     self.platformString = @"ios_0.0";
     teak_try {
-      self.platformString = [NSString stringWithFormat:@"ios_%f", [[[UIDevice currentDevice] systemVersion] floatValue]];
+      self.platformString = [NSString stringWithFormat:@"ios_%@", [[UIDevice currentDevice] systemVersion]];
     }
     teak_catch_report;
 

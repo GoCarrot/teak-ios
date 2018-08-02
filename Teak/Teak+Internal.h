@@ -18,6 +18,7 @@
 
 #import "TeakConfiguration.h"
 #import "TeakLog.h"
+#import "TeakPushState.h"
 #import "TeakRaven.h"
 
 @class TeakCore;
@@ -42,18 +43,18 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 @property (strong, nonatomic) TeakLog* _Nonnull log;
 @property (strong, nonatomic) TeakCore* _Nonnull core;
 @property (strong, nonatomic) SKPaymentObserver* _Nonnull paymentObserver;
+@property (strong, nonatomic) TeakPushState* _Nonnull pushState;
 
 @property (nonatomic) BOOL skipTheNextOpenUrl;
 @property (nonatomic) BOOL skipTheNextDidReceiveNotificationResponse;
-
-@property (nonatomic) BOOL pushNotificationsDisabled;
-@property (strong, nonatomic) NSOperation* _Nullable pushNotificationDisabledCheck;
 
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;
 
 + (NSURLSession* _Nonnull)sharedURLSession;
 + (dispatch_queue_t _Nonnull)operationQueue;
+
+- (void)reportTestException;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
