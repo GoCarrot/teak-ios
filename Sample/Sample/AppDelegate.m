@@ -17,6 +17,8 @@
 #import <UserNotifications/UserNotifications.h>
 #import <sys/utsname.h>
 
+#define SAMPLE_ALERT_ON_REWARD 1
+
 // Step 3:
 // Import Teak into your UIApplicationDelegate implementation.
 #import <Teak/Teak.h>

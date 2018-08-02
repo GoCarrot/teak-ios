@@ -16,6 +16,8 @@
 #import "ViewController.h"
 #import <Teak/Teak.h>
 
+extern void TeakReportTestException(void);
+
 @import StoreKit;
 
 @interface ViewController () <SKPaymentTransactionObserver, SKProductsRequestDelegate>
@@ -47,8 +49,9 @@
   /*[[Teak sharedInstance] trackEventWithActionId:@"test0" forObjectTypeId:nil andObjectInstanceId:nil];
   [[Teak sharedInstance] trackEventWithActionId:@"test1" forObjectTypeId:nil andObjectInstanceId:nil];
   [[Teak sharedInstance] trackEventWithActionId:@"test2" forObjectTypeId:nil andObjectInstanceId:nil];*/
-  [[Teak sharedInstance] setNumericAttribute:(drand48() * 1000000.0) forKey:@"coins"];
+  [[Teak sharedInstance] setNumericAttribute:(drand48() * DBL_MAX) forKey:@"coins"];
   [[Teak sharedInstance] setStringAttribute:[[NSProcessInfo processInfo] globallyUniqueString] forKey:@"last_slot"];
+  //TeakReportTestException();
   return;
 
   //raise (SIGABRT);
