@@ -1,6 +1,8 @@
 .DS_Store
 build/*
 !build/.gitkeep
+Sample/build/*
+!Sample/build/.gitkeep
 *.pem
 
 .irb-history
