@@ -81,7 +81,7 @@
   @try {
     NSString* teakNotifId = TeakNSStringOrNilFor(notification[@"teakNotifId"]);
     if ([teakNotifId length] > 0) {
-      self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
+      self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
 
       // Process APS thumbnail, content and actions into an array of attachments
       // Replace URL in actions with index into array of attachments
@@ -177,28 +177,30 @@
 
   NSString* uti = CFBridgingRelease(UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (__bridge CFStringRef)mimeType, NULL));
   NSString* extension = (NSString*)CFBridgingRelease(UTTypeCopyPreferredTagWithClass((__bridge CFStringRef)uti, kUTTagClassFilenameExtension));
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:attachmentUrl];
+  [request setCachePolicy:NSURLRequestReturnCacheDataElseLoad];
 
-  [[self.session downloadTaskWithURL:attachmentUrl
-                   completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
-                     if (error != nil) {
-                       NSLog(@"%@", error.localizedDescription);
-                     } else {
-                       NSFileManager* fileManager = [NSFileManager defaultManager];
-                       NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, extension];
-                       NSURL* localUrl = [NSURL fileURLWithPath:pathWithExtension];
-                       [fileManager moveItemAtURL:temporaryFileLocation toURL:localUrl error:&error];
-
-                       if (error == nil) {
-                         attachment = [UNNotificationAttachment attachmentWithIdentifier:@"" URL:localUrl options:nil error:&error];
+  [[self.session downloadTaskWithRequest:request
+                       completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
                          if (error != nil) {
                            NSLog(@"%@", error.localizedDescription);
+                         } else {
+                           NSFileManager* fileManager = [NSFileManager defaultManager];
+                           NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, extension];
+                           NSURL* localUrl = [NSURL fileURLWithPath:pathWithExtension];
+                           [fileManager moveItemAtURL:temporaryFileLocation toURL:localUrl error:&error];
+
+                           if (error == nil) {
+                             attachment = [UNNotificationAttachment attachmentWithIdentifier:@"" URL:localUrl options:nil error:&error];
+                             if (error != nil) {
+                               NSLog(@"%@", error.localizedDescription);
+                             }
+                           } else {
+                             NSLog(@"%@", error.localizedDescription);
+                           }
                          }
-                       } else {
-                         NSLog(@"%@", error.localizedDescription);
-                       }
-                     }
-                     [self.operationQueue addOperation:attachmentOperation];
-                   }] resume];
+                         [self.operationQueue addOperation:attachmentOperation];
+                       }] resume];
 
   return attachmentOperation;
 }
@@ -216,6 +218,7 @@
   }
   [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
+  [request setCachePolicy:NSURLRequestReloadIgnoringCacheData];
   [request setHTTPMethod:@"POST"];
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:postData];
