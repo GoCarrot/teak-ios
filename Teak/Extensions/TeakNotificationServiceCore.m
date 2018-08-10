@@ -96,6 +96,8 @@
         [orderedAttachments addObject:notification[@"content"]];
       }
 
+      BOOL defaultActionAssigned = NO;
+      NSNumber* defaultAction = @-1;
       NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
       for (NSString* key in notification[@"playableActions"]) {
         // If the action is null, launch the app
@@ -105,6 +107,11 @@
           processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];
           [orderedAttachments addObject:notification[@"playableActions"][key]];
         }
+
+        if (!defaultActionAssigned) {
+          defaultAction = processedActions[key];
+          defaultActionAssigned = YES;
+        }
       }
 
       // Assign processed actions dictionary and content index
@@ -113,6 +120,7 @@
         NSMutableDictionary* mutableAps = [mutableUserInfo[@"aps"] mutableCopy];
         mutableAps[@"content"] = contentIndex;
         mutableAps[@"playableActions"] = processedActions;
+        mutableAps[@"defaultAction"] = defaultAction;
         mutableUserInfo[@"aps"] = mutableAps;
         self.bestAttemptContent.userInfo = mutableUserInfo;
         notification = mutableAps;
