@@ -22,6 +22,7 @@
 // For XCode 8.x
 #import <AVFoundation/AVFoundation.h>
 
+#define iOS12OrGreater() ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0)
 /////
 
 extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
@@ -254,10 +255,21 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
     self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
 
+    ///// Top level view
+
     self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y,
                                  self.view.frame.size.width, scaledHeight);
     self.preferredContentSize = CGSizeMake(self.view.frame.size.width, scaledHeight);
     [self.view addSubview:self.notificationContentView];
+
+    ///// Button
+    if (iOS12OrGreater()) {
+      UIButton* defaultButton = [[UIButton alloc] init];
+      [defaultButton setFrame:self.view.frame];
+      [defaultButton setBackgroundColor:[UIColor clearColor]];
+      [defaultButton addTarget:self action:@selector(defaultButtonTouchDown) forControlEvents:UIControlEventTouchDown];
+      [self.view insertSubview:defaultButton aboveSubview:self.notificationContentView];
+    }
 
     // Start video if auto-play
     if (self.autoPlay) {
@@ -268,12 +280,18 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption))completionHandler {
-  dispatch_once(&_inputHandlerDispatchOnce, ^{
-    int attachmentIndex = (self.actions[response.actionIdentifier] == nil || self.actions[response.actionIdentifier] == [NSNull null]) ? -1 : [self.actions[response.actionIdentifier] intValue];
+  int attachmentIndex = (self.actions[response.actionIdentifier] == nil || self.actions[response.actionIdentifier] == [NSNull null]) ? -1 : [self.actions[response.actionIdentifier] intValue];
+  [self handleNotificationResponseForAction:attachmentIndex
+                          completionHandler:^{
+                            completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+                          }];
+}
 
+- (void)handleNotificationResponseForAction:(int)attachmentIndex completionHandler:(void (^)(void))completionHandler {
+  dispatch_once(&_inputHandlerDispatchOnce, ^{
     if (attachmentIndex < 0) {
       // Launch the app when the button is pressed
-      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+      completionHandler();
     } else {
       // Will prepare next content view
       self.prepareContentView();
@@ -289,10 +307,21 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
                                                         object:assetToPlay
                                                          queue:nil
                                                     usingBlock:^(NSNotification* notification) {
-                                                      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+                                                      completionHandler();
                                                     }];
     }
   });
+}
+
+- (IBAction)defaultButtonTouchDown {
+  int attachmentIndex = [self.notificationUserData[@"defaultAction"] intValue];
+  [self handleNotificationResponseForAction:attachmentIndex
+                          completionHandler:^{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+                            [[self extensionContext] performNotificationDefaultAction];
+#pragma clang diagnostic pop
+                          }];
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
