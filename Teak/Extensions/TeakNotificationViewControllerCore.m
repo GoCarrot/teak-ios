@@ -267,7 +267,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
       UIButton* defaultButton = [[UIButton alloc] init];
       [defaultButton setFrame:self.view.frame];
       [defaultButton setBackgroundColor:[UIColor clearColor]];
-      [defaultButton addTarget:self action:@selector(defaultButtonTouchDown) forControlEvents:UIControlEventTouchDown];
+      [defaultButton addTarget:self action:@selector(buttonTouchUpInside:forEvent:) forControlEvents:UIControlEventTouchUpInside];
       [self.view insertSubview:defaultButton aboveSubview:self.notificationContentView];
     }
 
@@ -313,7 +313,7 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
   });
 }
 
-- (IBAction)defaultButtonTouchDown {
+- (IBAction)buttonTouchUpInside:(id)sender forEvent:(UIEvent*)event {
   int attachmentIndex = [self.notificationUserData[@"defaultAction"] intValue];
   [self handleNotificationResponseForAction:attachmentIndex
                           completionHandler:^{
