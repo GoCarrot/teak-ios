@@ -317,10 +317,9 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
   int attachmentIndex = [self.notificationUserData[@"defaultAction"] intValue];
   [self handleNotificationResponseForAction:attachmentIndex
                           completionHandler:^{
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability-new"
-                            [[self extensionContext] performNotificationDefaultAction];
-#pragma clang diagnostic pop
+                            // To allow us to continue to build on Xcode 8 for CI builds
+                            SEL selector = NSSelectorFromString(@"performNotificationDefaultAction");
+                            ((void (*)(id, SEL))[[self extensionContext] methodForSelector:selector])([self extensionContext], selector);
                           }];
 }
 
