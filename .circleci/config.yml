@@ -7,7 +7,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ checksum "Sample/Gemfile.lock" }}
+          key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}
       - run:
           name: Fix 'Homebrew must be run under Ruby 2.3!'
           command: brew update
@@ -17,15 +17,12 @@ jobs:
       - run:
           name: Ruby Gems
           command: bundle check || bundle install --path vendor/bundle
-      - run:
-          name: Ruby Gems (Sample)
-          command: (cd Sample/; bundle check || bundle install --path vendor/bundle)
       - save_cache:
           paths:
             - ~/Library/Caches/Homebrew/
             - vendor/bundle
             - Sample/vendor/bundle
-          key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ checksum "Sample/Gemfile.lock" }}
+          key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
