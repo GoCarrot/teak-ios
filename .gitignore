@@ -11,6 +11,9 @@ xcuserdata/
 *.xcscmblueprint
 *.xccheckout
 
+Sample/fastlane/README.md
+Sample/fastlane/report.xml
+
 compile_commands.json
 oclint.result
 oclint_result.html
