@@ -23,6 +23,9 @@ jobs:
             - vendor/bundle
             - Sample/vendor/bundle
           key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}
+      - add_ssh_keys:
+          fingerprints:
+            - "ab:48:b1:f2:a7:e9:0f:ba:81:3b:0c:16:48:6b:91:3d"
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
