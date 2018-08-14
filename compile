@@ -39,8 +39,9 @@ if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
 fi
 rm -fr $clangTemp
 
-xcodebuild -project Sample/Sample.xcodeproj -sdk iphoneos -target TeakNotificationService -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" build | xcpretty
-xcodebuild -project Sample/Sample.xcodeproj -sdk iphoneos -target TeakNotificationContent -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" build | xcpretty
+# xcodebuild -project Sample/Sample.xcodeproj -sdk iphoneos -target TeakNotificationService -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" build | xcpretty
+# xcodebuild -project Sample/Sample.xcodeproj -sdk iphoneos -target TeakNotificationContent -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" build | xcpretty
+(cd Sample; bundle exec fastlane dev)
 
 (cd build/Release-iphoneos/; zip -y -r Teak.framework.zip Teak.framework/)
 (cd build/Release-iphoneos/; zip -y -r TeakResources.bundle.zip TeakResources.bundle/)
