@@ -19,7 +19,7 @@ jobs:
           command: bundle check || bundle install --path vendor/bundle
       - run:
           name: Ruby Gems (Sample)
-          command: (cd Sample; bundle check || bundle install --path vendor/bundle)
+          command: (cd Sample/; bundle check || bundle install --path vendor/bundle)
       - save_cache:
           paths:
             - ~/Library/Caches/Homebrew/
