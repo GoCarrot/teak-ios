@@ -123,6 +123,71 @@
   return ret;
 }
 
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds {
+  if (creativeId == nil || creativeId.length == 0) {
+    TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
+
+    TeakNotification* ret = [[TeakNotification alloc] init];
+    ret.completed = YES;
+    ret.status = @"error.parameter.creativeId";
+    return ret;
+  }
+
+  if (delay > 2630000 /* one month in seconds */ || delay < 0) {
+    TeakLog_e(@"notification.schedule.error", @"delayInSeconds can not be negative, or greater than one month");
+
+    TeakNotification* ret = [[TeakNotification alloc] init];
+    ret.completed = YES;
+    ret.status = @"error.parameter.delayInSeconds";
+    return ret;
+  }
+
+  if (userIds == nil || userIds.count < 1) {
+    TeakLog_e(@"notification.schedule.error", @"userIds can not be null or empty");
+
+    TeakNotification* ret = [[TeakNotification alloc] init];
+    ret.completed = YES;
+    ret.status = @"error.parameter.userIds";
+    return ret;
+  }
+  TeakNotification* ret = [[TeakNotification alloc] init];
+  ret.completed = NO;
+
+  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
+    @"user_ids" : [userIds copy],
+    @"identifier" : [creativeId copy],
+    @"offset" : [NSNumber numberWithUnsignedLongLong:delay]
+  }];
+
+  [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
+    TeakRequest* request = [TeakRequest requestWithSession:session
+                                               forEndpoint:@"/me/long_distance_notify"
+                                               withPayload:payload
+                                                  callback:^(NSDictionary* reply) {
+                                                    ret.status = reply[@"status"];
+                                                    if ([ret.status isEqualToString:@"ok"]) {
+                                                      NSError* error = nil;
+                                                      NSData* jsonData = [NSJSONSerialization dataWithJSONObject:reply[@"ids"] options:0 error:&error];
+                                                      if (error) {
+                                                        TeakLog_e(@"notification.cancel_all.error.json", @{@"value" : reply[@"ids"], @"error" : error});
+                                                        ret.teakNotifId = @"[]";
+                                                      } else {
+                                                        ret.teakNotifId = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                                                      }
+
+                                                      TeakLog_i(@"notification.scheduled", @{@"notification" : ret.teakNotifId});
+                                                    } else {
+                                                      TeakLog_e(@"notification.schedule.error", @"Error scheduling notification.", @{@"response" : reply});
+                                                      ret.teakNotifId = nil;
+                                                    }
+                                                    ret.completed = YES;
+                                                  }];
+    [request send];
+  }];
+
+  return ret;
+}
+
 + (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId {
   if (scheduleId == nil || scheduleId.length == 0) {
     TeakLog_e(@"notification.cancel.error", @"scheduleId cannot be null or empty");
