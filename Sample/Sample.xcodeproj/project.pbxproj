@@ -669,8 +669,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "6f7ed4e7-b093-4485-8d8b-d086e2881fd6";
-				PROVISIONING_PROFILE_SPECIFIER = "match Development com.teakio.pushtest";
+				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
 		};
@@ -715,6 +715,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				VALID_ARCHS = arm64;
 			};
@@ -750,8 +751,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "d6617c19-5289-4aa5-bece-6e0b8f51a7ff";
-				PROVISIONING_PROFILE_SPECIFIER = "match Development com.teakio.pushtest.TeakNotificationService";
+				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				VALID_ARCHS = arm64;
 			};
@@ -769,8 +770,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.teakio.pushtest.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "b06c2209-a416-4503-9b21-530b4fbce8a9";
-				PROVISIONING_PROFILE_SPECIFIER = "match Development com.teakio.pushtest.TeakNotificationContent";
+				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
 				VALID_ARCHS = arm64;
 			};
