@@ -214,19 +214,26 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
       NSString* key = queryKeysSorted[i];
       id value = self.payload[key];
 
-      NSString* valueString = value;
-      if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
+      if ([value isKindOfClass:[NSArray class]]) {
+        NSMutableArray* serializedElements = [[NSMutableArray alloc] init];
+        for (NSString* v in value) {
+          [serializedElements addObject:[NSString stringWithFormat:@"%@[]=%@", key, v]];
+        }
+        [sortedQueryString appendFormat:@"%@%s", [serializedElements componentsJoinedByString:@"&"], (i + 1 < queryKeysSorted.count ? "&" : "")];
+      } else if ([value isKindOfClass:[NSDictionary class]]) {
         NSError* error = nil;
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
         if (error) {
           TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
           teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
-          valueString = [value description];
+          [sortedQueryString appendFormat:@"%@=%@%s", key, [value description], (i + 1 < queryKeysSorted.count ? "&" : "")];
         } else {
-          valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+          NSString* valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+          [sortedQueryString appendFormat:@"%@=%@%s", key, valueString, (i + 1 < queryKeysSorted.count ? "&" : "")];
         }
+      } else {
+        [sortedQueryString appendFormat:@"%@=%@%s", key, value, (i + 1 < queryKeysSorted.count ? "&" : "")];
       }
-      [sortedQueryString appendFormat:@"%@=%@%s", key, valueString, (i + 1 < queryKeysSorted.count ? "&" : "")];
     }
 
     NSString* stringToSign = [NSString stringWithFormat:@"%@\n%@\n%@\n%@", @"POST", self.hostname, path, sortedQueryString];
@@ -243,20 +250,20 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
       id value = self.payload[key];
-      NSString* valueString = value;
-      if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
+      if ([value isKindOfClass:[NSDictionary class]]) {
         NSError* error = nil;
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
 
         if (error) {
           TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
           teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
-          valueString = [value description];
+          signedPayload[key] = [value description];
         } else {
-          valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+          signedPayload[key] = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         }
+      } else {
+        signedPayload[key] = value;
       }
-      signedPayload[key] = valueString;
     }
     signedPayload[@"sig"] = sigString;
 
@@ -280,8 +287,16 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     NSMutableData* postData = [[NSMutableData alloc] init];
 
     for (NSString* key in signedPayload) {
-      [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, signedPayload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
+      id value = signedPayload[key];
+      if ([value isKindOfClass:[NSArray class]]) {
+        for (NSString* v in value) {
+          [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
+          [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@[]\"\r\n\r\n%@\r\n", key, v] dataUsingEncoding:NSUTF8StringEncoding]];
+        }
+      } else {
+        [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
+        [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, value] dataUsingEncoding:NSUTF8StringEncoding]];
+      }
     }
     [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
 
