@@ -51,18 +51,9 @@ BOOL TeakBoolFor(id object) {
 NSString* TeakFormEncode(NSString* name, id value, BOOL escape) {
   NSMutableArray* listOfThingsToJoin = [[NSMutableArray alloc] init];
   if ([value isKindOfClass:NSDictionary.class]) {
-    NSError* error = nil;
-    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
-    if (error) {
-      [listOfThingsToJoin addObject:[NSString stringWithFormat:@"%@=%@", name, [value description]]];
-    } else {
-      NSString* valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-      [listOfThingsToJoin addObject:[NSString stringWithFormat:@"%@=%@", name, valueString]];
+    for (id key in value) {
+      [listOfThingsToJoin addObject:TeakFormEncode([NSString stringWithFormat:@"%@[%@]", name, key], value[key], escape)];
     }
-    // TODO: Change to this once server supports this encoding format for signing strings
-    //    for (id key in value) {
-    //      [listOfThingsToJoin addObject:TeakFormEncode([NSString stringWithFormat:@"%@[%@]", name, key], value[key], escape)];
-    //    }
   } else if ([value isKindOfClass:NSArray.class]) {
     for (id v in value) {
       [listOfThingsToJoin addObject:TeakFormEncode([NSString stringWithFormat:@"%@[]", name], v, escape)];
