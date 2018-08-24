@@ -26,6 +26,7 @@
 /////
 
 extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
+extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
 
 /////
 
@@ -325,25 +326,9 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_expanded"]];
-
-  NSString* boundry = @"-===-httpB0unDarY-==-";
-
-  NSMutableData* postData = [[NSMutableData alloc] init];
-
-  for (NSString* key in payload) {
-    [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, payload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
-  }
-  [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-
-  [request setHTTPMethod:@"POST"];
-  [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
-  [request setHTTPBody:postData];
-  NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
-  [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
+  TeakAssignPayloadToRequest(request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];
-
   NSURLSessionUploadTask* uploadTask =
       [self.session uploadTaskWithRequest:request
                                  fromData:nil
