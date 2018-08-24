@@ -196,6 +196,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         if (self.session.userId) {
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
+
+        // Future-Pat: save the transmission bytes
+        if (!self.session.appConfiguration.isProduction) {
+          payloadWithCommon[@"debug"] = [NSNumber numberWithBool:YES];
+        }
       }
       self.payload = payloadWithCommon;
     } @catch (NSException* exception) {
