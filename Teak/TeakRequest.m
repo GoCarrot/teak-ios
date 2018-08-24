@@ -23,6 +23,7 @@
 
 #include <CommonCrypto/CommonHMAC.h>
 
+extern NSDictionary* TeakVersionDict;
 extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
 extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
 
@@ -184,7 +185,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         [payloadWithCommon addEntriesFromDictionary:@{
           @"appstore_name" : @"apple",
           @"game_id" : self.session.appConfiguration.appId,
-          @"sdk_version" : [Teak sharedInstance].sdkVersion,
+          @"sdk_version" : TeakVersionDict,
           @"sdk_platform" : self.session.deviceConfiguration.platformString,
           @"app_version" : self.session.appConfiguration.appVersion,
           @"device_model" : self.session.deviceConfiguration.deviceModel,
