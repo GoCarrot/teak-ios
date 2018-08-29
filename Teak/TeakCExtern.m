@@ -56,6 +56,20 @@ TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* m
                                             secondsFromNow:delay];
 }
 
+TeakNotification* TeakNotificationScheduleLongDistanceWithNSArray(const char* creativeId, int64_t delay, NSArray* userIds) {
+  return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
+                                            secondsFromNow:delay
+                                                forUserIds:userIds];
+}
+
+TeakNotification* TeakNotificationScheduleLongDistance(const char* creativeId, int64_t delay, const char* inUserIds[], int inUserIdCount) {
+  NSMutableArray* userIds = [[NSMutableArray alloc] init];
+  for (int i = 0; i < inUserIdCount; i++) {
+    [userIds addObject:[NSString stringWithUTF8String:inUserIds[i]]];
+  }
+  return TeakNotificationScheduleLongDistanceWithNSArray(creativeId, delay, userIds);
+}
+
 TeakNotification* TeakNotificationCancel(const char* scheduleId) {
   return [TeakNotification cancelScheduledNotification:[NSString stringWithUTF8String:scheduleId]];
 }
