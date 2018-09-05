@@ -1,0 +1,13 @@
+git_url("git@github.com:GoCarrot/teak-match-certificates.git")
+
+type("development") # The default type, can be: appstore, adhoc, enterprise or development
+
+app_identifiers = ["com.teakio.pushtest"]
+app_extensions = ["TeakNotificationService", "TeakNotificationContent"]
+app_identifier(app_identifiers.push(app_identifiers.collect { |app| app_extensions.collect { |extension| "#{app}.#{extension}" } }).flatten)
+
+username("teak.devices@gmail.com")
+team_id("7FLZTACJ82")
+
+# For all available options run `fastlane match --help`
+# Remove the # in the beginning of the line to enable the other options

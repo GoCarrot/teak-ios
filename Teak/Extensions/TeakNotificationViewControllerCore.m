@@ -22,9 +22,11 @@
 // For XCode 8.x
 #import <AVFoundation/AVFoundation.h>
 
+#define iOS12OrGreater() ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0)
 /////
 
 extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
+extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
 
 /////
 
@@ -254,10 +256,21 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
     self.notificationContentView.frame = CGRectMake(0, 0, self.view.frame.size.width, scaledHeight);
 
+    ///// Top level view
+
     self.view.frame = CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y,
                                  self.view.frame.size.width, scaledHeight);
     self.preferredContentSize = CGSizeMake(self.view.frame.size.width, scaledHeight);
     [self.view addSubview:self.notificationContentView];
+
+    ///// Button
+    if (iOS12OrGreater()) {
+      UIButton* defaultButton = [[UIButton alloc] init];
+      [defaultButton setFrame:self.view.frame];
+      [defaultButton setBackgroundColor:[UIColor clearColor]];
+      [defaultButton addTarget:self action:@selector(buttonTouchUpInside:forEvent:) forControlEvents:UIControlEventTouchUpInside];
+      [self.view insertSubview:defaultButton aboveSubview:self.notificationContentView];
+    }
 
     // Start video if auto-play
     if (self.autoPlay) {
@@ -268,12 +281,18 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption))completionHandler {
-  dispatch_once(&_inputHandlerDispatchOnce, ^{
-    int attachmentIndex = (self.actions[response.actionIdentifier] == nil || self.actions[response.actionIdentifier] == [NSNull null]) ? -1 : [self.actions[response.actionIdentifier] intValue];
+  int attachmentIndex = (self.actions[response.actionIdentifier] == nil || self.actions[response.actionIdentifier] == [NSNull null]) ? -1 : [self.actions[response.actionIdentifier] intValue];
+  [self handleNotificationResponseForAction:attachmentIndex
+                          completionHandler:^{
+                            completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+                          }];
+}
 
+- (void)handleNotificationResponseForAction:(int)attachmentIndex completionHandler:(void (^)(void))completionHandler {
+  dispatch_once(&_inputHandlerDispatchOnce, ^{
     if (attachmentIndex < 0) {
       // Launch the app when the button is pressed
-      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+      completionHandler();
     } else {
       // Will prepare next content view
       self.prepareContentView();
@@ -289,33 +308,27 @@ extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
                                                         object:assetToPlay
                                                          queue:nil
                                                     usingBlock:^(NSNotification* notification) {
-                                                      completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);
+                                                      completionHandler();
                                                     }];
     }
   });
 }
 
+- (IBAction)buttonTouchUpInside:(id)sender forEvent:(UIEvent*)event {
+  int attachmentIndex = [self.notificationUserData[@"defaultAction"] intValue];
+  [self handleNotificationResponseForAction:attachmentIndex
+                          completionHandler:^{
+                            // To allow us to continue to build on Xcode 8 for CI builds
+                            SEL selector = NSSelectorFromString(@"performNotificationDefaultAction");
+                            ((void (*)(id, SEL))[[self extensionContext] methodForSelector:selector])([self extensionContext], selector);
+                          }];
+}
+
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_expanded"]];
-
-  NSString* boundry = @"-===-httpB0unDarY-==-";
-
-  NSMutableData* postData = [[NSMutableData alloc] init];
-
-  for (NSString* key in payload) {
-    [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, payload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
-  }
-  [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-
-  [request setHTTPMethod:@"POST"];
-  [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
-  [request setHTTPBody:postData];
-  NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
-  [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
+  TeakAssignPayloadToRequest(request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];
-
   NSURLSessionUploadTask* uploadTask =
       [self.session uploadTaskWithRequest:request
                                  fromData:nil

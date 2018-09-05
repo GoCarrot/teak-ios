@@ -27,6 +27,7 @@
 - (nullable TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary;
 
 + (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId withMessage:(nonnull NSString*)message secondsFromNow:(int64_t)delay;
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds;
 + (nullable TeakNotification*)cancelScheduledNotification:(nonnull NSString*)scheduleId;
 + (nullable TeakNotification*)cancelAll;
 @end

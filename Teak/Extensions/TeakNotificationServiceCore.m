@@ -20,6 +20,8 @@
 
 #import <sys/utsname.h>
 
+extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
+
 @interface TeakNotificationServiceCore ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);
 @property (strong, nonatomic) UNMutableNotificationContent* bestAttemptContent;
@@ -81,7 +83,7 @@
   @try {
     NSString* teakNotifId = TeakNSStringOrNilFor(notification[@"teakNotifId"]);
     if ([teakNotifId length] > 0) {
-      self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration ephemeralSessionConfiguration]];
+      self.session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
 
       // Process APS thumbnail, content and actions into an array of attachments
       // Replace URL in actions with index into array of attachments
@@ -96,6 +98,8 @@
         [orderedAttachments addObject:notification[@"content"]];
       }
 
+      BOOL defaultActionAssigned = NO;
+      NSNumber* defaultAction = @-1;
       NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
       for (NSString* key in notification[@"playableActions"]) {
         // If the action is null, launch the app
@@ -105,6 +109,11 @@
           processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];
           [orderedAttachments addObject:notification[@"playableActions"][key]];
         }
+
+        if (!defaultActionAssigned) {
+          defaultAction = processedActions[key];
+          defaultActionAssigned = YES;
+        }
       }
 
       // Assign processed actions dictionary and content index
@@ -113,6 +122,7 @@
         NSMutableDictionary* mutableAps = [mutableUserInfo[@"aps"] mutableCopy];
         mutableAps[@"content"] = contentIndex;
         mutableAps[@"playableActions"] = processedActions;
+        mutableAps[@"defaultAction"] = defaultAction;
         mutableUserInfo[@"aps"] = mutableAps;
         self.bestAttemptContent.userInfo = mutableUserInfo;
         notification = mutableAps;
@@ -177,53 +187,39 @@
 
   NSString* uti = CFBridgingRelease(UTTypeCreatePreferredIdentifierForTag(kUTTagClassMIMEType, (__bridge CFStringRef)mimeType, NULL));
   NSString* extension = (NSString*)CFBridgingRelease(UTTypeCopyPreferredTagWithClass((__bridge CFStringRef)uti, kUTTagClassFilenameExtension));
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:attachmentUrl];
+  [request setCachePolicy:NSURLRequestReturnCacheDataElseLoad];
 
-  [[self.session downloadTaskWithURL:attachmentUrl
-                   completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
-                     if (error != nil) {
-                       NSLog(@"%@", error.localizedDescription);
-                     } else {
-                       NSFileManager* fileManager = [NSFileManager defaultManager];
-                       NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, extension];
-                       NSURL* localUrl = [NSURL fileURLWithPath:pathWithExtension];
-                       [fileManager moveItemAtURL:temporaryFileLocation toURL:localUrl error:&error];
-
-                       if (error == nil) {
-                         attachment = [UNNotificationAttachment attachmentWithIdentifier:@"" URL:localUrl options:nil error:&error];
+  [[self.session downloadTaskWithRequest:request
+                       completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
                          if (error != nil) {
                            NSLog(@"%@", error.localizedDescription);
+                         } else {
+                           NSFileManager* fileManager = [NSFileManager defaultManager];
+                           NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, extension];
+                           NSURL* localUrl = [NSURL fileURLWithPath:pathWithExtension];
+                           [fileManager moveItemAtURL:temporaryFileLocation toURL:localUrl error:&error];
+
+                           if (error == nil) {
+                             attachment = [UNNotificationAttachment attachmentWithIdentifier:@"" URL:localUrl options:nil error:&error];
+                             if (error != nil) {
+                               NSLog(@"%@", error.localizedDescription);
+                             }
+                           } else {
+                             NSLog(@"%@", error.localizedDescription);
+                           }
                          }
-                       } else {
-                         NSLog(@"%@", error.localizedDescription);
-                       }
-                     }
-                     [self.operationQueue addOperation:attachmentOperation];
-                   }] resume];
+                         [self.operationQueue addOperation:attachmentOperation];
+                       }] resume];
 
   return attachmentOperation;
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_received"]];
-
-  NSString* boundry = @"-===-httpB0unDarY-==-";
-
-  NSMutableData* postData = [[NSMutableData alloc] init];
-
-  for (NSString* key in payload) {
-    [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-    [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, payload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
-  }
-  [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-
-  [request setHTTPMethod:@"POST"];
-  [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
-  [request setHTTPBody:postData];
-  NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
-  [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
+  TeakAssignPayloadToRequest(request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];
-
   NSURLSessionUploadTask* uploadTask =
       [self.session uploadTaskWithRequest:request
                                  fromData:nil

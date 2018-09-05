@@ -1,6 +1,8 @@
 .DS_Store
 build/*
 !build/.gitkeep
+Sample/build/*
+!Sample/build/.gitkeep
 *.pem
 
 .irb-history
@@ -8,6 +10,9 @@ build/*
 xcuserdata/
 *.xcscmblueprint
 *.xccheckout
+
+Sample/fastlane/README.md
+Sample/fastlane/report.xml
 
 compile_commands.json
 oclint.result

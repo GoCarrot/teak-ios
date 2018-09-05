@@ -36,8 +36,8 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
   [TeakLink registerRoute:@"/test/:data"
-                     name:@"Store SKU"
-              description:@"Will open the In App Purchase for the specified SKU"
+                     name:@"Test"
+              description:@"Echo to log"
                     block:^(NSDictionary* _Nonnull parameters) {
                       NSLog(@"%@", parameters);
                     }];

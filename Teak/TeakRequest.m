@@ -23,6 +23,10 @@
 
 #include <CommonCrypto/CommonHMAC.h>
 
+extern NSDictionary* TeakVersionDict;
+extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
+extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
+
 ///// Structs to match JSON
 
 @implementation TeakBatchConfiguration
@@ -181,7 +185,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         [payloadWithCommon addEntriesFromDictionary:@{
           @"appstore_name" : @"apple",
           @"game_id" : self.session.appConfiguration.appId,
-          @"sdk_version" : [Teak sharedInstance].sdkVersion,
+          @"sdk_version" : TeakVersionDict,
           @"sdk_platform" : self.session.deviceConfiguration.platformString,
           @"app_version" : self.session.appConfiguration.appVersion,
           @"device_model" : self.session.deviceConfiguration.deviceModel,
@@ -191,6 +195,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         }];
         if (self.session.userId) {
           payloadWithCommon[@"api_key"] = self.session.userId;
+        }
+
+        // Future-Pat: save the transmission bytes
+        if (!self.session.appConfiguration.isProduction) {
+          payloadWithCommon[@"debug"] = [NSNumber numberWithBool:YES];
         }
       }
       self.payload = payloadWithCommon;
@@ -209,27 +218,14 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     // Build query string to sign
     NSArray* queryKeysSorted = [[self.payload allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
-    NSMutableString* sortedQueryString = [[NSMutableString alloc] init];
+    NSMutableArray* sortedQueryStringArray = [[NSMutableArray alloc] init];
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
       id value = self.payload[key];
-
-      NSString* valueString = value;
-      if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
-        NSError* error = nil;
-        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
-        if (error) {
-          TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
-          teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
-          valueString = [value description];
-        } else {
-          valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        }
-      }
-      [sortedQueryString appendFormat:@"%@=%@%s", key, valueString, (i + 1 < queryKeysSorted.count ? "&" : "")];
+      [sortedQueryStringArray addObject:TeakFormEncode(key, value, NO)];
     }
 
-    NSString* stringToSign = [NSString stringWithFormat:@"%@\n%@\n%@\n%@", @"POST", self.hostname, path, sortedQueryString];
+    NSString* stringToSign = [NSString stringWithFormat:@"%@\n%@\n%@\n%@", @"POST", self.hostname, path, [sortedQueryStringArray componentsJoinedByString:@"&"]];
 
     NSData* dataToSign = [stringToSign dataUsingEncoding:NSUTF8StringEncoding];
     uint8_t digestBytes[CC_SHA256_DIGEST_LENGTH];
@@ -238,26 +234,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     NSData* digestData = [NSData dataWithBytes:digestBytes length:CC_SHA256_DIGEST_LENGTH];
     NSString* sigString = [digestData base64EncodedStringWithOptions:0];
 
-    // Build params dictionary with JSON object representations
-    NSMutableDictionary* signedPayload = [[NSMutableDictionary alloc] init];
-    for (int i = 0; i < queryKeysSorted.count; i++) {
-      NSString* key = queryKeysSorted[i];
-      id value = self.payload[key];
-      NSString* valueString = value;
-      if ([value isKindOfClass:[NSDictionary class]] || [value isKindOfClass:[NSArray class]]) {
-        NSError* error = nil;
-        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:value options:0 error:&error];
-
-        if (error) {
-          TeakLog_e(@"request.error.json", @{@"value" : value, @"error" : error});
-          teak_log_data_breadcrumb(@"request.signedPayload.error.json", (@{@"value" : value, @"error" : error}));
-          valueString = [value description];
-        } else {
-          valueString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        }
-      }
-      signedPayload[key] = valueString;
-    }
+    // Dictionary with 'sig' added
+    NSMutableDictionary* signedPayload = [[NSMutableDictionary alloc] initWithDictionary:self.payload];
     signedPayload[@"sig"] = sigString;
 
     return signedPayload;
@@ -273,23 +251,9 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
     NSDictionary* signedPayload = [self signedPayload];
-
-    NSString* boundry = @"-===-httpB0unDarY-==-";
     teak_log_data_breadcrumb(@"request.send.signedPayload", signedPayload);
 
-    NSMutableData* postData = [[NSMutableData alloc] init];
-
-    for (NSString* key in signedPayload) {
-      [postData appendData:[[NSString stringWithFormat:@"--%@\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-      [postData appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n", key, signedPayload[key]] dataUsingEncoding:NSUTF8StringEncoding]];
-    }
-    [postData appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundry] dataUsingEncoding:NSUTF8StringEncoding]];
-
-    [request setHTTPMethod:@"POST"];
-    [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
-    [request setHTTPBody:postData];
-    NSString* charset = (NSString*)CFStringConvertEncodingToIANACharSetName(CFStringConvertNSStringEncodingToEncoding(NSUTF8StringEncoding));
-    [request setValue:[NSString stringWithFormat:@"multipart/form-data; charset=%@; boundary=%@", charset, boundry] forHTTPHeaderField:@"Content-Type"];
+    TeakAssignPayloadToRequest(request, signedPayload);
     teak_log_breadcrumb(@"request.send.constructed");
 
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];

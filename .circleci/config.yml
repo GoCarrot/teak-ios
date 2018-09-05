@@ -21,7 +21,11 @@ jobs:
           paths:
             - ~/Library/Caches/Homebrew/
             - vendor/bundle
+            - Sample/vendor/bundle
           key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}
+      - add_ssh_keys:
+          fingerprints:
+            - "ab:48:b1:f2:a7:e9:0f:ba:81:3b:0c:16:48:6b:91:3d"
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
@@ -37,6 +41,8 @@ jobs:
             - build/Release-iphoneos/Teak.framework.zip
             - build/Release-iphoneos/TeakResources.bundle.zip
             - TeakExtensions/TeakNotificationContent/Info.plist
+            - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
+            - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
   deploy_versioned:
     docker:
       - image: circleci/ruby:latest
@@ -54,6 +60,8 @@ jobs:
             aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
             aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
             aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
+            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService-$(git describe --tags --always).appex.zip --acl public-read
+            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent-$(git describe --tags --always).appex.zip --acl public-read
   deploy_latest:
     docker:
       - image: circleci/ruby:latest
@@ -71,6 +79,8 @@ jobs:
             aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
             aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
             aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
+            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService.appex.zip --acl public-read
+            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent.appex.zip --acl public-read
 workflows:
   version: 2
   un-tagged-build:
