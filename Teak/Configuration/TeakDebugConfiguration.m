@@ -40,6 +40,7 @@
       NSLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
     } else {
       self.logLocal = [self.userDefaults boolForKey:kLogLocalPreferencesKey];
+      self.logRemote = [self.userDefaults boolForKey:kLogRemotePreferencesKey];
     }
   }
   return self;
@@ -56,7 +57,7 @@
       NSLog(@"Error occurred while writing to userDefaults. %@", exception);
     }
     self.logLocal = logLocal;
-    self.logRemote = logLocal;
+    self.logRemote = logRemote;
   }
 }
 
