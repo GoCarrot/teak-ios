@@ -206,7 +206,8 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   __weak NSInvocationOperation* weakOperation = operation;
   operation.completionBlock = ^{
     __strong NSInvocationOperation* blockOperation = weakOperation;
-    completionHandler(blockOperation.result);
+    TeakPushStateChainEntry* chainEntry = blockOperation.result;
+    completionHandler(chainEntry.state);
   };
   [self.operationQueue addOperation:operation];
 }
