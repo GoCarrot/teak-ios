@@ -25,7 +25,7 @@
 
 NSString* const TeakDeviceConfiguration_NotificationDisplayState_Enabled = @"true";
 NSString* const TeakDeviceConfiguration_NotificationDisplayState_Disabled = @"false";
-NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unknown";
+NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined = @"not_determined";
 
 @interface TeakDeviceConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* deviceId;
@@ -92,7 +92,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
     [self getAdvertisingInformation];
 
     // Default notification display state
-    self.notificationDisplayEnabled = TeakDeviceConfiguration_NotificationDisplayState_Unknown;
+    self.notificationDisplayEnabled = TeakDeviceConfiguration_NotificationDisplayState_NotDetermined;
 
     // Run this for the first time
     [self updateValuesThatCouldHaveChanged];
@@ -127,7 +127,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
 
 - (void)updateValuesThatCouldHaveChanged {
   [[Teak sharedInstance].pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
-    NSString* newNotificationDisplayState = TeakDeviceConfiguration_NotificationDisplayState_Unknown;
+    NSString* newNotificationDisplayState = TeakDeviceConfiguration_NotificationDisplayState_NotDetermined;
     if (pushState == [TeakPushState Authorized] || pushState == [TeakPushState Provisional]) {
       newNotificationDisplayState = TeakDeviceConfiguration_NotificationDisplayState_Enabled;
     } else if (pushState == [TeakPushState Denied]) {

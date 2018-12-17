@@ -102,8 +102,8 @@ BOOL TeakOpenSettingsAppToThisAppsSettings() {
   return [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
 }
 
-BOOL TeakHasUserDisabledPushNotifications() {
-  return [[Teak sharedInstance] hasUserDisabledPushNotifications];
+int TeakGetNotificationState() {
+  return [[Teak sharedInstance] notificationState];
 }
 
 void TeakSetBadgeCount(int count) {

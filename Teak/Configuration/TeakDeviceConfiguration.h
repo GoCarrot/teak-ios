@@ -18,7 +18,7 @@
 
 extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState_Enabled;
 extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState_Disabled;
-extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState_Unknown;
+extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined;
 
 @class TeakAppConfiguration;
 

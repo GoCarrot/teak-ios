@@ -20,7 +20,7 @@
 
 @interface TeakPushState : NSObject <TeakEventHandler>
 
-DeclareTeakState(Unknown);
+DeclareTeakState(NotDetermined);
 DeclareTeakState(Provisional);
 DeclareTeakState(Authorized);
 DeclareTeakState(Denied);

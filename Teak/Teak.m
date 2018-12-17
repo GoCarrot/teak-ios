@@ -144,10 +144,20 @@ Teak* _teakSharedInstance;
   [TrackEventEvent trackedEventWithPayload:payload];
 }
 
-- (BOOL)hasUserDisabledPushNotifications {
+- (TeakNotificationState)notificationState {
   NSInvocationOperation* op = [self.pushState currentPushState];
   [op waitUntilFinished];
-  return (op.result == [TeakPushState Denied]);
+
+  if (op.result == [TeakPushState Denied])
+    return TeakNotificationStateDisabled;
+  else if (op.result == [TeakPushState Authorized])
+    return TeakNotificationStateEnabled;
+  else if (op.result == [TeakPushState Provisional])
+    return TeakNotificationStateProvisional;
+  else if (op.result == [TeakPushState NotDetermined])
+    return TeakNotificationStateNotDetermined;
+
+  return TeakNotificationStateUnknown;
 }
 
 - (BOOL)openSettingsAppToThisAppsSettings {

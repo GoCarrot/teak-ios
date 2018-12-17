@@ -57,6 +57,17 @@ extern NSString* _Nonnull const TeakOptOutPushKey;
  */
 extern NSString* _Nonnull const TeakOptOutFacebook;
 
+/**
+ * Value returned from notificationState
+ */
+typedef enum TeakNotificationState : int {
+  TeakNotificationStateUnknown = -1,      ///< An unknown error prevented getting the state.
+  TeakNotificationStateEnabled = 0,       ///< Notifications are enabled.
+  TeakNotificationStateDisabled = 1,      ///< Notifications are disabled.
+  TeakNotificationStateProvisional = 2,   ///< Provisional authorization (see Teak docs on iOS 12 provisional notifications)
+  TeakNotificationStateNotDetermined = 3, ///< The user has not yet been asked to authorize notifications.
+} TeakNotificationState;
+
 #ifdef __OBJC__
 
 #import <Teak/TeakLink.h>
@@ -135,15 +146,14 @@ extern NSString* _Nonnull const TeakOptOutFacebook;
 - (void)trackEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId;
 
 /**
- * Has the user disabled push notifications.
+ * Push notification authorization state.
  *
  * If they have disabled push notifications, you can prompt them to re-enable
  * and use openSettingsAppToThisAppsSettings to open the Settings app.
  *
- * @return                YES if the user has disabled push notifications, NO if Teak was unable to determine
- *                        push notification status or if push notifications are not disabled
+ * @return                Notification state, see: TeakNotificationState
  */
-- (BOOL)hasUserDisabledPushNotifications;
+- (TeakNotificationState)notificationState;
 
 /**
  * Open Settings.app to the settings for this application.
