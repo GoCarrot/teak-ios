@@ -272,14 +272,14 @@ DefineTeakState(Expired, (@[]));
 
 - (void)sendHeartbeat {
   NSString* urlString = [NSString stringWithFormat:
-                                      @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%@",
+                                      @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
                                       URLEscapedString(self.appConfiguration.appId),
                                       URLEscapedString(self.userId),
                                       URLEscapedString([Teak sharedInstance].sdkVersion),
                                       URLEscapedString(self.deviceConfiguration.platformString),
                                       URLEscapedString(self.appConfiguration.appVersion),
                                       self.countryCode == nil ? @"" : [NSString stringWithFormat:@"&country_code=%@", self.countryCode],
-                                      URLEscapedString([NSUUID UUID].UUIDString)];
+                                      arc4random()];
 
   NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
                                            cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
