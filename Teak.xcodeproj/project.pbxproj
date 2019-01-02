@@ -297,6 +297,7 @@
 		434861741FA2C51B00E0DA12 /* 3rdParty */ = {
 			isa = PBXGroup;
 			children = (
+				43DCD107200595B7009B6514 /* UIImage+animatedGIF.m */,
 				43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */,
 				432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */,
 			);
@@ -370,7 +371,6 @@
 				43E601BB1FFEF879003A09C5 /* TeakNotificationServiceCore.m */,
 				43E601BC1FFEF879003A09C5 /* TeakNotificationViewControllerCore.h */,
 				43E601BD1FFEF879003A09C5 /* TeakNotificationViewControllerCore.m */,
-				43DCD107200595B7009B6514 /* UIImage+animatedGIF.m */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";

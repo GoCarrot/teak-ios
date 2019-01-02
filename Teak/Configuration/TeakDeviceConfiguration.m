@@ -1,21 +1,7 @@
-/* Teak -- Copyright (C) 2016 GoCarrot Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #import "TeakDeviceConfiguration.h"
 #import "PushRegistrationEvent.h"
 #import "Teak+Internal.h"
+#import <Teak/Teak.h>
 #import <sys/utsname.h>
 
 #import <AdSupport/AdSupport.h>
@@ -24,7 +10,7 @@
 
 NSString* const TeakDeviceConfiguration_NotificationDisplayState_Enabled = @"true";
 NSString* const TeakDeviceConfiguration_NotificationDisplayState_Disabled = @"false";
-NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unknown";
+NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined = @"not_determined";
 
 @interface TeakDeviceConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* deviceId;
@@ -91,7 +77,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
     [self getAdvertisingInformation];
 
     // Default notification display state
-    self.notificationDisplayEnabled = TeakDeviceConfiguration_NotificationDisplayState_Unknown;
+    self.notificationDisplayEnabled = TeakDeviceConfiguration_NotificationDisplayState_NotDetermined;
 
     // Run this for the first time
     [self updateValuesThatCouldHaveChanged];
@@ -125,15 +111,19 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_Unknown = @"unk
 }
 
 - (void)updateValuesThatCouldHaveChanged {
-  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    BOOL disabled = [[Teak sharedInstance] hasUserDisabledPushNotifications];
-    NSString* newNotificationDisplayState = disabled ? TeakDeviceConfiguration_NotificationDisplayState_Disabled : TeakDeviceConfiguration_NotificationDisplayState_Enabled;
+  [[Teak sharedInstance].pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
+    NSString* newNotificationDisplayState = TeakDeviceConfiguration_NotificationDisplayState_NotDetermined;
+    if (pushState == [TeakPushState Authorized] || pushState == [TeakPushState Provisional]) {
+      newNotificationDisplayState = TeakDeviceConfiguration_NotificationDisplayState_Enabled;
+    } else if (pushState == [TeakPushState Denied]) {
+      newNotificationDisplayState = TeakDeviceConfiguration_NotificationDisplayState_Disabled;
+    }
 
     // Only asign if different for KVO
     if (![self.notificationDisplayEnabled isEqualToString:newNotificationDisplayState]) {
       self.notificationDisplayEnabled = newNotificationDisplayState;
     }
-  });
+  }];
 }
 
 - (NSDictionary*)to_h {

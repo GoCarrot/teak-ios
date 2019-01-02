@@ -1,18 +1,3 @@
-/* Teak -- Copyright (C) 2018 GoCarrot Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #import "TeakPushState.h"
 #import "TeakLog.h"
 #import <UserNotifications/UNNotificationSettings.h>
@@ -80,7 +65,7 @@
     else if ([stateString isEqualToString:@"denied"])
       self.state = [TeakPushState Denied];
     else
-      self.state = [TeakPushState Unknown];
+      self.state = [TeakPushState NotDetermined];
 
     self.date = [NSDate dateWithTimeIntervalSince1970:[dictionary[@"date"] doubleValue]];
     self.canShowOnLockscreen = [dictionary[@"canShowOnLockscreen"] boolValue];
@@ -94,7 +79,7 @@
   if (self.state == [TeakPushState Provisional]) return @"provisional";
   if (self.state == [TeakPushState Authorized]) return @"authorized";
   if (self.state == [TeakPushState Denied]) return @"denied";
-  return @"unknown";
+  return @"not_determined";
 }
 
 - (BOOL)isUpdatedState:(nonnull TeakPushStateChainEntry*)entry {
@@ -115,7 +100,7 @@
 
 @implementation TeakPushState
 
-DefineTeakState(Unknown, (@[ @"Provisional", @"Authorized", @"Denied" ]));
+DefineTeakState(NotDetermined, (@[ @"Provisional", @"Authorized", @"Denied" ]));
 DefineTeakState(Provisional, (@[ @"Authorized", @"Denied" ]));
 DefineTeakState(Authorized, (@[ @"Denied" ]));
 DefineTeakState(Denied, (@[ @"Authorized" ]));
@@ -162,7 +147,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 
   @synchronized(self) {
     TeakPushStateChainEntry* oldStateChainEntry = [self.stateChain lastObject];
-    if (oldStateChainEntry == nil) oldStateChainEntry = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Unknown]];
+    if (oldStateChainEntry == nil) oldStateChainEntry = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState NotDetermined]];
 
     if ([oldStateChainEntry isUpdatedState:newChainEntry]) {
       NSMutableArray* mutableStateChain = self.stateChain == nil ? [[NSMutableArray alloc] init] : [self.stateChain mutableCopy];
@@ -180,7 +165,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 
 - (TeakState*)invocationOperationPushState {
   TeakPushStateChainEntry* lastEntry = [self.stateChain lastObject];
-  return lastEntry == nil ? [TeakPushState Unknown] : lastEntry.state;
+  return lastEntry == nil ? [TeakPushState NotDetermined] : lastEntry.state;
 }
 
 - (NSInvocationOperation*)currentPushState {
@@ -206,13 +191,14 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
   __weak NSInvocationOperation* weakOperation = operation;
   operation.completionBlock = ^{
     __strong NSInvocationOperation* blockOperation = weakOperation;
-    completionHandler(blockOperation.result);
+    TeakPushStateChainEntry* chainEntry = blockOperation.result;
+    completionHandler(chainEntry.state);
   };
   [self.operationQueue addOperation:operation];
 }
 
 - (TeakPushStateChainEntry*)determineCurrentPushStateBlocking {
-  __block TeakPushStateChainEntry* pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Unknown]];
+  __block TeakPushStateChainEntry* pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState NotDetermined]];
 
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
@@ -223,7 +209,7 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
           pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Denied]];
         } break;
         case UNAuthorizationStatusNotDetermined: {
-          // Remains as state 'Unknown'
+          // Remains as state 'NotDetermined'
         } break;
         case UNAuthorizationStatusAuthorized: {
           pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]

@@ -1,18 +1,3 @@
-/* Teak -- Copyright (C) 2016 GoCarrot Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include <Foundation/Foundation.h>
 
 /**
@@ -56,6 +41,17 @@ extern NSString* _Nonnull const TeakOptOutPushKey;
  * Teak will no longer be able to correlate this user across multiple devices.
  */
 extern NSString* _Nonnull const TeakOptOutFacebook;
+
+/**
+ * Value returned from notificationState
+ */
+typedef enum TeakNotificationState : int {
+  TeakNotificationStateUnknown = -1,      ///< An unknown error prevented getting the state.
+  TeakNotificationStateEnabled = 0,       ///< Notifications are enabled.
+  TeakNotificationStateDisabled = 1,      ///< Notifications are disabled.
+  TeakNotificationStateProvisional = 2,   ///< Provisional authorization (see Teak docs on iOS 12 provisional notifications)
+  TeakNotificationStateNotDetermined = 3, ///< The user has not yet been asked to authorize notifications.
+} TeakNotificationState;
 
 #ifdef __OBJC__
 
@@ -135,15 +131,14 @@ extern NSString* _Nonnull const TeakOptOutFacebook;
 - (void)trackEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId;
 
 /**
- * Has the user disabled push notifications.
+ * Push notification authorization state.
  *
  * If they have disabled push notifications, you can prompt them to re-enable
  * and use openSettingsAppToThisAppsSettings to open the Settings app.
  *
- * @return                YES if the user has disabled push notifications, NO if Teak was unable to determine
- *                        push notification status or if push notifications are not disabled
+ * @return                Notification state, see: TeakNotificationState
  */
-- (BOOL)hasUserDisabledPushNotifications;
+- (TeakNotificationState)notificationState;
 
 /**
  * Open Settings.app to the settings for this application.
