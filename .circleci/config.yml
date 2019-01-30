@@ -13,7 +13,7 @@ jobs:
       - restore_cache:
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
-          name: Check Homebrew Version ($HOMEBREW_VERSION)
+          name: Check Homebrew Version
           command: |
             echo "Checking for Homebrew version $HOMEBREW_VERSION"
             [ `brew --version | sed -n 1p | sed 's/[^0-9.]*\([0-9.]*\).*/\1/'` = $HOMEBREW_VERSION ] || brew update
