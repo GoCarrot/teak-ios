@@ -6,23 +6,30 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     steps:
       - checkout
-      - restore_cache:
-          key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}
       - run:
-          name: Fix 'Homebrew must be run under Ruby 2.3!'
-          command: brew update
+          shell: /bin/bash -eo pipefail
+          name: Set Ruby Version 2.3
+          command: echo "ruby-2.3" > .ruby-version
+      - restore_cache:
+          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+      - run:
+          name: Check Homebrew Version
+          command: |
+            echo "Checking for Homebrew version $HOMEBREW_VERSION"
+            [ `brew --version | sed -n 1p | sed 's/[^0-9.]*\([0-9.]*\).*/\1/'` = $HOMEBREW_VERSION ] || brew update
       - run:
           name: Homebrew Depenendcies
-          command: ./setup
+          command: HOMEBREW_NO_AUTO_UPDATE=1 ./setup
       - run:
           name: Ruby Gems
           command: bundle check || bundle install --path vendor/bundle
       - save_cache:
           paths:
-            - ~/Library/Caches/Homebrew/
+            - /usr/local/Homebrew/
+            - ~/Library/Caches/Homebrew
             - vendor/bundle
             - Sample/vendor/bundle
-          key: v0-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}
+          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - add_ssh_keys:
           fingerprints:
             - "ab:48:b1:f2:a7:e9:0f:ba:81:3b:0c:16:48:6b:91:3d"
