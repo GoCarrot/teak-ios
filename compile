@@ -45,3 +45,5 @@ rm -fr $clangTemp
 (cd build/Release-iphoneos/; zip -y -r TeakResources.bundle.zip TeakResources.bundle/)
 (cd Sample/build/Release-iphoneos/; zip -y -r TeakNotificationService.appex.zip TeakNotificationService.appex/)
 (cd Sample/build/Release-iphoneos/; zip -y -r TeakNotificationContent.appex.zip TeakNotificationContent.appex/)
+
+zip -y -r TeakExtensions.zip TeakExtensions/
