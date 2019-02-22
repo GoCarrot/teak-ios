@@ -101,33 +101,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
-  actionId = [[actionId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-  objectTypeId = [[objectTypeId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-  objectInstanceId = [[objectInstanceId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
-
-  if (actionId == nil || actionId.length == 0) {
-    TeakLog_e(@"track_event.error", @"actionId can not be null or empty for trackEvent(), ignoring.");
-    return;
-  }
-
-  if ((objectInstanceId != nil && objectInstanceId.length > 0) &&
-      (objectTypeId == nil || objectTypeId.length == 0)) {
-    TeakLog_e(@"track_event.error", @"objectTypeId can not be null or empty if objectInstanceId is present for trackEvent(), ignoring.");
-    return;
-  }
-
-  TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId)});
-
-  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{@"action_type" : actionId}];
-  if (objectTypeId != nil && objectTypeId.length > 0) {
-    payload[@"object_type"] = objectTypeId;
-  }
-  if (objectInstanceId != nil && objectInstanceId.length > 0) {
-    payload[@"object_instance_id"] = objectInstanceId;
-  }
-  payload[@"duration"] = @1;
-
-  [TrackEventEvent trackedEventWithPayload:payload];
+  [self incrementEventWithActionId:actionId forObjectTypeId:objectTypeId andObjectInstanceId:objectInstanceId count:1];
 }
 
 - (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(uint32_t)count {
@@ -136,23 +110,23 @@ Teak* _teakSharedInstance;
   objectInstanceId = [[objectInstanceId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
   if (actionId == nil || actionId.length == 0) {
-    TeakLog_e(@"increment_event.error", @"actionId can not be null or empty for trackEvent(), ignoring.");
+    TeakLog_e(@"track_event.error", @"actionId can not be null or empty, ignoring.");
     return;
   }
 
   if ((objectInstanceId != nil && objectInstanceId.length > 0) &&
       (objectTypeId == nil || objectTypeId.length == 0)) {
-    TeakLog_e(@"increment_event.error", @"objectTypeId can not be null or empty if objectInstanceId is present for trackEvent(), ignoring.");
+    TeakLog_e(@"track_event.error", @"objectTypeId can not be null or empty if objectInstanceId is present, ignoring.");
     return;
   }
 
   if (count < 1) {
-    TeakLog_e(@"increment_event.error", @"count cannot be less than one, ignoring.");
+    TeakLog_e(@"track_event.error", @"count cannot be less than one, ignoring.");
     return;
   }
 
   NSNumber* countAsNumber = [NSNumber numberWithUnsignedInteger:count];
-  TeakLog_i(@"increment_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId), @"count" : countAsNumber});
+  TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId), @"count" : countAsNumber});
 
   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{@"action_type" : actionId}];
   if (objectTypeId != nil && objectTypeId.length > 0) {
