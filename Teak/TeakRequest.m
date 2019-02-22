@@ -207,7 +207,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
       id value = self.payload[key];
-      [sortedQueryStringArray addObject:TeakFormEncode(key, value, NO)];
+      NSString* encoded = TeakFormEncode(key, value, NO);
+      if ([encoded length] > 0) {
+        [sortedQueryStringArray addObject:encoded];
+      }
     }
 
     NSString* stringToSign = [NSString stringWithFormat:@"%@\n%@\n%@\n%@", @"POST", self.hostname, path, [sortedQueryStringArray componentsJoinedByString:@"&"]];
