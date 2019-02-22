@@ -176,7 +176,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     }
 
     [argumentOrder addObject:[toReplace substringFromIndex:1]];
-    return @"([^\\/?#]+)";
+    return @"([^\\/]+)";
   });
 
   // Check for duplicate group names
