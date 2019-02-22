@@ -63,6 +63,8 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 - (void)prepareAndSend;
 
 + (nullable TeakBatchedRequest*)batchRequestWithSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback;
+
++ (BOOL)payload:(nonnull NSDictionary*)a isEqualToPayload:(nullable NSDictionary*)b;
 @end
 
 ///// TeakRequestURLDelegate
@@ -362,6 +364,15 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
   return currentBatch;
 }
 
++ (BOOL)payload:(nonnull NSDictionary*)a isEqualToPayload:(nullable NSDictionary*)b {
+  if (a == b) return YES;
+  if (![a[@"action_type"] isEqualToString:b[@"action_type"]]) return NO;
+  if (![a[@"object_type"] isEqualToString:b[@"object_type"]]) return NO;
+  if (![a[@"object_instance_id"] isEqualToString:b[@"object_instance_id"]]) return NO;
+  // "duration" is not included, because it will be summed
+  return YES;
+}
+
 @end
 
 ///// TeakBatchedRequest impl
@@ -437,7 +448,31 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
       [batchedRequest.callbacks addObject:[callback copy]];
     }
 
-    [batchedRequest.batchContents addObject:payload];
+    // If this is a TrackEvent batch, see if the payload can be folded in to an
+    // existing payload item.
+    BOOL payloadAddedViaIncrement = NO;
+    if ([@"/me/events" isEqualToString:endpoint]) {
+      for (NSUInteger i = 0; i < batchedRequest.batchContents.count; i++) {
+        // If the payloads are equal, smash them together
+        if ([TeakTrackEventBatchedRequest payload:payload isEqualToPayload:batchedRequest.batchContents[i]]) {
+          NSMutableDictionary* summedEntry = [batchedRequest.batchContents[i] mutableCopy];
+
+          // Sanity check that they are NSNumbers
+          if ([payload[@"duration"] isKindOfClass:[NSNumber class]] && [summedEntry[@"duration"] isKindOfClass:[NSNumber class]]) {
+            NSNumber* a = summedEntry[@"duration"];
+            NSNumber* b = payload[@"duration"];
+            summedEntry[@"duration"] = [NSNumber numberWithUnsignedInteger:[a unsignedIntegerValue] + [b unsignedIntegerValue]];
+            [batchedRequest.batchContents replaceObjectAtIndex:i withObject:summedEntry];
+          }
+          break;
+        }
+      }
+    }
+
+    // It couldn't be folded in, so append it
+    if (!payloadAddedViaIncrement) {
+      [batchedRequest.batchContents addObject:payload];
+    }
 
     // If we've hit the limit, or delay time is 0.0, send now; otherwise schedule
     if (batchedRequest.batchContents.count >= batchedRequest.batch.count || batchedRequest.batch.time == 0.0f) {

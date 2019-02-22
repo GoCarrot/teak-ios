@@ -27,6 +27,13 @@ void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* 
                             andObjectInstanceId:objectInstanceId == NULL ? nil : [NSString stringWithUTF8String:objectInstanceId]];
 }
 
+void TeakIncrementEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId, uint32_t count) {
+  [[Teak sharedInstance] incrementEventWithActionId:actionId == NULL ? nil : [NSString stringWithUTF8String:actionId]
+                                    forObjectTypeId:objectTypeId == NULL ? nil : [NSString stringWithUTF8String:objectTypeId]
+                                andObjectInstanceId:objectInstanceId == NULL ? nil : [NSString stringWithUTF8String:objectInstanceId]
+                                              count:count];
+}
+
 void TeakAssignWaitForDeepLinkOperation(NSOperation* waitForDeepLinkOp) {
   [Teak sharedInstance].waitForDeepLinkOperation = waitForDeepLinkOp;
 }

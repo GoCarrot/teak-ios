@@ -131,6 +131,16 @@ typedef enum TeakNotificationState : int {
 - (void)trackEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId;
 
 /**
+ * Increment an arbitrary event in Teak.
+ *
+ * @param actionId         The identifier for the action, e.g. 'complete'.
+ * @param objectTypeId     The type of object that is being posted, e.g. 'quest'.
+ * @param objectInstanceId The specific instance of the object, e.g. 'gather-quest-1'
+ * @param count            The amount by which to increment.
+ */
+- (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(uint32_t)count;
+
+/**
  * Push notification authorization state.
  *
  * If they have disabled push notifications, you can prompt them to re-enable
