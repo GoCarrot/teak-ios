@@ -26,6 +26,9 @@
 // For testing
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
+NSOperation *waitForDeepLinkOperation;
+extern void TeakRunNSOperation(NSOperation* op);
+extern void TeakRunNSOperation(NSOperation* op);
 @import AdSupport;
 
 @interface AppDelegate ()
@@ -35,13 +38,6 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
-  [TeakLink registerRoute:@"/test/:data"
-                     name:@"Test"
-              description:@"Echo to log"
-                    block:^(NSDictionary* _Nonnull parameters) {
-                      NSLog(@"%@", parameters);
-                    }];
-
   // Register a deep link that opens the store to the specific SKU
   // Routes use pattern matching to capture variables. Variables are prefixed with ':', so ':sku' will create
   //    a key named 'sku' in the dictionary passed to the block.
@@ -54,6 +50,44 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
                       NSLog(@"IT CALLED THE THING!! SKU: %@", parameters[@"sku"]);
                     }];
 
+  
+  [TeakLink registerRoute:@"/test/link"
+                     name:@"Test"
+              description:@"Here to test that links work with fb stubs."
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Link!"
+                                                                                     message:@"I got the link!"
+                                                                              preferredStyle:UIAlertControllerStyleAlert];
+                      
+                      UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
+                                                                              style:UIAlertActionStyleDefault
+                                                                            handler:^(UIAlertAction* action){}];
+                      
+                      [alert addAction:defaultAction];
+                      [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+                    }];
+
+  [TeakLink registerRoute:@"/slots/:slotId"
+                     name:@"Go to slot"
+              description:@"Go directly to the slot given by slotId"
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      NSLog(@"TEAK: IT CALLED THE THING!! SLOT: %@", parameters[@"slotId"]);
+                      UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Launching slot!"
+                                                                                     message:[NSString stringWithFormat:@"You're now playing %@", parameters[@"slotId"]]
+                                                                              preferredStyle:UIAlertControllerStyleAlert];
+                      
+                      UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
+                                                                              style:UIAlertActionStyleDefault
+                                                                            handler:^(UIAlertAction* action){}];
+                      
+                      [alert addAction:defaultAction];
+                      [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+                    }];
+  
+  if(waitForDeepLinkOperation) {
+    TeakRunNSOperation(waitForDeepLinkOperation);
+  }
+  
   // In your game, you will want to use the same user id that you use in your database.
   //
   // These user ids should be unique, no two players should have the same user id.

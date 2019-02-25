@@ -29,6 +29,7 @@
       self.teakDeepLink = nil;
       teak_try {
         self.teakDeepLink = [NSURL URLWithString:[dictionary objectForKey:@"teakDeepLink"]];
+        TeakLog_i(@"notification.deeplink", @"Notification contains deeplink", @{@"deeplink": [self.teakDeepLink description]});
       }
       teak_catch_report;
     } else {

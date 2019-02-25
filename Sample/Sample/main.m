@@ -19,9 +19,14 @@
 // Step 1:
 // Import Teak into the main.m file to use the initialization method.
 #import <Teak/Teak.h>
+extern void TeakAssignWaitForDeepLinkOperation(NSOperation* waitForDeepLinkOp);
 
 int main(int argc, char* argv[]) {
   @autoreleasepool {
+    waitForDeepLinkOperation = [NSBlockOperation blockOperationWithBlock:^{
+    }];
+    TeakAssignWaitForDeepLinkOperation(waitForDeepLinkOperation);
+    
     // Step 2:
     // Initialize Teak inside the @autoreleasepool but before UIApplicationMain() is called.
     [Teak initForApplicationId:@"1136371193060244"                   // Use your Teak Application Id here.

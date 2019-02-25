@@ -22,3 +22,5 @@
 - (NSString*)integrationTestTimeout:(NSString*)timeout;
 - (NSString*)integrationTestSchedulePush:(NSString*)message;
 @end
+
+extern NSOperation *waitForDeepLinkOperation;

@@ -46,13 +46,37 @@ extern void TeakReportTestException(void);
 }
 
 - (IBAction)crashApp {
+  NSArray *slots = [NSArray arrayWithObjects:
+                    @"OMG Ponies🐴",
+                    @"🦄Unicorn Gold🦄",
+                    @"Golden 🐷 Festival",
+                    @"パチンコ",
+                    @"🌶️🌶️Spicy Slots🌶️🌶️",
+                    nil
+                    ];
+  NSString *slot = [slots objectAtIndex:arc4random_uniform([slots count])];
+  uint32_t coins = arc4random_uniform(2000000000);
+  
   /*[[Teak sharedInstance] trackEventWithActionId:@"test0" forObjectTypeId:nil andObjectInstanceId:nil];
   [[Teak sharedInstance] trackEventWithActionId:@"test1" forObjectTypeId:nil andObjectInstanceId:nil];
   [[Teak sharedInstance] trackEventWithActionId:@"test2" forObjectTypeId:nil andObjectInstanceId:nil];*/
-  //[[Teak sharedInstance] setNumericAttribute:(drand48() * DBL_MAX) forKey:@"coins"];
-  [[Teak sharedInstance] setStringAttribute:@"asshole_cats" forKey:@"last_slot"];
-  [[Teak sharedInstance] incrementEventWithActionId:@"spin" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:1];
-  [[Teak sharedInstance] incrementEventWithActionId:@"coin_sink" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:50000];
+
+  [[Teak sharedInstance] setNumericAttribute:coins forKey:@"coins"];
+  [[Teak sharedInstance] setStringAttribute:slot forKey:@"last_slot"];
+  [[Teak sharedInstance] trackEventWithActionId:@"foo" forObjectTypeId:@"bar" andObjectInstanceId:@"baz"];
+  [[Teak sharedInstance] trackEventWithActionId:@"also" forObjectTypeId:@"this" andObjectInstanceId:@"thing"];
+  
+  UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Played Game!"
+                                                                 message:[NSString stringWithFormat:@"You played '%@' and now have %u coins!", slot, coins]
+                                                          preferredStyle:UIAlertControllerStyleAlert];
+  
+  UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
+                                                          style:UIAlertActionStyleDefault
+                                                        handler:^(UIAlertAction* action){}];
+  
+  [alert addAction:defaultAction];
+  [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
+
   //TeakReportTestException();
   return;
 
