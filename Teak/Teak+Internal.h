@@ -23,7 +23,6 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 
 @property (strong, nonatomic) NSOperationQueue* _Nonnull operationQueue;
 @property (strong, nonatomic) NSOperation* _Nullable waitForDeepLinkOperation;
-@property (strong, nonatomic) NSOperation* _Nonnull hostAppplicationDidFinishLaunchingWithOptions;
 
 @property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
 @property (strong, nonatomic) TeakLog* _Nonnull log;

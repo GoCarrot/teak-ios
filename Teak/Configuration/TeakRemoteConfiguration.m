@@ -60,7 +60,6 @@
     [request send];
   }];
 
-  [configOp addDependency:[Teak sharedInstance].hostAppplicationDidFinishLaunchingWithOptions];
   if ([Teak sharedInstance].waitForDeepLinkOperation != nil) {
     [configOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
   }
