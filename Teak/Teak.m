@@ -288,7 +288,9 @@ Teak* _teakSharedInstance;
     self.waitForDeepLinkOperation = [NSBlockOperation blockOperationWithBlock:^{}];
     [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
       __strong typeof(self) blockSelf = weakSelf;
-      [blockSelf.operationQueue addOperation:blockSelf.waitForDeepLinkOperation];
+      if (blockSelf.waitForDeepLinkOperation != nil) {
+        [blockSelf.operationQueue addOperation:blockSelf.waitForDeepLinkOperation];
+      }
     }];
 
     // Set up internal deep link routes
@@ -302,6 +304,12 @@ Teak* _teakSharedInstance;
 
 - (void)dealloc {
   [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)processDeepLinks {
+  if (self.waitForDeepLinkOperation != nil) {
+    [self.operationQueue addOperation:self.waitForDeepLinkOperation];
+  }
 }
 
 - (void)fbAccessTokenChanged_4x:(NSNotification*)notification {

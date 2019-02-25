@@ -193,6 +193,15 @@ typedef enum TeakNotificationState : int {
  * @return JSON string containing device info, or null if it's not ready
  */
 - (NSString* _Nullable)getAppConfiguration;
+
+/**
+ * Process deep links.
+ *
+ * Deep links will be processed the sooner of:
+ * - The user has been identified
+ * - This method is called
+ */
+- (void)processDeepLinks;
 @end
 
 #endif /* __OBJC__ */

@@ -38,8 +38,8 @@ void TeakAssignWaitForDeepLinkOperation(NSOperation* waitForDeepLinkOp) {
   [Teak sharedInstance].waitForDeepLinkOperation = waitForDeepLinkOp;
 }
 
-void TeakRunNSOperation(NSOperation* op) {
-  [[Teak sharedInstance].operationQueue addOperation:op];
+void TeakProcessDeepLinks() {
+  [[Teak sharedInstance] processDeepLinks];
 }
 
 TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, int64_t delay) {
