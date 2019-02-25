@@ -169,6 +169,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   if (sHostAppDidFinishLaunching) {
     ret |= sHostAppDidFinishLaunching(self, @selector(application:didFinishLaunchingWithOptions:), application, launchOptions);
   }
+  [[Teak sharedInstance].operationQueue addOperation:[Teak sharedInstance].hostAppplicationDidFinishLaunchingWithOptions];
   return ret;
 }
 

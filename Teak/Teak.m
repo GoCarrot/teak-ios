@@ -283,6 +283,10 @@ Teak* _teakSharedInstance;
     self.pushState = [[TeakPushState alloc] init];
     [self.log logEvent:@"push_state.init" level:@"INFO" eventData:[self.pushState to_h]];
 
+    // Internal deep link dependency operation, to be executed after the host app
+    // finishes application:didFinishLaunchingWithOptions:
+    self.hostAppplicationDidFinishLaunchingWithOptions = [NSBlockOperation blockOperationWithBlock:^{}];
+
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
 
