@@ -34,10 +34,6 @@ void TeakIncrementEvent(const char* actionId, const char* objectTypeId, const ch
                                               count:count];
 }
 
-void TeakAssignWaitForDeepLinkOperation(NSOperation* waitForDeepLinkOp) {
-  [Teak sharedInstance].waitForDeepLinkOperation = waitForDeepLinkOp;
-}
-
 void TeakProcessDeepLinks() {
   [[Teak sharedInstance] processDeepLinks];
 }

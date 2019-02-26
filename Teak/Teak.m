@@ -88,6 +88,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut {
+  [self processDeepLinks];
+
   if (userIdentifier == nil || userIdentifier.length == 0) {
     TeakLog_e(@"identify_user.error", @"User identifier can not be null or empty.");
     return;
@@ -284,14 +286,7 @@ Teak* _teakSharedInstance;
     [self.log logEvent:@"push_state.init" level:@"INFO" eventData:[self.pushState to_h]];
 
     // Default wait for deep link operation
-    __weak typeof(self) weakSelf = self;
     self.waitForDeepLinkOperation = [NSBlockOperation blockOperationWithBlock:^{}];
-    [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-      __strong typeof(self) blockSelf = weakSelf;
-      if (blockSelf.waitForDeepLinkOperation != nil) {
-        [blockSelf.operationQueue addOperation:blockSelf.waitForDeepLinkOperation];
-      }
-    }];
 
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
@@ -307,9 +302,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)processDeepLinks {
-  if (self.waitForDeepLinkOperation != nil) {
-    [self.operationQueue addOperation:self.waitForDeepLinkOperation];
-  }
+  [self.operationQueue addOperation:self.waitForDeepLinkOperation];
 }
 
 - (void)fbAccessTokenChanged_4x:(NSNotification*)notification {
