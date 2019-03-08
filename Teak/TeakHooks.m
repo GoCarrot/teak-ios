@@ -31,6 +31,7 @@
 
 static BOOL (*sHostAppDidFinishLaunching)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 static BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id) = NULL;
+static BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*) = NULL;
 static void (*sHostWEFIMP)(id, SEL, UIApplication*) = NULL;
 static void (*sHostAppPushRegIMP)(id, SEL, UIApplication*, NSData*) = NULL;
 static void (*sHostAppPushDidRegIMP)(id, SEL, UIApplication*, UIUserNotificationSettings*) = NULL;
@@ -74,6 +75,13 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
 
     Method ctAppOpenURL = class_getInstanceMethod([TeakAppDelegateHooks class], appOpenURLMethod.name);
     sHostAppOpenURLIMP = (BOOL(*)(id, SEL, UIApplication*, NSURL*, NSString*, id))class_replaceMethod(appDelegateClass, appOpenURLMethod.name, method_getImplementation(ctAppOpenURL), appOpenURLMethod.types);
+  }
+
+  // application:openURL:options:
+  {
+    struct objc_method_description desc = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:openURL:options:), NO, YES);
+    Method m = class_getInstanceMethod([TeakAppDelegateHooks class], desc.name);
+    sHostAppOpenURLOptionsIMP = (BOOL(*)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*))class_replaceMethod(appDelegateClass, desc.name, method_getImplementation(m), desc.types);
   }
 
   // applicationDidBecomeActive:
@@ -179,6 +187,14 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     ret |= sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, url, sourceApplication, annotation);
   }
 
+  return ret;
+}
+
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
+  BOOL ret = [[Teak sharedInstance] application:application openURL:url options:options];
+  if (sHostAppOpenURLOptionsIMP) {
+    ret |= sHostAppOpenURLOptionsIMP(self, @selector(application:openURL:options:), application, url, options);
+  }
   return ret;
 }
 
