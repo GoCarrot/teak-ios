@@ -16,9 +16,58 @@
 
 @implementation TeakRemoteConfiguration
 
++ (NSDictionary*)defaultEndpointConfiguration {
+#define QUOTE(...) #__VA_ARGS__
+  static NSString* defaultEndpointConfiguration = @QUOTE(
+      {
+        "gocarrot.com" : {
+          "/me/events" : {
+            "batch" : {
+              "time" : 5,
+              "count" : 50
+            },
+            "retry" : {
+              "times" : [
+                10,
+                20,
+                30
+              ],
+              "jitter" : 6
+            }
+          },
+          "/me/profile" : {
+            "batch" : {
+              "time" : 10,
+              "lww" : true
+            }
+          }
+        },
+        "parsnip.gocarrot.com" : {
+          "/batch" : {
+            "batch" : {
+              "time" : 5,
+              "count" : 100
+            }
+          }
+        }
+      });
+#undef QUOTE
+  static NSDictionary* dict = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    NSError* error = nil;
+    dict = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:[defaultEndpointConfiguration dataUsingEncoding:NSUTF8StringEncoding]
+                                                          options:kNilOptions
+                                                            error:&error];
+    ;
+  });
+  return dict;
+}
+
 - (TeakRemoteConfiguration*)initForSession:(nonnull TeakSession*)session {
   self = [super init];
   if (self) {
+    self.endpointConfigurations = [TeakRemoteConfiguration defaultEndpointConfiguration];
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       __strong typeof(self) blockSelf = weakSelf;
