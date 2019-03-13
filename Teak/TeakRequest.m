@@ -473,6 +473,7 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
 
           [batchedRequest.batchContents replaceObjectAtIndex:i
                                                   withObject:summedEntry];
+          payloadAddedViaIncrement = YES;
           break;
         }
       }
