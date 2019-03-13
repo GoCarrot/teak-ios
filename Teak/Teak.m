@@ -122,11 +122,6 @@ Teak* _teakSharedInstance;
     return;
   }
 
-  if (count < 1) {
-    TeakLog_e(@"track_event.error", @"count cannot be less than one, ignoring.");
-    return;
-  }
-
   NSNumber* countAsNumber = [NSNumber numberWithUnsignedInteger:count];
   TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId), @"count" : countAsNumber});
 
@@ -138,6 +133,8 @@ Teak* _teakSharedInstance;
     payload[@"object_instance_id"] = objectInstanceId;
   }
   payload[@"duration"] = countAsNumber;
+  payload[@"count"] = @1;
+  payload[@"sum_of_squares"] = [NSNumber numberWithUnsignedInteger:count * count];
 
   [TrackEventEvent trackedEventWithPayload:payload];
 }

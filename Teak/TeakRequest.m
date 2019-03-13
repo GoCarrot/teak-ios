@@ -12,6 +12,16 @@ extern NSDictionary* TeakVersionDict;
 extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
 extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
 
+// Helper to safe-sum NSNumbers or return the existing value, unmodified
+id NSNumber_UnsignedInt_SafeSumOrExisting(id existing, id addition) {
+  if ([existing isKindOfClass:[NSNumber class]] && [addition isKindOfClass:[NSNumber class]]) {
+    NSNumber* a = existing;
+    NSNumber* b = addition;
+    return [NSNumber numberWithUnsignedInteger:[a unsignedIntegerValue] + [b unsignedIntegerValue]];
+  }
+  return existing;
+}
+
 ///// Structs to match JSON
 
 @implementation TeakBatchConfiguration
@@ -457,13 +467,12 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
         if ([TeakTrackEventBatchedRequest payload:payload isEqualToPayload:batchedRequest.batchContents[i]]) {
           NSMutableDictionary* summedEntry = [batchedRequest.batchContents[i] mutableCopy];
 
-          // Sanity check that they are NSNumbers
-          if ([payload[@"duration"] isKindOfClass:[NSNumber class]] && [summedEntry[@"duration"] isKindOfClass:[NSNumber class]]) {
-            NSNumber* a = summedEntry[@"duration"];
-            NSNumber* b = payload[@"duration"];
-            summedEntry[@"duration"] = [NSNumber numberWithUnsignedInteger:[a unsignedIntegerValue] + [b unsignedIntegerValue]];
-            [batchedRequest.batchContents replaceObjectAtIndex:i withObject:summedEntry];
-          }
+          summedEntry[@"duration"] = NSNumber_UnsignedInt_SafeSumOrExisting(summedEntry[@"duration"], payload[@"duration"]);
+          summedEntry[@"count"] = NSNumber_UnsignedInt_SafeSumOrExisting(summedEntry[@"count"], payload[@"count"]);
+          summedEntry[@"sum_of_squares"] = NSNumber_UnsignedInt_SafeSumOrExisting(summedEntry[@"sum_of_squares"], payload[@"sum_of_squares"]);
+
+          [batchedRequest.batchContents replaceObjectAtIndex:i
+                                                  withObject:summedEntry];
           break;
         }
       }
