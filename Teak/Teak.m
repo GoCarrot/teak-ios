@@ -106,7 +106,7 @@ Teak* _teakSharedInstance;
   [self incrementEventWithActionId:actionId forObjectTypeId:objectTypeId andObjectInstanceId:objectInstanceId count:1];
 }
 
-- (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(uint32_t)count {
+- (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(uint64_t)count {
   actionId = [[actionId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectTypeId = [[objectTypeId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectInstanceId = [[objectInstanceId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
@@ -122,7 +122,7 @@ Teak* _teakSharedInstance;
     return;
   }
 
-  NSNumber* countAsNumber = [NSNumber numberWithUnsignedInteger:count];
+  NSNumber* countAsNumber = [NSNumber numberWithUnsignedLongLong:count];
   TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId), @"count" : countAsNumber});
 
   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{@"action_type" : actionId}];
@@ -134,7 +134,7 @@ Teak* _teakSharedInstance;
   }
   payload[@"duration"] = countAsNumber;
   payload[@"count"] = @1;
-  payload[@"sum_of_squares"] = [NSNumber numberWithUnsignedInteger:count * count];
+  payload[@"sum_of_squares"] = [NSNumber numberWithUnsignedLongLong:count * count];
 
   [TrackEventEvent trackedEventWithPayload:payload];
 }
