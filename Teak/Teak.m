@@ -47,6 +47,8 @@ NSDictionary* TeakVersionDict = nil;
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
+extern BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id);
+extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*);
 
 Teak* _teakSharedInstance;
 
@@ -332,7 +334,11 @@ Teak* _teakSharedInstance;
   TeakUnused(options);
 
   if (url != nil) {
-    return [self handleDeepLink:url];
+    BOOL ret = [self handleDeepLink:url];
+    if (ret) {
+      [TeakSession didLaunchFromDeepLink:url.absoluteString];
+    }
+    return ret;
   }
 
   return NO;
@@ -344,7 +350,11 @@ Teak* _teakSharedInstance;
   TeakUnused(annotation);
 
   if (url != nil) {
-    return [self handleDeepLink:url];
+    BOOL ret = [self handleDeepLink:url];
+    if (ret) {
+      [TeakSession didLaunchFromDeepLink:url.absoluteString];
+    }
+    return ret;
   }
 
   return NO;
@@ -359,9 +369,6 @@ Teak* _teakSharedInstance;
     self.skipTheNextOpenUrl = NO;
     return NO;
   } else {
-    // Attribution
-    [TeakSession didLaunchFromDeepLink:url.absoluteString];
-
     return TeakLink_HandleDeepLink(url);
   }
 }
@@ -685,19 +692,16 @@ Teak* _teakSharedInstance;
 
         // If there's a deep link, see if Teak handles it. Otherwise use openURL.
         if (notif.teakDeepLink != nil) {
+          // Future-Pat: Do *not* call [TeakSession didLaunchFromDeepLink:] here,
+          //    or it will nuke the attribution from the teak_notif_id
           if (![self handleDeepLink:notif.teakDeepLink] && [application canOpenURL:notif.teakDeepLink]) {
 
-            // iOS 10+
-            if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
-              [application openURL:notif.teakDeepLink
-                            options:@{}
-                  completionHandler:^(BOOL success){
-                      // This handler intentionally left blank
-                  }];
-
+            if (sHostAppOpenURLOptionsIMP) {
+              // iOS 10+
+              sHostAppOpenURLOptionsIMP(self, @selector(application:openURL:options:), application, notif.teakDeepLink, [[NSDictionary alloc] init]);
+            } else if (sHostAppOpenURLIMP) {
               // iOS < 10
-            } else {
-              [application openURL:notif.teakDeepLink];
+              sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, notif.teakDeepLink, [application description], nil);
             }
           }
         }
