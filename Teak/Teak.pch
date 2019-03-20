@@ -1,3 +1,5 @@
+#ifdef __OBJC__
+
 #import <Foundation/Foundation.h>
 
 #ifndef Teak_h
@@ -21,3 +23,5 @@ extern BOOL TeakBoolFor(id object);
 #define TeakUNAuthorizationOptionProvisional (1 << 6)
 
 #endif /* Teak_h */
+
+#endif /* __OBJC__ */

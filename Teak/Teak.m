@@ -20,6 +20,8 @@
 #import "TrackEventEvent.h"
 #import "UserIdEvent.h"
 
+#import "TeakMPInt.h"
+
 #ifndef __IPHONE_12_0
 #define __IPHONE_12_0 120000
 #endif
@@ -136,7 +138,15 @@ Teak* _teakSharedInstance;
   }
   payload[@"duration"] = countAsNumber;
   payload[@"count"] = @1;
-  payload[@"sum_of_squares"] = [NSNumber numberWithUnsignedLongLong:count * count];
+
+  mp_int mpSumOfSquares, mpCount;
+  mp_init(&mpSumOfSquares);
+  mp_init(&mpCount);
+  mp_set_long_long(&mpCount, count);
+  mp_sqr(&mpCount, &mpSumOfSquares);
+  mp_clear(&mpCount);
+
+  payload[@"sum_of_squares"] = [TeakMPInt MPIntTakingOwnershipOf:&mpSumOfSquares];
 
   [TrackEventEvent trackedEventWithPayload:payload];
 }

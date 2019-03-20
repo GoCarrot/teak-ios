@@ -3,6 +3,7 @@
 
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakMPInt.h"
 #import "TeakRemoteConfiguration.h"
 #import "TeakSession.h"
 
@@ -469,7 +470,9 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
 
           summedEntry[@"duration"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"duration"], payload[@"duration"]);
           summedEntry[@"count"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"count"], payload[@"count"]);
-          summedEntry[@"sum_of_squares"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"sum_of_squares"], payload[@"sum_of_squares"]);
+          if ([summedEntry[@"sum_of_squares"] isKindOfClass:[TeakMPInt class]]) {
+            [summedEntry[@"sum_of_squares"] sumWith:payload[@"sum_of_squares"]];
+          }
 
           [batchedRequest.batchContents replaceObjectAtIndex:i
                                                   withObject:summedEntry];
@@ -509,6 +512,13 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
     if (self.sent == NO) {
       self.sent = YES;
       UnRegisterKeyValueObserverFor(self.session, currentState);
+      for (NSUInteger i = 0; i < self.batchContents.count; i++) {
+        NSMutableDictionary* entry = [self.batchContents[i] mutableCopy];
+        if (entry[@"sum_of_squares"]) {
+          [self.batchContents replaceObjectAtIndex:i
+                                        withObject:[entry[@"sum_of_squares"] description]];
+        }
+      }
       [self reallyActuallySend];
     }
   }
