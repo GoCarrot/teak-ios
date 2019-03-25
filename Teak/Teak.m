@@ -20,6 +20,8 @@
 #import "TrackEventEvent.h"
 #import "UserIdEvent.h"
 
+#import "TeakMPInt.h"
+
 #ifndef __IPHONE_12_0
 #define __IPHONE_12_0 120000
 #endif
@@ -47,6 +49,8 @@ NSDictionary* TeakVersionDict = nil;
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
+extern BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id);
+extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*);
 
 Teak* _teakSharedInstance;
 
@@ -88,6 +92,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut {
+  [self processDeepLinks];
+
   if (userIdentifier == nil || userIdentifier.length == 0) {
     TeakLog_e(@"identify_user.error", @"User identifier can not be null or empty.");
     return;
@@ -101,22 +107,27 @@ Teak* _teakSharedInstance;
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
+  [self incrementEventWithActionId:actionId forObjectTypeId:objectTypeId andObjectInstanceId:objectInstanceId count:1];
+}
+
+- (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(uint64_t)count {
   actionId = [[actionId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectTypeId = [[objectTypeId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectInstanceId = [[objectInstanceId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 
   if (actionId == nil || actionId.length == 0) {
-    TeakLog_e(@"track_event.error", @"actionId can not be null or empty for trackEvent(), ignoring.");
+    TeakLog_e(@"track_event.error", @"actionId can not be null or empty, ignoring.");
     return;
   }
 
   if ((objectInstanceId != nil && objectInstanceId.length > 0) &&
       (objectTypeId == nil || objectTypeId.length == 0)) {
-    TeakLog_e(@"track_event.error", @"objectTypeId can not be null or empty if objectInstanceId is present for trackEvent(), ignoring.");
+    TeakLog_e(@"track_event.error", @"objectTypeId can not be null or empty if objectInstanceId is present, ignoring.");
     return;
   }
 
-  TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId)});
+  NSNumber* countAsNumber = [NSNumber numberWithUnsignedLongLong:count];
+  TeakLog_i(@"track_event", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId), @"count" : countAsNumber});
 
   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{@"action_type" : actionId}];
   if (objectTypeId != nil && objectTypeId.length > 0) {
@@ -125,6 +136,17 @@ Teak* _teakSharedInstance;
   if (objectInstanceId != nil && objectInstanceId.length > 0) {
     payload[@"object_instance_id"] = objectInstanceId;
   }
+  payload[@"duration"] = countAsNumber;
+  payload[@"count"] = @1;
+
+  mp_int mpSumOfSquares, mpCount;
+  mp_init(&mpSumOfSquares);
+  mp_init(&mpCount);
+  mp_set_long_long(&mpCount, count);
+  mp_sqr(&mpCount, &mpSumOfSquares);
+  mp_clear(&mpCount);
+
+  payload[@"sum_of_squares"] = [TeakMPInt MPIntTakingOwnershipOf:&mpSumOfSquares];
 
   [TrackEventEvent trackedEventWithPayload:payload];
 }
@@ -272,6 +294,9 @@ Teak* _teakSharedInstance;
     self.pushState = [[TeakPushState alloc] init];
     [self.log logEvent:@"push_state.init" level:@"INFO" eventData:[self.pushState to_h]];
 
+    // Default wait for deep link operation
+    self.waitForDeepLinkOperation = [NSBlockOperation blockOperationWithBlock:^{}];
+
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
 
@@ -283,6 +308,10 @@ Teak* _teakSharedInstance;
 
 - (void)dealloc {
   [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)processDeepLinks {
+  [self.operationQueue addOperation:self.waitForDeepLinkOperation];
 }
 
 - (void)fbAccessTokenChanged_4x:(NSNotification*)notification {
@@ -315,7 +344,11 @@ Teak* _teakSharedInstance;
   TeakUnused(options);
 
   if (url != nil) {
-    return [self handleDeepLink:url];
+    BOOL ret = [self handleDeepLink:url];
+    if (ret) {
+      [TeakSession didLaunchFromDeepLink:url.absoluteString];
+    }
+    return ret;
   }
 
   return NO;
@@ -327,7 +360,11 @@ Teak* _teakSharedInstance;
   TeakUnused(annotation);
 
   if (url != nil) {
-    return [self handleDeepLink:url];
+    BOOL ret = [self handleDeepLink:url];
+    if (ret) {
+      [TeakSession didLaunchFromDeepLink:url.absoluteString];
+    }
+    return ret;
   }
 
   return NO;
@@ -342,9 +379,6 @@ Teak* _teakSharedInstance;
     self.skipTheNextOpenUrl = NO;
     return NO;
   } else {
-    // Attribution
-    [TeakSession didLaunchFromDeepLink:url.absoluteString];
-
     return TeakLink_HandleDeepLink(url);
   }
 }
@@ -668,19 +702,16 @@ Teak* _teakSharedInstance;
 
         // If there's a deep link, see if Teak handles it. Otherwise use openURL.
         if (notif.teakDeepLink != nil) {
+          // Future-Pat: Do *not* call [TeakSession didLaunchFromDeepLink:] here,
+          //    or it will nuke the attribution from the teak_notif_id
           if (![self handleDeepLink:notif.teakDeepLink] && [application canOpenURL:notif.teakDeepLink]) {
 
-            // iOS 10+
-            if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
-              [application openURL:notif.teakDeepLink
-                            options:@{}
-                  completionHandler:^(BOOL success){
-                      // This handler intentionally left blank
-                  }];
-
+            if (sHostAppOpenURLOptionsIMP) {
+              // iOS 10+
+              sHostAppOpenURLOptionsIMP(self, @selector(application:openURL:options:), application, notif.teakDeepLink, [[NSDictionary alloc] init]);
+            } else if (sHostAppOpenURLIMP) {
               // iOS < 10
-            } else {
-              [application openURL:notif.teakDeepLink];
+              sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, notif.teakDeepLink, [application description], nil);
             }
           }
         }

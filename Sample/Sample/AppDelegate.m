@@ -113,6 +113,10 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
   [application registerForRemoteNotifications];
 }
 
+- (BOOL)application:(UIApplication*)app openURL:(NSURL*)url options:(NSDictionary<UIApplicationOpenURLOptionsKey, id>*)options {
+  return YES;
+}
+
 // This is an example of a handler function that will be called when your app
 // is launched from a Push Notification.
 - (void)handleTeakNotification:(NSNotification*)notification {

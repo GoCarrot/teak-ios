@@ -63,9 +63,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
       NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
         [TeakLink handleDeepLink:deepLink];
       }];
-      if ([Teak sharedInstance].waitForDeepLinkOperation != nil) {
-        [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
-      }
+      [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
       [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
 
       return YES;
@@ -176,7 +174,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     }
 
     [argumentOrder addObject:[toReplace substringFromIndex:1]];
-    return @"([^\\/?#]+)";
+    return @"([^\\/]+)";
   });
 
   // Check for duplicate group names

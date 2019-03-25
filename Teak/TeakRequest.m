@@ -3,6 +3,7 @@
 
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakMPInt.h"
 #import "TeakRemoteConfiguration.h"
 #import "TeakSession.h"
 
@@ -11,6 +12,16 @@
 extern NSDictionary* TeakVersionDict;
 extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
 extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
+
+// Helper to safe-sum NSNumbers or return the existing value, unmodified
+id NSNumber_UnsignedLongLong_SafeSumOrExisting(id existing, id addition) {
+  if ([existing isKindOfClass:[NSNumber class]] && [addition isKindOfClass:[NSNumber class]]) {
+    NSNumber* a = existing;
+    NSNumber* b = addition;
+    return [NSNumber numberWithUnsignedLongLong:[a unsignedLongLongValue] + [b unsignedLongLongValue]];
+  }
+  return existing;
+}
 
 ///// Structs to match JSON
 
@@ -63,6 +74,8 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 - (void)prepareAndSend;
 
 + (nullable TeakBatchedRequest*)batchRequestWithSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback;
+
++ (BOOL)payload:(nonnull NSDictionary*)a isEqualToPayload:(nullable NSDictionary*)b;
 @end
 
 ///// TeakRequestURLDelegate
@@ -207,7 +220,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     for (int i = 0; i < queryKeysSorted.count; i++) {
       NSString* key = queryKeysSorted[i];
       id value = self.payload[key];
-      [sortedQueryStringArray addObject:TeakFormEncode(key, value, NO)];
+      NSString* encoded = TeakFormEncode(key, value, NO);
+      if ([encoded length] > 0) {
+        [sortedQueryStringArray addObject:encoded];
+      }
     }
 
     NSString* stringToSign = [NSString stringWithFormat:@"%@\n%@\n%@\n%@", @"POST", self.hostname, path, [sortedQueryStringArray componentsJoinedByString:@"&"]];
@@ -359,6 +375,15 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
   return currentBatch;
 }
 
++ (BOOL)payload:(nonnull NSDictionary*)a isEqualToPayload:(nullable NSDictionary*)b {
+  if (a == b) return YES;
+  if (![a[@"action_type"] isEqualToString:b[@"action_type"]]) return NO;
+  if (![a[@"object_type"] isEqualToString:b[@"object_type"]]) return NO;
+  if (![a[@"object_instance_id"] isEqualToString:b[@"object_instance_id"]]) return NO;
+  // "duration" is not included, because it will be summed
+  return YES;
+}
+
 @end
 
 ///// TeakBatchedRequest impl
@@ -434,7 +459,33 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
       [batchedRequest.callbacks addObject:[callback copy]];
     }
 
-    [batchedRequest.batchContents addObject:payload];
+    // If this is a TrackEvent batch, see if the payload can be folded in to an
+    // existing payload item.
+    BOOL payloadAddedViaIncrement = NO;
+    if ([@"/me/events" isEqualToString:endpoint]) {
+      for (NSUInteger i = 0; i < batchedRequest.batchContents.count; i++) {
+        // If the payloads are equal, smash them together
+        if ([TeakTrackEventBatchedRequest payload:payload isEqualToPayload:batchedRequest.batchContents[i]]) {
+          NSMutableDictionary* summedEntry = [batchedRequest.batchContents[i] mutableCopy];
+
+          summedEntry[@"duration"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"duration"], payload[@"duration"]);
+          summedEntry[@"count"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"count"], payload[@"count"]);
+          if ([summedEntry[@"sum_of_squares"] isKindOfClass:[TeakMPInt class]]) {
+            [summedEntry[@"sum_of_squares"] sumWith:payload[@"sum_of_squares"]];
+          }
+
+          [batchedRequest.batchContents replaceObjectAtIndex:i
+                                                  withObject:summedEntry];
+          payloadAddedViaIncrement = YES;
+          break;
+        }
+      }
+    }
+
+    // It couldn't be folded in, so append it
+    if (!payloadAddedViaIncrement) {
+      [batchedRequest.batchContents addObject:payload];
+    }
 
     // If we've hit the limit, or delay time is 0.0, send now; otherwise schedule
     if (batchedRequest.batchContents.count >= batchedRequest.batch.count || batchedRequest.batch.time == 0.0f) {
@@ -461,6 +512,13 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
     if (self.sent == NO) {
       self.sent = YES;
       UnRegisterKeyValueObserverFor(self.session, currentState);
+      for (NSUInteger i = 0; i < self.batchContents.count; i++) {
+        NSMutableDictionary* entry = [self.batchContents[i] mutableCopy];
+        if (entry[@"sum_of_squares"]) {
+          [self.batchContents replaceObjectAtIndex:i
+                                        withObject:[entry[@"sum_of_squares"] description]];
+        }
+      }
       [self reallyActuallySend];
     }
   }

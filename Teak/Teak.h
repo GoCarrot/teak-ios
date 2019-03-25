@@ -131,6 +131,16 @@ typedef enum TeakNotificationState : int {
 - (void)trackEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId;
 
 /**
+ * Increment an arbitrary event in Teak.
+ *
+ * @param actionId         The identifier for the action, e.g. 'complete'.
+ * @param objectTypeId     The type of object that is being posted, e.g. 'quest'.
+ * @param objectInstanceId The specific instance of the object, e.g. 'gather-quest-1'
+ * @param count            The amount by which to increment.
+ */
+- (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(uint64_t)count;
+
+/**
  * Push notification authorization state.
  *
  * If they have disabled push notifications, you can prompt them to re-enable
@@ -183,6 +193,15 @@ typedef enum TeakNotificationState : int {
  * @return JSON string containing device info, or null if it's not ready
  */
 - (NSString* _Nullable)getAppConfiguration;
+
+/**
+ * Process deep links.
+ *
+ * Deep links will be processed the sooner of:
+ * - The user has been identified
+ * - This method is called
+ */
+- (void)processDeepLinks;
 @end
 
 #endif /* __OBJC__ */
