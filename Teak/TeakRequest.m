@@ -515,8 +515,9 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
       for (NSUInteger i = 0; i < self.batchContents.count; i++) {
         NSMutableDictionary* entry = [self.batchContents[i] mutableCopy];
         if (entry[@"sum_of_squares"]) {
+          entry[@"sum_of_squares"] = [entry[@"sum_of_squares"] description];
           [self.batchContents replaceObjectAtIndex:i
-                                        withObject:[entry[@"sum_of_squares"] description]];
+                                        withObject:entry];
         }
       }
       [self reallyActuallySend];
