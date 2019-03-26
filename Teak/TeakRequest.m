@@ -376,12 +376,12 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 }
 
 + (BOOL)payload:(nonnull NSDictionary*)a isEqualToPayload:(nullable NSDictionary*)b {
-  if (a == b) return YES;
+#define _HELPER_EQL(a, b) ((a == b) || (a != nil && [a isEqualToString:b]) || (b != nil && [b isEqualToString:a]))
+  if (b == nil) return NO;
   if (![a[@"action_type"] isEqualToString:b[@"action_type"]]) return NO;
-  if (![a[@"object_type"] isEqualToString:b[@"object_type"]]) return NO;
-  if (![a[@"object_instance_id"] isEqualToString:b[@"object_instance_id"]]) return NO;
-  // "duration" is not included, because it will be summed
-  return YES;
+  if (!_HELPER_EQL(a[@"object_type"], b[@"object_type"])) return NO;
+  return _HELPER_EQL(a[@"object_instance_id"], b[@"object_instance_id"]);
+#undef _HELPER_EQL
 }
 
 @end
@@ -465,8 +465,9 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
     if ([@"/me/events" isEqualToString:endpoint]) {
       for (NSUInteger i = 0; i < batchedRequest.batchContents.count; i++) {
         // If the payloads are equal, smash them together
-        if ([TeakTrackEventBatchedRequest payload:payload isEqualToPayload:batchedRequest.batchContents[i]]) {
-          NSMutableDictionary* summedEntry = [batchedRequest.batchContents[i] mutableCopy];
+        NSDictionary* batchEntry = batchedRequest.batchContents[i];
+        if ([TeakTrackEventBatchedRequest payload:payload isEqualToPayload:batchEntry]) {
+          NSMutableDictionary* summedEntry = [batchEntry mutableCopy];
 
           summedEntry[@"duration"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"duration"], payload[@"duration"]);
           summedEntry[@"count"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"count"], payload[@"count"]);
