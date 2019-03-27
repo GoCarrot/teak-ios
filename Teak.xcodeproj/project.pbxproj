@@ -72,7 +72,6 @@
 		4347A2FC22403203001A3A8A /* bn_mp_exch.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F822403202001A3A8A /* bn_mp_exch.c */; };
 		4347A2FD22403203001A3A8A /* bn_mp_mul_d.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F922403203001A3A8A /* bn_mp_mul_d.c */; };
 		4347A2FE22403203001A3A8A /* bn_mp_karatsuba_sqr.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2FA22403203001A3A8A /* bn_mp_karatsuba_sqr.c */; };
-		4347A30022403234001A3A8A /* bn_mp_toom_sqr.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2FF22403234001A3A8A /* bn_mp_toom_sqr.c */; };
 		4347A30222403263001A3A8A /* bncore.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30122403262001A3A8A /* bncore.c */; };
 		4347A30422403A91001A3A8A /* bn_mp_toradix.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30322403A90001A3A8A /* bn_mp_toradix.c */; };
 		4347A30722403B17001A3A8A /* bn_mp_div_d.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30522403B16001A3A8A /* bn_mp_div_d.c */; };
@@ -218,7 +217,6 @@
 		4347A2F822403202001A3A8A /* bn_mp_exch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bn_mp_exch.c; sourceTree = "<group>"; };
 		4347A2F922403203001A3A8A /* bn_mp_mul_d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bn_mp_mul_d.c; sourceTree = "<group>"; };
 		4347A2FA22403203001A3A8A /* bn_mp_karatsuba_sqr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bn_mp_karatsuba_sqr.c; sourceTree = "<group>"; };
-		4347A2FF22403234001A3A8A /* bn_mp_toom_sqr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bn_mp_toom_sqr.c; sourceTree = "<group>"; };
 		4347A30122403262001A3A8A /* bncore.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bncore.c; sourceTree = "<group>"; };
 		4347A30322403A90001A3A8A /* bn_mp_toradix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bn_mp_toradix.c; sourceTree = "<group>"; };
 		4347A30522403B16001A3A8A /* bn_mp_div_d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bn_mp_div_d.c; sourceTree = "<group>"; };
@@ -392,7 +390,6 @@
 				4347A30622403B17001A3A8A /* bn_mp_init_copy.c */,
 				4347A30322403A90001A3A8A /* bn_mp_toradix.c */,
 				4347A30122403262001A3A8A /* bncore.c */,
-				4347A2FF22403234001A3A8A /* bn_mp_toom_sqr.c */,
 				4347A2F822403202001A3A8A /* bn_mp_exch.c */,
 				4347A2FA22403203001A3A8A /* bn_mp_karatsuba_sqr.c */,
 				4347A2F922403203001A3A8A /* bn_mp_mul_d.c */,
@@ -756,7 +753,6 @@
 				4347A30C22403B50001A3A8A /* bn_mp_div_2d.c in Sources */,
 				43E601BF1FFEF879003A09C5 /* TeakNotificationServiceCore.m in Sources */,
 				4347A2E72240316F001A3A8A /* bn_s_mp_sub.c in Sources */,
-				4347A30022403234001A3A8A /* bn_mp_toom_sqr.c in Sources */,
 				4347A2F5224031D3001A3A8A /* bn_mp_rshd.c in Sources */,
 				439815B91FA2651D005303F1 /* TeakEvent.m in Sources */,
 				4311B884206AC8CB00E542E3 /* TeakUserProfile.m in Sources */,
