@@ -138,7 +138,7 @@ typedef enum TeakNotificationState : int {
  * @param objectInstanceId The specific instance of the object, e.g. 'gather-quest-1'
  * @param count            The amount by which to increment.
  */
-- (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(uint64_t)count;
+- (void)incrementEventWithActionId:(nonnull NSString*)actionId forObjectTypeId:(nullable NSString*)objectTypeId andObjectInstanceId:(nullable NSString*)objectInstanceId count:(int64_t)count;
 
 /**
  * Push notification authorization state.
