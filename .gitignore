@@ -2,6 +2,7 @@
 
 build/*
 Sample/build/*
+Automated/build/*
 DerivedData/*
 
 .irb-history
