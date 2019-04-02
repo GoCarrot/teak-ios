@@ -1,11 +1,11 @@
 .DS_Store
+
 build/*
-!build/.gitkeep
 Sample/build/*
-!Sample/build/.gitkeep
-*.pem
+DerivedData/*
 
 .irb-history
+*.pem
 
 xcuserdata/
 *.xcscmblueprint
