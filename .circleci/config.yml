@@ -6,6 +6,7 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup
+        ruby: 2.5.3
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
@@ -19,6 +20,7 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup
+        ruby: 2.3
       - run:
           name: Build Teak SDK
           command: ./compile
@@ -132,12 +134,15 @@ commands:
   #
   ios_setup:
     description: "iOS Common Setup"
+    parameters:
+      ruby:
+        type: string
     steps:
       - checkout
       - run:
           shell: /bin/bash -eo pipefail
-          name: Set Ruby Version 2.3
-          command: echo "ruby-2.3" > .ruby-version
+          name: Set Ruby Version << parameters.ruby >>
+          command: echo "ruby-<< parameters.ruby >>" > .ruby-version
       - restore_cache:
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
