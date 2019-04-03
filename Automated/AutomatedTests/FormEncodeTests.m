@@ -31,21 +31,21 @@ extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
 - (void)testStringPayload {
   self.payload[@"value_is_string"] = @"a_string";
   XCTAssertEqualObjects(TeakFormEncode(@"some_dict", self.payload, NO), @"some_dict[value_is_string]=a_string");
-  
+
   XCTAssertEqualObjects(TeakFormEncode(@"value_is_string", @"a_string", NO), @"value_is_string=a_string");
 }
 
 - (void)testStringPayloadWithSpacesInValue {
   self.payload[@"value_is_string"] = @"a string";
   XCTAssertEqualObjects(TeakFormEncode(@"some_dict", self.payload, NO), @"some_dict[value_is_string]=a string");
-  
+
   XCTAssertEqualObjects(TeakFormEncode(@"value_is_string", @"a string", NO), @"value_is_string=a string");
 }
 
 - (void)testPerformanceExample {
   // This is an example of a performance test case.
   [self measureBlock:^{
-    // Put the code you want to measure the time of here.
+      // Put the code you want to measure the time of here.
   }];
 }
 

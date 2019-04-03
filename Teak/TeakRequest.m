@@ -333,16 +333,16 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 
 - (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session {
   self = [super initWithSession:session
-      forHostname:@"gocarrot.com"
-      withEndpoint:@"/me/events"
-      withPayload:@{}
-      callback:^(NSDictionary* reply) {
-        // Trigger any callbacks
-        for (TeakRequestResponse callback in self.callbacks) {
-          callback(reply);
-        }
-      }
-      addCommonPayload:YES];
+                    forHostname:@"gocarrot.com"
+                   withEndpoint:@"/me/events"
+                    withPayload:@{}
+                       callback:^(NSDictionary* reply) {
+                         // Trigger any callbacks
+                         for (TeakRequestResponse callback in self.callbacks) {
+                           callback(reply);
+                         }
+                       }
+               addCommonPayload:YES];
   return self;
 }
 
