@@ -15,6 +15,10 @@
 		4358FF9222541E550068A4FD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF9122541E550068A4FD /* main.m */; };
 		4358FF9C22541E550068A4FD /* AutomatedTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF9B22541E550068A4FD /* AutomatedTests.m */; };
 		4358FFA722541E550068A4FD /* AutomatedUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FFA622541E550068A4FD /* AutomatedUITests.m */; };
+		4358FFBF2255328F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
+		4358FFC0225532970068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
+		4358FFC12255329F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
+		4358FFC3225536EE0068A4FD /* FormEncodeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FFC2225536EE0068A4FD /* FormEncodeTests.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +70,7 @@
 		4358FFA622541E550068A4FD /* AutomatedUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AutomatedUITests.m; sourceTree = "<group>"; };
 		4358FFA822541E550068A4FD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4358FFB4225420510068A4FD /* Teak.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Teak.xcodeproj; path = ../Teak.xcodeproj; sourceTree = "<group>"; };
+		4358FFC2225536EE0068A4FD /* FormEncodeTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FormEncodeTests.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +78,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4358FFC12255329F0068A4FD /* libTeak.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +86,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4358FFBF2255328F0068A4FD /* libTeak.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,6 +94,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4358FFC0225532970068A4FD /* libTeak.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -101,6 +109,7 @@
 				4358FF9A22541E550068A4FD /* AutomatedTests */,
 				4358FFA522541E550068A4FD /* AutomatedUITests */,
 				4358FF8022541E540068A4FD /* Products */,
+				4358FFBE2255328F0068A4FD /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -135,6 +144,7 @@
 			children = (
 				4358FF9B22541E550068A4FD /* AutomatedTests.m */,
 				4358FF9D22541E550068A4FD /* Info.plist */,
+				4358FFC2225536EE0068A4FD /* FormEncodeTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -155,6 +165,13 @@
 				4358FFBD225420510068A4FD /* TeakResources.bundle */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4358FFBE2255328F0068A4FD /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -321,6 +338,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4358FF9C22541E550068A4FD /* AutomatedTests.m in Sources */,
+				4358FFC3225536EE0068A4FD /* FormEncodeTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
