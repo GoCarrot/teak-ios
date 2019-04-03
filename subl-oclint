@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-`xcodebuild -derivedDataPath DerivedData -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" clean analyze | xcpretty -r json-compilation-database -o compile_commands.json`
+`xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" clean analyze | xcpretty -r json-compilation-database -o compile_commands.json`
 `oclint-json-compilation-database > oclint.result`
 File.readlines('oclint.result').each do |line|
   if /^(\/.*):(\d+):(\d+).*$/ =~ line
