@@ -1,47 +1,24 @@
 version: 2
 jobs:
+  test:
+    macos:
+      xcode: "10.2.0"
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios-setup
+      - run:
+          name: Validate Code Formatting
+          command: ./validate-code-format
+      - run:
+          name: Run Automated Tests
+          command: ./test
+
   build:
     macos:
       xcode: "8.3.3"
     shell: /bin/bash --login -eo pipefail
     steps:
-      - checkout
-      - run:
-          shell: /bin/bash -eo pipefail
-          name: Set Ruby Version 2.3
-          command: echo "ruby-2.3" > .ruby-version
-      - restore_cache:
-          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
-      - run:
-          name: Check Homebrew Version
-          command: |
-            echo "Checking for Homebrew version $HOMEBREW_VERSION"
-            [ `brew --version | sed -n 1p | sed 's/[^0-9.]*\([0-9.]*\).*/\1/'` = $HOMEBREW_VERSION ] || brew update
-      - run:
-          name: Homebrew Depenendcies
-          command: HOMEBREW_NO_AUTO_UPDATE=1 ./setup
-      - run:
-          name: Ruby Gems
-          command: bundle check || bundle install --path vendor/bundle
-      - save_cache:
-          paths:
-            - /usr/local/Homebrew/
-            - ~/Library/Caches/Homebrew
-            - vendor/bundle
-            - Sample/vendor/bundle
-          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
-      - add_ssh_keys:
-          fingerprints:
-            - "ab:48:b1:f2:a7:e9:0f:ba:81:3b:0c:16:48:6b:91:3d"
-      - run:
-          name: Validate Code Formatting
-          command: ./validate-code-format
-      - run:
-          name: Import Teak Notification Category Data
-          command: bundler exec import_notification_categories notification_categories.csv
-      - run:
-          name: Run Automated Tests
-          command: ./test
+      - ios-setup
       - run:
           name: Build Teak SDK
           command: ./compile
@@ -54,6 +31,7 @@ jobs:
             - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
             - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
             - TeakExtensions.zip
+
   deploy_versioned:
     docker:
       - image: circleci/ruby:latest
@@ -74,6 +52,7 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions-$(git describe --tags --always).zip --acl public-read
+
   deploy_latest:
     docker:
       - image: circleci/ruby:latest
@@ -94,16 +73,27 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService.appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent.appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions.zip --acl public-read
+
 workflows:
   version: 2
   un-tagged-build:
     jobs:
+      - test:
+          filters:
+            tags:
+              ignore: /.*/
       - build:
           filters:
             tags:
               ignore: /.*/
   tagged-build:
     jobs:
+      - test:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
       - build:
           filters:
             branches:
@@ -135,3 +125,42 @@ workflows:
               ignore: /.*/
             tags:
               only: /.*/
+
+commands:
+  #
+  # Common setup
+  #
+  ios-setup:
+    description: "iOS Common Setup"
+    steps:
+      - checkout
+      - run:
+          shell: /bin/bash -eo pipefail
+          name: Set Ruby Version 2.3
+          command: echo "ruby-2.3" > .ruby-version
+      - restore_cache:
+          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+      - run:
+          name: Check Homebrew Version
+          command: |
+            echo "Checking for Homebrew version $HOMEBREW_VERSION"
+            [ `brew --version | sed -n 1p | sed 's/[^0-9.]*\([0-9.]*\).*/\1/'` = $HOMEBREW_VERSION ] || brew update
+      - run:
+          name: Homebrew Depenendcies
+          command: HOMEBREW_NO_AUTO_UPDATE=1 ./setup
+      - run:
+          name: Ruby Gems
+          command: bundle check || bundle install --path vendor/bundle
+      - save_cache:
+          paths:
+            - /usr/local/Homebrew/
+            - ~/Library/Caches/Homebrew
+            - vendor/bundle
+            - Sample/vendor/bundle
+          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+      - add_ssh_keys:
+          fingerprints:
+            - "ab:48:b1:f2:a7:e9:0f:ba:81:3b:0c:16:48:6b:91:3d"
+      - run:
+          name: Import Teak Notification Category Data
+          command: bundler exec import_notification_categories notification_categories.csv
