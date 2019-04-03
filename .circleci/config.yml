@@ -1,11 +1,11 @@
-version: 2
+version: 2.1
 jobs:
   test:
     macos:
       xcode: "10.2.0"
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios-setup
+      - ios_setup
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
@@ -18,7 +18,7 @@ jobs:
       xcode: "8.3.3"
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios-setup
+      - ios_setup
       - run:
           name: Build Teak SDK
           command: ./compile
@@ -130,7 +130,7 @@ commands:
   #
   # Common setup
   #
-  ios-setup:
+  ios_setup:
     description: "iOS Common Setup"
     steps:
       - checkout
