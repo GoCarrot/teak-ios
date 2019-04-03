@@ -43,7 +43,7 @@ NSString* TeakFormEncode(NSString* name, id value, BOOL escape) {
     for (id v in value) {
       [listOfThingsToJoin addObject:TeakFormEncode([NSString stringWithFormat:@"%@[]", name], v, escape)];
     }
-  } else {
+  } else if (value != nil && value != [NSNull null]) {
     if (name == nil) {
       [listOfThingsToJoin addObject:escape ? TeakURLEscapedString(TeakNSStringOrNilFor(value)) : TeakNSStringOrNilFor(value)];
     } else {
