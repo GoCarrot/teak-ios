@@ -40,6 +40,9 @@ jobs:
           name: Import Teak Notification Category Data
           command: bundler exec import_notification_categories notification_categories.csv
       - run:
+          name: Run Automated Tests
+          command: ./test
+      - run:
           name: Build Teak SDK
           command: ./compile
       - persist_to_workspace:
