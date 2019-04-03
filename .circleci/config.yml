@@ -5,8 +5,8 @@ jobs:
       xcode: "10.2.0"
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup
-        ruby: 2.5.3
+      - ios_setup:
+          ruby: "2.5.3"
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
@@ -19,8 +19,8 @@ jobs:
       xcode: "8.3.3"
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup
-        ruby: 2.3
+      - ios_setup:
+          ruby: "2.3"
       - run:
           name: Build Teak SDK
           command: ./compile
