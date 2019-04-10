@@ -1,12 +1,11 @@
 .DS_Store
-
 build/*
 Sample/build/*
 Automated/build/*
-DerivedData/*
+
+*.pem
 
 .irb-history
-*.pem
 
 xcuserdata/
 *.xcscmblueprint

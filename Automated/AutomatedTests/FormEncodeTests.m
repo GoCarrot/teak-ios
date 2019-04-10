@@ -2,11 +2,11 @@
 
 extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
 
-@interface AutomatedTests : XCTestCase
+@interface FormEncodeTests : XCTestCase
 @property (nonatomic) NSMutableDictionary* payload;
 @end
 
-@implementation AutomatedTests
+@implementation FormEncodeTests
 
 - (void)setUp {
   // Put setup code here. This method is called before the invocation of each test method in the class.
