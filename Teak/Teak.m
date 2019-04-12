@@ -302,6 +302,7 @@ Teak* _teakSharedInstance;
 
     self.skipTheNextOpenUrl = NO;
     self.skipTheNextDidReceiveNotificationResponse = NO;
+    self.doNotResetBadgeCount = [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"TeakDoNotResetBadgeCount"] boolValue];
   }
   return self;
 }
@@ -550,7 +551,9 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
   // Zero-out the badge count
-  [self setApplicationBadgeNumber:0];
+  if (!self.doNotResetBadgeCount) {
+    [self setApplicationBadgeNumber:0];
+  }
 
   // Lifecycle Event
   [LifecycleEvent applicationActivate];
