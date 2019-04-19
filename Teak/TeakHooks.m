@@ -11,6 +11,8 @@
     sourceApplication:(NSString*)sourceApplication
            annotation:(id)annotation;
 
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options;
+
 - (void)applicationDidBecomeActive:(UIApplication*)application;
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
