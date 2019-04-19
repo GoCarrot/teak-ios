@@ -356,19 +356,9 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
-  TeakUnused(application);
   TeakUnused(sourceApplication);
   TeakUnused(annotation);
-
-  if (url != nil) {
-    BOOL ret = [self handleDeepLink:url];
-    if (ret) {
-      [TeakSession didLaunchFromDeepLink:url.absoluteString];
-    }
-    return ret;
-  }
-
-  return NO;
+  return [self application:application openURL:url options:@{}];
 }
 
 - (BOOL)handleDeepLink:(nonnull NSURL*)url {
