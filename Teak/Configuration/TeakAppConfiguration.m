@@ -19,10 +19,10 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
     self.appId = appId;
     self.apiKey = apiKey;
 
-    // By default we listen to teakXXXXXX and fbXXXXXX URL schemes
+    // By default we listen to teakXXXXXX URL schemes
     self.urlSchemes = [NSSet setWithObjects:
                                  [NSString stringWithFormat:@"teak%@", self.appId],
-                                 [NSString stringWithFormat:@"fb%@", self.appId], nil];
+                                 nil];
 
     @try {
       self.bundleId = [[NSBundle mainBundle] bundleIdentifier];

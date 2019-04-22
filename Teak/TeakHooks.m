@@ -11,6 +11,8 @@
     sourceApplication:(NSString*)sourceApplication
            annotation:(id)annotation;
 
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options;
+
 - (void)applicationDidBecomeActive:(UIApplication*)application;
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
@@ -82,7 +84,8 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   }
 
   // application:openURL:options:
-  {
+  if (class_respondsToSelector(appDelegateClass, @selector(application:openURL:options:))) {
+    TeakLog_i(@"sdk.init", @"Found application:openURL:options:");
     struct objc_method_description desc = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:openURL:options:), NO, YES);
     Method m = class_getInstanceMethod([TeakAppDelegateHooks class], desc.name);
     sHostAppOpenURLOptionsIMP = (BOOL(*)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*))class_replaceMethod(appDelegateClass, desc.name, method_getImplementation(m), desc.types);
