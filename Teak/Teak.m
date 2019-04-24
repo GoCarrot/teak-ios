@@ -312,7 +312,11 @@ Teak* _teakSharedInstance;
 }
 
 - (void)processDeepLinks {
-  [self.operationQueue addOperation:self.waitForDeepLinkOperation];
+  @synchronized(self.waitForDeepLinkOperation) {
+    if (!self.waitForDeepLinkOperation.isFinished) {
+      [self.operationQueue addOperation:self.waitForDeepLinkOperation];
+    }
+  }
 }
 
 - (void)fbAccessTokenChanged_4x:(NSNotification*)notification {
