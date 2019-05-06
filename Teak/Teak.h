@@ -19,6 +19,15 @@ extern NSString* _Nonnull const TeakNotificationAppLaunch;
 extern NSString* _Nonnull const TeakOnReward;
 
 /**
+ * Use this named notification to listen for when your app receives a Teak notification while in the foreground.
+ * [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                          selector:@selector(handleTeakForegroundNotification:)
+ *                                               name:TeakForegroundNotification
+ *                                             object:nil];
+ */
+extern NSString* _Nonnull const TeakForegroundNotification;
+
+/**
  * Value provided to identifyUser:withOptOutList: to opt out of collecting an IDFA for this specific user.
  *
  * If you prevent Teak from collecting the Identifier For Advertisers (IDFA),
