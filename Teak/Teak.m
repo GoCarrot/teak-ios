@@ -61,7 +61,7 @@ Teak* _teakSharedInstance;
   return _teakSharedInstance;
 }
 
-+ (NSURLSession*)sharedURLSession {
++ (NSURLSession*)URLSessionWithoutDelegate {
   static NSURLSession* session = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
@@ -743,24 +743,24 @@ Teak* _teakSharedInstance;
     NSURL* fetchUrl = components.URL;
 
     // Fetch the data for the short link
-    NSURLSessionDataTask* task = [[Teak sharedURLSession] dataTaskWithURL:fetchUrl
-                                                        completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
-                                                          NSURL* attributionUrl = userActivity.webpageURL;
+    NSURLSessionDataTask* task = [[Teak URLSessionWithoutDelegate] dataTaskWithURL:fetchUrl
+                                                                 completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
+                                                                   NSURL* attributionUrl = userActivity.webpageURL;
 
-                                                          if (error == nil) {
-                                                            NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                                                            if (error == nil) {
-                                                              NSString* iOSPath = reply[@"iOSPath"];
-                                                              if (iOSPath != nil) {
-                                                                attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath]];
-                                                              }
-                                                            }
-                                                          }
+                                                                   if (error == nil) {
+                                                                     NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
+                                                                     if (error == nil) {
+                                                                       NSString* iOSPath = reply[@"iOSPath"];
+                                                                       if (iOSPath != nil) {
+                                                                         attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath]];
+                                                                       }
+                                                                     }
+                                                                   }
 
-                                                          // Attribution
-                                                          [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString];
-                                                          TeakLink_HandleDeepLink(attributionUrl);
-                                                        }];
+                                                                   // Attribution
+                                                                   [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString];
+                                                                   TeakLink_HandleDeepLink(attributionUrl);
+                                                                 }];
     [task resume];
   }
 

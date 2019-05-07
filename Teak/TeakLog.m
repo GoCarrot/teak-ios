@@ -182,7 +182,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:data];
 
-  NSURLSessionDataTask* dataTask = [[Teak sharedURLSession] dataTaskWithRequest:request];
+  NSURLSessionDataTask* dataTask = [[Teak URLSessionWithoutDelegate] dataTaskWithRequest:request];
   [dataTask resume];
 }
 

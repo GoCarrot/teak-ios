@@ -37,7 +37,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 // Static initialization time or main()
 - (id _Nullable)initWithApplicationId:(NSString* _Nonnull)appId andSecret:(NSString* _Nonnull)appSecret;
 
-+ (NSURLSession* _Nonnull)sharedURLSession;
++ (NSURLSession* _Nonnull)URLSessionWithoutDelegate;
 + (dispatch_queue_t _Nonnull)operationQueue;
 
 - (void)reportTestException;
