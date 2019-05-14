@@ -295,8 +295,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   teak_try {
     NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
 
-    [h setValue:[NSNumber numberWithDouble:[self.sendDate timeIntervalSinceNow] * -1000.0] forKey:@"response_time"];
-    [h setValue:payload forKey:@"payload"];
+    h[@"response_time"] = [NSNumber numberWithDouble:[self.sendDate timeIntervalSinceNow] * -1000.0];
+    h[@"payload"] = payload;
     TeakLog_i(@"request.reply", h);
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
