@@ -24,11 +24,6 @@
 #import <Teak/Teak.h>
 
 // For testing
-extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
-
-NSOperation *waitForDeepLinkOperation;
-extern void TeakRunNSOperation(NSOperation* op);
-extern void TeakRunNSOperation(NSOperation* op);
 @import AdSupport;
 
 @interface AppDelegate ()
@@ -83,10 +78,6 @@ extern void TeakRunNSOperation(NSOperation* op);
                       [alert addAction:defaultAction];
                       [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
                     }];
-  
-  if(waitForDeepLinkOperation) {
-    TeakRunNSOperation(waitForDeepLinkOperation);
-  }
   
   // In your game, you will want to use the same user id that you use in your database.
   //

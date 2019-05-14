@@ -14,6 +14,7 @@
  */
 
 #import "ViewController.h"
+#import "User.h"
 #import <Teak/Teak.h>
 
 extern void TeakReportTestException(void);
@@ -24,12 +25,15 @@ extern void TeakReportTestException(void);
 
 @end
 
-@implementation ViewController
+@implementation ViewController {
+  User* user;
+}
 
 - (void)viewDidLoad {
   [super viewDidLoad];
   // Do any additional setup after loading the view, typically from a nib.
   [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
+  user = [User user];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -43,6 +47,30 @@ extern void TeakReportTestException(void);
 
   productsRequest.delegate = self;
   [productsRequest start];
+}
+
+- (IBAction)playPonies {
+  NSString* slot = @"OMG Ponies🐴";
+  SlotWin winInfo = [user playSlot:slot];
+
+  UIAlertController* alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:@"Played '%@'", slot]
+                                                                 message:[NSString stringWithFormat:@"You bet %u coins and won %u! Now you have %u.", (unsigned long)winInfo.wager, (unsigned long)winInfo.win, (unsigned long)user.coins]
+                                                          preferredStyle:UIAlertControllerStyleAlert];
+
+  __block ViewController* blockSelf = self;
+
+  UIAlertAction* spinAgain = [UIAlertAction actionWithTitle:@"Spin Again"
+                                                          style:UIAlertActionStyleDefault
+                                                        handler:^(UIAlertAction* action){ [blockSelf playPonies]; }];
+
+  UIAlertAction* backToLobby = [UIAlertAction actionWithTitle:@"Back to Lobby"
+                                                          style:UIAlertActionStyleDefault
+                                                        handler:^(UIAlertAction* action){}];
+
+  [alert addAction:spinAgain];
+  [alert addAction:backToLobby];
+
+  [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:NO completion:nil];
 }
 
 - (IBAction)crashApp {

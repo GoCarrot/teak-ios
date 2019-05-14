@@ -36,6 +36,7 @@
 		A628E016A31A3884318A4A8D /* TeakNotificationService.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = 743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */; };
 		E6C409BD987F3456FDED7EBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
 		F947CCAE63F557F1DD54C69A /* UserNotificationsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D34458518D7A040139D5987 /* UserNotificationsUI.framework */; };
+		FA877B2B228B443000B3AB79 /* User.m in Sources */ = {isa = PBXBuildFile; fileRef = FA877B2A228B443000B3AB79 /* User.m */; };
 		FAED5FBC20295607004FB297 /* TeakNotificationService.m in Sources */ = {isa = PBXBuildFile; fileRef = FAED5FB2202955DA004FB297 /* TeakNotificationService.m */; };
 		FAED5FBD20295610004FB297 /* TeakNotificationViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = FAED5FB9202955F2004FB297 /* TeakNotificationViewController.m */; };
 		FAED5FC0202A2CDD004FB297 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431FDAF81FB38B6E009C0106 /* AVKit.framework */; };
@@ -136,6 +137,8 @@
 		6D34458518D7A040139D5987 /* UserNotificationsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotificationsUI.framework; path = System/Library/Frameworks/UserNotificationsUI.framework; sourceTree = SDKROOT; };
 		743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TeakNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7BB850291E740CCB89F8860 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		FA877B29228B443000B3AB79 /* User.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = User.h; sourceTree = "<group>"; };
+		FA877B2A228B443000B3AB79 /* User.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = User.m; sourceTree = "<group>"; };
 		FAEB0FB81E4BDB0F00B6069C /* Sample.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sample.entitlements; sourceTree = "<group>"; };
 		FAED5FB1202955DA004FB297 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../TeakExtensions/TeakNotificationService/Info.plist; sourceTree = "<group>"; };
 		FAED5FB2202955DA004FB297 /* TeakNotificationService.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TeakNotificationService.m; path = ../TeakExtensions/TeakNotificationService/TeakNotificationService.m; sourceTree = "<group>"; };
@@ -234,6 +237,8 @@
 				431C986D1C7E6DE300B19DD5 /* LaunchScreen.storyboard */,
 				431C98701C7E6DE300B19DD5 /* Info.plist */,
 				431C985F1C7E6DE300B19DD5 /* Supporting Files */,
+				FA877B29228B443000B3AB79 /* User.h */,
+				FA877B2A228B443000B3AB79 /* User.m */,
 			);
 			path = Sample;
 			sourceTree = "<group>";
@@ -472,6 +477,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA877B2B228B443000B3AB79 /* User.m in Sources */,
 				431C98671C7E6DE300B19DD5 /* ViewController.m in Sources */,
 				431C98641C7E6DE300B19DD5 /* AppDelegate.m in Sources */,
 				431C98611C7E6DE300B19DD5 /* main.m in Sources */,
