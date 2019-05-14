@@ -8,6 +8,7 @@ typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 @interface TeakBatchConfiguration : NSObject
 @property (nonatomic) float time;
 @property (nonatomic) long count;
+@property (nonatomic) float maximumWaitTime;
 @end
 
 @interface TeakRetryConfiguration : NSObject

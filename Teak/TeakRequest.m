@@ -31,6 +31,7 @@ id NSNumber_UnsignedLongLong_SafeSumOrExisting(id existing, id addition) {
   if (self) {
     self.time = 0.0f;
     self.count = 1L;
+    self.maximumWaitTime = 0.0f;
   }
   return self;
 }
@@ -55,6 +56,7 @@ id NSNumber_UnsignedLongLong_SafeSumOrExisting(id existing, id addition) {
 @property (strong, nonatomic) NSMutableArray* callbacks;
 @property (strong, nonatomic) NSMutableArray* batchContents;
 @property (nonatomic) BOOL sent;
+@property (strong, nonatomic) NSDate* _Nonnull firstAddTime;
 
 - (void)send;               // No-op
 - (void)reallyActuallySend; // Actually send
@@ -163,6 +165,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         if ([configuration[@"batch"] isKindOfClass:NSDictionary.class]) {
           self.batch.count = [configuration[@"batch"][@"count"] respondsToSelector:@selector(longValue)] ? [configuration[@"batch"][@"count"] longValue] : self.batch.count;
           self.batch.time = [configuration[@"batch"][@"time"] respondsToSelector:@selector(floatValue)] ? [configuration[@"batch"][@"time"] floatValue] : self.batch.time;
+          self.batch.maximumWaitTime = [configuration[@"batch"][@"maximum_wait_time"] respondsToSelector:@selector(floatValue)] ? [configuration[@"batch"][@"maximum_wait_time"] floatValue] : self.batch.maximumWaitTime;
 
           // Last write wins means no maximum size, just time-based
           if ([configuration[@"batch"][@"lww"] respondsToSelector:@selector(boolValue)] &&
@@ -360,6 +363,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
   @synchronized(self) {
     NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:self.payload];
     payload[@"batch"] = self.batchContents;
+    payload[@"ms_since_first_event"] = [NSNumber numberWithDouble:[self.firstAddTime timeIntervalSinceNow] * -1000.0];
     self.payload = payload;
   }
   [super prepareAndSend];
@@ -498,6 +502,21 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
 
       dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.batch.time * NSEC_PER_SEC);
       dispatch_after(delayTime, dispatch_get_main_queue(), batchedRequest.scheduledBlock);
+
+      // If this is the first request added to the batch, set up the first add time
+      if (batchedRequest.firstAddTime == nil) {
+        batchedRequest.firstAddTime = [NSDate date];
+
+        // If the batch configuration specifies a maximum wait time, schedule
+        if (batchedRequest.batch.maximumWaitTime > 0.0f) {
+          // We can't use batchedRequest.scheduledBlock because there is no difference between
+          // the blocks when cancel is called.
+          dispatch_time_t maxDelayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.batch.maximumWaitTime * NSEC_PER_SEC);
+          dispatch_after(maxDelayTime, dispatch_get_main_queue(), dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+                           [batchedRequest prepareAndSend];
+                         }));
+        }
+      }
     }
   }
 
@@ -513,6 +532,8 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
     if (self.sent == NO) {
       self.sent = YES;
       UnRegisterKeyValueObserverFor(self.session, currentState);
+
+      // Sum of squares
       for (NSUInteger i = 0; i < self.batchContents.count; i++) {
         NSMutableDictionary* entry = [self.batchContents[i] mutableCopy];
         if (entry[@"sum_of_squares"]) {
