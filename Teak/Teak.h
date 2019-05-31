@@ -73,6 +73,11 @@ typedef enum TeakNotificationState : int {
 @interface Teak : NSObject
 
 /**
+ * Teak SDK Version.
+ */
+@property (strong, nonatomic, readonly) NSString* _Nonnull sdkVersion;
+
+/**
  * Is debug logging enabled.
  *
  * Disabled by default in production, enabled otherwise.
@@ -80,9 +85,11 @@ typedef enum TeakNotificationState : int {
 @property (nonatomic, readonly) BOOL enableDebugOutput;
 
 /**
- * Teak SDK Version.
+ * Is remote logging enabled.
+ *
+ * Disabled except under development conditions, or very specific circumstances in production.
  */
-@property (strong, nonatomic, readonly) NSString* _Nonnull sdkVersion;
+@property (nonatomic, readonly) BOOL enableRemoteLogging;
 
 /**
  * Set up Teak in a single function call.
