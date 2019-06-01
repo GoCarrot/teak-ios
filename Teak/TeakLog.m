@@ -140,6 +140,11 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
     return;
   }
 
+  // Log to the log listener
+  if (self.teak.logListener) {
+    self.teak.logListener(eventType, logLevel, payload);
+  }
+
   // Log remotely
   if ([self.teak enableRemoteLogging]) {
     NSString* urlString = nil;

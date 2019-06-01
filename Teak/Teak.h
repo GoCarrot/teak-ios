@@ -62,6 +62,13 @@ typedef enum TeakNotificationState : int {
   TeakNotificationStateNotDetermined = 3, ///< The user has not yet been asked to authorize notifications.
 } TeakNotificationState;
 
+/**
+ * Callback used for Log Listeners
+ */
+typedef void (^TeakLogListener)(NSString* _Nonnull event,
+                                NSString* _Nonnull level,
+                                NSDictionary* _Nullable eventData);
+
 #ifdef __OBJC__
 
 #import <Teak/TeakLink.h>
@@ -90,6 +97,11 @@ typedef enum TeakNotificationState : int {
  * Disabled except under development conditions, or very specific circumstances in production.
  */
 @property (nonatomic, readonly) BOOL enableRemoteLogging;
+
+/**
+ * The active log listener
+ */
+@property (copy, nonatomic) TeakLogListener _Nullable logListener;
 
 /**
  * Set up Teak in a single function call.
