@@ -2,4 +2,4 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-xcodebuild clean test -project Automated/Automated.xcodeproj -scheme Automated BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 6,OS=12.2' | xcpretty --test --color
+(cd Automated ; bundle exec fastlane test)

@@ -21,3 +21,7 @@ oclint_result.html
 TeakExtensions.zip
 
 Pods/
+
+Automated/test_output/
+Automated/fastlane/README.md
+Automated/fastlane/report.xml

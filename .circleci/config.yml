@@ -5,14 +5,22 @@ jobs:
       xcode: "10.2.0"
     shell: /bin/bash --login -eo pipefail
     steps:
+      - run:
+          name: Pre-start iOS Simulator
+          command: xcrun instruments -w "iPhone 7 (12.2) [" || true
       - ios_setup:
           ruby: "2.4.6"
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
       - run:
+          name: Cocopods
+          command: (cd Automated ; bundle exec pod install)
+      - run:
           name: Run Automated Tests
           command: ./test
+      - store_test_results:
+          path: Automated/test_output/report.junit
 
   build:
     macos:
