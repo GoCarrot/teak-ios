@@ -7,7 +7,7 @@ jobs:
     steps:
       - run:
           name: Pre-start iOS Simulator
-          command: xcrun instruments -w "iPhone 7 (12.2) [" || true
+          command: xcrun instruments -w "iPhone 5s (12.2) [" || true
       - ios_setup:
           ruby: "2.4.6"
       - run:
@@ -17,7 +17,7 @@ jobs:
           name: Run Automated Tests
           command: bundle exec fastlane test
       - store_test_results:
-          path: Automated/test_output/automated/results.xml
+          path: test_output/automated/results.xml
 
   build:
     macos:
