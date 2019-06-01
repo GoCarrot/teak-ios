@@ -195,16 +195,16 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 /**
  * Track a numeric player profile attribute.
  *
- * @param attributeName  The name of the numeric attribute.
- * @param attributeValue The numeric value to assign.
+ * @param key   The name of the numeric attribute.
+ * @param value The numeric value to assign.
  */
 - (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key;
 
 /**
  * Track a string player profile attribute.
  *
- * @param attributeName  The name of the string attribute.
- * @param attributeValue The string value to assign.
+ * @param key   The name of the string attribute.
+ * @param value The string value to assign.
  */
 - (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key;
 
