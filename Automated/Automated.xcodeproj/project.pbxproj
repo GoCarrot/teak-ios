@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -28,6 +28,8 @@
 		43B4618B22A1EB30004AC636 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618A22A1EB30004AC636 /* AVFoundation.framework */; };
 		43B4618F22A1EB54004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
 		43B4619122A1EB89004AC636 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4619022A1EB89004AC636 /* MobileCoreServices.framework */; };
+		43B4619922A20FDC004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
+		43B4619D22A20FE4004AC636 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4617F22A1EB05004AC636 /* StoreKit.framework */; };
 		BF20EAD8B0CC8F23483B6FF0 /* Pods_AutomatedTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -122,6 +124,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				43B4619D22A20FE4004AC636 /* StoreKit.framework in Frameworks */,
+				43B4619922A20FDC004AC636 /* AdSupport.framework in Frameworks */,
 				4358FFBF2255328F0068A4FD /* libTeak.a in Frameworks */,
 				BF20EAD8B0CC8F23483B6FF0 /* Pods_AutomatedTests.framework in Frameworks */,
 			);
@@ -443,18 +447,11 @@
 			files = (
 			);
 			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/OCHamcrest/OCHamcrest.framework",
-				"${BUILT_PRODUCTS_DIR}/OCMockito/OCMockito.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-			);
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/OCHamcrest.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/OCMockito.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -489,18 +486,11 @@
 			files = (
 			);
 			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/OCHamcrest/OCHamcrest.framework",
-				"${BUILT_PRODUCTS_DIR}/OCMockito/OCMockito.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-			);
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/OCHamcrest.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/OCMockito.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
