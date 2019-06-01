@@ -5,8 +5,8 @@ platform :ios do
   lane :test do
     scan(
       workspace: 'Automated/Automated.xcworkspace',
-      output_directory: 'test_output',
-      output_style: 'rspec',
+      output_directory: 'test_output/automated',
+      output_files: 'results.xml',
       output_types: 'junit'
     )
   end
