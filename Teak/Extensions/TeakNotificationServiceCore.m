@@ -121,7 +121,17 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 
       // Load attachments
       NSOperation* assignAttachmentsOperation = [NSBlockOperation blockOperationWithBlock:^{
-        self.bestAttemptContent.attachments = self.attachments;
+        NSArray* attachmentsToAssign = self.attachments;
+
+        // If any of the attachments are NSNull, that means one or more of the downloads failed.
+        // In this case, iOS will crash, so just assign no attachments inastead.
+        for (id attachment in self.attachments) {
+          if (attachment == [NSNull null]) {
+            attachmentsToAssign = nil;
+            break;
+          }
+        }
+        self.bestAttemptContent.attachments = attachmentsToAssign;
       }];
       [self.contentHandlerOperation addDependency:assignAttachmentsOperation];
 
