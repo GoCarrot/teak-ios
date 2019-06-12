@@ -240,15 +240,23 @@ DefineTeakState(Expired, (@[]));
 
                                                     blockSelf.countryCode = reply[@"country_code"];
 
-                                                    // For 'do_not_track_event'
+                                                    // User profile
+                                                    blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
+
+                                                    // Deep link
+                                                    if (reply[@"deep_link"]) {
+                                                      NSMutableDictionary* updatedAttribution = [NSMutableDictionary dictionaryWithDictionary:blockSelf.launchAttribution];
+                                                      updatedAttribution[@"deep_link"] = reply[@"deep_link"];
+                                                      blockSelf.launchAttribution = updatedAttribution;
+                                                    }
+
+                                                    // Assign new state
+                                                    // Prevent warning for 'do_not_track_event'
                                                     if (blockSelf.currentState == [TeakSession Expiring]) {
                                                       blockSelf.previousState = [TeakSession UserIdentified];
                                                     } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
                                                       [blockSelf setState:[TeakSession UserIdentified]];
                                                     }
-
-                                                    // User profile
-                                                    blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
                                                   }];
 
     [request send];
