@@ -448,8 +448,12 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId {
-  NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:teakNotifId, @"teak_notif_id", nil];
++ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification {
+  NSMutableDictionary* launchAttribution = [[NSMutableDictionary alloc] init] launchAttribution[@"teak_notif_id"] = notification.teakNotifId;
+  if (notification.teakDeepLink != nil) {
+    launchAttribution[@"deep_link"] = notification.teakDeepLink;
+  }
+  launchAttribution[@"teak_notif_id"] = notification.teakNotifId;
   [TeakSession setLaunchAttribution:launchAttribution];
 }
 

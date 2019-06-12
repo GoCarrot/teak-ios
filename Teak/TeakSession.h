@@ -31,6 +31,6 @@ DeclareTeakState(Expired);
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;
 + (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
-+ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId;
++ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification;
 + (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink;
 @end

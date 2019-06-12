@@ -659,7 +659,7 @@ Teak* _teakSharedInstance;
         // App was opened via push notification
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
-        [TeakSession didLaunchFromTeakNotification:teakNotifId];
+        [TeakSession didLaunchFromTeakNotification:notif];
 
         if (notif.teakRewardId != nil) {
           TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
