@@ -19,16 +19,16 @@
 - (TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary {
   self = [super init];
   if (self) {
-    self.teakNotifId = NSStringOrNilFor([dictionary objectForKey:@"teakNotifId"]);
-    self.teakRewardId = NSStringOrNilFor([dictionary objectForKey:@"teakRewardIdStr"]);
+    self.teakNotifId = NSStringOrNilFor(dictionary[@"teakNotifId"]);
+    self.teakRewardId = NSStringOrNilFor(dictionary[@"teakRewardIdStr"]);
     self.originalJson = dictionary;
     self.completed = YES;
     self.status = nil;
 
-    if ([dictionary objectForKey:@"teakDeepLink"]) {
+    if (dictionary[@"teakDeepLink"]) {
       self.teakDeepLink = nil;
       teak_try {
-        self.teakDeepLink = [NSURL URLWithString:[dictionary objectForKey:@"teakDeepLink"]];
+        self.teakDeepLink = [NSURL URLWithString:dictionary[@"teakDeepLink"]];
       }
       teak_catch_report;
     } else {
