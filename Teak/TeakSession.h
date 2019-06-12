@@ -4,6 +4,7 @@
 #import <UIKit/UIKit.h>
 
 @class TeakSession;
+@class TeakNotification;
 @class TeakAppConfiguration;
 @class TeakDeviceConfiguration;
 @class TeakRemoteConfiguration;
