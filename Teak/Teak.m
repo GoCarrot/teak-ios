@@ -34,6 +34,8 @@ NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
 NSString* const TeakOptOutFacebook = @"opt_out_facebook";
 
+NSString* const TeakHostname = @"gocarrot.com";
+
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
 
