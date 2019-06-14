@@ -28,6 +28,7 @@ extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDict
 @property (strong, nonatomic) dispatch_queue_t heartbeatQueue;
 @property (strong, nonatomic) dispatch_source_t heartbeat;
 @property (strong, nonatomic) NSDictionary* launchAttribution;
+@property (nonatomic) BOOL launchAttributionProcessed;
 @property (strong, nonatomic) NSMutableArray* attributionChain;
 @property (strong, nonatomic) NSString* facebookAccessToken;
 
@@ -357,7 +358,8 @@ DefineTeakState(Expired, (@[]));
 }
 
 - (void)processAttributionAndDispatchEvents {
-  if (self.launchAttribution == nil) return;
+  if (self.launchAttribution == nil || self.launchAttributionProcessed) return;
+  self.launchAttributionProcessed = YES;
 
   NSString* teakRewardId = self.launchAttribution[@"teak_reward_id"];
   NSString* teakRewardLinkName = self.launchAttribution[@"teak_rewardlink_name"];
