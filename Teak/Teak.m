@@ -682,20 +682,20 @@ Teak* _teakSharedInstance;
     // Fetch the data for the short link
     NSURLSessionDataTask* task = [[Teak URLSessionWithoutDelegate] dataTaskWithURL:fetchUrl
                                                                  completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
-                                                                   NSURL* attributionUrl = userActivity.webpageURL;
+                                                                   NSString* attributionUrlAsString = [userActivity.webpageURL absoluteString];
 
                                                                    if (error == nil) {
                                                                      NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
                                                                      if (error == nil) {
                                                                        NSString* iOSPath = reply[@"iOSPath"];
                                                                        if (iOSPath != nil) {
-                                                                         attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath]];
+                                                                         attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
                                                                        }
                                                                      }
                                                                    }
 
                                                                    // Attribution
-                                                                   [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString];
+                                                                   [TeakSession didLaunchFromDeepLink:attributionUrlAsString];
                                                                  }];
     [task resume];
   }
