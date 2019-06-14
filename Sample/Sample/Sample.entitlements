@@ -6,7 +6,7 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:teak-prod.freeslots.link</string>
+		<string>applinks:teak-dev.playw.it</string>
 	</array>
 </dict>
 </plist>
