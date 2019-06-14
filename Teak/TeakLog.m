@@ -114,23 +114,24 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
 - (void)logEvent:(nonnull NSString*)eventType level:(nonnull NSString*)logLevel eventData:(nullable NSDictionary*)eventData {
   NSMutableDictionary* payload = [[NSMutableDictionary alloc] init];
-  [payload setValue:self.runId forKey:@"run_id"];
-  [payload setValue:[NSNumber numberWithLongLong:OSAtomicIncrement64(&_eventCounter)] forKey:@"event_id"];
-  [payload setValue:[NSNumber numberWithLong:[[NSDate date] timeIntervalSince1970]] forKey:@"timestamp"];
-  [payload setValue:self.sdkVersion forKey:@"sdk_version"];
-  [payload setValue:self.appId forKey:@"app_id"];
+  payload[@"run_id"] = self.runId;
+  payload[@"event_id"] = [NSNumber numberWithLongLong:OSAtomicIncrement64(&_eventCounter)];
+  payload[@"timestamp"] = [NSNumber numberWithLong:[[NSDate date] timeIntervalSince1970]] payload[@"sdk_version"] = self.sdkVersion;
+  payload[@"app_id"] = self.appId;
+  payload[@"log_level"] = logLevel;
 
   if (self.deviceConfiguration != nil) {
-    [payload setValue:self.deviceConfiguration.deviceId forKey:@"device_id"];
+    payload[@"device_id"] = self.deviceConfiguration.deviceId;
   }
 
   if (self.appConfiguration != nil) {
-    [payload setValue:self.appConfiguration.bundleId forKey:@"bundle_id"];
-    [payload setValue:self.appConfiguration.appVersion forKey:@"client_app_version"];
+    payload[@"bundle_id"] = self.appConfiguration.bundleId;
+    ;
+    payload[@"client_app_version"] = self.appConfiguration.appVersion;
   }
 
-  [payload setValue:eventType forKey:@"event_type"];
-  [payload setValue:eventData == nil ? @{} : eventData forKey:@"event_data"];
+  payload[@"event_type"] = eventType;
+  payload[@"event_data"] = eventData == nil ? @{} : eventData;
 
   NSError* error = nil;
   NSData* jsonData = [NSJSONSerialization dataWithJSONObject:payload
