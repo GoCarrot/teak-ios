@@ -116,7 +116,8 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   NSMutableDictionary* payload = [[NSMutableDictionary alloc] init];
   payload[@"run_id"] = self.runId;
   payload[@"event_id"] = [NSNumber numberWithLongLong:OSAtomicIncrement64(&_eventCounter)];
-  payload[@"timestamp"] = [NSNumber numberWithLong:[[NSDate date] timeIntervalSince1970]] payload[@"sdk_version"] = self.sdkVersion;
+  payload[@"timestamp"] = [NSNumber numberWithLong:[[NSDate date] timeIntervalSince1970]];
+  payload[@"sdk_version"] = self.sdkVersion;
   payload[@"app_id"] = self.appId;
   payload[@"log_level"] = logLevel;
 
