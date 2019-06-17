@@ -15,10 +15,6 @@ NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
-extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
-extern BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id);
-extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*);
-
 @interface TeakSession ()
 @property (strong, nonatomic, readwrite) TeakState* currentState;
 @property (strong, nonatomic) TeakState* previousState;
@@ -361,31 +357,8 @@ DefineTeakState(Expired, (@[]));
   if (self.launchAttribution == nil || self.launchAttributionProcessed) return;
   self.launchAttributionProcessed = YES;
 
-  NSString* deepLink = self.launchAttribution[@"deep_link"];
-
-  if (deepLink != nil) {
-    @try {
-      NSURL* url = [NSURL URLWithString:deepLink];
-      if (url != nil) {
-        // If there's a deep link, see if Teak handles it. Otherwise use openURL.
-        BOOL teakHandledDeepLink = TeakLink_HandleDeepLink(url);
-        UIApplication* application = [UIApplication sharedApplication];
-
-        dispatch_async(dispatch_get_main_queue(), ^{
-          if (!teakHandledDeepLink && [application canOpenURL:url]) {
-            if (sHostAppOpenURLOptionsIMP) {
-              // iOS 10+
-              sHostAppOpenURLOptionsIMP(self, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
-            } else if (sHostAppOpenURLIMP) {
-              // iOS < 10
-              sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
-            }
-          }
-        });
-      }
-    } @finally {
-    }
-  }
+  // Check for a deep link, and dispatch
+  [TeakLink checkAttributionForDeepLinkAndDispatchEvents:self.launchAttribution];
 
   // Check for a reward, and dispatch
   [TeakReward checkAttributionForRewardAndDispatchEvents:self.launchAttribution];
