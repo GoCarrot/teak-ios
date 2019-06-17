@@ -82,4 +82,35 @@
 
   return ret;
 }
+
++ (void)checkAttributionForRewardAndDispatchEvents:(nonnull NSDictionary*)attribution {
+  NSString* teakRewardId = attribution[@"teak_reward_id"];
+  NSString* teakRewardLinkName = attribution[@"teak_rewardlink_name"];
+
+  if (teakRewardId != nil) {
+    TeakReward* reward = [TeakReward rewardForRewardId:teakRewardId];
+    if (reward != nil) {
+      __weak TeakReward* tempWeakReward = reward;
+      reward.onComplete = ^() {
+        __strong TeakReward* blockReward = tempWeakReward;
+        if (blockReward.json != nil) {
+          NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
+          userInfo[@"teakNotifId"] = [NSNull null];
+          userInfo[@"teakRewardId"] = teakRewardId;
+          userInfo[@"teakScheduleName"] = [NSNull null];
+          userInfo[@"teakCreativeName"] = teakRewardLinkName == nil ? [NSNull null] : teakRewardLinkName;
+          userInfo[@"incentivized"] = @YES;
+          [userInfo addEntriesFromDictionary:blockReward.json];
+
+          [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                object:session
+                                                              userInfo:userInfo];
+          }];
+        }
+      };
+    }
+  }
+}
+
 @end

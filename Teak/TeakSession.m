@@ -361,8 +361,6 @@ DefineTeakState(Expired, (@[]));
   if (self.launchAttribution == nil || self.launchAttributionProcessed) return;
   self.launchAttributionProcessed = YES;
 
-  NSString* teakRewardId = self.launchAttribution[@"teak_reward_id"];
-  NSString* teakRewardLinkName = self.launchAttribution[@"teak_rewardlink_name"];
   NSString* deepLink = self.launchAttribution[@"deep_link"];
 
   if (deepLink != nil) {
@@ -390,30 +388,7 @@ DefineTeakState(Expired, (@[]));
   }
 
   // Check for a reward, and dispatch
-  if (teakRewardId != nil) {
-    TeakReward* reward = [TeakReward rewardForRewardId:teakRewardId];
-    if (reward != nil) {
-      __weak TeakReward* tempWeakReward = reward;
-      reward.onComplete = ^() {
-        __strong TeakReward* blockReward = tempWeakReward;
-        if (blockReward.json != nil) {
-          NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
-          userInfo[@"teakNotifId"] = [NSNull null];
-          userInfo[@"teakRewardId"] = teakRewardId;
-          userInfo[@"teakScheduleName"] = [NSNull null];
-          userInfo[@"teakCreativeName"] = teakRewardLinkName == nil ? [NSNull null] : teakRewardLinkName;
-          userInfo[@"incentivized"] = @YES;
-          [userInfo addEntriesFromDictionary:blockReward.json];
-
-          [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-            [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                                object:self
-                                                              userInfo:userInfo];
-          }];
-        }
-      };
-    }
-  }
+  [TeakReward checkAttributionForRewardAndDispatchEvents:self.launchAttribution];
 }
 
 + (void)registerStaticEventListeners {
