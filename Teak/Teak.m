@@ -685,23 +685,25 @@ Teak* _teakSharedInstance;
     NSURL* fetchUrl = components.URL;
 
     // Fetch the data for the short link
-    NSURLSessionDataTask* task = [[Teak URLSessionWithoutDelegate] dataTaskWithURL:fetchUrl
-                                                                 completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
-                                                                   NSString* attributionUrlAsString = [userActivity.webpageURL absoluteString];
+    NSURLSession* session = [Teak URLSessionWithoutDelegate];
+    NSURLSessionDataTask* task =
+        [session dataTaskWithURL:fetchUrl
+               completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
+                 NSString* attributionUrlAsString = [userActivity.webpageURL absoluteString];
 
-                                                                   if (error == nil) {
-                                                                     NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                                                                     if (error == nil) {
-                                                                       NSString* iOSPath = reply[@"iOSPath"];
-                                                                       if (iOSPath != nil) {
-                                                                         attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
-                                                                       }
-                                                                     }
-                                                                   }
+                 if (error == nil) {
+                   NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
+                   if (error == nil) {
+                     NSString* iOSPath = reply[@"iOSPath"];
+                     if (iOSPath != nil) {
+                       attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                     }
+                   }
+                 }
 
-                                                                   // Attribution
-                                                                   [TeakSession didLaunchFromDeepLink:attributionUrlAsString];
-                                                                 }];
+                 // Attribution
+                 [TeakSession didLaunchFromDeepLink:attributionUrlAsString];
+               }];
     [task resume];
   }
 
