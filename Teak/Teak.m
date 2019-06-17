@@ -70,7 +70,7 @@ Teak* _teakSharedInstance;
     sessionConfiguration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
     sessionConfiguration.HTTPAdditionalHeaders = @{
       @"X-Teak-DeviceType" : @"API",
-      @"X-Teak-SupportsTemplates" : @"TRUE"
+      @"X-Teak-Supports-Templates" : @"TRUE"
     };
     session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
   });
