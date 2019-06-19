@@ -196,29 +196,28 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
 + (void)checkAttributionForDeepLinkAndDispatchEvents:(nonnull NSDictionary*)attribution {
   NSString* deepLink = attribution[@"deep_link"];
+  if (deepLink == nil || deepLink == [NSNull null]) return;
 
-  if (deepLink != nil) {
-    @try {
-      NSURL* url = [NSURL URLWithString:deepLink];
-      if (url != nil) {
-        // If there's a deep link, see if Teak handles it. Otherwise use openURL.
-        BOOL teakHandledDeepLink = TeakLink_HandleDeepLink(url);
-        UIApplication* application = [UIApplication sharedApplication];
+  @try {
+    NSURL* url = [NSURL URLWithString:deepLink];
+    if (url != nil) {
+      // If there's a deep link, see if Teak handles it. Otherwise use openURL.
+      BOOL teakHandledDeepLink = TeakLink_HandleDeepLink(url);
+      UIApplication* application = [UIApplication sharedApplication];
 
-        dispatch_async(dispatch_get_main_queue(), ^{
-          if (!teakHandledDeepLink && [application canOpenURL:url]) {
-            if (sHostAppOpenURLOptionsIMP) {
-              // iOS 10+
-              sHostAppOpenURLOptionsIMP(application, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
-            } else if (sHostAppOpenURLIMP) {
-              // iOS < 10
-              sHostAppOpenURLIMP(application, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
-            }
+      dispatch_async(dispatch_get_main_queue(), ^{
+        if (!teakHandledDeepLink && [application canOpenURL:url]) {
+          if (sHostAppOpenURLOptionsIMP) {
+            // iOS 10+
+            sHostAppOpenURLOptionsIMP(application, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
+          } else if (sHostAppOpenURLIMP) {
+            // iOS < 10
+            sHostAppOpenURLIMP(application, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
           }
-        });
-      }
-    } @finally {
+        }
+      });
     }
+  } @finally {
   }
 }
 
