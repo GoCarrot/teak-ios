@@ -4,6 +4,7 @@
 #import <UIKit/UIKit.h>
 
 @class TeakSession;
+@class TeakNotification;
 @class TeakAppConfiguration;
 @class TeakDeviceConfiguration;
 @class TeakRemoteConfiguration;
@@ -31,6 +32,6 @@ DeclareTeakState(Expired);
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;
 + (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
-+ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId;
++ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification;
 + (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink;
 @end

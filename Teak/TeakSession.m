@@ -24,6 +24,7 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic) dispatch_queue_t heartbeatQueue;
 @property (strong, nonatomic) dispatch_source_t heartbeat;
 @property (strong, nonatomic) NSDictionary* launchAttribution;
+@property (nonatomic) BOOL launchAttributionProcessed;
 @property (strong, nonatomic) NSMutableArray* attributionChain;
 @property (strong, nonatomic) NSString* facebookAccessToken;
 
@@ -240,15 +241,23 @@ DefineTeakState(Expired, (@[]));
 
                                                     blockSelf.countryCode = reply[@"country_code"];
 
-                                                    // For 'do_not_track_event'
+                                                    // User profile
+                                                    blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
+
+                                                    // Deep link
+                                                    if (reply[@"deep_link"]) {
+                                                      NSMutableDictionary* updatedAttribution = [NSMutableDictionary dictionaryWithDictionary:blockSelf.launchAttribution];
+                                                      updatedAttribution[@"deep_link"] = reply[@"deep_link"];
+                                                      blockSelf.launchAttribution = updatedAttribution;
+                                                    }
+
+                                                    // Assign new state
+                                                    // Prevent warning for 'do_not_track_event'
                                                     if (blockSelf.currentState == [TeakSession Expiring]) {
                                                       blockSelf.previousState = [TeakSession UserIdentified];
                                                     } else if (blockSelf.currentState != [TeakSession UserIdentified]) {
                                                       [blockSelf setState:[TeakSession UserIdentified]];
                                                     }
-
-                                                    // User profile
-                                                    blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
                                                   }];
 
     [request send];
@@ -342,6 +351,17 @@ DefineTeakState(Expired, (@[]));
     default:
       break;
   }
+}
+
+- (void)processAttributionAndDispatchEvents {
+  if (self.launchAttribution == nil || self.launchAttributionProcessed) return;
+  self.launchAttributionProcessed = YES;
+
+  // Check for a deep link, and dispatch
+  [TeakLink checkAttributionForDeepLinkAndDispatchEvents:self.launchAttribution];
+
+  // Check for a reward, and dispatch
+  [TeakReward checkAttributionForRewardAndDispatchEvents:self.launchAttribution];
 }
 
 + (void)registerStaticEventListeners {
@@ -448,8 +468,18 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)didLaunchFromTeakNotification:(nonnull NSString*)teakNotifId {
-  NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:teakNotifId, @"teak_notif_id", nil];
++ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification {
+  NSMutableDictionary* launchAttribution = [[NSMutableDictionary alloc] init];
+
+  launchAttribution[@"teak_notif_id"] = notification.teakNotifId;
+
+  if (notification.teakDeepLink != nil) {
+    launchAttribution[@"deep_link"] = notification.teakDeepLink;
+  }
+
+  if (notification.teakRewardId) {
+    launchAttribution[@"teak_reward_id"] = notification.teakRewardId;
+  }
   [TeakSession setLaunchAttribution:launchAttribution];
 }
 
@@ -476,34 +506,6 @@ DefineTeakState(Expired, (@[]));
   }
 
   [TeakSession setLaunchAttribution:launchAttribution];
-
-  // Send off a reward event if one was in this deep link
-  NSString* teakRewardId = [launchAttribution objectForKey:@"teak_reward_id"];
-  NSString* teakRewardLinkName = [launchAttribution objectForKey:@"teak_rewardlink_name"];
-  if (teakRewardId != nil) {
-    TeakReward* reward = [TeakReward rewardForRewardId:teakRewardId];
-    if (reward != nil) {
-      __weak TeakReward* tempWeakReward = reward;
-      reward.onComplete = ^() {
-        __strong TeakReward* blockReward = tempWeakReward;
-        if (blockReward.json != nil) {
-          NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
-          userInfo[@"teakNotifId"] = [NSNull null];
-          userInfo[@"teakRewardId"] = teakRewardId;
-          userInfo[@"teakScheduleName"] = [NSNull null];
-          userInfo[@"teakCreativeName"] = teakRewardLinkName == nil ? [NSNull null] : teakRewardLinkName;
-          userInfo[@"incentivized"] = @YES;
-          [userInfo addEntriesFromDictionary:blockReward.json];
-
-          [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-            [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                                object:self
-                                                              userInfo:userInfo];
-          }];
-        }
-      };
-    }
-  }
 }
 
 + (TeakSession*)currentSession {
@@ -587,6 +589,9 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         }
         [blocks removeAllObjects];
       }
+
+      // Process deep links and/or rewards
+      [self processAttributionAndDispatchEvents];
     } else if (newValue == [TeakSession Expiring]) {
       self.endDate = [[NSDate alloc] init];
 

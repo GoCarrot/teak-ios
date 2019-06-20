@@ -6,7 +6,7 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:teakangrybots.jckpt.me</string>
+		<string>applinks:teak-dev.playw.it</string>
 	</array>
 </dict>
 </plist>

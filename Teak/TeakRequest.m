@@ -11,6 +11,7 @@
 
 extern bool AmIBeingDebugged(void);
 
+extern NSString* TeakHostname;
 extern NSDictionary* TeakVersionDict;
 extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
 extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
@@ -123,7 +124,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
-  return [TeakRequest requestWithSession:session forHostname:@"gocarrot.com" withEndpoint:endpoint withPayload:payload callback:callback];
+  return [TeakRequest requestWithSession:session forHostname:TeakHostname withEndpoint:endpoint withPayload:payload callback:callback];
 }
 
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
@@ -338,7 +339,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 
 - (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session {
   self = [super initWithSession:session
-                    forHostname:@"gocarrot.com"
+                    forHostname:TeakHostname
                    withEndpoint:@"/me/events"
                     withPayload:@{}
                        callback:^(NSDictionary* reply) {
