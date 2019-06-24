@@ -9,4 +9,5 @@ typedef void (^TeakLinkBlock)(NSDictionary* _Nonnull parameters);
 
 + (nonnull NSArray*)routeNamesAndDescriptions;
 
++ (void)checkAttributionForDeepLinkAndDispatchEvents:(nonnull NSDictionary*)attribution;
 @end

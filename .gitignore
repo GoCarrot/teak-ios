@@ -19,3 +19,7 @@ oclint.result
 oclint_result.html
 
 TeakExtensions.zip
+
+test_output/
+fastlane/README.md
+fastlane/report.xml

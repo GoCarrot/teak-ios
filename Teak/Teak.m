@@ -28,10 +28,13 @@
 
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
+NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
 
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
 NSString* const TeakOptOutFacebook = @"opt_out_facebook";
+
+NSString* const TeakHostname = @"gocarrot.com";
 
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
@@ -48,9 +51,6 @@ NSDictionary* TeakWrapperSDK = nil;
 NSDictionary* TeakVersionDict = nil;
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
-extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
-extern BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id);
-extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*);
 
 Teak* _teakSharedInstance;
 
@@ -60,7 +60,7 @@ Teak* _teakSharedInstance;
   return _teakSharedInstance;
 }
 
-+ (NSURLSession*)sharedURLSession {
++ (NSURLSession*)URLSessionWithoutDelegate {
   static NSURLSession* session = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
@@ -68,7 +68,10 @@ Teak* _teakSharedInstance;
     sessionConfiguration.URLCache = nil;
     sessionConfiguration.URLCredentialStorage = nil;
     sessionConfiguration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-    sessionConfiguration.HTTPAdditionalHeaders = @{@"X-Teak-DeviceType" : @"API"};
+    sessionConfiguration.HTTPAdditionalHeaders = @{
+      @"X-Teak-DeviceType" : @"API",
+      @"X-Teak-Supports-Templates" : @"TRUE"
+    };
     session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
   });
   return session;
@@ -348,34 +351,22 @@ Teak* _teakSharedInstance;
   TeakUnused(application);
   TeakUnused(options);
 
-  if (url != nil) {
-    BOOL ret = [self handleDeepLink:url];
-    if (ret) {
-      [TeakSession didLaunchFromDeepLink:url.absoluteString];
-    }
-    return ret;
+  // I'm really not happy about this hack, but something is wrong with returning
+  // YES from application:didFinishLaunchingWithOptions: and so we need to not
+  // double-process a deep link if the app was not currently running
+  if (self.skipTheNextOpenUrl || url == nil) {
+    self.skipTheNextOpenUrl = NO;
+    return NO;
   }
 
-  return NO;
+  [TeakSession didLaunchFromDeepLink:url.absoluteString];
+  return YES;
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
   TeakUnused(sourceApplication);
   TeakUnused(annotation);
   return [self application:application openURL:url options:@{}];
-}
-
-- (BOOL)handleDeepLink:(nonnull NSURL*)url {
-
-  // I'm really not happy about this hack, but something is wrong with returning
-  // YES from application:didFinishLaunchingWithOptions: and so we need to not
-  // double-process a deep link if the app was not currently running
-  if (self.skipTheNextOpenUrl) {
-    self.skipTheNextOpenUrl = NO;
-    return NO;
-  } else {
-    return TeakLink_HandleDeepLink(url);
-  }
 }
 
 - (void)setupInternalDeepLinkRoutes {
@@ -576,6 +567,9 @@ Teak* _teakSharedInstance;
 
   // When notification is delivered with app in the foreground, mute it like default behavior
   completionHandler(UNNotificationPresentationOptionNone);
+
+  // However, still send it along to the handler
+  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:notification.request.content.userInfo];
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
@@ -642,79 +636,35 @@ Teak* _teakSharedInstance;
     if (notif != nil) {
       BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
 
-      // TODO: Send notification_received metric
+      NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
+      teakUserInfo[@"teakNotifId"] = teakNotifId;
+#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
+      teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
+      teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(aps[@"teakScheduleName"]);
+      teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(aps[@"teakCreativeName"]);
+#undef ValueOrNSNull
+      teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
 
       if (isInBackground) {
         // App was opened via push notification
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
-        [TeakSession didLaunchFromTeakNotification:teakNotifId];
+        [TeakSession didLaunchFromTeakNotification:notif];
 
-        NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
-        teakUserInfo[@"teakNotifId"] = teakNotifId;
-#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
-        teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
-        teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(aps[@"teakScheduleName"]);
-        teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(aps[@"teakCreativeName"]);
-#undef ValueOrNSNull
-        teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
-
-        if (notif.teakRewardId != nil) {
-          TeakReward* reward = [TeakReward rewardForRewardId:notif.teakRewardId];
-          if (reward != nil) {
-            __weak TeakReward* weakReward = reward;
-            reward.onComplete = ^() {
-              __strong TeakReward* blockReward = weakReward;
-
-              [teakUserInfo setValue:blockReward.json == nil ? [NSNull null] : blockReward.json forKey:@"teakReward"];
-              if (blockReward.json != nil) {
-                [teakUserInfo addEntriesFromDictionary:blockReward.json];
-                [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-                  [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                                      object:self
-                                                                    userInfo:teakUserInfo];
-                }];
-              }
-
-              [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-                [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                    object:self
-                                                                  userInfo:teakUserInfo];
-              }];
-            };
-          } else {
-            [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-              [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                  object:self
-                                                                userInfo:teakUserInfo];
-            }];
-          }
-        } else {
-          [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-            [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                                object:self
-                                                              userInfo:teakUserInfo];
-          }];
-        }
-
-        // If there's a deep link, see if Teak handles it. Otherwise use openURL.
-        if (notif.teakDeepLink != nil) {
-          // Future-Pat: Do *not* call [TeakSession didLaunchFromDeepLink:] here,
-          //    or it will nuke the attribution from the teak_notif_id
-          if (![self handleDeepLink:notif.teakDeepLink] && [application canOpenURL:notif.teakDeepLink]) {
-
-            if (sHostAppOpenURLOptionsIMP) {
-              // iOS 10+
-              sHostAppOpenURLOptionsIMP(self, @selector(application:openURL:options:), application, notif.teakDeepLink, [[NSDictionary alloc] init]);
-            } else if (sHostAppOpenURLIMP) {
-              // iOS < 10
-              sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, notif.teakDeepLink, [application description], nil);
-            }
-          }
-        }
+        [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+          [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                              object:self
+                                                            userInfo:teakUserInfo];
+        }];
       } else {
         // Push notification received while app was in foreground
         TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(teakNotifId)});
+
+        [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+          [[NSNotificationCenter defaultCenter] postNotificationName:TeakForegroundNotification
+                                                              object:self
+                                                            userInfo:teakUserInfo];
+        }];
       }
     }
   } else {
@@ -735,24 +685,25 @@ Teak* _teakSharedInstance;
     NSURL* fetchUrl = components.URL;
 
     // Fetch the data for the short link
-    NSURLSessionDataTask* task = [[Teak sharedURLSession] dataTaskWithURL:fetchUrl
-                                                        completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
-                                                          NSURL* attributionUrl = userActivity.webpageURL;
+    NSURLSession* session = [Teak URLSessionWithoutDelegate];
+    NSURLSessionDataTask* task =
+        [session dataTaskWithURL:fetchUrl
+               completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
+                 NSString* attributionUrlAsString = [userActivity.webpageURL absoluteString];
 
-                                                          if (error == nil) {
-                                                            NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                                                            if (error == nil) {
-                                                              NSString* iOSPath = reply[@"iOSPath"];
-                                                              if (iOSPath != nil) {
-                                                                attributionUrl = [NSURL URLWithString:[NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath]];
-                                                              }
-                                                            }
-                                                          }
+                 if (error == nil) {
+                   NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
+                   if (error == nil) {
+                     NSString* iOSPath = reply[@"iOSPath"];
+                     if (iOSPath != nil) {
+                       attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                     }
+                   }
+                 }
 
-                                                          // Attribution
-                                                          [TeakSession didLaunchFromDeepLink:attributionUrl.absoluteString];
-                                                          TeakLink_HandleDeepLink(attributionUrl);
-                                                        }];
+                 // Attribution
+                 [TeakSession didLaunchFromDeepLink:attributionUrlAsString];
+               }];
     [task resume];
   }
 

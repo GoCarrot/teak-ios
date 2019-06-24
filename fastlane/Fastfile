@@ -1,0 +1,13 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Run tests"
+  lane :test do
+    scan(
+      workspace: 'Automated/Automated.xcworkspace',
+      output_directory: 'test_output/automated',
+      output_files: 'results.xml',
+      output_types: 'junit'
+    )
+  end
+end

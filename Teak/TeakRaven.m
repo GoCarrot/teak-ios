@@ -493,15 +493,15 @@ void TeakSignalHandler(int signal) {
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[payloadData length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:payloadData];
 
-  [[[Teak sharedURLSession] dataTaskWithRequest:request
-                              completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
-                                NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
-                                NSInteger statusCode = httpResponse.statusCode;
-                                if (statusCode >= 200 && statusCode < 300) {
-                                  NSString* responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-                                  TeakLog_i(@"exception.reported", responseString);
-                                }
-                              }] resume];
+  [[[Teak URLSessionWithoutDelegate] dataTaskWithRequest:request
+                                       completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+                                         NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
+                                         NSInteger statusCode = httpResponse.statusCode;
+                                         if (statusCode >= 200 && statusCode < 300) {
+                                           NSString* responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                                           TeakLog_i(@"exception.reported", responseString);
+                                         }
+                                       }] resume];
 }
 
 + (NSDateFormatter*)dateFormatter {

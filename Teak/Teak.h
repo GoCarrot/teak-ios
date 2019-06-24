@@ -19,6 +19,15 @@ extern NSString* _Nonnull const TeakNotificationAppLaunch;
 extern NSString* _Nonnull const TeakOnReward;
 
 /**
+ * Use this named notification to listen for when your app receives a Teak notification while in the foreground.
+ * [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                          selector:@selector(handleTeakForegroundNotification:)
+ *                                               name:TeakForegroundNotification
+ *                                             object:nil];
+ */
+extern NSString* _Nonnull const TeakForegroundNotification;
+
+/**
  * Value provided to identifyUser:withOptOutList: to opt out of collecting an IDFA for this specific user.
  *
  * If you prevent Teak from collecting the Identifier For Advertisers (IDFA),
@@ -53,6 +62,13 @@ typedef enum TeakNotificationState : int {
   TeakNotificationStateNotDetermined = 3, ///< The user has not yet been asked to authorize notifications.
 } TeakNotificationState;
 
+/**
+ * Callback used for Log Listeners
+ */
+typedef void (^TeakLogListener)(NSString* _Nonnull event,
+                                NSString* _Nonnull level,
+                                NSDictionary* _Nullable eventData);
+
 #ifdef __OBJC__
 
 #import <Teak/TeakLink.h>
@@ -64,6 +80,11 @@ typedef enum TeakNotificationState : int {
 @interface Teak : NSObject
 
 /**
+ * Teak SDK Version.
+ */
+@property (strong, nonatomic, readonly) NSString* _Nonnull sdkVersion;
+
+/**
  * Is debug logging enabled.
  *
  * Disabled by default in production, enabled otherwise.
@@ -71,9 +92,16 @@ typedef enum TeakNotificationState : int {
 @property (nonatomic, readonly) BOOL enableDebugOutput;
 
 /**
- * Teak SDK Version.
+ * Is remote logging enabled.
+ *
+ * Disabled except under development conditions, or very specific circumstances in production.
  */
-@property (strong, nonatomic, readonly) NSString* _Nonnull sdkVersion;
+@property (nonatomic, readonly) BOOL enableRemoteLogging;
+
+/**
+ * The active log listener
+ */
+@property (copy, nonatomic) TeakLogListener _Nullable logListener;
 
 /**
  * Set up Teak in a single function call.
@@ -167,16 +195,16 @@ typedef enum TeakNotificationState : int {
 /**
  * Track a numeric player profile attribute.
  *
- * @param attributeName  The name of the numeric attribute.
- * @param attributeValue The numeric value to assign.
+ * @param key   The name of the numeric attribute.
+ * @param value The numeric value to assign.
  */
 - (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key;
 
 /**
  * Track a string player profile attribute.
  *
- * @param attributeName  The name of the string attribute.
- * @param attributeValue The string value to assign.
+ * @param key   The name of the string attribute.
+ * @param value The string value to assign.
  */
 - (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key;
 

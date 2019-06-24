@@ -2,6 +2,8 @@
 #import "Teak+Internal.h"
 #import "TeakSession.h"
 
+extern NSString* TeakHostname;
+
 @interface TeakUserProfile ()
 @property (strong, nonatomic) NSMutableDictionary* stringAttributes;
 @property (strong, nonatomic) NSMutableDictionary* numberAttributes;
@@ -12,7 +14,7 @@
 @implementation TeakUserProfile
 
 - (TeakUserProfile*)initForSession:(TeakSession*)session withDictionary:(NSDictionary*)dictionary {
-  self = [super initWithSession:session forHostname:@"gocarrot.com" withEndpoint:@"/me/profile" withPayload:@{} callback:nil addCommonPayload:YES];
+  self = [super initWithSession:session forHostname:TeakHostname withEndpoint:@"/me/profile" withPayload:@{} callback:nil addCommonPayload:YES];
   if (self) {
     self.stringAttributes = [dictionary[@"string_attributes"] mutableCopy];
     self.numberAttributes = [dictionary[@"number_attributes"] mutableCopy];

@@ -24,9 +24,9 @@ int main(int argc, char* argv[]) {
   @autoreleasepool {
     // Step 2:
     // Initialize Teak inside the @autoreleasepool but before UIApplicationMain() is called.
-    [Teak initForApplicationId:@"1136371193060244"                   // Use your Teak Application Id here.
+    [Teak initForApplicationId:@"613659812345256"                    // Use your Teak Application Id here.
                      withClass:[AppDelegate class]                   // Use the name of your main UIApplicationDelegate here.
-                     andApiKey:@"1f3850f794b9093864a0778009744d03"]; // Use your Teak API Key here.
+                     andApiKey:@"41ff00cfd4cb85702e265aa3d5ab7858"]; // Use your Teak API Key here.
 
     // Continue to our AppDelegate.m file for the next steps.
 

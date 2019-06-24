@@ -8,7 +8,7 @@
 @property (strong, nonatomic, readwrite) NSString* teakNotifId;
 @property (strong, nonatomic, readwrite) NSString* status;
 @property (strong, nonatomic, readwrite) NSString* teakRewardId;
-@property (strong, nonatomic, readwrite) NSURL* teakDeepLink;
+@property (strong, nonatomic, readwrite) NSString* teakDeepLink;
 @property (strong, nonatomic, readwrite) NSDictionary* originalJson;
 @property (atomic, readwrite) BOOL completed;
 
@@ -19,21 +19,12 @@
 - (TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary {
   self = [super init];
   if (self) {
-    self.teakNotifId = NSStringOrNilFor([dictionary objectForKey:@"teakNotifId"]);
-    self.teakRewardId = NSStringOrNilFor([dictionary objectForKey:@"teakRewardIdStr"]);
+    self.teakNotifId = NSStringOrNilFor(dictionary[@"teakNotifId"]);
+    self.teakRewardId = NSStringOrNilFor(dictionary[@"teakRewardIdStr"]);
+    self.teakDeepLink = NSStringOrNilFor(dictionary[@"teakDeepLink"]);
     self.originalJson = dictionary;
     self.completed = YES;
     self.status = nil;
-
-    if ([dictionary objectForKey:@"teakDeepLink"]) {
-      self.teakDeepLink = nil;
-      teak_try {
-        self.teakDeepLink = [NSURL URLWithString:[dictionary objectForKey:@"teakDeepLink"]];
-      }
-      teak_catch_report;
-    } else {
-      self.teakDeepLink = nil;
-    }
   }
   return self;
 }

@@ -144,3 +144,7 @@ BOOL TeakRequestProvisionalPushAuthorization() {
 #pragma clang diagnostic pop
   return NO;
 }
+
+void TeakSetLogListener(TeakLogListener listener) {
+  [[Teak sharedInstance] setLogListener:listener];
+}

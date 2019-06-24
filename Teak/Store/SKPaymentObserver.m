@@ -3,6 +3,8 @@
 #import "Teak+Internal.h"
 
 @interface SKPaymentObserver () <SKPaymentTransactionObserver, TeakEventHandler>
+@property (nonatomic) NSTimeInterval paymentStart;
+
 - (void)paymentQueue:(SKPaymentQueue*)queue updatedTransactions:(NSArray<SKPaymentTransaction*>*)transactions;
 @end
 
@@ -24,10 +26,18 @@
   [[SKPaymentQueue defaultQueue] removeTransactionObserver:self];
 }
 
+- (void)transactionStarted:(SKPaymentTransaction*)transaction {
+  self.paymentStart = [[NSDate date] timeIntervalSince1970];
+  TeakLog_i(@"transaction.started", @{@"timestamp" : [NSNumber numberWithDouble:self.paymentStart]});
+}
+
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction {
   if (transaction == nil || transaction.payment == nil || transaction.payment.productIdentifier == nil) return;
 
   teak_try {
+    NSNumber* purchaseDuration = [NSNumber numberWithDouble:[[NSDate date] timeIntervalSince1970] - self.paymentStart];
+    TeakLog_i(@"transaction.purchased", @{@"purchase_duration" : _(purchaseDuration)});
+
     teak_log_breadcrumb(@"Building date formatter");
     NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
     [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
@@ -44,7 +54,8 @@
                                     @"purchase_time" : _([formatter stringFromDate:transaction.transactionDate]),
                                     @"product_id" : transaction.payment.productIdentifier,
                                     @"transaction_identifier" : _(transaction.transactionIdentifier),
-                                    @"purchase_token" : _([receipt base64EncodedStringWithOptions:0])
+                                    @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
+                                    @"purchase_duration" : _(purchaseDuration)
                                   }];
 
                                   if (priceInfo != nil) {
@@ -61,6 +72,9 @@
   if (transaction == nil || transaction.payment == nil) return;
 
   teak_try {
+    NSNumber* purchaseDuration = [NSNumber numberWithDouble:[[NSDate date] timeIntervalSince1970] - self.paymentStart];
+    TeakLog_i(@"transaction.canceled", @{@"purchase_duration" : _(purchaseDuration)});
+
     teak_log_breadcrumb(@"Determining status");
     NSString* errorString = @"unknown";
     switch (transaction.error.code) {
@@ -86,7 +100,8 @@
 
     NSDictionary* payload = @{
       @"product_id" : _(transaction.payment.productIdentifier),
-      @"error_string" : errorString
+      @"error_string" : errorString,
+      @"purchase_duration" : _(purchaseDuration)
     };
     [PurchaseEvent purchaseFailed:payload];
   }
@@ -98,6 +113,9 @@
 
   for (SKPaymentTransaction* transaction in transactions) {
     switch (transaction.transactionState) {
+      case SKPaymentTransactionStatePurchasing:
+        [self transactionStarted:transaction];
+        break;
       case SKPaymentTransactionStatePurchased:
         [self transactionPurchased:transaction];
         break;

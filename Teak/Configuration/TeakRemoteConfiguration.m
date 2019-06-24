@@ -7,6 +7,8 @@
 #import "TeakRequest.h"
 #import "TeakSession.h"
 
+extern NSString* TeakHostname;
+
 @interface TeakRemoteConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* hostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
@@ -86,7 +88,7 @@
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
                                                withPayload:payload
                                                   callback:^(NSDictionary* reply) {
-                                                    self.hostname = @"gocarrot.com";
+                                                    self.hostname = TeakHostname;
 
                                                     NSString* sdkSentryDsn = reply[@"sdk_sentry_dsn"];
                                                     if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {
