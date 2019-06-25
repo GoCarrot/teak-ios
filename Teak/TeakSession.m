@@ -480,6 +480,15 @@ DefineTeakState(Expired, (@[]));
   if (notification.teakRewardId) {
     launchAttribution[@"teak_reward_id"] = notification.teakRewardId;
   }
+
+  if (notification.teakCreativeName) {
+    launchAttribution[@"teak_creative_name"] = notification.teakCreativeName;
+  }
+
+  if (notification.teakScheduleName) {
+    launchAttribution[@"teak_schedule_name"] = notification.teakScheduleName;
+  }
+
   [TeakSession setLaunchAttribution:launchAttribution];
 }
 

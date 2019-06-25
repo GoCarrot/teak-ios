@@ -640,8 +640,8 @@ Teak* _teakSharedInstance;
       teakUserInfo[@"teakNotifId"] = teakNotifId;
 #define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
       teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
-      teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(aps[@"teakScheduleName"]);
-      teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(aps[@"teakCreativeName"]);
+      teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(notif.teakScheduleName);
+      teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(notif.teakCreativeName);
 #undef ValueOrNSNull
       teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
 
