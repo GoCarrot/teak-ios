@@ -88,7 +88,7 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
       NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
       for (NSString* key in notification[@"playableActions"]) {
         // If the action is null, launch the app
-        if (notification[@"playableActions"][key] == nil || notification[@"playableActions"][key] == [NSNull null]) {
+        if (NSNullOrNil(notification[@"playableActions"][key])) {
           processedActions[key] = @-1;
         } else {
           processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];

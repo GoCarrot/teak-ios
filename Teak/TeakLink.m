@@ -203,7 +203,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
 + (void)checkAttributionForDeepLinkAndDispatchEvents:(nonnull NSDictionary*)attribution {
   NSString* deepLink = attribution[@"deep_link"];
-  if (deepLink == nil || deepLink == [NSNull null]) return;
+  if (NSNullOrNil(deepLink)) return;
 
   @try {
     NSURL* url = [NSURL URLWithString:deepLink];

@@ -343,7 +343,7 @@ DefineTeakState(Expired, (@[]));
     case FacebookAccessToken: {
       id oldValue = self.facebookAccessToken;
       id newValue = ((FacebookAccessTokenEvent*)event).accessToken;
-      if (oldValue != newValue && (oldValue == nil || oldValue == [NSNull null] || ![newValue isEqualToString:oldValue])) {
+      if (oldValue != newValue && (NSNullOrNil(oldValue) || ![newValue isEqualToString:oldValue])) {
         self.facebookAccessToken = newValue;
         [self identifyUserInfoHasChanged];
       }

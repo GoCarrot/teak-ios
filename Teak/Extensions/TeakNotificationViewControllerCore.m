@@ -266,7 +266,7 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption))completionHandler {
-  int attachmentIndex = (self.actions[response.actionIdentifier] == nil || self.actions[response.actionIdentifier] == [NSNull null]) ? -1 : [self.actions[response.actionIdentifier] intValue];
+  int attachmentIndex = NSNullOrNil(self.actions[response.actionIdentifier]) ? -1 : [self.actions[response.actionIdentifier] intValue];
   [self handleNotificationResponseForAction:attachmentIndex
                           completionHandler:^{
                             completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);

@@ -24,11 +24,7 @@ NSString* TeakURLEscapedString(NSString* inString) {
 }
 
 BOOL TeakBoolFor(id object) {
-  if (object == nil || object == [NSNull null]) {
-    return NO;
-  }
-
-  return [object boolValue];
+  return NSNullOrNil(object) ? NO : [object boolValue];
 }
 
 ///// Recursive form encode
