@@ -15,6 +15,7 @@ extern BOOL TeakBoolFor(id object);
 #define TeakUnusedKVOValues TeakUnused(oldValue); TeakUnused(newValue);
 #define URLEscapedString(_inString) TeakURLEscapedString(_inString)
 #define NSStringOrNilFor(_id) TeakNSStringOrNilFor(_id)
+#define NSNullOrNil(_id) ((_id == nil) || ((id)_id == [NSNull null]))
 
 #define _(_id) (_id == nil ? [NSNull null] : _id)
 

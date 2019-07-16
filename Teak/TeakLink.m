@@ -5,6 +5,9 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 extern BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id);
 extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*);
 
+NSString* const TeakLinkIncomingUrlKey = @"__incoming_url";
+NSString* const TeakLinkIncomingUrlPathKey = @"__incoming_path";
+
 @interface TeakLink ()
 
 @property (strong, nonatomic) NSArray* argumentIndicies;
@@ -135,6 +138,16 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
             [params setValue:item.value forKey:item.name];
           }
 
+          // Original path
+          if (params[TeakLinkIncomingUrlPathKey] == nil) {
+            params[TeakLinkIncomingUrlPathKey] = deepLink.path;
+          }
+
+          // Full URL
+          if (params[TeakLinkIncomingUrlKey] == nil) {
+            params[TeakLinkIncomingUrlKey] = [deepLink absoluteString];
+          }
+
           link.block(params);
           return YES;
         }
@@ -196,7 +209,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
 + (void)checkAttributionForDeepLinkAndDispatchEvents:(nonnull NSDictionary*)attribution {
   NSString* deepLink = attribution[@"deep_link"];
-  if (deepLink == nil || deepLink == [NSNull null]) return;
+  if (NSNullOrNil(deepLink)) return;
 
   @try {
     NSURL* url = [NSURL URLWithString:deepLink];

@@ -91,10 +91,18 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {
-  [self identifyUser:userIdentifier withOptOutList:@[]];
+  [self identifyUser:userIdentifier withOptOutList:@[] andEmail:nil];
+}
+
+- (void)identifyUser:(NSString*)userIdentifier withEmail:(nonnull NSString*)email {
+  [self identifyUser:userIdentifier withOptOutList:@[] andEmail:email];
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut {
+  [self identifyUser:userIdentifier withOptOutList:optOut andEmail:nil];
+}
+
+- (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut andEmail:(nullable NSString*)email {
   [self processDeepLinks];
 
   if (userIdentifier == nil || userIdentifier.length == 0) {
@@ -106,7 +114,7 @@ Teak* _teakSharedInstance;
 
   TeakLog_i(@"identify_user", @{@"userId" : userIdentifier, @"optOut" : optOut});
 
-  [UserIdEvent userIdentified:[userIdentifier copy] withOptOutList:[optOut copy]];
+  [UserIdEvent userIdentified:[userIdentifier copy] withOptOutList:[optOut copy] andEmail:[email copy]];
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {
