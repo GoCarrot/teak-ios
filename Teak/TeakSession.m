@@ -206,6 +206,10 @@ DefineTeakState(Expired, (@[]));
     }
     self.userIdentificationSent = YES;
 
+    if (self.email != nil) {
+      payload[@"email"] = self.email;
+    }
+
     if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
       payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
       [payload addEntriesFromDictionary:[[Teak sharedInstance].pushState to_h]];
@@ -371,12 +375,13 @@ DefineTeakState(Expired, (@[]));
     handler = [TeakEventBlockHandler handlerWithBlock:^(TeakEvent* _Nonnull event) {
       switch (event.type) {
         case UserIdentified: {
+          UserIdEvent* userIdEvent = (UserIdEvent*)event;
           TeakConfiguration* configuration = [TeakConfiguration configuration];
           if (configuration != nil) {
-            [configuration.dataCollectionConfiguration addConfigurationFromDeveloper:((UserIdEvent*)event).optOut];
+            [configuration.dataCollectionConfiguration addConfigurationFromDeveloper:userIdEvent.optOut];
           }
 
-          [TeakSession setUserId:((UserIdEvent*)event).userId];
+          [TeakSession setUserId:userIdEvent.userId andEmail:userIdEvent.email];
         } break;
         case LifecycleActivate: {
           [TeakSession applicationDidBecomeActive];
@@ -392,7 +397,7 @@ DefineTeakState(Expired, (@[]));
   [TeakEvent addEventHandler:handler];
 }
 
-+ (void)setUserId:(nonnull NSString*)userId {
++ (void)setUserId:(nonnull NSString*)userId andEmail:(nullable NSString*)email {
   if (userId.length == 0) {
     TeakLog_e(@"session", @"userId cannot be nil or empty.");
     return;
@@ -410,9 +415,14 @@ DefineTeakState(Expired, (@[]));
         currentSession = newSession;
       }
 
+      BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
+      if (![email isEqualToString:currentSession.email]) {
+        needsIdentifyUser = YES;
+      }
+
       currentSession.userId = userId;
 
-      if (currentSession.currentState == [TeakSession Configured]) {
+      if (needsIdentifyUser) {
         [currentSession sendUserIdentifier];
       }
     }

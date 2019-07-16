@@ -6,7 +6,7 @@ void TeakSetDebugOutputEnabled(int enabled) {
   [Teak sharedInstance].enableDebugOutput = (enabled > 0);
 }
 
-void TeakIdentifyUser(const char* userId, const char* optOutJsonArray) {
+void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email) {
   NSArray* optOutList = @[];
   if (optOutJsonArray != NULL) {
     @try {
@@ -18,7 +18,9 @@ void TeakIdentifyUser(const char* userId, const char* optOutJsonArray) {
     }
   }
 
-  [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId] withOptOutList:optOutList];
+  [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]
+                       withOptOutList:optOutList
+                             andEmail:[NSString stringWithUTF8String:email]];
 }
 
 void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId) {

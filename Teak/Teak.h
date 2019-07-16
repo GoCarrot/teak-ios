@@ -140,6 +140,16 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (void)identifyUser:(nonnull NSString*)userId;
 
 /**
+ * Tell Teak how to identify the current user.
+ *
+ * This should be how you identify the user in your back-end.
+ *
+ * @param userId           The string Teak should use to identify the current user.
+ * @param email            The email address for the current user.
+ */
+- (void)identifyUser:(nonnull NSString*)userId withEmail:(nonnull NSString*)email;
+
+/**
  * Tell Teak how to identify the current user, with data collection opt-out.
  *
  * This should be how you identify the user in your back-end.
@@ -148,6 +158,17 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * @param optOut           A list containing zero or more of: TeakOptOutIdfa, TeakOptOutPushKey, TeakOptOutFacebook
  */
 - (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut;
+
+/**
+ * Tell Teak how to identify the current user, with data collection opt-out.
+ *
+ * This should be how you identify the user in your back-end.
+ *
+ * @param userId           The string Teak should use to identify the current user.
+ * @param optOut           A list containing zero or more of: TeakOptOutIdfa, TeakOptOutPushKey, TeakOptOutFacebook
+ * @param email            The email address for the current user.
+ */
+- (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut andEmail:(nullable NSString*)email;
 
 /**
  * Track an arbitrary event in Teak.
