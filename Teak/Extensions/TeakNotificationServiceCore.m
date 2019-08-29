@@ -91,7 +91,7 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
         if (NSNullOrNil(notification[@"playableActions"][key])) {
           processedActions[key] = @-1;
         } else {
-          processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count]];
+          processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count] - [contentIndex intValue]];
           [orderedAttachments addObject:notification[@"playableActions"][key]];
         }
 
