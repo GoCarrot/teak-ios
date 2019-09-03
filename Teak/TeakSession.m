@@ -29,6 +29,7 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic) NSString* facebookAccessToken;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
+@property (strong, nonatomic, readwrite) NSString* email;
 @property (strong, nonatomic, readwrite) NSString* sessionId;
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
@@ -417,6 +418,7 @@ DefineTeakState(Expired, (@[]));
 
       BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
       if (![email isEqualToString:currentSession.email]) {
+        currentSession.email = email;
         needsIdentifyUser = YES;
       }
 
