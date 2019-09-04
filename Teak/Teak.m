@@ -39,7 +39,7 @@ NSString* const TeakHostname = @"gocarrot.com";
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
 
-// FB SDK 4.x
+// FB SDK 4.x, 5.x
 NSString* const TeakFBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
 NSString* const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
 NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
@@ -431,15 +431,15 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
   // Facebook SDKs
-  Class fb4xClass = NSClassFromString(@"FBSDKProfile");
-  Class fb3xClass = NSClassFromString(@"FBSession");
+  Class fbClass_4x5x = NSClassFromString(@"FBSDKProfile");
+  Class fbClass_3x = NSClassFromString(@"FBSession");
   teak_try {
-    if (fb4xClass != nil) {
+    if (fbClass_4x5x != nil) {
       BOOL arg = YES;
       SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
-      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fb4xClass methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
+      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x5x methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
       [inv setSelector:enableUpdatesOnAccessTokenChange];
-      [inv setTarget:fb4xClass];
+      [inv setTarget:fbClass_4x5x];
       [inv setArgument:&arg atIndex:2];
       [inv invoke];
 
@@ -447,7 +447,7 @@ Teak* _teakSharedInstance;
                                                selector:@selector(fbAccessTokenChanged_4x:)
                                                    name:TeakFBSDKAccessTokenDidChangeNotification
                                                  object:nil];
-    } else if (fb3xClass != nil) {
+    } else if (fbClass_3x != nil) {
       // accessTokenData
       [[NSNotificationCenter defaultCenter] addObserver:self
                                                selector:@selector(fbAccessTokenChanged_3x:)
@@ -456,9 +456,9 @@ Teak* _teakSharedInstance;
     }
 
     if (self.enableDebugOutput) {
-      if (fb4xClass != nil) {
-        TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x"});
-      } else if (fb3xClass != nil) {
+      if (fbClass_3x != nil) {
+        TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or 5.x"});
+      } else if (fbClass_3x != nil) {
         TeakLog_i(@"facebook.sdk", @{@"version" : @"3.x"});
       } else {
         TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
