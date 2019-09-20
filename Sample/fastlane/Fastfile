@@ -87,7 +87,7 @@ platform :ios do
     end
 
     TEAK_APP_EXTENSIONS.each do |app_extension_name|
-      provisioning_profile_arg = "PROVISIONING_PROFILE=\"#{ios_provisioning_profile_uuid[app_extension_name]}\"" if ci?
+      provisioning_profile_arg = " PROVISIONING_PROFILE=\"#{ios_provisioning_profile_uuid[app_extension_name]}\"" if ci?
       sh "set -o pipefail && xcodebuild -project #{XCODE_PROJECT} -sdk iphoneos -target #{app_extension_name} -configuration Release BUILD_DIR=#{File.join(FASTFILE_PATH, "..", "build")}#{provisioning_profile_arg} OTHER_CFLAGS=\"-fembed-bitcode\" build | xcpretty"
     end
   end
