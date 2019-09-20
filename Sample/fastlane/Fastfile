@@ -14,6 +14,10 @@ XCODE_PROJECT = File.join(FASTFILE_PATH, "..", "Sample.xcodeproj")
 CONFIG_TYPE = "development"
 TEAK_APP_EXTENSIONS = ["TeakNotificationService", "TeakNotificationContent"]
 
+def ci?
+  ENV.fetch('CI', false).to_s == 'true'
+end
+
 default_platform(:ios)
 
 platform :ios do
@@ -25,64 +29,66 @@ platform :ios do
   lane :dev do
     BUILD_CONFIGURATION = "Debug"
 
-    # Create/fetch and store provisioning profiles
-    ios_provisioning_profile = {}
-    ios_provisioning_profile_uuid = {}
-    ["io.teak.app.native.dev"].each do |app_id|
-      match(
-        app_identifier: app_id,
-        type: CONFIG_TYPE,
-        readonly: true
-      )
-      provisioning_profile_env = Match::Utils.environment_variable_name_profile_path(
-        app_identifier: app_id,
-        type: CONFIG_TYPE
-      )
-      ios_provisioning_profile["Sample"] = ENV[provisioning_profile_env]
-
-      provisioning_profile_uuid_env = Match::Utils.environment_variable_name(
-        app_identifier: app_id,
-        type: CONFIG_TYPE
-      )
-      ios_provisioning_profile_uuid["Sample"] = ENV[provisioning_profile_uuid_env]
-
-      TEAK_APP_EXTENSIONS.each do |app_extension_name|
+    if ci?
+      # Create/fetch and store provisioning profiles
+      ios_provisioning_profile = {}
+      ios_provisioning_profile_uuid = {}
+      ["io.teak.app.native.dev"].each do |app_id|
         match(
-          app_identifier: "#{app_id}.#{app_extension_name}",
+          app_identifier: app_id,
           type: CONFIG_TYPE,
           readonly: true
         )
-
         provisioning_profile_env = Match::Utils.environment_variable_name_profile_path(
-          app_identifier: "#{app_id}.#{app_extension_name}",
+          app_identifier: app_id,
           type: CONFIG_TYPE
         )
-        ios_provisioning_profile[app_extension_name] = ENV[provisioning_profile_env]
+        ios_provisioning_profile["Sample"] = ENV[provisioning_profile_env]
 
         provisioning_profile_uuid_env = Match::Utils.environment_variable_name(
-          app_identifier: "#{app_id}.#{app_extension_name}",
+          app_identifier: app_id,
           type: CONFIG_TYPE
         )
-        ios_provisioning_profile_uuid[app_extension_name] = ENV[provisioning_profile_uuid_env]
+        ios_provisioning_profile_uuid["Sample"] = ENV[provisioning_profile_uuid_env]
+
+        TEAK_APP_EXTENSIONS.each do |app_extension_name|
+          match(
+            app_identifier: "#{app_id}.#{app_extension_name}",
+            type: CONFIG_TYPE,
+            readonly: true
+          )
+
+          provisioning_profile_env = Match::Utils.environment_variable_name_profile_path(
+            app_identifier: "#{app_id}.#{app_extension_name}",
+            type: CONFIG_TYPE
+          )
+          ios_provisioning_profile[app_extension_name] = ENV[provisioning_profile_env]
+
+          provisioning_profile_uuid_env = Match::Utils.environment_variable_name(
+            app_identifier: "#{app_id}.#{app_extension_name}",
+            type: CONFIG_TYPE
+          )
+          ios_provisioning_profile_uuid[app_extension_name] = ENV[provisioning_profile_uuid_env]
+        end
       end
+
+      (TEAK_APP_EXTENSIONS + ["Sample"]).each do |target|
+        update_project_provisioning(
+          xcodeproj: XCODE_PROJECT,
+          target_filter: target,
+          profile: ios_provisioning_profile[target],
+          build_configuration: BUILD_CONFIGURATION
+        )
+      end
+
+      sync_code_signing
+      disable_automatic_code_signing(path: XCODE_PROJECT)
     end
 
-    (TEAK_APP_EXTENSIONS + ["Sample"]).each do |target|
-      update_project_provisioning(
-        xcodeproj: XCODE_PROJECT,
-        target_filter: target,
-        profile: ios_provisioning_profile[target],
-        build_configuration: BUILD_CONFIGURATION
-      )
-    end
-
-    sync_code_signing
-    disable_automatic_code_signing(path: XCODE_PROJECT)
-
+    provisioning_profile_arg = ci? ? "PROVISIONING_PROFILE=\"#{ios_provisioning_profile_uuid[app_extension_name]}\"" : ''
     TEAK_APP_EXTENSIONS.each do |app_extension_name|
-      sh "set -o pipefail && xcodebuild -project #{XCODE_PROJECT} -sdk iphoneos -target #{app_extension_name} -configuration Release BUILD_DIR=#{File.join(FASTFILE_PATH, "..", "build")} PROVISIONING_PROFILE=\"#{ios_provisioning_profile_uuid[app_extension_name]}\" OTHER_CFLAGS=\"-fembed-bitcode\" build | xcpretty"
+      sh "set -o pipefail && xcodebuild -project #{XCODE_PROJECT} -sdk iphoneos -target #{app_extension_name} -configuration Release BUILD_DIR=#{File.join(FASTFILE_PATH, "..", "build")}#{provisioning_profile_arg} OTHER_CFLAGS=\"-fembed-bitcode\" build | xcpretty"
     end
 
-    enable_automatic_code_signing(path: XCODE_PROJECT)
   end
 end
