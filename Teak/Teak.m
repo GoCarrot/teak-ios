@@ -603,13 +603,7 @@ Teak* _teakSharedInstance;
     return;
   }
 
-  NSString* deviceTokenString = [[[[deviceToken description]
-      stringByReplacingOccurrencesOfString:@"<"
-                                withString:@""]
-      stringByReplacingOccurrencesOfString:@">"
-                                withString:@""]
-      stringByReplacingOccurrencesOfString:@" "
-                                withString:@""];
+  NSString* deviceTokenString = TeakHexStringFromData(deviceToken);
   if (deviceTokenString != nil) {
     TeakLog_i(@"notification.registration.success", @{@"token" : deviceTokenString});
     [PushRegistrationEvent registeredWithToken:deviceTokenString];
