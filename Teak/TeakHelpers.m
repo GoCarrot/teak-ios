@@ -31,6 +31,20 @@ BOOL TeakBoolFor(id object) {
   return [object boolValue];
 }
 
+NSString* TeakHexStringFromData(NSData* data) {
+  NSUInteger dataLength = data.length;
+  if (dataLength == 0) {
+    return nil;
+  }
+
+  const unsigned char* dataBuffer = data.bytes;
+  NSMutableString* hexString = [NSMutableString stringWithCapacity:(dataLength * 2)];
+  for (int i = 0; i < dataLength; ++i) {
+    [hexString appendFormat:@"%02x", dataBuffer[i]];
+  }
+  return [hexString copy];
+}
+
 ///// Recursive form encode
 
 NSString* TeakFormEncode(NSString* name, id value, BOOL escape) {
