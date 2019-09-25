@@ -29,6 +29,7 @@
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
+NSString* const TeakAdditionalData = @"TeakAdditionalData";
 
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";

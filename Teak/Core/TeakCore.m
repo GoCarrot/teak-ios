@@ -1,8 +1,10 @@
 #import "TeakCore.h"
+#import "AdditionalDataEvent.h"
 #import "PurchaseEvent.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
 #import "TrackEventEvent.h"
+#import <Teak/Teak.h>
 
 @implementation TeakCore
 
@@ -44,6 +46,15 @@
         [request send];
       }];
     } break;
+
+    case AdditionalData: {
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:TeakAdditionalData
+                                                            object:self
+                                                          userInfo:((AdditionalDataEvent*)event).additionalData];
+      }];
+    } break;
+
     default:
       break;
   }

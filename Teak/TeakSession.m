@@ -1,4 +1,5 @@
 #import "TeakSession.h"
+#import "AdditionalDataEvent.h"
 #import "FacebookAccessTokenEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
@@ -254,6 +255,11 @@ DefineTeakState(Expired, (@[]));
                                                       NSMutableDictionary* updatedAttribution = [NSMutableDictionary dictionaryWithDictionary:blockSelf.launchAttribution];
                                                       updatedAttribution[@"deep_link"] = reply[@"deep_link"];
                                                       blockSelf.launchAttribution = updatedAttribution;
+                                                    }
+
+                                                    // Additional data
+                                                    if (reply[@"additional_data"]) {
+                                                      [AdditionalDataEvent additionalDataReceived:reply[@"additional_data"]];
                                                     }
 
                                                     // Assign new state
