@@ -104,12 +104,6 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
   }
 }
 
-- (void)assignPushToken:(nonnull NSString*)pushToken {
-  if ([self.pushToken isEqualToString:pushToken]) return;
-
-  self.pushToken = pushToken;
-}
-
 - (void)updateValuesThatCouldHaveChanged {
   [[Teak sharedInstance].pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
     NSString* newNotificationDisplayState = TeakDeviceConfiguration_NotificationDisplayState_NotDetermined;

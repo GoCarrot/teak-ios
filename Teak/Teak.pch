@@ -10,6 +10,7 @@
 extern NSString* TeakURLEscapedString(NSString* inString);
 extern NSString* TeakNSStringOrNilFor(id object);
 extern BOOL TeakBoolFor(id object);
+extern NSString* TeakHexStringFromData(NSData* data);
 
 #define TeakUnused(_param) ((void)_param)
 #define TeakUnusedKVOValues TeakUnused(oldValue); TeakUnused(newValue);

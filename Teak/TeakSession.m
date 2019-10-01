@@ -1,4 +1,5 @@
 #import "TeakSession.h"
+#import "AdditionalDataEvent.h"
 #import "FacebookAccessTokenEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
@@ -29,6 +30,7 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 @property (strong, nonatomic) NSString* facebookAccessToken;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
+@property (strong, nonatomic, readwrite) NSString* email;
 @property (strong, nonatomic, readwrite) NSString* sessionId;
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
@@ -255,6 +257,11 @@ DefineTeakState(Expired, (@[]));
                                                       blockSelf.launchAttribution = updatedAttribution;
                                                     }
 
+                                                    // Additional data
+                                                    if (reply[@"additional_data"]) {
+                                                      [AdditionalDataEvent additionalDataReceived:reply[@"additional_data"]];
+                                                    }
+
                                                     // Assign new state
                                                     // Prevent warning for 'do_not_track_event'
                                                     if (blockSelf.currentState == [TeakSession Expiring]) {
@@ -417,6 +424,7 @@ DefineTeakState(Expired, (@[]));
 
       BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
       if (![email isEqualToString:currentSession.email]) {
+        currentSession.email = email;
         needsIdentifyUser = YES;
       }
 

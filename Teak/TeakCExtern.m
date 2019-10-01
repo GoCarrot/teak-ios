@@ -18,11 +18,14 @@ void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const cha
     }
   }
 
-  NSString* nsStringEmail = email == NULL ? nil : [NSString stringWithUTF8String:email];
+  NSString* ns_email = nil;
+  if (email != NULL) {
+    ns_email = [NSString stringWithUTF8String:email];
+  }
 
   [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]
                        withOptOutList:optOutList
-                             andEmail:nsStringEmail];
+                             andEmail:ns_email];
 }
 
 void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId) {

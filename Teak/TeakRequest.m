@@ -9,8 +9,6 @@
 
 #include <CommonCrypto/CommonHMAC.h>
 
-extern bool AmIBeingDebugged(void);
-
 extern NSString* TeakHostname;
 extern NSDictionary* TeakVersionDict;
 extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
@@ -574,11 +572,6 @@ KeyValueObserverSupported(TeakBatchedRequest);
 }
 
 - (void)URLSession:(NSURLSession*)session dataTask:(NSURLSessionDataTask*)dataTask didReceiveResponse:(NSURLResponse*)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler {
-  if (AmIBeingDebugged()) {
-    NSHTTPURLResponse* httpResponse = (NSHTTPURLResponse*)response;
-    NSAssert(httpResponse.statusCode < 400, ([NSString stringWithFormat:@"Teak server returned error code: %ld", (long)httpResponse.statusCode]));
-  }
-
   completionHandler(NSURLSessionResponseAllow);
 }
 

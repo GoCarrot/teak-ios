@@ -28,6 +28,15 @@ extern NSString* _Nonnull const TeakOnReward;
 extern NSString* _Nonnull const TeakForegroundNotification;
 
 /**
+ * Use this named notification to listen for when your app receives additional data for the current user.
+ * [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                          selector:@selector(handleTeakAdditionalData:)
+ *                                               name:TeakAdditionalData
+ *                                             object:nil];
+ */
+extern NSString* _Nonnull const TeakAdditionalData;
+
+/**
  * Value provided to identifyUser:withOptOutList: to opt out of collecting an IDFA for this specific user.
  *
  * If you prevent Teak from collecting the Identifier For Advertisers (IDFA),
