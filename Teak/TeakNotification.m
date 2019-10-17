@@ -9,6 +9,8 @@
 @property (strong, nonatomic, readwrite) NSString* status;
 @property (strong, nonatomic, readwrite) NSString* teakRewardId;
 @property (strong, nonatomic, readwrite) NSString* teakDeepLink;
+@property (strong, nonatomic, readwrite) NSString* _Nullable teakScheduleName;
+@property (strong, nonatomic, readwrite) NSString* _Nullable teakCreativeName;
 @property (strong, nonatomic, readwrite) NSDictionary* originalJson;
 @property (atomic, readwrite) BOOL completed;
 
@@ -22,6 +24,8 @@
     self.teakNotifId = NSStringOrNilFor(dictionary[@"teakNotifId"]);
     self.teakRewardId = NSStringOrNilFor(dictionary[@"teakRewardIdStr"]);
     self.teakDeepLink = NSStringOrNilFor(dictionary[@"teakDeepLink"]);
+    self.teakScheduleName = NSStringOrNilFor(dictionary[@"teakScheduleName"]);
+    self.teakCreativeName = NSStringOrNilFor(dictionary[@"teakCreativeName"]);
     self.originalJson = dictionary;
     self.completed = YES;
     self.status = nil;

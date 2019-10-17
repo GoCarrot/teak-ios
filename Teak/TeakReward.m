@@ -90,19 +90,24 @@
   TeakReward* reward = [TeakReward rewardForRewardId:teakRewardId];
   if (reward == nil) return;
 
-  NSString* teakRewardLinkName = attribution[@"teak_rewardlink_name"];
+  NSString* teakCreativeName = attribution[@"teak_rewardlink_name"];
+  if (teakCreativeName == nil) {
+    teakCreativeName = attribution[@"teak_creative_name"];
+  }
+
   __weak TeakReward* tempWeakReward = reward;
   reward.onComplete = ^() {
     __strong TeakReward* blockReward = tempWeakReward;
     if (blockReward.json != nil) {
       NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
-      userInfo[@"teakNotifId"] = [NSNull null];
+#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
+      userInfo[@"teakNotifId"] = ValueOrNSNull(attribution[@"teak_notif_id"]);
       userInfo[@"teakRewardId"] = teakRewardId;
-      userInfo[@"teakScheduleName"] = [NSNull null];
-      userInfo[@"teakCreativeName"] = teakRewardLinkName == nil ? [NSNull null] : teakRewardLinkName;
+      userInfo[@"teakScheduleName"] = ValueOrNSNull(attribution[@"teak_schedule_name"]);
+      userInfo[@"teakCreativeName"] = ValueOrNSNull(teakCreativeName);
       userInfo[@"incentivized"] = @YES;
       [userInfo addEntriesFromDictionary:blockReward.json];
-
+#undef ValueOrNSNull
       [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
         [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
                                                             object:session
