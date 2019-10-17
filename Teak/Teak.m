@@ -687,6 +687,7 @@ Teak* _teakSharedInstance;
     components.scheme = @"https";
     NSURL* fetchUrl = components.URL;
 
+    TeakLog_i(@"deep_link.request.send", [fetchUrl absoluteString]);
     // Fetch the data for the short link
     NSURLSession* session = [Teak URLSessionWithoutDelegate];
     NSURLSessionDataTask* task =
@@ -695,11 +696,14 @@ Teak* _teakSharedInstance;
                  NSString* attributionUrlAsString = [userActivity.webpageURL absoluteString];
 
                  if (error == nil) {
+                   TeakLog_i(@"deep_link.request.reply", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
+
                    NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
                    if (error == nil) {
                      NSString* iOSPath = reply[@"iOSPath"];
                      if (iOSPath != nil) {
                        attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                       TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
                      }
                    }
                  }

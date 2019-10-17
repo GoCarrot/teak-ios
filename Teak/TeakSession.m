@@ -252,9 +252,11 @@ DefineTeakState(Expired, (@[]));
 
                                                     // Deep link
                                                     if (reply[@"deep_link"]) {
+                                                      NSString* deepLink = reply[@"deep_link"];
                                                       NSMutableDictionary* updatedAttribution = [NSMutableDictionary dictionaryWithDictionary:blockSelf.launchAttribution];
-                                                      updatedAttribution[@"deep_link"] = reply[@"deep_link"];
+                                                      updatedAttribution[@"deep_link"] = deepLink;
                                                       blockSelf.launchAttribution = updatedAttribution;
+                                                      TeakLog_i(@"deep_link.processed", deepLink);
                                                     }
 
                                                     // Additional data
