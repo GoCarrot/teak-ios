@@ -21,7 +21,7 @@ jobs:
 
   build:
     macos:
-      xcode: "8.3.3"
+      xcode: "9.2"
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup:
