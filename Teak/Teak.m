@@ -426,6 +426,14 @@ Teak* _teakSharedInstance;
                         });
                       }];
                     }];
+
+  // Open settings to this app's settings
+  [TeakLink registerRoute:@"/teak_internal/app_settings"
+                     name:@""
+              description:@""
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
+                    }];
 }
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
