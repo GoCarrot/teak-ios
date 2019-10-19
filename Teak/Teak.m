@@ -432,7 +432,14 @@ Teak* _teakSharedInstance;
                      name:@""
               description:@""
                     block:^(NSDictionary* _Nonnull parameters) {
-                      [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
+                      BOOL includeProvisional = [parameters[@"include_provisional"] boolValue];
+                      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+                        TeakNotificationState notificationState = [[Teak sharedInstance] notificationState];
+                        if (notificationState == TeakNotificationStateDisabled ||
+                            (includeProvisional && notificationState == TeakNotificationStateProvisional)) {
+                          [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
+                        }
+                      }];
                     }];
 }
 
