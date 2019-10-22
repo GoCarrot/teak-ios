@@ -48,6 +48,7 @@ NSString* const TeakFBSDKAccessTokenChangeOldKey = @"FBSDKAccessTokenOld";
 
 // AIR/Unity/etc SDK Version Extern
 NSDictionary* TeakWrapperSDK = nil;
+NSDictionary* TeakXcodeVersion = nil;
 
 NSDictionary* TeakVersionDict = nil;
 
@@ -278,13 +279,23 @@ Teak* _teakSharedInstance;
     self.enableRemoteLogging |= !self.configuration.appConfiguration.isProduction;
 
     // Add Unity/Air SDK version if applicable
-    NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{@"ios" : self.sdkVersion}];
+    NSMutableDictionary* sdkDict = [NSMutableDictionary dictionaryWithDictionary:@{
+      @"ios" : self.sdkVersion
+    }];
     if (TeakWrapperSDK != nil) {
       [sdkDict addEntriesFromDictionary:TeakWrapperSDK];
     }
     TeakVersionDict = sdkDict;
 
-    [self.log useSdk:TeakVersionDict];
+    // Xcode versions
+    NSMutableDictionary* xcodeDict = [NSMutableDictionary dictionaryWithDictionary:@{
+      @"sdk" : [NSNumber numberWithInt:__APPLE_CC__]
+    }];
+    if (TeakXcodeVersion != nil) {
+      [xcodeDict addEntriesFromDictionary:TeakXcodeVersion];
+    }
+
+    [self.log useSdk:TeakVersionDict andXcode:xcodeDict];
     [self.log useAppConfiguration:self.configuration.appConfiguration];
     [self.log useDeviceConfiguration:self.configuration.deviceConfiguration];
     [self.log useDataCollectionConfiguration:self.configuration.dataCollectionConfiguration];
