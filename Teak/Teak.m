@@ -289,7 +289,7 @@ Teak* _teakSharedInstance;
 
     // Xcode versions
     NSMutableDictionary* xcodeDict = [NSMutableDictionary dictionaryWithDictionary:@{
-      @"sdk" : [NSNumber numberWithInt:__APPLE_CC__]
+      @"sdk" : [NSNumber numberWithInt:__apple_build_version__]
     }];
     if (TeakXcodeVersion != nil) {
       [xcodeDict addEntriesFromDictionary:TeakXcodeVersion];
