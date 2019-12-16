@@ -2,14 +2,14 @@ version: 2.1
 jobs:
   test:
     macos:
-      xcode: "10.2.0"
+      xcode: "10.2.1"
     shell: /bin/bash --login -eo pipefail
     steps:
       - run:
           name: Pre-start iOS Simulator
           command: xcrun instruments -w "iPhone 5s (12.2) [" || true
       - ios_setup:
-          ruby: "2.4"
+          ruby: "2.5"
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
@@ -21,11 +21,11 @@ jobs:
 
   build:
     macos:
-      xcode: "10.2.0"
+      xcode: "10.2.1"
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup:
-          ruby: "2.4"
+          ruby: "2.5"
       - run:
           name: Build Teak SDK
           command: ./compile
