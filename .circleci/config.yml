@@ -21,11 +21,11 @@ jobs:
 
   build:
     macos:
-      xcode: "9.2"
+      xcode: "10.2.0""
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup:
-          ruby: "2.3"
+          ruby: "2.4.6"
       - run:
           name: Build Teak SDK
           command: ./compile
