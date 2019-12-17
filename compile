@@ -6,23 +6,25 @@ IFS=$'\n\t'
 prefix="clang-analyze"
 suffix="$(date +%s)"
 clangTemp="/tmp/$prefix-$suffix"
-xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean build | xcpretty -r json-compilation-database -o compile_commands.json #--report junit
+xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean build | bundle exec xcpretty -r json-compilation-database -o compile_commands.json #--report junit
 if [ ! $? -eq 0 ]; then
   rm -fr $clangTemp
   exit $?
 fi
 
-oclint-json-compilation-database --exclude '^.*/3rdParty/.*\.m$' -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
-if [ ! $EXIT_CODE -eq 0 ]; then
-  echo "oclint found issues"
-  if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
-    open oclint_result.html
-  else
-    oclintArtifacts=$CIRCLE_ARTIFACTS/oclint/
-    mkdir -p $oclintArtifacts
-    cp oclint_result.html $oclintArtifacts
+if [[ -z "${CI}" ]]; then # HAX
+  oclint-json-compilation-database --exclude '^.*/3rdParty/.*\.m$' -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
+  if [ ! $EXIT_CODE -eq 0 ]; then
+    echo "oclint found issues"
+    if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
+      open oclint_result.html
+    else
+      oclintArtifacts=$CIRCLE_ARTIFACTS/oclint/
+      mkdir -p $oclintArtifacts
+      cp oclint_result.html $oclintArtifacts
+    fi
+    #exit 1 # TODO: Uncomment when we want oclint to cause fail
   fi
-  #exit 1 # TODO: Uncomment when we want oclint to cause fail
 fi
 
 if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then

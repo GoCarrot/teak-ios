@@ -5,3 +5,4 @@ IFS=$'\n\t'
 if [ "$(which aws)" == "" ]; then brew install awscli; fi
 if [ "$(which clang-format)" == "" ]; then brew install clang-format; fi
 if [ "$(which oclint-json-compilation-database)" == "" ]; then brew tap oclint/formulae; brew install oclint; fi
+if [ "$(which rvm)" == "" ]; then curl -sSL https://get.rvm.io | bash -s -- --autolibs=read-fail; fi

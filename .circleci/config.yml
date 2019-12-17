@@ -2,14 +2,14 @@ version: 2.1
 jobs:
   test:
     macos:
-      xcode: "10.2.0"
+      xcode: "10.2.1"
     shell: /bin/bash --login -eo pipefail
     steps:
       - run:
           name: Pre-start iOS Simulator
           command: xcrun instruments -w "iPhone 5s (12.2) [" || true
       - ios_setup:
-          ruby: "2.4.6"
+          ruby: "2.5"
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
@@ -22,10 +22,11 @@ jobs:
   build:
     macos:
       xcode: "9.2"
+      xcode: "10.2.1"
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup:
-          ruby: "2.3"
+          ruby: "2.5"
       - run:
           name: Build Teak SDK
           command: ./compile
@@ -144,10 +145,10 @@ commands:
         type: string
     steps:
       - checkout
-      - run:
-          shell: /bin/bash -eo pipefail
-          name: Set Ruby Version << parameters.ruby >>
-          command: echo "ruby-<< parameters.ruby >>" > .ruby-version
+      # - run:
+      #     shell: /bin/bash -eo pipefail
+      #     name: Set Ruby Version << parameters.ruby >>
+      #     command: echo "ruby-<< parameters.ruby >>" > .ruby-version
       - restore_cache:
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
@@ -159,6 +160,15 @@ commands:
           name: Homebrew Depenendcies
           command: HOMEBREW_NO_AUTO_UPDATE=1 ./setup
       - run:
+          shell: /bin/bash -eo pipefail
+          name: Setup RVM
+          command: |
+            unset GEM_HOME
+            source /Users/distiller/.rvm/scripts/rvm
+            rvm autolibs enable
+            rvm list | grep << parameters.ruby >> || rvm install ruby-<< parameters.ruby >>
+            rvm use ruby-<< parameters.ruby >>
+      - run:
           name: Ruby Gems
           command: bundle check || bundle install --path vendor/bundle
       - save_cache:
@@ -167,6 +177,7 @@ commands:
             - ~/Library/Caches/Homebrew
             - vendor/bundle
             - Sample/vendor/bundle
+            - ~/.rvm
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - add_ssh_keys:
           fingerprints:
