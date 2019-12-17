@@ -166,6 +166,7 @@ commands:
             source /Users/distiller/.rvm/scripts/rvm
             rvm autolibs enable
             rvm list | grep << parameters.ruby >> || rvm install ruby-<< parameters.ruby >>
+            rvm use ruby-<< parameters.ruby >>
       - run:
           name: Ruby Gems
           command: bundle check || bundle install --path vendor/bundle
