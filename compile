@@ -12,7 +12,7 @@ if [ ! $? -eq 0 ]; then
   exit $?
 fi
 
-if [[ -z "${CI}" ]]; then # HAX
+if [[ -z ${CIRCLE_ARTIFACTS+x} ]]; then # HAX
   oclint-json-compilation-database --exclude '^.*/3rdParty/.*\.m$' -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
   if [ ! $EXIT_CODE -eq 0 ]; then
     echo "oclint found issues"
