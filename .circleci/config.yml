@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   test:
     macos:
-      xcode: "10.1.0"
+      xcode: "10.2.1"
     shell: /bin/bash --login -eo pipefail
     steps:
       - run:
@@ -21,7 +21,7 @@ jobs:
 
   build:
     macos:
-      xcode: "10.1.0"
+      xcode: "10.2.1"
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup:
