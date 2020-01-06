@@ -12,19 +12,17 @@ if [ ! $? -eq 0 ]; then
   exit $?
 fi
 
-if [[ -z ${CIRCLE_ARTIFACTS+x} ]]; then # HAX
-  oclint-json-compilation-database --exclude '^.*/3rdParty/.*\.m$' -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
-  if [ ! $EXIT_CODE -eq 0 ]; then
-    echo "oclint found issues"
-    if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
-      open oclint_result.html
-    else
-      oclintArtifacts=$CIRCLE_ARTIFACTS/oclint/
-      mkdir -p $oclintArtifacts
-      cp oclint_result.html $oclintArtifacts
-    fi
-    #exit 1 # TODO: Uncomment when we want oclint to cause fail
+oclint-json-compilation-database --exclude '^.*/3rdParty/.*$' -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
+if [ ! $EXIT_CODE -eq 0 ]; then
+  echo "oclint found issues"
+  if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
+    open oclint_result.html
+  else
+    oclintArtifacts=$CIRCLE_ARTIFACTS/oclint/
+    mkdir -p $oclintArtifacts
+    cp oclint_result.html $oclintArtifacts
   fi
+  #exit 1 # TODO: Uncomment when we want oclint to cause fail
 fi
 
 if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
