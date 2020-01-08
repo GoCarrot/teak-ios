@@ -13,14 +13,14 @@ NSString* TeakNSStringOrNilFor(id object) {
 }
 
 NSString* TeakURLEscapedString(NSString* inString) {
-  static NSCharacterSet* rfc3986Reserved = nil;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    rfc3986Reserved = [[NSCharacterSet characterSetWithCharactersInString:@"!*'();:@&=+$,/?#[]"] invertedSet];
-  });
+  //  static NSCharacterSet* rfc3986Reserved = nil;
+  //  static dispatch_once_t onceToken;
+  //  dispatch_once(&onceToken, ^{
+  //    rfc3986Reserved = [[NSCharacterSet characterSetWithCharactersInString:@"!*'();:@&=+$,/?#[]"] invertedSet];
+  //  });
 
   if (inString == nil) return nil;
-  return [inString stringByAddingPercentEncodingWithAllowedCharacters:rfc3986Reserved];
+  return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
 }
 
 BOOL TeakBoolFor(id object) {
