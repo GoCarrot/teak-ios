@@ -7,7 +7,7 @@
 @class Teak;
 
 @interface TeakLog : NSObject
-- (void)useSdk:(nonnull NSDictionary*)sdkVersion;
+- (void)useSdk:(nonnull NSDictionary*)sdkVersion andXcode:(nonnull NSDictionary*)xcodeVersion;
 - (void)useDeviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 - (void)useAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;
 - (void)useRemoteConfiguration:(nonnull TeakRemoteConfiguration*)remoteConfiguration;

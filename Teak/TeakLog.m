@@ -55,6 +55,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @interface TeakLog ()
 @property (weak, nonatomic) Teak* teak;
 @property (strong, nonatomic) NSDictionary* sdkVersion;
+@property (strong, nonatomic) NSDictionary* xcodeVersion;
 @property (strong, nonatomic) NSString* appId;
 @property (strong, nonatomic) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic) TeakAppConfiguration* appConfiguration;
@@ -87,8 +88,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   return self;
 }
 
-- (void)useSdk:(nonnull NSDictionary*)sdkVersion {
+- (void)useSdk:(nonnull NSDictionary*)sdkVersion andXcode:(nonnull NSDictionary*)xcodeVersion {
   self.sdkVersion = sdkVersion;
+  self.xcodeVersion = xcodeVersion;
   [self logEvent:@"sdk_init" level:INFO eventData:nil];
 }
 
@@ -118,6 +120,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   payload[@"event_id"] = [NSNumber numberWithLongLong:OSAtomicIncrement64(&_eventCounter)];
   payload[@"timestamp"] = [NSNumber numberWithLong:[[NSDate date] timeIntervalSince1970]];
   payload[@"sdk_version"] = self.sdkVersion;
+  payload[@"xcode_version"] = self.xcodeVersion;
   payload[@"app_id"] = self.appId;
   payload[@"log_level"] = logLevel;
 
