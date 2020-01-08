@@ -598,12 +598,15 @@ Teak* _teakSharedInstance;
        willPresentNotification:(UNNotification*)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
   TeakUnused(center);
-  TeakUnused(notification);
 
-  // When notification is delivered with app in the foreground, mute it like default behavior
-  completionHandler(UNNotificationPresentationOptionNone);
+  // Check for foreground display flag
+  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
+  BOOL displayInForeground = TeakBoolFor(aps[@"teakShowInForeground"]);
 
-  // However, still send it along to the handler
+  // Optionally display in foreground
+  completionHandler(displayInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
+
+  // Always send it along to the handler
   [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:notification.request.content.userInfo];
 }
 
@@ -664,6 +667,7 @@ Teak* _teakSharedInstance;
 
     if (notif != nil) {
       BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
+      BOOL showInForeground = TeakBoolFor(aps[@"teakShowInForeground"]);
 
       NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
       teakUserInfo[@"teakNotifId"] = teakNotifId;
@@ -671,11 +675,12 @@ Teak* _teakSharedInstance;
       teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
       teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(notif.teakScheduleName);
       teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(notif.teakCreativeName);
+      teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(notif.teakDeepLink);
 #undef ValueOrNSNull
       teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
 
-      if (isInBackground) {
-        // App was opened via push notification
+      // Notification was tapped
+      if (isInBackground || showInForeground) {
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
         [TeakSession didLaunchFromTeakNotification:notif];
@@ -685,7 +690,10 @@ Teak* _teakSharedInstance;
                                                               object:self
                                                             userInfo:teakUserInfo];
         }];
-      } else {
+      }
+
+      // If this is in the foreground, send a foreground notification event
+      if (!isInBackground) {
         // Push notification received while app was in foreground
         TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(teakNotifId)});
 
