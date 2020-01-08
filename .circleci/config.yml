@@ -169,7 +169,9 @@ commands:
             rvm use ruby-<< parameters.ruby >>
       - run:
           name: Ruby Gems
-          command: bundle check || bundle install --path vendor/bundle
+          command: |
+            gem update bundler
+            bundle check || bundle install --path vendor/bundle
       - save_cache:
           paths:
             - /usr/local/Homebrew/
