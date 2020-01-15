@@ -488,7 +488,7 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification {
++ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification inBackground:(BOOL)inBackground {
   NSMutableDictionary* launchAttribution = [[NSMutableDictionary alloc] init];
 
   launchAttribution[@"teak_notif_id"] = notification.teakNotifId;
@@ -508,6 +508,8 @@ DefineTeakState(Expired, (@[]));
   if (notification.teakScheduleName) {
     launchAttribution[@"teak_schedule_name"] = notification.teakScheduleName;
   }
+
+  launchAttribution[@"notification_placement"] = inBackground ? @"background" : @"foreground";
 
   [TeakSession setLaunchAttribution:launchAttribution];
 }

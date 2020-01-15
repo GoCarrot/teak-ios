@@ -683,7 +683,7 @@ Teak* _teakSharedInstance;
       if (isInBackground || showInForeground) {
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
-        [TeakSession didLaunchFromTeakNotification:notif];
+        [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
 
         [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
           [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
