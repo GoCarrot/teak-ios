@@ -9,6 +9,7 @@ extern NSString* TeakHostname;
 @property (strong, nonatomic) NSMutableDictionary* numberAttributes;
 @property (strong, nonatomic) NSString* context;
 @property (strong, nonatomic) dispatch_block_t scheduledBlock;
+@property (strong, nonatomic) NSDate* firstSetTime;
 @end
 
 @implementation TeakUserProfile
@@ -34,6 +35,10 @@ extern NSString* TeakHostname;
 - (void)setAttribute:(id)value forKey:(NSString*)key inDictionary:(NSMutableDictionary*)dictionary {
   // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
   if (dictionary[key] != nil) {
+    if (self.firstSetTime == nil) {
+      self.firstSetTime = [NSDate date];
+    }
+
     dispatch_async([Teak operationQueue], ^{
       BOOL safeNotEquals = YES;
       @try {
@@ -69,7 +74,8 @@ extern NSString* TeakHostname;
     [payload addEntriesFromDictionary:@{
       @"string_attributes" : [self.stringAttributes copy],
       @"number_attributes" : [self.numberAttributes copy],
-      @"context" : [self.context copy]
+      @"context" : [self.context copy],
+      @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
     }];
     self.payload = payload;
 
