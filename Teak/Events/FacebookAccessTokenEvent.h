@@ -6,4 +6,6 @@
 
 + (void)accessTokenUpdated:(NSString* _Nonnull)accessToken;
 
++ (NSString*)currentAccessToken;
+
 @end

@@ -12,4 +12,16 @@
   [TeakEvent postEvent:event];
 }
 
++ (NSString*)currentAccessToken {
+  Class cls = NSClassFromString(@"FBSDKAccessToken");
+  if (cls == nil) {
+    return nil;
+  }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+  return [[cls performSelector:sel_getUid("currentAccessToken")] performSelector:sel_getUid("tokenString")];
+#pragma clang diagnostic pop
+}
+
 @end

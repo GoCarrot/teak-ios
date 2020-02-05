@@ -225,8 +225,14 @@ DefineTeakState(Expired, (@[]));
       }
     }
 
-    if (self.facebookAccessToken != nil && dataCollectionConfiguration.enableFacebookAccessToken) {
-      payload[@"access_token"] = self.facebookAccessToken;
+    if (dataCollectionConfiguration.enableFacebookAccessToken) {
+      if (self.facebookAccessToken == nil) {
+        self.facebookAccessToken = [FacebookAccessTokenEvent currentAccessToken];
+      }
+
+      if (self.facebookAccessToken != nil) {
+        payload[@"access_token"] = self.facebookAccessToken;
+      }
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
