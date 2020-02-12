@@ -46,6 +46,8 @@
 }
 
 + (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(int64_t)delay {
+  TeakLog_t(@"[TeakNotification scheduleNotificationForCreative]", @{@"creativeId" : _(creativeId), @"message" : _(message), @"delay" : [NSNumber numberWithLongLong:delay]});
+
   if (creativeId == nil || creativeId.length == 0) {
     TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
 
@@ -105,6 +107,8 @@
 }
 
 + (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds {
+  TeakLog_t(@"[TeakNotification scheduleNotificationForCreative]", @{@"creativeId" : _(creativeId), @"delay" : [NSNumber numberWithLongLong:delay]});
+
   if (creativeId == nil || creativeId.length == 0) {
     TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
 
@@ -131,6 +135,7 @@
     ret.status = @"error.parameter.userIds";
     return ret;
   }
+
   TeakNotification* ret = [[TeakNotification alloc] init];
   ret.completed = NO;
 
@@ -170,6 +175,8 @@
 }
 
 + (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId {
+  TeakLog_t(@"[TeakNotification cancelScheduledNotification]", @{@"scheduleId" : _(scheduleId)});
+
   if (scheduleId == nil || scheduleId.length == 0) {
     TeakLog_e(@"notification.cancel.error", @"scheduleId cannot be null or empty");
 
@@ -204,6 +211,8 @@
 }
 
 + (TeakNotification*)cancelAll {
+  TeakLog_t(@"[TeakNotification cancelAll]", @{});
+
   TeakNotification* ret = [[TeakNotification alloc] init];
   ret.completed = NO;
 

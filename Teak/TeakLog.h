@@ -17,6 +17,8 @@
 - (nullable id)initForTeak:(nonnull Teak*)teak withAppId:(nonnull NSString*)appId;
 @end
 
+extern __attribute__((overloadable)) void TeakLog_t(NSString* _Nonnull method, NSDictionary* _Nullable eventData);
+
 extern __attribute__((overloadable)) void TeakLog_e(NSString* _Nonnull eventType);
 extern __attribute__((overloadable)) void TeakLog_e(NSString* _Nonnull eventType, NSDictionary* _Nullable eventData);
 extern __attribute__((overloadable)) void TeakLog_e(NSString* _Nonnull eventType, NSString* _Nullable message);

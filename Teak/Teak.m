@@ -105,6 +105,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut andEmail:(nullable NSString*)email {
+  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"optOut" : _(optOut), @"email" : _(email)});
+
   [self processDeepLinks];
 
   if (userIdentifier == nil || userIdentifier.length == 0) {
@@ -127,6 +129,8 @@ Teak* _teakSharedInstance;
   actionId = [[actionId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectTypeId = [[objectTypeId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectInstanceId = [[objectInstanceId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+
+  TeakLog_t(@"[Teak incrementEventWithActionId]", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId), @"count" : [NSNumber numberWithLongLong:count]});
 
   if (actionId == nil || actionId.length == 0) {
     TeakLog_e(@"track_event.error", @"actionId can not be null or empty, ignoring.");
@@ -165,6 +169,8 @@ Teak* _teakSharedInstance;
 }
 
 - (TeakNotificationState)notificationState {
+  TeakLog_t(@"[Teak notificationState]", @{});
+
   NSInvocationOperation* op = [self.pushState currentPushState];
   [op waitUntilFinished];
 
@@ -181,10 +187,13 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)openSettingsAppToThisAppsSettings {
+  TeakLog_t(@"[Teak openSettingsAppToThisAppsSettings]", @{});
   return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 }
 
 - (void)setApplicationBadgeNumber:(int)count {
+  TeakLog_t(@"[Teak setApplicationBadgeNumber]", @{@"count" : [NSNumber numberWithInt:count]});
+
   // If iOS 8+ then check first to see if we have permission to change badge, otherwise
   // just go ahead and change it.
   if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
@@ -199,6 +208,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key {
+  TeakLog_t(@"[Teak setNumericAttribute]", @{@"value" : [NSNumber numberWithDouble:value], @"key" : _(key)});
+
   double copiedValue = value;
   NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
@@ -207,6 +218,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key {
+  TeakLog_t(@"[Teak setStringAttribute]", @{@"value" : _(value), @"key" : _(key)});
+
   NSString* copiedValue = [value copy];
   NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
