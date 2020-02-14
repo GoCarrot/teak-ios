@@ -3,6 +3,19 @@
 
 extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
+BOOL Teak_isProductionBuild() {
+  static BOOL isProduction;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    teak_try {
+      isProduction = isProductionProvisioningProfile([[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]);
+    }
+    teak_catch_report;
+  });
+
+  return isProduction;
+}
+
 @interface TeakAppConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* appId;
 @property (strong, nonatomic, readwrite) NSString* apiKey;
@@ -31,10 +44,7 @@ extern BOOL isProductionProvisioningProfile(NSString* profilePath);
       return nil;
     }
 
-    teak_try {
-      self.isProduction = isProductionProvisioningProfile([[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]);
-    }
-    teak_catch_report;
+    self.isProduction = Teak_isProductionBuild();
 
     self.appVersion = @"unknown";
     teak_try {

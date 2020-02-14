@@ -12,6 +12,8 @@
 NSString* INFO = @"INFO";
 NSString* ERROR = @"ERROR";
 
+extern BOOL Teak_isProductionBuild();
+
 #define kTeakLogTrace @"TeakLogTrace"
 
 __attribute__((overloadable)) void TeakLog_t(NSString* _Nonnull method, NSDictionary* _Nullable eventData) {
@@ -173,10 +175,10 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   // Log remotely
   if ([self.teak enableRemoteLogging]) {
     NSString* urlString = nil;
-    if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
-    } else {
+    if (Teak_isProductionBuild()) {
       urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/sdk.log.%@", logLevel];
+    } else {
+      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
     }
     TeakLogSender* sender = [[TeakLogSender alloc] init];
     [sender sendData:jsonData toEndpoint:[NSURL URLWithString:urlString]];
