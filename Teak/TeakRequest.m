@@ -597,9 +597,12 @@ KeyValueObserverSupported(TeakBatchedRequest);
   } else {
     teak_try {
       @synchronized(self) {
-        reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
-                                                               options:kNilOptions
-                                                                 error:&error];
+        NSData* data = self.responseData[@(dataTask.taskIdentifier)];
+        if (data) {
+          reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data
+                                                                 options:kNilOptions
+                                                                   error:&error];
+        }
       }
 
       if (error) {
