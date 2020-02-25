@@ -646,15 +646,6 @@ Teak* _teakSharedInstance;
     if (notif != nil) {
       BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
 
-      NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
-      teakUserInfo[@"teakNotifId"] = teakNotifId;
-#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
-      teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
-      teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(notif.teakScheduleName);
-      teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(notif.teakCreativeName);
-#undef ValueOrNSNull
-      teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
-
       if (isInBackground) {
         // App was opened via push notification
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
@@ -664,7 +655,7 @@ Teak* _teakSharedInstance;
         [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
           [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                               object:self
-                                                            userInfo:teakUserInfo];
+                                                            userInfo:notif.eventUserInfo];
         }];
       } else {
         // Push notification received while app was in foreground
@@ -673,7 +664,7 @@ Teak* _teakSharedInstance;
         [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
           [[NSNotificationCenter defaultCenter] postNotificationName:TeakForegroundNotification
                                                               object:self
-                                                            userInfo:teakUserInfo];
+                                                            userInfo:notif.eventUserInfo];
         }];
       }
     }

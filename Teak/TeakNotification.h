@@ -18,4 +18,6 @@
 + (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds;
 + (nullable TeakNotification*)cancelScheduledNotification:(nonnull NSString*)scheduleId;
 + (nullable TeakNotification*)cancelAll;
+
+- (nonnull NSDictionary*)eventUserInfo;
 @end
