@@ -224,10 +224,12 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     if (url != nil) {
       // If there's a deep link, see if Teak handles it. Otherwise use openURL.
       BOOL teakHandledDeepLink = TeakLink_HandleDeepLink(url);
-      UIApplication* application = [UIApplication sharedApplication];
 
       dispatch_async(dispatch_get_main_queue(), ^{
-        if (!teakHandledDeepLink && [application canOpenURL:url]) {
+        UIApplication* application = [UIApplication sharedApplication];
+
+        // If Teak handled the link, pass it to the application delegate
+        if (teakHandledDeepLink) {
           if (sHostAppOpenURLOptionsIMP) {
             // iOS 10+
             sHostAppOpenURLOptionsIMP(application.delegate, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
@@ -235,6 +237,9 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
             // iOS < 10
             sHostAppOpenURLIMP(application.delegate, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
           }
+        } else if ([application canOpenURL:url]) {
+          // If Teak didn't handle the link, openUrl
+          [application openURL:url];
         }
       });
     }
