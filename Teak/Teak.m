@@ -397,9 +397,15 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
-  TeakUnused(sourceApplication);
-  TeakUnused(annotation);
-  return [self application:application openURL:url options:@{}];
+  NSMutableDictionary* options = [[NSMutableDictionary alloc] init];
+  if (sourceApplication) {
+    options[UIApplicationOpenURLOptionsSourceApplicationKey] = sourceApplication;
+  }
+  if (annotation) {
+    options[UIApplicationOpenURLOptionsAnnotationKey] = annotation;
+  }
+
+  return [self application:application openURL:url options:options];
 }
 
 - (void)setupInternalDeepLinkRoutes {
