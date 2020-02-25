@@ -3,10 +3,11 @@ set -euo pipefail
 IFS=$'\n\t'
 
 #TODO: I'd like to try out scan-build
+buildtype=${BUILD_TYPE:-Release}
 prefix="clang-analyze"
 suffix="$(date +%s)"
 clangTemp="/tmp/$prefix-$suffix"
-xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean build | bundle exec xcpretty -r json-compilation-database -o compile_commands.json #--report junit
+xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration $buildtype BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean build | bundle exec xcpretty -r json-compilation-database -o compile_commands.json #--report junit
 if [ ! $? -eq 0 ]; then
   rm -fr $clangTemp
   exit $?
@@ -43,8 +44,8 @@ rm -fr $clangTemp
 
 (cd Sample; bundle exec fastlane dev)
 
-(cd build/Release-iphoneos/; zip -y -r Teak.framework.zip Teak.framework/)
-(cd build/Release-iphoneos/; zip -y -r TeakResources.bundle.zip TeakResources.bundle/)
+(cd build/$buildtype-iphoneos/; zip -y -r Teak.framework.zip Teak.framework/)
+(cd build/$buildtype-iphoneos/; zip -y -r TeakResources.bundle.zip TeakResources.bundle/)
 (cd Sample/build/Release-iphoneos/; zip -y -r TeakNotificationService.appex.zip TeakNotificationService.appex/)
 (cd Sample/build/Release-iphoneos/; zip -y -r TeakNotificationContent.appex.zip TeakNotificationContent.appex/)
 
