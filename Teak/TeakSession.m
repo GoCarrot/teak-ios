@@ -502,7 +502,8 @@ DefineTeakState(Expired, (@[]));
   launchAttribution[@"teak_notif_id"] = notification.teakNotifId;
 
   if (notification.teakDeepLink != nil) {
-    launchAttribution[@"deep_link"] = notification.teakDeepLink;
+    launchAttribution[@"launch_link"] = [notification.teakDeepLink copy];
+    launchAttribution[@"deep_link"] = [notification.teakDeepLink copy];
   }
 
   if (notification.teakRewardId) {
@@ -522,8 +523,9 @@ DefineTeakState(Expired, (@[]));
   [TeakSession setLaunchAttribution:launchAttribution];
 }
 
-+ (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink {
-  NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:deepLink, @"deep_link", nil];
++ (BOOL)didLaunchFromLink:(nonnull NSString*)launchLink {
+  // The launch link always goes into 'launch_link'
+  NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:[launchLink copy], @"launch_link", nil];
 
   // If the link begins with teakXXXX:// we should attempt to personalize it
   BOOL shouldPersonalizeLink = NO;
@@ -535,8 +537,13 @@ DefineTeakState(Expired, (@[]));
   } @finally {
   }
 
+  // If we're personalizing it, we're sending it as 'deep_link' to the server
+  if (shouldPersonalizeLink) {
+    launchAttribution[@"deep_link"] = [launchLink copy];
+  }
+
   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
-  NSURLComponents* components = [NSURLComponents componentsWithString:deepLink];
+  NSURLComponents* components = [NSURLComponents componentsWithString:launchLink];
   for (NSURLQueryItem* item in components.queryItems) {
     if ([item.name hasPrefix:@"teak_"]) {
       if ([launchAttribution objectForKey:item.name] != nil) {
