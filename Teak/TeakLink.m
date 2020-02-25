@@ -230,10 +230,10 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
         if (!teakHandledDeepLink && [application canOpenURL:url]) {
           if (sHostAppOpenURLOptionsIMP) {
             // iOS 10+
-            sHostAppOpenURLOptionsIMP(application, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
+            sHostAppOpenURLOptionsIMP(application.delegate, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
           } else if (sHostAppOpenURLIMP) {
             // iOS < 10
-            sHostAppOpenURLIMP(application, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
+            sHostAppOpenURLIMP(application.delegate, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
           }
         }
       });
