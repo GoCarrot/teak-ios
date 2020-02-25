@@ -16,6 +16,8 @@ NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
+extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
+
 @interface TeakSession ()
 @property (strong, nonatomic, readwrite) TeakState* currentState;
 @property (strong, nonatomic) TeakState* previousState;
@@ -513,6 +515,16 @@ DefineTeakState(Expired, (@[]));
 + (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink {
   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:deepLink, @"deep_link", nil];
 
+  // If the link begins with teakXXXX:// we should attempt to personalize it
+  BOOL shouldPersonalizeLink = NO;
+  @try {
+    NSURL* launchUrl = [NSURL URLWithString:launchLink];
+    if (launchUrl) {
+      shouldPersonalizeLink = TeakLink_WillHandleDeepLink(launchUrl);
+    }
+  } @finally {
+  }
+
   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
   NSURLComponents* components = [NSURLComponents componentsWithString:deepLink];
   for (NSURLQueryItem* item in components.queryItems) {
@@ -533,6 +545,7 @@ DefineTeakState(Expired, (@[]));
   }
 
   [TeakSession setLaunchAttribution:launchAttribution];
+  return shouldPersonalizeLink;
 }
 
 + (TeakSession*)currentSession {
