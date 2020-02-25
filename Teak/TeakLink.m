@@ -63,18 +63,26 @@ NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceB
   return output;
 }
 
-BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
+BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink) {
   // Check URL scheme to see if it matches the set we support
   for (NSString* scheme in [TeakConfiguration configuration].appConfiguration.urlSchemes) {
     if ([scheme isEqualToString:deepLink.scheme]) {
-      NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
-        [TeakLink handleDeepLink:deepLink];
-      }];
-      [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
-      [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
-
       return YES;
     }
+  }
+
+  return NO;
+}
+
+BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
+  if (TeakLink_WillHandleDeepLink(deepLink)) {
+    NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
+      [TeakLink handleDeepLink:deepLink];
+    }];
+    [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
+    [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
+
+    return YES;
   }
 
   if ([deepLink.scheme hasPrefix:@"http"]) {
