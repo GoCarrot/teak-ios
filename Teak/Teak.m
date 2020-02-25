@@ -53,6 +53,7 @@ NSDictionary* TeakXcodeVersion = nil;
 NSDictionary* TeakVersionDict = nil;
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
+extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 Teak* _teakSharedInstance;
 
@@ -392,8 +393,13 @@ Teak* _teakSharedInstance;
     return NO;
   }
 
-  [TeakSession didLaunchFromDeepLink:url.absoluteString];
-  return YES;
+  // If the URL starts with 'teakXXXX://' then handle it, otherwise ignore it
+  if (TeakLink_WillHandleDeepLink(url)) {
+    [TeakSession didLaunchFromDeepLink:url.absoluteString];
+    return YES;
+  }
+
+  return NO;
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
