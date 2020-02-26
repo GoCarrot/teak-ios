@@ -12,6 +12,7 @@
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakScheduleName;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakCreativeName;
 @property (strong, nonatomic, readwrite) NSDictionary* originalJson;
+@property (atomic, readwrite) BOOL showInForeground;
 @property (atomic, readwrite) BOOL completed;
 
 @end
@@ -27,6 +28,7 @@
     self.teakScheduleName = NSStringOrNilFor(dictionary[@"teakScheduleName"]);
     self.teakCreativeName = NSStringOrNilFor(dictionary[@"teakCreativeName"]);
     self.originalJson = dictionary;
+    self.showInForeground = TeakBoolFor(dictionary[@"teakShowInForeground"]);
     self.completed = YES;
     self.status = nil;
   }

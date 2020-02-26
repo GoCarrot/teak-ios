@@ -614,37 +614,6 @@ Teak* _teakSharedInstance;
   [application registerForRemoteNotifications];
 }
 
-- (void)userNotificationCenter:(UNUserNotificationCenter*)center
-       willPresentNotification:(UNNotification*)notification
-         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
-  TeakUnused(center);
-
-  // Check for foreground display flag
-  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
-  BOOL displayInForeground = TeakBoolFor(aps[@"teakShowInForeground"]);
-
-  // Optionally display in foreground
-  completionHandler(displayInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
-
-  // Always send it along to the handler
-  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:notification.request.content.userInfo];
-}
-
-- (void)userNotificationCenter:(UNUserNotificationCenter*)center
-    didReceiveNotificationResponse:(UNNotificationResponse*)response
-             withCompletionHandler:(void (^)(void))completionHandler {
-  TeakUnused(center);
-
-  // Call application:didReceiveRemoteNotification: since that is not called in the UNNotificationCenter
-  // code path.
-  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:response.notification.request.content.userInfo];
-
-  // Completion handler
-  completionHandler();
-
-  // TODO: HERE is where we report metric that a button was pressed
-}
-
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
   TeakUnused(application);
 
@@ -672,46 +641,109 @@ Teak* _teakSharedInstance;
   }
 }
 
-- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
-  // Check to see if this should be skipped
+// This MUST be called when we know that a user tapped on a notification.
+-(void)didLaunchFromNotification:(TeakNotification*)notif inBackground:(BOOL)isInBackground {
+  // This is a workaround for when we track that we launched through a
+  // notification from didFinishLaunchingWithOptions and iOS subsequently calls
+  // another one of our relevant delegate methods.
+  //
+  // In testing back to iOS 8.4.1 iOS _always_ calls one of our other delegate
+  // methods after calling didFinishLaunchingWithOptions. This workaround may
+  // have been necessary for iOS 7 or earlier, however we can no longer test
+  // those cases. This workaround will remain until such time as we can drop
+  // support for iOS < 10.
   if (self.skipTheNextDidReceiveNotificationResponse) {
     self.skipTheNextDidReceiveNotificationResponse = NO;
     return;
   }
 
+  TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(notif.teakNotifId)});
+
+  [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
+
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                        object:self
+                                                      userInfo:notif.eventUserInfo];
+  }];
+}
+
+// This should be called when a notification was received with the app in the
+// foreground.
+-(void)didReceiveForegroundNotification:(TeakNotification*)notif {
+  TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(notif.teakNotifId)});
+
+  // Notify any listeners that a foreground notification has been received.
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    [[NSNotificationCenter defaultCenter] postNotificationName:TeakForegroundNotification
+                                                        object:self
+                                                      userInfo:notif.eventUserInfo];
+  }];
+}
+
+-(TeakNotification*)teakNotificationFromUserInfo:(NSDictionary*) userInfo {
   NSDictionary* aps = userInfo[@"aps"];
   NSString* teakNotifId = NSStringOrNilFor(aps[@"teakNotifId"]);
-
-  if (teakNotifId != nil) {
-    TeakNotification* notif = [[TeakNotification alloc] initWithDictionary:aps];
-
-    if (notif != nil) {
-      BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
-
-      // Notification was tapped
-      if (isInBackground) {
-        TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
-
-        [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
-
-        [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-          [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                              object:self
-                                                            userInfo:notif.eventUserInfo];
-        }];
-      } else {
-        // Push notification received while app was in foreground
-        TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(teakNotifId)});
-
-        [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-          [[NSNotificationCenter defaultCenter] postNotificationName:TeakForegroundNotification
-                                                              object:self
-                                                            userInfo:notif.eventUserInfo];
-        }];
-      }
-    }
-  } else {
+  if(!teakNotifId) {
     TeakLog_i(@"notification.non_teak", userInfo);
+    return nil;
+  }
+
+  return [[TeakNotification alloc] initWithDictionary:aps];
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+       willPresentNotification:(UNNotification*)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+  TeakUnused(center);
+
+  TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
+  if(notif) {
+    // Always inform the host app that a foreground notification was received
+    [self didReceiveForegroundNotification:notif];
+  }
+
+  // Optionally display the notification in the foreground if requested
+  completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
+}
+
+// This method will be called whenever a taps on a notification
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+    didReceiveNotificationResponse:(UNNotificationResponse*)response
+             withCompletionHandler:(void (^)(void))completionHandler {
+  TeakUnused(center);
+
+  TeakNotification* notif = [self teakNotificationFromUserInfo:response.notification.request.content.userInfo];
+  if(notif) {
+    [self didLaunchFromNotification:notif inBackground:[UIApplication sharedApplication].applicationState != UIApplicationStateActive];
+  }
+
+  // Let the OS know we're done handling this.
+  completionHandler();
+
+  // TODO: HERE is where we report metric that a button was pressed
+}
+
+// This method is only called by iOS on versions of iOS which do not provide the
+// userNotificationCenter callbacks. Those versions of iOS do not support
+// displaying notifications in the foreground, and thus this method does not
+// need to handle the case where it is called after a user has tapped a
+// foreground notification.
+- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
+  TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
+  if(!notif) {
+    return;
+  }
+
+  // Application state can be foreground, background, or inactive. Inactive
+  // indicates that we are transitioning from the background to the foreground.
+  // This method may be called when the notification sets content-available and
+  // the app is background. However that situation does not indicate a launch
+  // from the notification.
+  if(application.applicationState == UIApplicationStateInactive) {
+    [self didLaunchFromNotification:notif inBackground:true];
+  } else if(application.applicationState == UIApplicationStateActive) {
+    [self didReceiveForegroundNotification:notif];
   }
 }
 
