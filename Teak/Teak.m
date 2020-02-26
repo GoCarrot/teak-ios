@@ -643,6 +643,15 @@ Teak* _teakSharedInstance;
 
 // This MUST be called when we know that a user tapped on a notification.
 -(void)didLaunchFromNotification:(TeakNotification*)notif inBackground:(BOOL)isInBackground {
+  // This is a workaround for when we track that we launched through a
+  // notification from didFinishLaunchingWithOptions and iOS subsequently calls
+  // another one of our relevant delegate methods.
+  //
+  // In testing back to iOS 8.4.1 iOS _always_ calls one of our other delegate
+  // methods after calling didFinishLaunchingWithOptions. This workaround may
+  // have been necessary for iOS 7 or earlier, however we can no longer test
+  // those cases. This workaround will remain until such time as we can drop
+  // support for iOS < 10.
   if (self.skipTheNextDidReceiveNotificationResponse) {
     self.skipTheNextDidReceiveNotificationResponse = NO;
     return;
