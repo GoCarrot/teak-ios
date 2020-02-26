@@ -687,9 +687,9 @@ Teak* _teakSharedInstance;
 
     if (notif != nil) {
       BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
-      BOOL showInForeground = TeakBoolFor(aps[@"teakShowInForeground"]);
+
       // Notification was tapped
-      if (isInBackground || showInForeground) {
+      if (isInBackground) {
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
 
         [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
@@ -699,10 +699,7 @@ Teak* _teakSharedInstance;
                                                               object:self
                                                             userInfo:notif.eventUserInfo];
         }];
-      }
-
-      // If this is in the foreground, send a foreground notification event
-      if (!isInBackground) {
+      } else {
         // Push notification received while app was in foreground
         TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(teakNotifId)});
 
