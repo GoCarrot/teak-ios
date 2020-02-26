@@ -382,13 +382,24 @@ Teak* _teakSharedInstance;
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
   TeakUnused(application);
-  TeakUnused(options);
 
   // I'm really not happy about this hack, but something is wrong with returning
   // YES from application:didFinishLaunchingWithOptions: and so we need to not
   // double-process a deep link if the app was not currently running
   if (self.skipTheNextOpenUrl || url == nil) {
     self.skipTheNextOpenUrl = NO;
+    return NO;
+  }
+
+  NSString *sourceApplication = options[UIApplicationOpenURLOptionsSourceApplicationKey];
+
+  // If the sourceApplication is our bundleIdentifier then we have gotten here
+  // via an internal call to [UIApplication openURL:], and we should not
+  // treat that as a launching from a new link. Teak links should never reach
+  // here in that case, as they should be handled by Teak prior to any attempts
+  // to call [UIApplication openURL:]
+  if(sourceApplication && [[[NSBundle mainBundle] bundleIdentifier] isEqualToString:sourceApplication]) {
+    // Return NO to indicate that the link should be passed to the host application.
     return NO;
   }
 
