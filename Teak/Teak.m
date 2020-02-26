@@ -699,14 +699,15 @@ Teak* _teakSharedInstance;
 
   TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
   if(notif) {
-    // Always send it along to the handler
+    // Always inform the host app that a foreground notification was received
     [self didReceiveForegroundNotification:notif];
   }
 
-  // Optionally display in foreground
+  // Optionally display the notification in the foreground if requested
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
 }
 
+// This method will be called whenever a taps on a notification
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
