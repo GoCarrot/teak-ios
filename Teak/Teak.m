@@ -689,15 +689,13 @@ Teak* _teakSharedInstance;
   TeakUnused(center);
 
   TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
-  if(!notif) {
-    return;
+  if(notif) {
+    // Always send it along to the handler
+    [self didReceiveForegroundNotification:notif];
   }
 
   // Optionally display in foreground
-  completionHandler(notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
-
-  // Always send it along to the handler
-  [self didReceiveForegroundNotification:notif];
+  completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
@@ -706,13 +704,11 @@ Teak* _teakSharedInstance;
   TeakUnused(center);
 
   TeakNotification* notif = [self teakNotificationFromUserInfo:response.notification.request.content.userInfo];
-  if(!notif) {
-    return;
+  if(notif) {
+    [self didLaunchFromNotification:notif inBackground:[UIApplication sharedApplication].applicationState != UIApplicationStateActive];
   }
 
-  [self didLaunchFromNotification:notif inBackground:[UIApplication sharedApplication].applicationState != UIApplicationStateActive];
-
-  // Completion handler
+  // Let the OS know we're done handling this.
   completionHandler();
 
   // TODO: HERE is where we report metric that a button was pressed
