@@ -221,28 +221,24 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
   @try {
     NSURL* url = [NSURL URLWithString:deepLink];
-    if (url != nil) {
-      // If there's a deep link, see if Teak handles it. Otherwise use openURL.
-      BOOL teakHandledDeepLink = TeakLink_HandleDeepLink(url);
+    if (!url) return;
 
-      dispatch_async(dispatch_get_main_queue(), ^{
-        UIApplication* application = [UIApplication sharedApplication];
+    // Time to handle our deep link, finally!
+    TeakLink_HandleDeepLink(url);
 
-        // If Teak handled the link, pass it to the application delegate
-        if (teakHandledDeepLink) {
-          if (sHostAppOpenURLOptionsIMP) {
-            // iOS 10+
-            sHostAppOpenURLOptionsIMP(application.delegate, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
-          } else if (sHostAppOpenURLIMP) {
-            // iOS < 10
-            sHostAppOpenURLIMP(application.delegate, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
-          }
-        } else if ([application canOpenURL:url]) {
-          // If Teak didn't handle the link, openUrl
-          [application openURL:url];
-        }
-      });
-    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+      UIApplication* application = [UIApplication sharedApplication];
+
+      // It is safe to do this even with links that are handled by Teak,
+      // because the Teak delegate hooks check if the link was opened by the
+      // host app and bail if it was. By doing this, we ensure that all links
+      // are handled to application delegates even in cases where Teak failed
+      // to hook the application delegate, e.g. Unity custom application
+      // delegates.
+      if ([application canOpenURL:url]) {
+        [application openURL:url];
+      }
+    });
   } @finally {
   }
 }
