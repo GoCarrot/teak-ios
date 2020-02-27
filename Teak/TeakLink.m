@@ -2,8 +2,6 @@
 #import "TeakAppConfiguration.h"
 
 BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
-extern BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id);
-extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*);
 
 NSString* const TeakLinkIncomingUrlKey = @"__incoming_url";
 NSString* const TeakLinkIncomingUrlPathKey = @"__incoming_path";
