@@ -380,9 +380,7 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic pop
 }
 
-- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
-  TeakUnused(application);
-
+- (BOOL)handleOpenURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication {
   // I'm really not happy about this hack, but something is wrong with returning
   // YES from application:didFinishLaunchingWithOptions: and so we need to not
   // double-process a deep link if the app was not currently running
@@ -408,16 +406,14 @@ Teak* _teakSharedInstance;
   return [TeakSession didLaunchFromLink:url.absoluteString];
 }
 
-- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
-  NSMutableDictionary* options = [[NSMutableDictionary alloc] init];
-  if (sourceApplication) {
-    options[UIApplicationOpenURLOptionsSourceApplicationKey] = sourceApplication;
-  }
-  if (annotation) {
-    options[UIApplicationOpenURLOptionsAnnotationKey] = annotation;
-  }
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
+  TeakUnused(application);
 
-  return [self application:application openURL:url options:options];
+  return [self handleOpenURL:url sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]];
+}
+
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
+  return [self handleOpenURL:url sourceApplication:sourceApplication];
 }
 
 - (void)setupInternalDeepLinkRoutes {
