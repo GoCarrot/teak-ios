@@ -34,5 +34,7 @@ DeclareTeakState(Expired);
 + (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
 + (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification inBackground:(BOOL)inBackground;
-+ (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink;
+
+// Returns YES if Teak will process the link, NO otherwise
++ (BOOL)didLaunchFromLink:(nonnull NSString*)launchLink;
 @end
