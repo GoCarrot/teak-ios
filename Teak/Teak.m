@@ -367,10 +367,7 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic pop
 }
 
-- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
-  TeakUnused(application);
-  TeakUnused(options);
-
+- (BOOL)handleOpenURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication {
   // I'm really not happy about this hack, but something is wrong with returning
   // YES from application:didFinishLaunchingWithOptions: and so we need to not
   // double-process a deep link if the app was not currently running
@@ -379,14 +376,29 @@ Teak* _teakSharedInstance;
     return NO;
   }
 
-  [TeakSession didLaunchFromDeepLink:url.absoluteString];
-  return YES;
+  // If the sourceApplication is our bundleIdentifier then we have gotten here
+  // via an internal call to [UIApplication openURL:], and we should not
+  // treat that as a launching from a new link. Teak links should never reach
+  // here in that case, as they should be handled by Teak prior to any attempts
+  // to call [UIApplication openURL:]
+  if (sourceApplication && [[[NSBundle mainBundle] bundleIdentifier] isEqualToString:sourceApplication]) {
+    // Return NO to indicate that the link should be passed to the host application.
+    return NO;
+  }
+
+  // Returns YES if it's a Teak link, in which case it will *not* be passed on to the host application.
+  // Returns NO if it's not a Teak link, it will then be passed to the host application.
+  return [TeakSession didLaunchFromLink:url.absoluteString];
+}
+
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
+  TeakUnused(application);
+
+  return [self handleOpenURL:url sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]];
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
-  TeakUnused(sourceApplication);
-  TeakUnused(annotation);
-  return [self application:application openURL:url options:@{}];
+  return [self handleOpenURL:url sourceApplication:sourceApplication];
 }
 
 - (void)setupInternalDeepLinkRoutes {
@@ -669,16 +681,6 @@ Teak* _teakSharedInstance;
       BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
       BOOL showInForeground = TeakBoolFor(aps[@"teakShowInForeground"]);
 
-      NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
-      teakUserInfo[@"teakNotifId"] = teakNotifId;
-#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
-      teakUserInfo[@"teakRewardId"] = ValueOrNSNull(notif.teakRewardId);
-      teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(notif.teakScheduleName);
-      teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(notif.teakCreativeName);
-      teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(notif.teakDeepLink);
-#undef ValueOrNSNull
-      teakUserInfo[@"incentivized"] = notif.teakRewardId == nil ? @NO : @YES;
-
       // Notification was tapped
       if (isInBackground || showInForeground) {
         TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
@@ -688,7 +690,7 @@ Teak* _teakSharedInstance;
         [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
           [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                               object:self
-                                                            userInfo:teakUserInfo];
+                                                            userInfo:notif.eventUserInfo];
         }];
       }
 
@@ -700,7 +702,7 @@ Teak* _teakSharedInstance;
         [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
           [[NSNotificationCenter defaultCenter] postNotificationName:TeakForegroundNotification
                                                               object:self
-                                                            userInfo:teakUserInfo];
+                                                            userInfo:notif.eventUserInfo];
         }];
       }
     }
@@ -743,7 +745,7 @@ Teak* _teakSharedInstance;
                  }
 
                  // Attribution
-                 [TeakSession didLaunchFromDeepLink:attributionUrlAsString];
+                 [TeakSession didLaunchFromLink:attributionUrlAsString];
                }];
     [task resume];
   }

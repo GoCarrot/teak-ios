@@ -33,6 +33,20 @@
   return self;
 }
 
+- (NSDictionary*)eventUserInfo {
+  NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
+  teakUserInfo[@"teakNotifId"] = self.teakNotifId;
+#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
+  teakUserInfo[@"teakRewardId"] = ValueOrNSNull(self.teakRewardId);
+  teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(self.teakScheduleName);
+  teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(self.teakCreativeName);
+  teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(self.teakDeepLink);
+#undef ValueOrNSNull
+  teakUserInfo[@"incentivized"] = self.teakRewardId == nil ? @NO : @YES;
+
+  return teakUserInfo;
+}
+
 - (NSString*)description {
   return [NSString stringWithFormat:@"<%@: %p> completed: %@;%@ teak-notif-id: %@; teak-reward-id: %@; teak-deep-link: %@; original-json: %@",
                                     NSStringFromClass([self class]),
