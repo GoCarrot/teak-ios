@@ -13,7 +13,15 @@ NSString* TeakNSStringOrNilFor(id object) {
 }
 
 NSString* TeakURLEscapedString(NSString* inString) {
-  return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+  static NSCharacterSet* rfc3986Reserved = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    // Future-Pat, we're making our own allowed set because the Apple provided character sets
+    // are opaque and they seem to
+    rfc3986Reserved = [[NSCharacterSet characterSetWithCharactersInString:@"!*'();:@&=+$,/?#[]% "] invertedSet];
+  });
+
+  return [inString stringByAddingPercentEncodingWithAllowedCharacters:rfc3986Reserved];
 }
 
 BOOL TeakBoolFor(id object) {
