@@ -40,7 +40,7 @@ NSString* const TeakHostname = @"gocarrot.com";
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
 
-// FB SDK 4.x, 5.x
+// FB SDK 4.x, 5.x, 6.x
 NSString* const TeakFBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
 NSString* const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
 NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
@@ -105,6 +105,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut andEmail:(nullable NSString*)email {
+  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"optOut" : _(optOut), @"email" : _(email)});
+
   [self processDeepLinks];
 
   if (userIdentifier == nil || userIdentifier.length == 0) {
@@ -127,6 +129,8 @@ Teak* _teakSharedInstance;
   actionId = [[actionId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectTypeId = [[objectTypeId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
   objectInstanceId = [[objectInstanceId copy] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+
+  TeakLog_t(@"[Teak incrementEventWithActionId]", @{@"actionId" : _(actionId), @"objectTypeId" : _(objectTypeId), @"objectInstanceId" : _(objectInstanceId), @"count" : [NSNumber numberWithLongLong:count]});
 
   if (actionId == nil || actionId.length == 0) {
     TeakLog_e(@"track_event.error", @"actionId can not be null or empty, ignoring.");
@@ -165,6 +169,8 @@ Teak* _teakSharedInstance;
 }
 
 - (TeakNotificationState)notificationState {
+  TeakLog_t(@"[Teak notificationState]", @{});
+
   NSInvocationOperation* op = [self.pushState currentPushState];
   [op waitUntilFinished];
 
@@ -181,10 +187,13 @@ Teak* _teakSharedInstance;
 }
 
 - (BOOL)openSettingsAppToThisAppsSettings {
+  TeakLog_t(@"[Teak openSettingsAppToThisAppsSettings]", @{});
   return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 }
 
 - (void)setApplicationBadgeNumber:(int)count {
+  TeakLog_t(@"[Teak setApplicationBadgeNumber]", @{@"count" : [NSNumber numberWithInt:count]});
+
   // If iOS 8+ then check first to see if we have permission to change badge, otherwise
   // just go ahead and change it.
   if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
@@ -199,6 +208,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setNumericAttribute:(double)value forKey:(NSString* _Nonnull)key {
+  TeakLog_t(@"[Teak setNumericAttribute]", @{@"value" : [NSNumber numberWithDouble:value], @"key" : _(key)});
+
   double copiedValue = value;
   NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
@@ -207,6 +218,8 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setStringAttribute:(NSString* _Nonnull)value forKey:(NSString* _Nonnull)key {
+  TeakLog_t(@"[Teak setStringAttribute]", @{@"value" : _(value), @"key" : _(key)});
+
   NSString* copiedValue = [value copy];
   NSString* copiedKey = [key copy];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
@@ -367,7 +380,9 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic pop
 }
 
-- (BOOL)handleOpenURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication {
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
+  TeakUnused(application);
+
   // I'm really not happy about this hack, but something is wrong with returning
   // YES from application:didFinishLaunchingWithOptions: and so we need to not
   // double-process a deep link if the app was not currently running
@@ -375,6 +390,8 @@ Teak* _teakSharedInstance;
     self.skipTheNextOpenUrl = NO;
     return NO;
   }
+
+  NSString* sourceApplication = options[UIApplicationOpenURLOptionsSourceApplicationKey];
 
   // If the sourceApplication is our bundleIdentifier then we have gotten here
   // via an internal call to [UIApplication openURL:], and we should not
@@ -391,14 +408,16 @@ Teak* _teakSharedInstance;
   return [TeakSession didLaunchFromLink:url.absoluteString];
 }
 
-- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
-  TeakUnused(application);
-
-  return [self handleOpenURL:url sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]];
-}
-
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
-  return [self handleOpenURL:url sourceApplication:sourceApplication];
+  NSMutableDictionary* options = [[NSMutableDictionary alloc] init];
+  if (sourceApplication) {
+    options[UIApplicationOpenURLOptionsSourceApplicationKey] = sourceApplication;
+  }
+  if (annotation) {
+    options[UIApplicationOpenURLOptionsAnnotationKey] = annotation;
+  }
+
+  return [self application:application openURL:url options:options];
 }
 
 - (void)setupInternalDeepLinkRoutes {
@@ -470,15 +489,15 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
   // Facebook SDKs
-  Class fbClass_4x5x = NSClassFromString(@"FBSDKProfile");
+  Class fbClass_4x5x6x = NSClassFromString(@"FBSDKProfile");
   Class fbClass_3x = NSClassFromString(@"FBSession");
   teak_try {
-    if (fbClass_4x5x != nil) {
+    if (fbClass_4x5x6x != nil) {
       BOOL arg = YES;
       SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
-      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x5x methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
+      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x5x6x methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
       [inv setSelector:enableUpdatesOnAccessTokenChange];
-      [inv setTarget:fbClass_4x5x];
+      [inv setTarget:fbClass_4x5x6x];
       [inv setArgument:&arg atIndex:2];
       [inv invoke];
 
@@ -606,37 +625,6 @@ Teak* _teakSharedInstance;
   [application registerForRemoteNotifications];
 }
 
-- (void)userNotificationCenter:(UNUserNotificationCenter*)center
-       willPresentNotification:(UNNotification*)notification
-         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
-  TeakUnused(center);
-
-  // Check for foreground display flag
-  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
-  BOOL displayInForeground = TeakBoolFor(aps[@"teakShowInForeground"]);
-
-  // Optionally display in foreground
-  completionHandler(displayInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
-
-  // Always send it along to the handler
-  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:notification.request.content.userInfo];
-}
-
-- (void)userNotificationCenter:(UNUserNotificationCenter*)center
-    didReceiveNotificationResponse:(UNNotificationResponse*)response
-             withCompletionHandler:(void (^)(void))completionHandler {
-  TeakUnused(center);
-
-  // Call application:didReceiveRemoteNotification: since that is not called in the UNNotificationCenter
-  // code path.
-  [self application:[UIApplication sharedApplication] didReceiveRemoteNotification:response.notification.request.content.userInfo];
-
-  // Completion handler
-  completionHandler();
-
-  // TODO: HERE is where we report metric that a button was pressed
-}
-
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
   TeakUnused(application);
 
@@ -664,50 +652,109 @@ Teak* _teakSharedInstance;
   }
 }
 
-- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
-  // Check to see if this should be skipped
+// This MUST be called when we know that a user tapped on a notification.
+- (void)didLaunchFromNotification:(TeakNotification*)notif inBackground:(BOOL)isInBackground {
+  // This is a workaround for when we track that we launched through a
+  // notification from didFinishLaunchingWithOptions and iOS subsequently calls
+  // another one of our relevant delegate methods.
+  //
+  // In testing back to iOS 8.4.1 iOS _always_ calls one of our other delegate
+  // methods after calling didFinishLaunchingWithOptions. This workaround may
+  // have been necessary for iOS 7 or earlier, however we can no longer test
+  // those cases. This workaround will remain until such time as we can drop
+  // support for iOS < 10.
   if (self.skipTheNextDidReceiveNotificationResponse) {
     self.skipTheNextDidReceiveNotificationResponse = NO;
     return;
   }
 
+  TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(notif.teakNotifId)});
+
+  [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
+
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                        object:self
+                                                      userInfo:notif.eventUserInfo];
+  }];
+}
+
+// This should be called when a notification was received with the app in the
+// foreground.
+- (void)didReceiveForegroundNotification:(TeakNotification*)notif {
+  TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(notif.teakNotifId)});
+
+  // Notify any listeners that a foreground notification has been received.
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    [[NSNotificationCenter defaultCenter] postNotificationName:TeakForegroundNotification
+                                                        object:self
+                                                      userInfo:notif.eventUserInfo];
+  }];
+}
+
+- (TeakNotification*)teakNotificationFromUserInfo:(NSDictionary*)userInfo {
   NSDictionary* aps = userInfo[@"aps"];
   NSString* teakNotifId = NSStringOrNilFor(aps[@"teakNotifId"]);
-
-  if (teakNotifId != nil) {
-    TeakNotification* notif = [[TeakNotification alloc] initWithDictionary:aps];
-
-    if (notif != nil) {
-      BOOL isInBackground = application.applicationState == UIApplicationStateInactive || application.applicationState == UIApplicationStateBackground;
-      BOOL showInForeground = TeakBoolFor(aps[@"teakShowInForeground"]);
-
-      // Notification was tapped
-      if (isInBackground || showInForeground) {
-        TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(teakNotifId)});
-
-        [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
-
-        [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-          [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                              object:self
-                                                            userInfo:notif.eventUserInfo];
-        }];
-      }
-
-      // If this is in the foreground, send a foreground notification event
-      if (!isInBackground) {
-        // Push notification received while app was in foreground
-        TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(teakNotifId)});
-
-        [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-          [[NSNotificationCenter defaultCenter] postNotificationName:TeakForegroundNotification
-                                                              object:self
-                                                            userInfo:notif.eventUserInfo];
-        }];
-      }
-    }
-  } else {
+  if (!teakNotifId) {
     TeakLog_i(@"notification.non_teak", userInfo);
+    return nil;
+  }
+
+  return [[TeakNotification alloc] initWithDictionary:aps];
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+       willPresentNotification:(UNNotification*)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+  TeakUnused(center);
+
+  TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
+  if (notif) {
+    // Always inform the host app that a foreground notification was received
+    [self didReceiveForegroundNotification:notif];
+  }
+
+  // Optionally display the notification in the foreground if requested
+  completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
+}
+
+// This method will be called whenever a taps on a notification
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+    didReceiveNotificationResponse:(UNNotificationResponse*)response
+             withCompletionHandler:(void (^)(void))completionHandler {
+  TeakUnused(center);
+
+  TeakNotification* notif = [self teakNotificationFromUserInfo:response.notification.request.content.userInfo];
+  if (notif) {
+    [self didLaunchFromNotification:notif inBackground:[UIApplication sharedApplication].applicationState != UIApplicationStateActive];
+  }
+
+  // Let the OS know we're done handling this.
+  completionHandler();
+
+  // TODO: HERE is where we report metric that a button was pressed
+}
+
+// This method is only called by iOS on versions of iOS which do not provide the
+// userNotificationCenter callbacks. Those versions of iOS do not support
+// displaying notifications in the foreground, and thus this method does not
+// need to handle the case where it is called after a user has tapped a
+// foreground notification.
+- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
+  TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
+  if (!notif) {
+    return;
+  }
+
+  // Application state can be foreground, background, or inactive. Inactive
+  // indicates that we are transitioning from the background to the foreground.
+  // This method may be called when the notification sets content-available and
+  // the app is background. However that situation does not indicate a launch
+  // from the notification.
+  if (application.applicationState == UIApplicationStateInactive) {
+    [self didLaunchFromNotification:notif inBackground:true];
+  } else if (application.applicationState == UIApplicationStateActive) {
+    [self didReceiveForegroundNotification:notif];
   }
 }
 

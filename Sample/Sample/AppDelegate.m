@@ -23,9 +23,6 @@
 // Import Teak into your UIApplicationDelegate implementation.
 #import <Teak/Teak.h>
 
-// For testing
-extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
-
 @import AdSupport;
 
 @interface AppDelegate ()

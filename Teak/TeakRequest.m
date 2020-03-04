@@ -307,6 +307,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     h[@"response_time"] = [NSNumber numberWithDouble:[self.sendDate timeIntervalSinceNow] * -1000.0];
     h[@"payload"] = payload;
+    h[@"response_headers"] = response.allHeaderFields;
     TeakLog_i(@"request.reply", h);
 
     if (response.statusCode == 403) {
@@ -616,9 +617,12 @@ KeyValueObserverSupported(TeakBatchedRequest);
   } else {
     teak_try {
       @synchronized(self) {
-        reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:self.responseData[@(dataTask.taskIdentifier)]
-                                                               options:kNilOptions
-                                                                 error:&error];
+        NSData* data = self.responseData[@(dataTask.taskIdentifier)];
+        if (data) {
+          reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data
+                                                                 options:kNilOptions
+                                                                   error:&error];
+        }
       }
 
       if (error) {
