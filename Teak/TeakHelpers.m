@@ -17,7 +17,9 @@ NSString* TeakURLEscapedString(NSString* inString) {
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     // Future-Pat, we're making our own allowed set because the Apple provided character sets
-    // are opaque and they seem to
+    // are opaque. I tried iterating through the inverted [NSCharacterSet URLQueryAllowedCharacterSet]
+    // but still could not get the data out of it. It's better to know what we're dealing with, since
+    // the [NSCharacterSet URLQueryAllowedCharacterSet] was not percent-encoding a +
     rfc3986Reserved = [[NSCharacterSet characterSetWithCharactersInString:@"!*'();:@&=+$,/?#[]% "] invertedSet];
   });
 
