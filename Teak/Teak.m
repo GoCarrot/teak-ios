@@ -389,8 +389,6 @@ Teak* _teakSharedInstance;
     return NO;
   }
 
-  NSString* sourceApplication = options[UIApplicationOpenURLOptionsSourceApplicationKey];
-
   // If the sourceApplication is our bundleIdentifier then we have gotten here
   // via an internal call to [UIApplication openURL:], and we should not
   // treat that as a launching from a new link. Teak links should never reach
