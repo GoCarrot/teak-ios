@@ -10,6 +10,7 @@
 @property (strong, nonatomic, readonly) NSString* _Nullable teakCreativeName;
 @property (strong, nonatomic, readonly) NSDictionary* _Nullable originalJson;
 @property (strong, nonatomic, readonly) NSString* _Nullable teakDeepLink;
+@property (atomic, readonly) BOOL showInForeground;
 @property (atomic, readonly) BOOL completed;
 
 - (nullable TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary;
