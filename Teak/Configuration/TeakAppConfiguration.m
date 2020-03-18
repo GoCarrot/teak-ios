@@ -23,6 +23,7 @@ BOOL Teak_isProductionBuild() {
 @property (strong, nonatomic, readwrite) NSString* appVersion;
 @property (strong, nonatomic, readwrite) NSSet* urlSchemes;
 @property (nonatomic, readwrite) BOOL isProduction;
+@property (nonatomic, readwrite) BOOL traceLog;
 @end
 
 @implementation TeakAppConfiguration
@@ -51,6 +52,11 @@ BOOL Teak_isProductionBuild() {
       self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
     }
     teak_catch_report;
+
+#define kTeakLogTrace @"TeakLogTrace"
+#define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? NO : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
+    self.traceLog = IS_FEATURE_ENABLED(kTeakLogTrace);
+#undef IS_FEATURE_ENABLED
   }
   return self;
 }
@@ -61,18 +67,20 @@ BOOL Teak_isProductionBuild() {
     @"apiKey" : self.apiKey,
     @"bundleId" : self.bundleId,
     @"appVersion" : self.appVersion,
-    @"isProduction" : self.isProduction ? @YES : @NO
+    @"isProduction" : self.isProduction ? @YES : @NO,
+    @"traceLog" : self.traceLog ? @YES : @NO
   };
 }
 
 - (NSString*)description {
-  return [NSString stringWithFormat:@"<%@: %p> app-id: %@; api-key: %@; bundle-id: %@; app-version: %@; is-production: %@",
+  return [NSString stringWithFormat:@"<%@: %p> app-id: %@; api-key: %@; bundle-id: %@; app-version: %@; is-production: %@; trace-log: %@",
                                     NSStringFromClass([self class]),
                                     self, // @"0x%016llx"
                                     self.appId,
                                     self.apiKey,
                                     self.bundleId,
                                     self.appVersion,
-                                    self.isProduction ? @"YES" : @"NO"];
+                                    self.isProduction ? @"YES" : @"NO",
+                                    self.traceLog ? @"YES" : @"NO"];
 }
 @end
