@@ -154,6 +154,13 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
             params[TeakLinkIncomingUrlKey] = [deepLink absoluteString];
           }
 
+          // Log that we handled the deep link
+          TeakLog_i(@"deep_link.handled", @{
+            @"url" : [deepLink absoluteString],
+            @"params" : params,
+            @"route" : [link route]
+          });
+
           link.block(params);
           return YES;
         }
@@ -162,6 +169,8 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     }
   }
 
+  // Log that we ignored the deep link
+  TeakLog_i(@"deep_link.ignored", @{@"url" : [deepLink absoluteString]});
   return NO;
 }
 

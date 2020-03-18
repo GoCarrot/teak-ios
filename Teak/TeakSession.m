@@ -540,6 +540,9 @@ DefineTeakState(Expired, (@[]));
   // If we're personalizing it, we're sending it as 'deep_link' to the server
   if (shouldPersonalizeLink) {
     launchAttribution[@"deep_link"] = [launchLink copy];
+  } else {
+    // If we aren't personalizing it, log that we are ignoring it
+    TeakLog_i(@"deep_link.ignored", @{@"url" : launchLink});
   }
 
   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
