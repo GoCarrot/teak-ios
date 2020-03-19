@@ -28,6 +28,10 @@ void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const cha
                              andEmail:ns_email];
 }
 
+void TeakLogout() {
+  [[Teak sharedInstance] logout];
+}
+
 void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId) {
   [[Teak sharedInstance] trackEventWithActionId:actionId == NULL ? nil : [NSString stringWithUTF8String:actionId]
                                 forObjectTypeId:objectTypeId == NULL ? nil : [NSString stringWithUTF8String:objectTypeId]

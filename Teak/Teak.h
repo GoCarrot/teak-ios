@@ -180,6 +180,11 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut andEmail:(nullable NSString*)email;
 
 /**
+ * Logout the current user
+ */
+- (void)logout;
+
+/**
  * Track an arbitrary event in Teak.
  *
  * @param actionId         The identifier for the action, e.g. 'complete'.

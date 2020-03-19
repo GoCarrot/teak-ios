@@ -15,6 +15,7 @@
 
 #import "FacebookAccessTokenEvent.h"
 #import "LifecycleEvent.h"
+#import "LogoutEvent.h"
 #import "PurchaseEvent.h"
 #import "PushRegistrationEvent.h"
 #import "TrackEventEvent.h"
@@ -119,6 +120,14 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"identify_user", @{@"userId" : userIdentifier, @"optOut" : optOut});
 
   [UserIdEvent userIdentified:[userIdentifier copy] withOptOutList:[optOut copy] andEmail:[email copy]];
+}
+
+- (void)logout {
+  TeakLog_t(@"[Teak logout]", @{});
+
+  TeakLog_i(@"logout");
+
+  [LogoutEvent logout];
 }
 
 - (void)trackEventWithActionId:(NSString*)actionId forObjectTypeId:(NSString*)objectTypeId andObjectInstanceId:(NSString*)objectInstanceId {

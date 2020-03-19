@@ -406,12 +406,28 @@ DefineTeakState(Expired, (@[]));
         case LifecycleDeactivate: {
           [TeakSession applicationWillResignActive];
         } break;
+        case Logout: {
+          [TeakSession logout];
+        } break;
         default:
           break;
       }
     }];
   });
   [TeakEvent addEventHandler:handler];
+}
+
++ (void)logout {
+  @synchronized(currentSessionMutex) {
+    @synchronized(currentSession) {
+      TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
+
+      [currentSession setState:[TeakSession Expiring]];
+      [currentSession setState:[TeakSession Expired]];
+
+      currentSession = newSession;
+    }
+  }
 }
 
 + (void)setUserId:(nonnull NSString*)userId andEmail:(nullable NSString*)email {
@@ -424,12 +440,7 @@ DefineTeakState(Expired, (@[]));
     [TeakSession currentSession];
     @synchronized(currentSession) {
       if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
-        TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
-
-        [currentSession setState:[TeakSession Expiring]];
-        [currentSession setState:[TeakSession Expired]];
-
-        currentSession = newSession;
+        [TeakSession logout];
       }
 
       BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
