@@ -791,7 +791,17 @@ Teak* _teakSharedInstance;
                        attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
                        TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
                      }
+                   } else {
+                     TeakLog_e(@"deep_link.reply.error", @{
+                       @"url" : attributionUrlAsString,
+                       @"error" : [error description]
+                     });
                    }
+                 } else {
+                   TeakLog_e(@"deep_link.request.error", @{
+                     @"url" : attributionUrlAsString,
+                     @"error" : [error description]
+                   });
                  }
 
                  // Attribution
