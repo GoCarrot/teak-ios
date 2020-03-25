@@ -204,6 +204,10 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @implementation TeakLogSender
 
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
+  [self sendData:data toEndpoint:endpoint reason:nil];
+}
+
+- (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint reason:(NSString*)reason {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];
 
   [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
@@ -214,7 +218,20 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:data];
 
-  NSURLSessionDataTask* dataTask = [[Teak URLSessionWithoutDelegate] dataTaskWithRequest:request];
+  NSURLSessionDataTask* dataTask = [[Teak URLSessionWithoutDelegate]
+      dataTaskWithRequest:request
+        completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+          // When there is an error with the NSPOSIXErrorDomain domain, and the code is 53
+          // this is iOS 12 coming back from the background and failing network requests.
+          if (error && error.domain == NSPOSIXErrorDomain && error.code == 53 && reason == nil) {
+            __weak typeof(self) weakSelf = self;
+            double delayInSeconds = 1.5;
+            dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+            dispatch_after(popTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^(void) {
+              [weakSelf sendData:data toEndpoint:endpoint reason:@"ios12_retry"];
+            });
+          }
+        }];
   [dataTask resume];
 }
 
