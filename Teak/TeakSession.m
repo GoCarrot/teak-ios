@@ -463,9 +463,9 @@ DefineTeakState(Expired, (@[]));
     // Call getCurrentSession() so the null || Expired logic stays in one place
     [TeakSession currentSession];
 
-    // It's a new session if there's a new launch from a notification
-    if (![attribution isEqualToDictionary:currentSession.launchAttribution] &&
-        (currentSession.currentState != [TeakSession Allocated] && currentSession.currentState != [TeakSession Created])) {
+    // If there's already an active session, then create a new one
+    if (currentSession.currentState != [TeakSession Allocated] &&
+        currentSession.currentState != [TeakSession Created]) {
       TeakLog_i(@"session.attribution", attribution);
 
       TeakSession* oldSession = currentSession;
