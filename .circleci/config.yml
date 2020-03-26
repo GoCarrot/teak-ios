@@ -105,6 +105,13 @@ workflows:
           filters:
             tags:
               ignore: /.*/
+      - tag_build:
+          requires:
+            - build
+          filters:
+            tags:
+              ignore: /.*/
+
   tagged-build:
     jobs:
       - test:
