@@ -766,51 +766,69 @@ Teak* _teakSharedInstance;
   TeakUnused(restorationHandler);
 
   if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
+    [self resolveUniversalLinkAndSetAttribution:userActivity.webpageURL isRetry:NO];
+  }
 
-    // Make sure the URL we fetch is https
-    NSURLComponents* components = [NSURLComponents componentsWithURL:userActivity.webpageURL
-                                             resolvingAgainstBaseURL:YES];
-    components.scheme = @"https";
-    NSURL* fetchUrl = components.URL;
+  return YES;
+}
 
-    TeakLog_i(@"deep_link.request.send", [fetchUrl absoluteString]);
-    // Fetch the data for the short link
-    NSURLSession* session = [Teak URLSessionWithoutDelegate];
-    NSURLSessionDataTask* task =
-        [session dataTaskWithURL:fetchUrl
-               completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
-                 NSString* attributionUrlAsString = [userActivity.webpageURL absoluteString];
+- (void)resolveUniversalLinkAndSetAttribution:(NSURL*)webpageURL isRetry:(BOOL)isRetry {
+  // Make sure the URL we fetch is https
+  NSURLComponents* components = [NSURLComponents componentsWithURL:webpageURL
+                                           resolvingAgainstBaseURL:YES];
+  components.scheme = @"https";
+  NSURL* fetchUrl = components.URL;
 
+  TeakLog_i(@"deep_link.request.send", [fetchUrl absoluteString]);
+  // Fetch the data for the short link
+  NSURLSession* session = [Teak URLSessionWithoutDelegate];
+  NSURLSessionDataTask* task =
+      [session dataTaskWithURL:fetchUrl
+             completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
+               NSString* attributionUrlAsString = [webpageURL absoluteString];
+
+               // If we aren't already retrying, and there's any kind of error (for example iOS 12 malarky)
+               // wait 1.5 seconds and retry.
+               if (error != nil && !isRetry) {
+                 __weak typeof(self) weakSelf = self;
+                 double delayInSeconds = 1.5;
+                 dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+                 dispatch_after(popTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^(void) {
+                   [weakSelf resolveUniversalLinkAndSetAttribution:webpageURL isRetry:YES];
+                 });
+
+                 // Bail out here so that we do not set the attribution
+                 return;
+               } else if (error != nil) {
+                 // We already retried, and there's still an error, so log the error
+                 TeakLog_e(@"deep_link.request.error", @{
+                   @"url" : attributionUrlAsString,
+                   @"error" : [error description]
+                 });
+
+                 // But don't return because we'll still send the link along as attribution
+               } else {
+                 TeakLog_i(@"deep_link.request.reply", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
+
+                 NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
                  if (error == nil) {
-                   TeakLog_i(@"deep_link.request.reply", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
-
-                   NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                   if (error == nil) {
-                     NSString* iOSPath = reply[@"iOSPath"];
-                     if (iOSPath != nil) {
-                       attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
-                       TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
-                     }
-                   } else {
-                     TeakLog_e(@"deep_link.reply.error", @{
-                       @"url" : attributionUrlAsString,
-                       @"error" : [error description]
-                     });
+                   NSString* iOSPath = reply[@"iOSPath"];
+                   if (iOSPath != nil) {
+                     attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                     TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
                    }
                  } else {
-                   TeakLog_e(@"deep_link.request.error", @{
+                   TeakLog_e(@"deep_link.json.error", @{
                      @"url" : attributionUrlAsString,
                      @"error" : [error description]
                    });
                  }
+               }
 
-                 // Attribution
-                 [TeakSession didLaunchFromLink:attributionUrlAsString];
-               }];
-    [task resume];
-  }
-
-  return YES;
+               // Attribution
+               [TeakSession didLaunchFromLink:attributionUrlAsString];
+             }];
+  [task resume];
 }
 
 @end
