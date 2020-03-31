@@ -8,6 +8,7 @@
 @property (strong, nonatomic, readonly) NSString* _Nullable teakRewardId;
 @property (strong, nonatomic, readonly) NSString* _Nullable teakScheduleName;
 @property (strong, nonatomic, readonly) NSString* _Nullable teakCreativeName;
+@property (strong, nonatomic, readonly) NSString* _Nullable teakChannelName;
 @property (strong, nonatomic, readonly) NSDictionary* _Nullable originalJson;
 @property (strong, nonatomic, readonly) NSString* _Nullable teakDeepLink;
 @property (atomic, readonly) BOOL showInForeground;

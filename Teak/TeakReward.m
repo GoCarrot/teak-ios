@@ -105,6 +105,7 @@
       userInfo[@"teakRewardId"] = teakRewardId;
       userInfo[@"teakScheduleName"] = ValueOrNSNull(attribution[@"teak_schedule_name"]);
       userInfo[@"teakCreativeName"] = ValueOrNSNull(teakCreativeName);
+      userInfo[@"teakChannelName"] = ValueOrNSNull(attribution[@"teak_channel_name"]);
       userInfo[@"incentivized"] = @YES;
       [userInfo addEntriesFromDictionary:blockReward.json];
 #undef ValueOrNSNull
