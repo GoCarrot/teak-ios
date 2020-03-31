@@ -185,7 +185,8 @@ commands:
             source /Users/distiller/.rvm/scripts/rvm
             rvm autolibs enable
             rvm list | grep << parameters.ruby >> || rvm install ruby-<< parameters.ruby >>
-            rvm use ruby-<< parameters.ruby >>
+            rvm use default
+          # HAX ruby-<< parameters.ruby >>
       - run:
           name: Ruby Gems
           command: |
