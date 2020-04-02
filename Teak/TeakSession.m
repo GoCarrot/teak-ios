@@ -16,6 +16,8 @@ NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
+extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
+
 @interface TeakSession ()
 @property (strong, nonatomic, readwrite) TeakState* currentState;
 @property (strong, nonatomic) TeakState* previousState;
@@ -225,8 +227,14 @@ DefineTeakState(Expired, (@[]));
       }
     }
 
-    if (self.facebookAccessToken != nil && dataCollectionConfiguration.enableFacebookAccessToken) {
-      payload[@"access_token"] = self.facebookAccessToken;
+    if (dataCollectionConfiguration.enableFacebookAccessToken) {
+      if (self.facebookAccessToken == nil) {
+        self.facebookAccessToken = [FacebookAccessTokenEvent currentAccessToken];
+      }
+
+      if (self.facebookAccessToken != nil) {
+        payload[@"access_token"] = self.facebookAccessToken;
+      }
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
@@ -398,12 +406,28 @@ DefineTeakState(Expired, (@[]));
         case LifecycleDeactivate: {
           [TeakSession applicationWillResignActive];
         } break;
+        case Logout: {
+          [TeakSession logout];
+        } break;
         default:
           break;
       }
     }];
   });
   [TeakEvent addEventHandler:handler];
+}
+
++ (void)logout {
+  @synchronized(currentSessionMutex) {
+    @synchronized(currentSession) {
+      TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
+
+      [currentSession setState:[TeakSession Expiring]];
+      [currentSession setState:[TeakSession Expired]];
+
+      currentSession = newSession;
+    }
+  }
 }
 
 + (void)setUserId:(nonnull NSString*)userId andEmail:(nullable NSString*)email {
@@ -416,12 +440,7 @@ DefineTeakState(Expired, (@[]));
     [TeakSession currentSession];
     @synchronized(currentSession) {
       if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
-        TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
-
-        [currentSession setState:[TeakSession Expiring]];
-        [currentSession setState:[TeakSession Expired]];
-
-        currentSession = newSession;
+        [TeakSession logout];
       }
 
       BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
@@ -444,9 +463,9 @@ DefineTeakState(Expired, (@[]));
     // Call getCurrentSession() so the null || Expired logic stays in one place
     [TeakSession currentSession];
 
-    // It's a new session if there's a new launch from a notification
-    if (![attribution isEqualToDictionary:currentSession.launchAttribution] &&
-        (currentSession.currentState != [TeakSession Allocated] && currentSession.currentState != [TeakSession Created])) {
+    // If there's already an active session, then create a new one
+    if (currentSession.currentState != [TeakSession Allocated] &&
+        currentSession.currentState != [TeakSession Created]) {
       TeakLog_i(@"session.attribution", attribution);
 
       TeakSession* oldSession = currentSession;
@@ -494,7 +513,8 @@ DefineTeakState(Expired, (@[]));
   launchAttribution[@"teak_notif_id"] = notification.teakNotifId;
 
   if (notification.teakDeepLink != nil) {
-    launchAttribution[@"deep_link"] = notification.teakDeepLink;
+    launchAttribution[@"launch_link"] = [notification.teakDeepLink copy];
+    launchAttribution[@"deep_link"] = [notification.teakDeepLink copy];
   }
 
   if (notification.teakRewardId) {
@@ -514,11 +534,30 @@ DefineTeakState(Expired, (@[]));
   [TeakSession setLaunchAttribution:launchAttribution];
 }
 
-+ (void)didLaunchFromDeepLink:(nonnull NSString*)deepLink {
-  NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:deepLink, @"deep_link", nil];
++ (BOOL)didLaunchFromLink:(nonnull NSString*)launchLink {
+  // The launch link always goes into 'launch_link'
+  NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:[launchLink copy], @"launch_link", nil];
+
+  // If the link begins with teakXXXX:// we should attempt to personalize it
+  BOOL shouldPersonalizeLink = NO;
+  @try {
+    NSURL* launchUrl = [NSURL URLWithString:launchLink];
+    if (launchUrl) {
+      shouldPersonalizeLink = TeakLink_WillHandleDeepLink(launchUrl);
+    }
+  } @finally {
+  }
+
+  // If we're personalizing it, we're sending it as 'deep_link' to the server
+  if (shouldPersonalizeLink) {
+    launchAttribution[@"deep_link"] = [launchLink copy];
+  } else {
+    // If we aren't personalizing it, log that we are ignoring it
+    TeakLog_i(@"deep_link.ignored", @{@"url" : launchLink});
+  }
 
   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
-  NSURLComponents* components = [NSURLComponents componentsWithString:deepLink];
+  NSURLComponents* components = [NSURLComponents componentsWithString:launchLink];
   for (NSURLQueryItem* item in components.queryItems) {
     if ([item.name hasPrefix:@"teak_"]) {
       if ([launchAttribution objectForKey:item.name] != nil) {
@@ -537,6 +576,7 @@ DefineTeakState(Expired, (@[]));
   }
 
   [TeakSession setLaunchAttribution:launchAttribution];
+  return shouldPersonalizeLink;
 }
 
 + (TeakSession*)currentSession {

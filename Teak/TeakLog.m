@@ -12,6 +12,28 @@
 NSString* INFO = @"INFO";
 NSString* ERROR = @"ERROR";
 
+extern BOOL Teak_isProductionBuild();
+
+#define kTeakLogTrace @"TeakLogTrace"
+
+__attribute__((overloadable)) void TeakLog_t(NSString* _Nonnull method, NSDictionary* _Nullable eventData) {
+  static BOOL logTrace = NO;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+#define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? NO : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
+    logTrace = IS_FEATURE_ENABLED(kTeakLogTrace);
+#undef IS_FEATURE_ENABLED
+  });
+
+  if (!logTrace) {
+    return;
+  }
+
+  NSMutableDictionary* traceData = [NSMutableDictionary dictionaryWithDictionary:eventData];
+  traceData[@"method"] = method;
+  TeakLog_i(@"trace", traceData);
+}
+
 __attribute__((overloadable)) void TeakLog_e(NSString* eventType) {
   TeakLog_e(eventType, nil, nil);
 }
@@ -153,10 +175,10 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   // Log remotely
   if ([self.teak enableRemoteLogging]) {
     NSString* urlString = nil;
-    if (self.appConfiguration == nil || !self.appConfiguration.isProduction) {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
-    } else {
+    if (Teak_isProductionBuild()) {
       urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/sdk.log.%@", logLevel];
+    } else {
+      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
     }
     TeakLogSender* sender = [[TeakLogSender alloc] init];
     [sender sendData:jsonData toEndpoint:[NSURL URLWithString:urlString]];
@@ -182,6 +204,10 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @implementation TeakLogSender
 
 - (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint {
+  [self sendData:data toEndpoint:endpoint reason:nil];
+}
+
+- (void)sendData:(NSData*)data toEndpoint:(NSURL*)endpoint reason:(NSString*)reason {
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:endpoint];
 
   [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
@@ -192,7 +218,20 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[data length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:data];
 
-  NSURLSessionDataTask* dataTask = [[Teak URLSessionWithoutDelegate] dataTaskWithRequest:request];
+  NSURLSessionDataTask* dataTask = [[Teak URLSessionWithoutDelegate]
+      dataTaskWithRequest:request
+        completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+          // When there is an error with the NSPOSIXErrorDomain domain, and the code is 53
+          // this is iOS 12 coming back from the background and failing network requests.
+          if (error && error.domain == NSPOSIXErrorDomain && error.code == 53 && reason == nil) {
+            __weak typeof(self) weakSelf = self;
+            double delayInSeconds = 1.5;
+            dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+            dispatch_after(popTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^(void) {
+              [weakSelf sendData:data toEndpoint:endpoint reason:@"ios12_retry"];
+            });
+          }
+        }];
   [dataTask resume];
 }
 

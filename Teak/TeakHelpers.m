@@ -13,7 +13,17 @@ NSString* TeakNSStringOrNilFor(id object) {
 }
 
 NSString* TeakURLEscapedString(NSString* inString) {
-  return [inString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+  static NSCharacterSet* rfc3986Reserved = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    // Future-Pat, we're making our own allowed set because the Apple provided character sets
+    // are opaque. I tried iterating through the inverted [NSCharacterSet URLQueryAllowedCharacterSet]
+    // but still could not get the data out of it. It's better to know what we're dealing with, since
+    // the [NSCharacterSet URLQueryAllowedCharacterSet] was not percent-encoding a +
+    rfc3986Reserved = [[NSCharacterSet characterSetWithCharactersInString:@"!*'();:@&=+$,/?#[]% "] invertedSet];
+  });
+
+  return [inString stringByAddingPercentEncodingWithAllowedCharacters:rfc3986Reserved];
 }
 
 BOOL TeakBoolFor(id object) {

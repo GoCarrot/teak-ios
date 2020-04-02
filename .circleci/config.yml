@@ -1,4 +1,8 @@
 version: 2.1
+
+orbs:
+  teak: teak/sdk-utils@0.0.3
+
 jobs:
   test:
     macos:
@@ -21,7 +25,7 @@ jobs:
 
   build:
     macos:
-      xcode: "10.2.1"
+      xcode: "10.1.0"
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup:
@@ -38,6 +42,14 @@ jobs:
             - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
             - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
             - TeakExtensions.zip
+
+  tag_build:
+    docker:
+      - image: circleci/ruby:latest
+    steps:
+      - checkout
+      - teak/tag-promote:
+          fingerprint: "87:61:22:71:86:9b:f2:75:51:fc:e7:eb:63:d3:d2:05"
 
   deploy_versioned:
     docker:
@@ -93,6 +105,13 @@ workflows:
           filters:
             tags:
               ignore: /.*/
+      - tag_build:
+          requires:
+            - build
+          filters:
+            tags:
+              ignore: /.*/
+
   tagged-build:
     jobs:
       - test:
@@ -166,7 +185,8 @@ commands:
             source /Users/distiller/.rvm/scripts/rvm
             rvm autolibs enable
             rvm list | grep << parameters.ruby >> || rvm install ruby-<< parameters.ruby >>
-            rvm use ruby-<< parameters.ruby >>
+            rvm use default
+          # HAX ruby-<< parameters.ruby >>
       - run:
           name: Ruby Gems
           command: |

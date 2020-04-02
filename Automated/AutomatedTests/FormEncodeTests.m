@@ -17,8 +17,6 @@ extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
   // Put teardown code here. This method is called after the invocation of each test method in the class.
 }
 
-/////
-
 - (void)testEmptyPayload {
   XCTAssertEqualObjects(TeakFormEncode(@"some_dict", self.payload, YES), @"");
 }
@@ -47,6 +45,10 @@ extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
   XCTAssertEqualObjects(TeakFormEncode(@"some_dict", self.payload, YES), @"some_dict[value_is_string]=string_has_%25_in_it");
 
   XCTAssertEqualObjects(TeakFormEncode(@"value_is_string", @"string_has_%_in_it", YES), @"value_is_string=string_has_%25_in_it");
+}
+
+- (void)testStringPayloadWithPlusSignInValue {
+  XCTAssertEqualObjects(TeakFormEncode(@"sig", @"am+j\\/WDcNGyMsrROfN4N3EizCF5IQ2z7YwGyjTpItPs=", YES), @"sig=am%2Bj\\%2FWDcNGyMsrROfN4N3EizCF5IQ2z7YwGyjTpItPs%3D");
 }
 
 - (void)testPerformanceExample {

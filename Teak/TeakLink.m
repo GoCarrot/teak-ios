@@ -2,8 +2,6 @@
 #import "TeakAppConfiguration.h"
 
 BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
-extern BOOL (*sHostAppOpenURLIMP)(id, SEL, UIApplication*, NSURL*, NSString*, id);
-extern BOOL (*sHostAppOpenURLOptionsIMP)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*);
 
 NSString* const TeakLinkIncomingUrlKey = @"__incoming_url";
 NSString* const TeakLinkIncomingUrlPathKey = @"__incoming_path";
@@ -63,18 +61,26 @@ NSString* TeakRegexHelper(NSString* pattern, NSString* string, TeakRegexReplaceB
   return output;
 }
 
-BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
+BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink) {
   // Check URL scheme to see if it matches the set we support
   for (NSString* scheme in [TeakConfiguration configuration].appConfiguration.urlSchemes) {
     if ([scheme isEqualToString:deepLink.scheme]) {
-      NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
-        [TeakLink handleDeepLink:deepLink];
-      }];
-      [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
-      [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
-
       return YES;
     }
+  }
+
+  return NO;
+}
+
+BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
+  if (TeakLink_WillHandleDeepLink(deepLink)) {
+    NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
+      [TeakLink handleDeepLink:deepLink];
+    }];
+    [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
+    [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
+
+    return YES;
   }
 
   if ([deepLink.scheme hasPrefix:@"http"]) {
@@ -148,6 +154,13 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
             params[TeakLinkIncomingUrlKey] = [deepLink absoluteString];
           }
 
+          // Log that we handled the deep link
+          TeakLog_i(@"deep_link.handled", @{
+            @"url" : [deepLink absoluteString],
+            @"params" : params,
+            @"route" : [link route]
+          });
+
           link.block(params);
           return YES;
         }
@@ -156,6 +169,8 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     }
   }
 
+  // Log that we ignored the deep link
+  TeakLog_i(@"deep_link.ignored", @{@"url" : [deepLink absoluteString]});
   return NO;
 }
 
@@ -213,23 +228,24 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
   @try {
     NSURL* url = [NSURL URLWithString:deepLink];
-    if (url != nil) {
-      // If there's a deep link, see if Teak handles it. Otherwise use openURL.
-      BOOL teakHandledDeepLink = TeakLink_HandleDeepLink(url);
+    if (!url) return;
+
+    // Time to handle our deep link, finally!
+    TeakLink_HandleDeepLink(url);
+
+    dispatch_async(dispatch_get_main_queue(), ^{
       UIApplication* application = [UIApplication sharedApplication];
 
-      dispatch_async(dispatch_get_main_queue(), ^{
-        if (!teakHandledDeepLink && [application canOpenURL:url]) {
-          if (sHostAppOpenURLOptionsIMP) {
-            // iOS 10+
-            sHostAppOpenURLOptionsIMP(application, @selector(application:openURL:options:), application, url, [[NSDictionary alloc] init]);
-          } else if (sHostAppOpenURLIMP) {
-            // iOS < 10
-            sHostAppOpenURLIMP(application, @selector(application:openURL:sourceApplication:annotation:), application, url, [application description], nil);
-          }
-        }
-      });
-    }
+      // It is safe to do this even with links that are handled by Teak,
+      // because the Teak delegate hooks check if the link was opened by the
+      // host app and bail if it was. By doing this, we ensure that all links
+      // are handled to application delegates even in cases where Teak failed
+      // to hook the application delegate, e.g. Unity custom application
+      // delegates.
+      if ([application canOpenURL:url]) {
+        [application openURL:url];
+      }
+    });
   } @finally {
   }
 }

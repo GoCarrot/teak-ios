@@ -8,8 +8,10 @@
 @property (strong, nonatomic, readonly) NSString* _Nullable teakRewardId;
 @property (strong, nonatomic, readonly) NSString* _Nullable teakScheduleName;
 @property (strong, nonatomic, readonly) NSString* _Nullable teakCreativeName;
+@property (strong, nonatomic, readonly) NSString* _Nullable teakChannelName;
 @property (strong, nonatomic, readonly) NSDictionary* _Nullable originalJson;
 @property (strong, nonatomic, readonly) NSString* _Nullable teakDeepLink;
+@property (atomic, readonly) BOOL showInForeground;
 @property (atomic, readonly) BOOL completed;
 
 - (nullable TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary;
@@ -18,4 +20,6 @@
 + (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds;
 + (nullable TeakNotification*)cancelScheduledNotification:(nonnull NSString*)scheduleId;
 + (nullable TeakNotification*)cancelAll;
+
+- (nonnull NSDictionary*)eventUserInfo;
 @end

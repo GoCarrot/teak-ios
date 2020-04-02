@@ -11,7 +11,9 @@
 @property (strong, nonatomic, readwrite) NSString* teakDeepLink;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakScheduleName;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakCreativeName;
+@property (strong, nonatomic, readwrite) NSString* _Nullable teakChannelName;
 @property (strong, nonatomic, readwrite) NSDictionary* originalJson;
+@property (atomic, readwrite) BOOL showInForeground;
 @property (atomic, readwrite) BOOL completed;
 
 @end
@@ -26,11 +28,28 @@
     self.teakDeepLink = NSStringOrNilFor(dictionary[@"teakDeepLink"]);
     self.teakScheduleName = NSStringOrNilFor(dictionary[@"teakScheduleName"]);
     self.teakCreativeName = NSStringOrNilFor(dictionary[@"teakCreativeName"]);
+    self.teakChannelName = NSStringOrNilFor(dictionary[@"teakChannelName"]);
     self.originalJson = dictionary;
+    self.showInForeground = TeakBoolFor(dictionary[@"teakShowInForeground"]);
     self.completed = YES;
     self.status = nil;
   }
   return self;
+}
+
+- (NSDictionary*)eventUserInfo {
+  NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
+  teakUserInfo[@"teakNotifId"] = self.teakNotifId;
+#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
+  teakUserInfo[@"teakRewardId"] = ValueOrNSNull(self.teakRewardId);
+  teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(self.teakScheduleName);
+  teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(self.teakCreativeName);
+  teakUserInfo[@"teakChannelName"] = ValueOrNSNull(self.teakChannelName);
+  teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(self.teakDeepLink);
+#undef ValueOrNSNull
+  teakUserInfo[@"incentivized"] = self.teakRewardId == nil ? @NO : @YES;
+
+  return teakUserInfo;
 }
 
 - (NSString*)description {
@@ -46,6 +65,8 @@
 }
 
 + (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(int64_t)delay {
+  TeakLog_t(@"[TeakNotification scheduleNotificationForCreative]", @{@"creativeId" : _(creativeId), @"message" : _(message), @"delay" : [NSNumber numberWithLongLong:delay]});
+
   if (creativeId == nil || creativeId.length == 0) {
     TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
 
@@ -105,6 +126,8 @@
 }
 
 + (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds {
+  TeakLog_t(@"[TeakNotification scheduleNotificationForCreative]", @{@"creativeId" : _(creativeId), @"delay" : [NSNumber numberWithLongLong:delay]});
+
   if (creativeId == nil || creativeId.length == 0) {
     TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
 
@@ -131,6 +154,7 @@
     ret.status = @"error.parameter.userIds";
     return ret;
   }
+
   TeakNotification* ret = [[TeakNotification alloc] init];
   ret.completed = NO;
 
@@ -170,6 +194,8 @@
 }
 
 + (TeakNotification*)cancelScheduledNotification:(NSString*)scheduleId {
+  TeakLog_t(@"[TeakNotification cancelScheduledNotification]", @{@"scheduleId" : _(scheduleId)});
+
   if (scheduleId == nil || scheduleId.length == 0) {
     TeakLog_e(@"notification.cancel.error", @"scheduleId cannot be null or empty");
 
@@ -204,6 +230,8 @@
 }
 
 + (TeakNotification*)cancelAll {
+  TeakLog_t(@"[TeakNotification cancelAll]", @{});
+
   TeakNotification* ret = [[TeakNotification alloc] init];
   ret.completed = NO;
 

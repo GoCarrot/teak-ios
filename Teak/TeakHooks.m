@@ -190,7 +190,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation {
   BOOL ret = [[Teak sharedInstance] application:application openURL:url sourceApplication:sourceApplication annotation:annotation];
 
-  if (sHostAppOpenURLIMP) {
+  if (!ret && sHostAppOpenURLIMP) {
     ret |= sHostAppOpenURLIMP(self, @selector(application:openURL:sourceApplication:annotation:), application, url, sourceApplication, annotation);
   }
 
@@ -199,7 +199,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
   BOOL ret = [[Teak sharedInstance] application:application openURL:url options:options];
-  if (sHostAppOpenURLOptionsIMP) {
+  if (!ret && sHostAppOpenURLOptionsIMP) {
     ret |= sHostAppOpenURLOptionsIMP(self, @selector(application:openURL:options:), application, url, options);
   }
   return ret;
