@@ -21,6 +21,7 @@ BOOL Teak_isProductionBuild() {
 @property (strong, nonatomic, readwrite) NSString* apiKey;
 @property (strong, nonatomic, readwrite) NSString* bundleId;
 @property (strong, nonatomic, readwrite) NSString* appVersion;
+@property (strong, nonatomic, readwrite) NSString* _Nonnull appVersionName;
 @property (strong, nonatomic, readwrite) NSSet* urlSchemes;
 @property (nonatomic, readwrite) BOOL isProduction;
 @property (nonatomic, readwrite) BOOL traceLog;
@@ -50,6 +51,12 @@ BOOL Teak_isProductionBuild() {
     self.appVersion = @"unknown";
     teak_try {
       self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
+    }
+    teak_catch_report;
+
+    self.appVersionName = @"unknown";
+    teak_try {
+      self.appVersionName = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleVersion"];
     }
     teak_catch_report;
 

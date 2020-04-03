@@ -190,6 +190,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           @"sdk_version" : TeakVersionDict,
           @"sdk_platform" : self.session.deviceConfiguration.platformString,
           @"app_version" : self.session.appConfiguration.appVersion,
+          @"app_version_name" : self.session.appConfiguration.appVersionName,
           @"device_model" : self.session.deviceConfiguration.deviceModel,
           @"bundle_id" : self.session.appConfiguration.bundleId,
           @"device_id" : self.session.deviceConfiguration.deviceId,

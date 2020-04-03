@@ -154,6 +154,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
     payload[@"bundle_id"] = self.appConfiguration.bundleId;
     ;
     payload[@"client_app_version"] = self.appConfiguration.appVersion;
+    payload[@"client_app_version_name"] = self.appConfiguration.appVersionName;
   }
 
   payload[@"event_type"] = eventType;
