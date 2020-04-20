@@ -269,6 +269,7 @@ void TeakSignalHandler(int signal) {
             @"app_identifier" : [[NSBundle mainBundle] bundleIdentifier],
             @"teak_app_identifier" : teak.configuration.appConfiguration.appId,
             @"app_version" : teak.configuration.appConfiguration.appVersion,
+            @"app_version_name" : teak.configuration.appConfiguration.appVersionName,
             @"build_type" : teak.configuration.appConfiguration.isProduction ? @"production" : @"debug"
           },
           @"device" : @{
