@@ -14,6 +14,7 @@ extern NSString* TeakHostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
 @property (strong, nonatomic, readwrite) NSString* appSentryDsn;
 @property (strong, nonatomic, readwrite) NSDictionary* endpointConfigurations;
+@property (nonatomic, readwrite) BOOL enhancedIntegrationChecks;
 @end
 
 @implementation TeakRemoteConfiguration
@@ -103,6 +104,13 @@ extern NSString* TeakHostname;
                                                     }
                                                     teak_catch_report;
 
+                                                    // enhanced_integration_checks
+                                                    self.enhancedIntegrationChecks = NO;
+                                                    teak_try {
+                                                      self.enhancedIntegrationChecks = [reply[@"enhanced_integration_checks"] boolValue];
+                                                    }
+                                                    teak_catch_report;
+
                                                     // Batching/endpoint configuration
                                                     self.endpointConfigurations = reply[@"endpoint_configurations"];
 
@@ -119,7 +127,8 @@ extern NSString* TeakHostname;
   return @{
     @"hostname" : self.hostname,
     @"sdkSentryDsn" : self.sdkSentryDsn,
-    @"appSentryDsn" : self.appSentryDsn
+    @"appSentryDsn" : self.appSentryDsn,
+    @"enhancedIntegrationChecks" : self.enhancedIntegrationChecks ? @"YES" : @"NO"
   };
 }
 
