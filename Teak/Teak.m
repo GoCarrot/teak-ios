@@ -9,6 +9,7 @@
 
 #import "SKPaymentObserver.h"
 #import "TeakCore.h"
+#import "TeakIntegrationChecker.h"
 #import "TeakNotification.h"
 #import "TeakReward.h"
 #import "TeakVersion.h"
@@ -327,6 +328,9 @@ Teak* _teakSharedInstance;
 
     // Operation queue
     self.operationQueue = [[NSOperationQueue alloc] init];
+
+    // Teak integration checker happens after logs, raven and the global operation queue
+    self.integrationChecker = [TeakIntegrationChecker checkIntegrationForTeak:self];
 
     // Teak Core
     // TODO: This should be factory based

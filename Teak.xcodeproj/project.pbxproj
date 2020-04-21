@@ -123,6 +123,8 @@
 		439815CC1FA29A6E005303F1 /* TrackEventEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815CA1FA29A6E005303F1 /* TrackEventEvent.m */; };
 		43A00446242403F60034DB68 /* LogoutEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 43A00444242403F60034DB68 /* LogoutEvent.h */; };
 		43A00447242403F60034DB68 /* LogoutEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 43A00445242403F60034DB68 /* LogoutEvent.m */; };
+		43A8ACF9244A41F3003B1C3C /* TeakIntegrationChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = 43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */; };
+		43A8ACFA244A41F3003B1C3C /* TeakIntegrationChecker.m in Sources */ = {isa = PBXBuildFile; fileRef = 43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */; };
 		43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */; };
 		43C735C11CC1AA2700484B67 /* TeakCExtern.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C735C01CC1AA2700484B67 /* TeakCExtern.m */; };
 		43CEF65C1E4137C20065E4E5 /* TeakLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 43CEF65A1E4137C20065E4E5 /* TeakLink.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -275,6 +277,8 @@
 		439815CA1FA29A6E005303F1 /* TrackEventEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TrackEventEvent.m; sourceTree = "<group>"; };
 		43A00444242403F60034DB68 /* LogoutEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LogoutEvent.h; sourceTree = "<group>"; };
 		43A00445242403F60034DB68 /* LogoutEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LogoutEvent.m; sourceTree = "<group>"; };
+		43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakIntegrationChecker.h; sourceTree = "<group>"; };
+		43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakIntegrationChecker.m; sourceTree = "<group>"; };
 		43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = isProductionProvisioningProfile.m; sourceTree = "<group>"; };
 		43C735C01CC1AA2700484B67 /* TeakCExtern.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakCExtern.m; sourceTree = "<group>"; };
 		43CEF65A1E4137C20065E4E5 /* TeakLink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakLink.h; sourceTree = "<group>"; };
@@ -384,6 +388,8 @@
 				4306C02520F7DD8500216F18 /* TeakPushState.m */,
 				4347A31C22405506001A3A8A /* TeakMPInt.h */,
 				4347A31D22405506001A3A8A /* TeakMPInt.m */,
+				43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */,
+				43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */,
 			);
 			path = Teak;
 			sourceTree = "<group>";
@@ -542,6 +548,7 @@
 				431C98081C7E612400B19DD5 /* Teak.h in Headers */,
 				434861771FA2C5E000E0DA12 /* TeakConfiguration.h in Headers */,
 				4311B883206AC8CB00E542E3 /* TeakUserProfile.h in Headers */,
+				43A8ACF9244A41F3003B1C3C /* TeakIntegrationChecker.h in Headers */,
 				4361E49F1D27529700672694 /* TeakRaven.h in Headers */,
 				4383726F1D34239900B01F44 /* TeakAppConfiguration.h in Headers */,
 				437C7933204A00F3006BD4B9 /* RemoteConfigurationEvent.h in Headers */,
@@ -719,6 +726,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4347A2FE22403203001A3A8A /* bn_mp_karatsuba_sqr.c in Sources */,
+				43A8ACFA244A41F3003B1C3C /* TeakIntegrationChecker.m in Sources */,
 				431C98211C7E679900B19DD5 /* TeakRequest.m in Sources */,
 				4347A2FB22403203001A3A8A /* bn_mp_sub.c in Sources */,
 				439815C31FA2909F005303F1 /* UserIdEvent.m in Sources */,
