@@ -242,9 +242,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
       // are handled to application delegates even in cases where Teak failed
       // to hook the application delegate, e.g. Unity custom application
       // delegates.
-      if ([application canOpenURL:url]) {
-        [application openURL:url];
-      }
+      [application openURL:url];
     });
   } @finally {
   }
