@@ -52,6 +52,12 @@
                                                         rewardResponse[@"reward"] = parsedReward;
                                                       }
                                                     }
+
+                                                    // Assign an internal error to "status" so that the JSON sent
+                                                    // to an OnReward event always contains 'status'
+                                                    if (rewardResponse[@"status"] == nil) {
+                                                      rewardResponse[@"status"] = @"internal_error";
+                                                    }
                                                     ret.json = rewardResponse;
 
                                                     NSString* status = rewardResponse[@"status"];
