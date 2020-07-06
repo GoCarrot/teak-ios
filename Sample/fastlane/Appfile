@@ -2,5 +2,5 @@ apple_id 'teak.devices@gmail.com'
 
 for_platform :ios do
   team_id '7FLZTACJ82'
-  app_identifier 'com.teakio.pushtest'
+  app_identifier 'io.teak.app.native.dev'
 end
