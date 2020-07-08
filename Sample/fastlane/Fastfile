@@ -83,7 +83,11 @@ platform :ios do
       end
 
       sync_code_signing
-      disable_automatic_code_signing(path: XCODE_PROJECT)
+
+      update_code_signing_settings(
+        use_automatic_signing: false,
+        path: XCODE_PROJECT
+      )
     end
 
     TEAK_APP_EXTENSIONS.each do |app_extension_name|

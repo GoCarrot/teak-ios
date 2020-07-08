@@ -152,7 +152,16 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
     if ([oldStateChainEntry isUpdatedState:newChainEntry]) {
       NSMutableArray* mutableStateChain = self.stateChain == nil ? [[NSMutableArray alloc] init] : [self.stateChain mutableCopy];
       [mutableStateChain addObject:newChainEntry];
+
+      // Trim the state chain to 50 max
+      // NOTE: This should only get called once if we clear out the backlog.
+      while (mutableStateChain.count > 50) {
+        [mutableStateChain removeObjectAtIndex:0];
+      }
+
+      // Assign
       self.stateChain = mutableStateChain;
+
       // Persist
       NSUserDefaults* userDefaults = [NSUserDefaults standardUserDefaults];
       [userDefaults setObject:[self serializedStateChain] forKey:kStateChainPreferencesKey];

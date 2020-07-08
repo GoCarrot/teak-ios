@@ -339,8 +339,25 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
             [self send];
           });
-        } else if (self.callback) {
-          self.callback(payload);
+        } else {
+          // Check to see if the response has a 'report_client_error' key
+          if (payload[@"report_client_error"] != nil &&
+              payload[@"report_client_error"] != [NSNull null]) {
+
+            // Catch and toss exceptions, we don't want to prevent the callback from happening
+            @try {
+              // We are going to get a 'message' key and optionally a 'title' key
+              NSDictionary* clientError = payload[@"report_client_error"];
+              NSString* title = clientError[@"title"] == nil ? clientError[@"title"] : @"Configuration Error";
+
+              [[Teak sharedInstance].integrationChecker reportError:clientError[@"message"] forCategory:title];
+            } @finally {
+            }
+          }
+
+          if (self.callback) {
+            self.callback(payload);
+          }
         }
       }
       teak_catch_report;

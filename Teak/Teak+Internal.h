@@ -2,6 +2,7 @@
 #import <UserNotifications/UserNotifications.h>
 
 #import "TeakConfiguration.h"
+#import "TeakIntegrationChecker.h"
 #import "TeakLog.h"
 #import "TeakPushState.h"
 #import "TeakRaven.h"
@@ -20,6 +21,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 @property (strong, nonatomic, readwrite) NSString* _Nonnull sdkVersion;
 
 @property (strong, nonatomic) TeakRaven* _Nonnull sdkRaven;
+@property (strong, nonatomic) TeakIntegrationChecker* _Nonnull integrationChecker;
 
 @property (strong, nonatomic) NSOperationQueue* _Nonnull operationQueue;
 @property (strong, nonatomic) NSOperation* _Nonnull waitForDeepLinkOperation;
