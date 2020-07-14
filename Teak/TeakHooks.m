@@ -50,6 +50,9 @@ void (*sHostDRRNFCHIMP)(id, SEL, UIApplication*, NSDictionary*, void (^)(UIBackg
 void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd);
 IMP __App_unregisterForRemoteNotifications = NULL;
 
+void __Teak_requestTrackingAuthorizationWithCompletionHandler(id self, SEL _cmd, void (^completion)(NSUInteger));
+IMP __App_requestTrackingAuthorizationWithCompletionHandler = NULL;
+
 NSSet* TeakGetNotificationCategorySet(void);
 void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories);
 IMP __App_setNotificationCategories = NULL;
@@ -175,6 +178,20 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
       __App_setNotificationCategories = method_setImplementation(m, (IMP)__Teak_setNotificationCategories);
     }
   }
+
+  /////
+  // ATTrackingManager
+  Class atTrackingManagerClass = objc_getClass("ATTrackingManager");
+  if (atTrackingManagerClass != nil) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wundeclared-selector"
+    // requestTrackingAuthorizationWithCompletionHandler
+    {
+      Method m = class_getClassMethod(atTrackingManagerClass, @selector(requestTrackingAuthorizationWithCompletionHandler:));
+      __App_requestTrackingAuthorizationWithCompletionHandler = method_setImplementation(m, (IMP)__Teak_requestTrackingAuthorizationWithCompletionHandler);
+    }
+#pragma clang diagnostic pop
+  }
 }
 
 @implementation TeakAppDelegateHooks
@@ -287,6 +304,26 @@ void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
 
   if (!blackhole && __App_unregisterForRemoteNotifications != NULL) {
     ((void (*)(id, SEL))__App_unregisterForRemoteNotifications)(self, _cmd);
+  }
+}
+
+void __Teak_requestTrackingAuthorizationWithCompletionHandler(id self, SEL _cmd, void (^completion)(NSUInteger)) {
+  void (^teakCompletionHandler)(NSUInteger) = ^void(NSUInteger status) {
+    TeakConfiguration* teakConfiguration = [TeakConfiguration configuration];
+    if (teakConfiguration != NULL &&
+        teakConfiguration.dataCollectionConfiguration != NULL &&
+        teakConfiguration.deviceConfiguration != NULL) {
+      [teakConfiguration.dataCollectionConfiguration determineFeatures];
+      [teakConfiguration.deviceConfiguration updateValuesThatCouldHaveChanged];
+    }
+
+    if (completion != NULL) {
+      completion(status);
+    }
+  };
+
+  if (__App_requestTrackingAuthorizationWithCompletionHandler != NULL) {
+    ((void (*)(id, SEL, void (^)(NSUInteger)))__App_requestTrackingAuthorizationWithCompletionHandler)(self, _cmd, teakCompletionHandler);
   }
 }
 
