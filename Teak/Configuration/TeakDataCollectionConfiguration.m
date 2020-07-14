@@ -11,15 +11,23 @@
 @property (nonatomic, readwrite) BOOL enableIDFA;
 @property (nonatomic, readwrite) BOOL enableFacebookAccessToken;
 @property (nonatomic, readwrite) BOOL enablePushKey;
-@property (strong, nonatomic) ASIdentifierManager* asIdentifierManager;
 @property (strong, nonatomic) NSArray* optOutList;
 @end
 
 @implementation TeakDataCollectionConfiguration
+
++ (BOOL)adTrackingAuthorized {
+  Class atTrackingManagerClass = objc_getClass("ATTrackingManager");
+  if (atTrackingManagerClass != nil) {
+    return [[atTrackingManagerClass valueForKey:@"trackingAuthorizationStatus"] intValue] == 3;
+  }
+
+  return [ASIdentifierManager sharedManager].advertisingTrackingEnabled;
+}
+
 - (id)init {
   self = [super init];
   if (self) {
-    self.asIdentifierManager = [ASIdentifierManager sharedManager];
     [TeakEvent addEventHandler:self];
 
     [self determineFeatures];
@@ -40,9 +48,7 @@
     self.enablePushKey &= ![self.optOutList containsObject:TeakOptOutPushKey];
   }
 
-  if (self.asIdentifierManager != nil) {
-    self.enableIDFA &= [self.asIdentifierManager isAdvertisingTrackingEnabled];
-  }
+  self.enableIDFA &= [TeakDataCollectionConfiguration adTrackingAuthorized];
 }
 
 - (NSDictionary*)to_h {

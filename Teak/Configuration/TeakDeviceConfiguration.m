@@ -90,7 +90,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     self.rerunGetAdvertisingInformation = 0;
 
     BOOL oldLimitAdtracking = self.limitAdTracking;
-    self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled;
+    self.limitAdTracking = [TeakDataCollectionConfiguration adTrackingAuthorized];
     if (self.limitAdTracking != oldLimitAdtracking || ![self.advertisingIdentifier isEqualToString:advertisingIdentifier]) {
       self.advertisingIdentifier = advertisingIdentifier; // Triggers KVO
     }
