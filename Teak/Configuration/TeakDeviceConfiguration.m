@@ -22,6 +22,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 @property (nonatomic, readwrite) BOOL limitAdTracking;
 
 @property (strong, nonatomic) NSUserDefaults* userDefaults;
+@property (nonatomic) NSUInteger rerunGetAdvertisingInformation;
 @end
 
 @implementation TeakDeviceConfiguration
@@ -73,9 +74,6 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 
     [TeakEvent addEventHandler:self];
 
-    // Get advertising information
-    [self getAdvertisingInformation];
-
     // Default notification display state
     self.notificationDisplayEnabled = TeakDeviceConfiguration_NotificationDisplayState_NotDetermined;
 
@@ -89,15 +87,18 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
   ASIdentifierManager* asIdentifierManager = [ASIdentifierManager sharedManager];
   NSString* advertisingIdentifier = asIdentifierManager ? [asIdentifierManager.advertisingIdentifier UUIDString] : nil;
   if (advertisingIdentifier != nil) {
+    self.rerunGetAdvertisingInformation = 0;
+
     BOOL oldLimitAdtracking = self.limitAdTracking;
-    self.limitAdTracking = asIdentifierManager.advertisingTrackingEnabled;
+    self.limitAdTracking = [TeakDataCollectionConfiguration adTrackingAuthorized];
     if (self.limitAdTracking != oldLimitAdtracking || ![self.advertisingIdentifier isEqualToString:advertisingIdentifier]) {
       self.advertisingIdentifier = advertisingIdentifier; // Triggers KVO
     }
-  } else {
+  } else if (self.rerunGetAdvertisingInformation < 10) {
     __weak typeof(self) weakSelf = self;
 
     // TODO: Exponential backoff?
+    self.rerunGetAdvertisingInformation++;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
       [weakSelf getAdvertisingInformation];
     });
@@ -118,6 +119,9 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
       self.notificationDisplayEnabled = newNotificationDisplayState;
     }
   }];
+
+  // Get advertising information
+  [self getAdvertisingInformation];
 }
 
 - (NSDictionary*)to_h {

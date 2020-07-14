@@ -1,0 +1,10 @@
+git_url("git@github.com:GoCarrot/teak-match-certificates.git")
+
+type("development")
+
+app_identifiers = ["io.teak.app.native.dev"]
+app_extensions = ["TeakNotificationService", "TeakNotificationContent"]
+app_identifier(app_identifiers.push(app_identifiers.collect { |app| app_extensions.collect { |extension| "#{app}.#{extension}" } }).flatten)
+
+username("teak.devices@gmail.com")
+team_id("7FLZTACJ82")

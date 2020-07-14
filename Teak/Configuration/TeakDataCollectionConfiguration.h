@@ -1,6 +1,7 @@
+#import "TeakEvent.h"
 #import <Foundation/Foundation.h>
 
-@interface TeakDataCollectionConfiguration : NSObject
+@interface TeakDataCollectionConfiguration : NSObject <TeakEventHandler>
 
 @property (nonatomic, readonly) BOOL enableIDFA;
 @property (nonatomic, readonly) BOOL enableFacebookAccessToken;
@@ -12,4 +13,5 @@
 //             because that would change us from being a "data processor" to a "data controller" under the GDPR
 - (void)addConfigurationFromDeveloper:(NSArray*)optOutList;
 
++ (BOOL)adTrackingAuthorized;
 @end
