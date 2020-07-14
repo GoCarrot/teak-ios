@@ -12,4 +12,5 @@
 //             because that would change us from being a "data processor" to a "data controller" under the GDPR
 - (void)addConfigurationFromDeveloper:(NSArray*)optOutList;
 
+- (void)determineFeatures;
 @end
