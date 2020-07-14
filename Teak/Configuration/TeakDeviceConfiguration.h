@@ -18,4 +18,5 @@ extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState
 
 - (nullable id)init;
 - (nonnull NSDictionary*)to_h;
+- (void)updateValuesThatCouldHaveChanged;
 @end
