@@ -20,6 +20,8 @@
   self = [super init];
   if (self) {
     self.asIdentifierManager = [ASIdentifierManager sharedManager];
+    [TeakEvent addEventHandler:self];
+
     [self determineFeatures];
   }
   return self;
@@ -54,6 +56,20 @@
 - (void)addConfigurationFromDeveloper:(NSArray*)optOutList {
   self.optOutList = optOutList;
   [self determineFeatures];
+}
+
+- (void)dealloc {
+  [TeakEvent removeEventHandler:self];
+}
+
+- (void)handleEvent:(TeakEvent* _Nonnull)event {
+  switch (event.type) {
+    case LifecycleActivate: {
+      [self determineFeatures];
+    } break;
+    default:
+      break;
+  }
 }
 
 @end

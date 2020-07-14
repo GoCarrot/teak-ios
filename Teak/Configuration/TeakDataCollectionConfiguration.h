@@ -1,6 +1,7 @@
+#import "TeakEvent.h"
 #import <Foundation/Foundation.h>
 
-@interface TeakDataCollectionConfiguration : NSObject
+@interface TeakDataCollectionConfiguration : NSObject <TeakEventHandler>
 
 @property (nonatomic, readonly) BOOL enableIDFA;
 @property (nonatomic, readonly) BOOL enableFacebookAccessToken;
