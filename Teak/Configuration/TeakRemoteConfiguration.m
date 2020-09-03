@@ -14,6 +14,7 @@ extern NSString* TeakHostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
 @property (strong, nonatomic, readwrite) NSString* appSentryDsn;
 @property (strong, nonatomic, readwrite) NSDictionary* endpointConfigurations;
+@property (strong, nonatomic, readwrite) NSDictionary* dynamicParameters;
 @property (nonatomic, readwrite) BOOL enhancedIntegrationChecks;
 @end
 
@@ -67,10 +68,32 @@ extern NSString* TeakHostname;
   return dict;
 }
 
++ (NSDictionary*)defaultDynamicParameters {
+#define QUOTE(...) #__VA_ARGS__
+  static NSString* defaultDynamicParameters = @QUOTE({
+    "app_version_developer" : {
+      "android" : "io_teak_developer_version",
+      "ios" : "TeakDeveloperVersion"
+    }
+  });
+#undef QUOTE
+  static NSDictionary* dict = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    NSError* error = nil;
+    dict = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:[defaultDynamicParameters dataUsingEncoding:NSUTF8StringEncoding]
+                                                          options:kNilOptions
+                                                            error:&error];
+    ;
+  });
+  return dict;
+}
+
 - (TeakRemoteConfiguration*)initForSession:(nonnull TeakSession*)session {
   self = [super init];
   if (self) {
     self.endpointConfigurations = [TeakRemoteConfiguration defaultEndpointConfiguration];
+    self.dynamicParameters = @{};
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       __strong typeof(self) blockSelf = weakSelf;
@@ -114,6 +137,8 @@ extern NSString* TeakHostname;
                                                     // Batching/endpoint configuration
                                                     self.endpointConfigurations = reply[@"endpoint_configurations"];
 
+                                                    [self configureDynamicParametersFor:reply[@"dynamic_parameters"]];
+
                                                     [RemoteConfigurationEvent remoteConfigurationReady:self];
                                                   }];
     [request send];
@@ -121,6 +146,25 @@ extern NSString* TeakHostname;
 
   [configOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
   [[Teak sharedInstance].operationQueue addOperation:configOp];
+}
+
+- (void)configureDynamicParametersFor:(NSDictionary*)dynamicParameters {
+  if (dynamicParameters == nil) dynamicParameters = [TeakRemoteConfiguration defaultDynamicParameters];
+
+  NSMutableDictionary* parameters = [[NSMutableDictionary alloc] init];
+  NSDictionary* infoDictionary = [[NSBundle mainBundle] infoDictionary];
+  for (id key in dynamicParameters) {
+    teak_try {
+      if (dynamicParameters[key] != nil) {
+        NSString* bundleKey = dynamicParameters[key][@"ios"];
+        if (bundleKey != nil && infoDictionary[bundleKey] != nil) {
+          parameters[key] = infoDictionary[bundleKey];
+        }
+      }
+    }
+    teak_catch_report;
+  }
+  self.dynamicParameters = parameters;
 }
 
 - (NSDictionary*)to_h {
