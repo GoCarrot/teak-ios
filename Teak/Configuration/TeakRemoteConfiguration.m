@@ -16,6 +16,7 @@ extern NSString* TeakHostname;
 @property (strong, nonatomic, readwrite) NSDictionary* endpointConfigurations;
 @property (strong, nonatomic, readwrite) NSDictionary* dynamicParameters;
 @property (nonatomic, readwrite) BOOL enhancedIntegrationChecks;
+@property (nonatomic, readwrite) int heartbeatInterval;
 @end
 
 @implementation TeakRemoteConfiguration
@@ -94,6 +95,7 @@ extern NSString* TeakHostname;
   if (self) {
     self.endpointConfigurations = [TeakRemoteConfiguration defaultEndpointConfiguration];
     self.dynamicParameters = @{};
+    self.heartbeatInterval = 60;
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       __strong typeof(self) blockSelf = weakSelf;
@@ -134,9 +136,18 @@ extern NSString* TeakHostname;
                                                     }
                                                     teak_catch_report;
 
+                                                    // Heartbeat interval
+                                                    if (reply[@"heartbeat_interval"] != nil) {
+                                                      teak_try {
+                                                        self.heartbeatInterval = [reply[@"heartbeat_interval"] intValue];
+                                                      }
+                                                      teak_catch_report;
+                                                    }
+
                                                     // Batching/endpoint configuration
                                                     self.endpointConfigurations = reply[@"endpoint_configurations"];
 
+                                                    // Server-configured Info.plist parameters
                                                     [self configureDynamicParametersFor:reply[@"dynamic_parameters"]];
 
                                                     [RemoteConfigurationEvent remoteConfigurationReady:self];

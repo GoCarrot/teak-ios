@@ -646,9 +646,12 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         [blockSelf sendHeartbeat];
       });
 
-      // TODO: If RemoteConfiguration specifies a different rate, use that
-      dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), 60ull * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
-      dispatch_resume(self.heartbeat);
+      dispatch_source_set_timer(self.heartbeat, dispatch_walltime(NULL, 0), self.remoteConfiguration.heartbeatInterval * NSEC_PER_SEC, 1ull * NSEC_PER_SEC);
+
+      // Only start heartbeat if the interval is greater than zero
+      if (self.remoteConfiguration.heartbeatInterval > 0) {
+        dispatch_resume(self.heartbeat);
+      }
 
       // Process WhenUserIdIsReadyRun queue
       @synchronized(currentSessionMutex) {
