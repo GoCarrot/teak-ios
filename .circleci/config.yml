@@ -13,7 +13,7 @@ jobs:
           name: Pre-start iOS Simulator
           command: xcrun instruments -w "iPhone 5s (12.2) [" || true
       - ios_setup:
-          ruby: "2.6"
+          ruby: "2.7"
       - run:
           name: Validate Code Formatting
           command: ./validate-code-format
@@ -29,7 +29,7 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup:
-          ruby: "2.6"
+          ruby: "2.7"
       - run:
           name: Build Teak SDK
           command: ./compile
