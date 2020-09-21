@@ -269,7 +269,9 @@ DefineTeakState(Expired, (@[]));
 
                                                     // Additional data
                                                     if (reply[@"additional_data"]) {
-                                                      [AdditionalDataEvent additionalDataReceived:reply[@"additional_data"]];
+                                                      NSDictionary* additionalData = reply[@"additional_data"];
+                                                      TeakLog_i(@"additional_data.received", additionalData);
+                                                      [AdditionalDataEvent additionalDataReceived:additionalData];
                                                     }
 
                                                     // Assign new state
