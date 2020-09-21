@@ -178,16 +178,6 @@ commands:
           name: Homebrew Depenendcies
           command: HOMEBREW_NO_AUTO_UPDATE=1 ./setup
       - run:
-          shell: /bin/bash -eo pipefail
-          name: Setup RVM
-          command: |
-            unset GEM_HOME
-            source /Users/distiller/.rvm/scripts/rvm
-            rvm autolibs enable
-            rvm list | grep << parameters.ruby >> || rvm install ruby-<< parameters.ruby >>
-            rvm use default
-          # HAX ruby-<< parameters.ruby >>
-      - run:
           name: Ruby Gems
           command: |
             gem update bundler
