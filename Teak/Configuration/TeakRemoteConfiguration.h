@@ -8,7 +8,9 @@
 @property (strong, nonatomic, readonly) NSString* _Nullable sdkSentryDsn;
 @property (strong, nonatomic, readonly) NSString* _Nullable appSentryDsn;
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull endpointConfigurations;
+@property (strong, nonatomic, readonly) NSDictionary* _Nonnull dynamicParameters;
 @property (nonatomic, readonly) BOOL enhancedIntegrationChecks;
+@property (nonatomic, readonly) int heartbeatInterval;
 
 - (TeakRemoteConfiguration* _Nullable)initForSession:(TeakSession* _Nonnull)session;
 - (nonnull NSDictionary*)to_h;

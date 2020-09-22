@@ -32,6 +32,7 @@ NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
 NSString* const TeakAdditionalData = @"TeakAdditionalData";
+NSString* const TeakLaunchedFromLink = @"TeakLaunchedFromLink";
 
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
@@ -821,6 +822,10 @@ Teak* _teakSharedInstance;
                      attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
                      TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
                    }
+
+                   [[NSNotificationCenter defaultCenter] postNotificationName:TeakLaunchedFromLink
+                                                                       object:self
+                                                                     userInfo:reply];
                  } else {
                    TeakLog_e(@"deep_link.json.error", @{
                      @"url" : attributionUrlAsString,

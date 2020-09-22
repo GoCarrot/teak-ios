@@ -50,13 +50,19 @@ BOOL Teak_isProductionBuild() {
 
     self.appVersion = @"unknown";
     teak_try {
-      self.appVersion = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleShortVersionString"];
+      NSString* appVersion = [[NSBundle mainBundle] infoDictionary][@"CFBundleShortVersionString"];
+      if (appVersion != nil) {
+        self.appVersion = appVersion;
+      }
     }
     teak_catch_report;
 
     self.appVersionName = @"unknown";
     teak_try {
-      self.appVersionName = [[[NSBundle mainBundle] infoDictionary] valueForKey:@"CFBundleVersion"];
+      NSString* appVersionName = [[NSBundle mainBundle] infoDictionary][@"CFBundleVersion"];
+      if (appVersionName != nil) {
+        self.appVersionName = appVersionName;
+      }
     }
     teak_catch_report;
 

@@ -11,23 +11,44 @@
 @property (nonatomic, readwrite) BOOL enableIDFA;
 @property (nonatomic, readwrite) BOOL enableFacebookAccessToken;
 @property (nonatomic, readwrite) BOOL enablePushKey;
+@property (strong, nonatomic) NSArray* optOutList;
 @end
 
 @implementation TeakDataCollectionConfiguration
+
++ (BOOL)adTrackingAuthorized {
+  Class atTrackingManagerClass = objc_getClass("ATTrackingManager");
+  if (atTrackingManagerClass != nil) {
+    return [[atTrackingManagerClass valueForKey:@"trackingAuthorizationStatus"] intValue] == 3;
+  }
+
+  return [ASIdentifierManager sharedManager].advertisingTrackingEnabled;
+}
+
 - (id)init {
   self = [super init];
   if (self) {
-#define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? YES : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
-    self.enableIDFA = IS_FEATURE_ENABLED(kTeakEnableIDFA);
-    self.enableFacebookAccessToken = IS_FEATURE_ENABLED(kTeakEnableFacebook);
-    self.enablePushKey = IS_FEATURE_ENABLED(kTeakEnablePushKey);
-#undef IS_FEATURE_ENABLED
+    [TeakEvent addEventHandler:self];
 
-    // Check to see if IDFA has been disabled by the OS
-    ASIdentifierManager* asIdentifierManager = [ASIdentifierManager sharedManager];
-    if (asIdentifierManager != nil) self.enableIDFA &= [asIdentifierManager isAdvertisingTrackingEnabled];
+    [self determineFeatures];
   }
   return self;
+}
+
+- (void)determineFeatures {
+#define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? YES : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
+  self.enableIDFA = IS_FEATURE_ENABLED(kTeakEnableIDFA);
+  self.enableFacebookAccessToken = IS_FEATURE_ENABLED(kTeakEnableFacebook);
+  self.enablePushKey = IS_FEATURE_ENABLED(kTeakEnablePushKey);
+#undef IS_FEATURE_ENABLED
+
+  if (self.optOutList != nil) {
+    self.enableIDFA &= ![self.optOutList containsObject:TeakOptOutIdfa];
+    self.enableFacebookAccessToken &= ![self.optOutList containsObject:TeakOptOutFacebook];
+    self.enablePushKey &= ![self.optOutList containsObject:TeakOptOutPushKey];
+  }
+
+  self.enableIDFA &= [TeakDataCollectionConfiguration adTrackingAuthorized];
 }
 
 - (NSDictionary*)to_h {
@@ -39,10 +60,22 @@
 }
 
 - (void)addConfigurationFromDeveloper:(NSArray*)optOutList {
-  if (optOutList != nil) {
-    self.enableIDFA &= ![optOutList containsObject:TeakOptOutIdfa];
-    self.enableFacebookAccessToken &= ![optOutList containsObject:TeakOptOutFacebook];
-    self.enablePushKey &= ![optOutList containsObject:TeakOptOutPushKey];
+  self.optOutList = optOutList;
+  [self determineFeatures];
+}
+
+- (void)dealloc {
+  [TeakEvent removeEventHandler:self];
+}
+
+- (void)handleEvent:(TeakEvent* _Nonnull)event {
+  switch (event.type) {
+    case LifecycleActivate: {
+      [self determineFeatures];
+    } break;
+    default:
+      break;
   }
 }
+
 @end

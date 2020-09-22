@@ -196,6 +196,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           @"device_id" : self.session.deviceConfiguration.deviceId,
           @"is_sandbox" : [NSNumber numberWithBool:!self.session.appConfiguration.isProduction]
         }];
+        [payloadWithCommon addEntriesFromDictionary:session.remoteConfiguration.dynamicParameters];
         if (self.session.userId) {
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
