@@ -95,6 +95,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 #import <Teak/TeakNotificationViewControllerCore.h>
 #import <UIKit/UIKit.h>
 
+/**
+ * TODO!
+ */
 @interface Teak : NSObject
 
 /**
@@ -137,6 +140,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * 		}
  * 	}
  *
+ * This functionality is also accessable from the C API:
+ *    extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
+ *
  * @param appId            Teak Application Id
  * @param appDelegateClass Class of your application delegate, ex: [YourAppDelegate class].
  * @param apiKey           Your Teak API key.
@@ -153,6 +159,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  *
  * This should be how you identify the user in your back-end.
  *
+ * This functionality is also accessable from the C API:
+ *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
+ *
  * @param userId           The string Teak should use to identify the current user.
  */
 - (void)identifyUser:(nonnull NSString*)userId;
@@ -161,6 +170,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * Tell Teak how to identify the current user.
  *
  * This should be how you identify the user in your back-end.
+ *
+ * This functionality is also accessable from the C API:
+ *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
  *
  * @param userId           The string Teak should use to identify the current user.
  * @param email            The email address for the current user.
@@ -172,6 +184,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  *
  * This should be how you identify the user in your back-end.
  *
+ * This functionality is also accessable from the C API:
+ *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
+ *
  * @param userId           The string Teak should use to identify the current user.
  * @param optOut           A list containing zero or more of: TeakOptOutIdfa, TeakOptOutPushKey, TeakOptOutFacebook
  */
@@ -181,6 +196,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * Tell Teak how to identify the current user, with data collection opt-out.
  *
  * This should be how you identify the user in your back-end.
+ *
+ * This functionality is also accessable from the C API:
+ *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
  *
  * @param userId           The string Teak should use to identify the current user.
  * @param optOut           A list containing zero or more of: TeakOptOutIdfa, TeakOptOutPushKey, TeakOptOutFacebook
@@ -239,6 +257,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 /**
  * Track a numeric player profile attribute.
  *
+ * This functionality is also accessable from the C API:
+ *    extern void TeakSetNumericAttribute(const char* cstr_key, double value);
+ *
  * @param key   The name of the numeric attribute.
  * @param value The numeric value to assign.
  */
@@ -246,6 +267,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Track a string player profile attribute.
+ *
+ * This functionality is also accessable from the C API:
+ *    extern void TeakSetStringAttribute(const char* cstr_key, const char* cstr_value);
  *
  * @param key   The name of the string attribute.
  * @param value The string value to assign.
