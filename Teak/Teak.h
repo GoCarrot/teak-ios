@@ -274,6 +274,27 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * - This method is called
  */
 - (void)processDeepLinks;
+
+/**
+ * Returns true if the notification was sent by Teak.
+ */
++ (BOOL)isTeakNotification:(nonnull UNNotification*)notification;
+
+/**
+ * If you are setting your own UNNotificationCenter delegate, then you need to call this method from your handler.
+ *
+ * If this method returns true, do not call the completion handler yourself.
+ */
++ (BOOL)didReceiveNotificationResponse:(nonnull UNNotificationResponse*)response
+                 withCompletionHandler:(nonnull void (^)(void))completionHandler;
+
+/**
+ * If you are setting your own UNNotificationCenter delegate, then you need to call this method from your handler.
+ *
+ * If this method returns true, do not call the completion handler yourself.
+ */
++ (BOOL)willPresentNotification:(nonnull UNNotification*)notification
+          withCompletionHandler:(nonnull void (^)(UNNotificationPresentationOptions))completionHandler;
 @end
 
 #endif /* __OBJC__ */
