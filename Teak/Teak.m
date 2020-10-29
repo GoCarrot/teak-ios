@@ -711,6 +711,11 @@ Teak* _teakSharedInstance;
   return [[TeakNotification alloc] initWithDictionary:aps];
 }
 
++ (BOOL)isTeakNotification:(UNNotification*)notification {
+  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
+  return NSStringOrNilFor(aps[@"teakNotifId"]) != nil;
+}
+
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
        willPresentNotification:(UNNotification*)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
@@ -724,6 +729,17 @@ Teak* _teakSharedInstance;
 
   // Optionally display the notification in the foreground if requested
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
+}
+
++ (BOOL)willPresentNotification:(UNNotification*)notification
+          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+  if ([Teak isTeakNotification:notification]) {
+    [[Teak sharedInstance] userNotificationCenter:[UNUserNotificationCenter currentNotificationCenter]
+                          willPresentNotification:notification
+                            withCompletionHandler:completionHandler];
+    return YES;
+  }
+  return NO;
 }
 
 // This method will be called whenever a taps on a notification
@@ -741,6 +757,17 @@ Teak* _teakSharedInstance;
   completionHandler();
 
   // TODO: HERE is where we report metric that a button was pressed
+}
+
++ (BOOL)didReceiveNotificationResponse:(UNNotificationResponse*)response
+                 withCompletionHandler:(void (^)(void))completionHandler {
+  if ([Teak isTeakNotification:response.notification]) {
+    [[Teak sharedInstance] userNotificationCenter:[UNUserNotificationCenter currentNotificationCenter]
+                   didReceiveNotificationResponse:response
+                            withCompletionHandler:completionHandler];
+    return YES;
+  }
+  return NO;
 }
 
 // This method is only called by iOS on versions of iOS which do not provide the
