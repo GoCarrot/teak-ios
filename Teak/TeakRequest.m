@@ -257,9 +257,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     NSMutableDictionary* signedPayload = [[NSMutableDictionary alloc] initWithDictionary:self.payload];
     signedPayload[@"sig"] = [self sig];
 
-    // HAX
-    NSLog(@"STRING TO SIGN: %@", [self stringToSign]);
-
     return signedPayload;
   }
   teak_catch_report;
