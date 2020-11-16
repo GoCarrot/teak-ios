@@ -170,6 +170,7 @@ extern NSTimeInterval TeakSameSessionDeltaSeconds;
        willPresentNotification:(UNNotification*)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
   if (![Teak willPresentNotification:notification withCompletionHandler:completionHandler]) {
+    // Perform your processing
     completionHandler(UNNotificationPresentationOptionAlert);
   }
 }
@@ -178,6 +179,7 @@ extern NSTimeInterval TeakSameSessionDeltaSeconds;
     didReceiveNotificationResponse:(UNNotificationResponse*)response
              withCompletionHandler:(void (^)(void))completionHandler {
   if (![Teak didReceiveNotificationResponse:response withCompletionHandler:completionHandler]) {
+    // Perform your processing
     completionHandler();
   }
 }
