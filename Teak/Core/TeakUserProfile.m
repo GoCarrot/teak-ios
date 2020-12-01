@@ -80,6 +80,8 @@ extern NSString* TeakHostname;
     self.payload = payload;
 
     [super send];
+
+    self.firstSetTime = nil;
   }
 }
 
