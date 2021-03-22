@@ -93,6 +93,19 @@ jobs:
 
 workflows:
   version: 2
+
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - develop
+    jobs:
+      - test
+      - build
+
   un-tagged-build:
     jobs:
       - test:
