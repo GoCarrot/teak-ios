@@ -229,7 +229,7 @@ DefineTeakState(Expired, (@[]));
 
     if (dataCollectionConfiguration.enableFacebookAccessToken) {
       if (self.facebookAccessToken == nil) {
-        self.facebookAccessToken = [FacebookAccessTokenEvent currentAccessToken];
+        self.facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
       }
 
       if (self.facebookAccessToken != nil) {
