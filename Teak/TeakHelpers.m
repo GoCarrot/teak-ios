@@ -46,15 +46,22 @@ NSString* TeakHexStringFromData(NSData* data) {
 
 ///// Recursive form encode
 
+#define IS_VALID_STRING_TO_APPEND(x) (thingToJoin != [NSNull null] && [thingToJoin length] != 0 && ![thingToJoin isEqualToString:@"&"])
 NSString* TeakFormEncode(NSString* name, id value, BOOL escape) {
   NSMutableArray* listOfThingsToJoin = [[NSMutableArray alloc] init];
   if ([value isKindOfClass:NSDictionary.class]) {
     for (id key in value) {
-      [listOfThingsToJoin addObject:TeakFormEncode([NSString stringWithFormat:@"%@[%@]", name, key], value[key], escape)];
+      id thingToJoin = TeakFormEncode([NSString stringWithFormat:@"%@[%@]", name, key], value[key], escape);
+      if (IS_VALID_STRING_TO_APPEND(thingToJoin)) {
+        [listOfThingsToJoin addObject:thingToJoin];
+      }
     }
   } else if ([value isKindOfClass:NSArray.class]) {
     for (id v in value) {
-      [listOfThingsToJoin addObject:TeakFormEncode([NSString stringWithFormat:@"%@[]", name], v, escape)];
+      id thingToJoin = TeakFormEncode([NSString stringWithFormat:@"%@[]", name], v, escape);
+      if (IS_VALID_STRING_TO_APPEND(thingToJoin)) {
+        [listOfThingsToJoin addObject:thingToJoin];
+      }
     }
   } else if (value != nil && value != [NSNull null]) {
     if (name == nil) {
@@ -65,6 +72,7 @@ NSString* TeakFormEncode(NSString* name, id value, BOOL escape) {
   }
   return [listOfThingsToJoin componentsJoinedByString:@"&"];
 }
+#undef IS_VALID_STRING_TO_APPEND
 
 ///// Assign NSDictionary into 'application/x-www-form-urlencoded' request
 

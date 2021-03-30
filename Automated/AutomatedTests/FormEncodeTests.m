@@ -51,6 +51,12 @@ extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
   XCTAssertEqualObjects(TeakFormEncode(@"sig", @"am+j\\/WDcNGyMsrROfN4N3EizCF5IQ2z7YwGyjTpItPs=", YES), @"sig=am%2Bj\\%2FWDcNGyMsrROfN4N3EizCF5IQ2z7YwGyjTpItPs%3D");
 }
 
+- (void)testStringPayloadWithNullInValue {
+  self.payload[@"value_is_nil"] = [NSNull null];
+  self.payload[@"value_is_also_nil"] = [NSNull null];
+  XCTAssertEqualObjects(TeakFormEncode(@"some_dict", self.payload, YES), @"");
+}
+
 - (void)testPerformanceExample {
   // This is an example of a performance test case.
   [self measureBlock:^{

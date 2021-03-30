@@ -43,7 +43,12 @@ NSString* const TeakHostname = @"gocarrot.com";
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
 
-// FB SDK 4.x, 5.x, 6.x
+// Proilfe
+NSString* const TeakFBSDKProfileDidChangeNotification = @"com.facebook.sdk.FBSDKProfile.FBSDKProfileDidChangeNotification";
+NSString* const TeakFBSDKProfileChangeOldKey = @"FBSDKProfileOld";
+NSString* const TeakFBSDKProfileChangeNewKey = @"FBSDKProfileNew";
+
+// FB SDK 4.x, and greater
 NSString* const TeakFBSDKAccessTokenDidChangeNotification = @"com.facebook.sdk.FBSDKAccessTokenData.FBSDKAccessTokenDidChangeNotification";
 NSString* const TeakFBSDKAccessTokenDidChangeUserID = @"FBSDKAccessTokenDidChangeUserID";
 NSString* const TeakFBSDKAccessTokenChangeNewKey = @"FBSDKAccessToken";
@@ -369,15 +374,11 @@ Teak* _teakSharedInstance;
   }
 }
 
-- (void)fbAccessTokenChanged_4x:(NSNotification*)notification {
-  id newAccessToken = [notification.userInfo objectForKey:TeakFBSDKAccessTokenChangeNewKey];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-  id accessToken = [newAccessToken performSelector:sel_getUid("tokenString")];
-  if (accessToken != nil && accessToken != [NSNull null]) {
-    [FacebookAccessTokenEvent accessTokenUpdated:accessToken];
+- (void)fbProfileChanged:(NSNotification*)notification {
+  id tokenString = [FacebookAccessTokenEvent currentUserToken];
+  if (tokenString != nil && tokenString != [NSNull null]) {
+    [FacebookAccessTokenEvent accessTokenUpdated:tokenString];
   }
-#pragma clang diagnostic pop
 }
 
 - (void)fbAccessTokenChanged_3x:(NSNotification*)notification {
@@ -497,21 +498,21 @@ Teak* _teakSharedInstance;
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
   // Facebook SDKs
-  Class fbClass_4x5x6x = NSClassFromString(@"FBSDKProfile");
+  Class fbClass_4x_or_greater = NSClassFromString(@"FBSDKProfile");
   Class fbClass_3x = NSClassFromString(@"FBSession");
   teak_try {
-    if (fbClass_4x5x6x != nil) {
+    if (fbClass_4x_or_greater != nil) {
       BOOL arg = YES;
       SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
-      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x5x6x methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
+      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x_or_greater methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
       [inv setSelector:enableUpdatesOnAccessTokenChange];
-      [inv setTarget:fbClass_4x5x6x];
+      [inv setTarget:fbClass_4x_or_greater];
       [inv setArgument:&arg atIndex:2];
       [inv invoke];
 
       [[NSNotificationCenter defaultCenter] addObserver:self
-                                               selector:@selector(fbAccessTokenChanged_4x:)
-                                                   name:TeakFBSDKAccessTokenDidChangeNotification
+                                               selector:@selector(fbProfileChanged:)
+                                                   name:TeakFBSDKProfileDidChangeNotification
                                                  object:nil];
     } else if (fbClass_3x != nil) {
       // accessTokenData
@@ -522,8 +523,8 @@ Teak* _teakSharedInstance;
     }
 
     if (self.enableDebugOutput) {
-      if (fbClass_3x != nil) {
-        TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or 5.x"});
+      if (fbClass_4x_or_greater != nil) {
+        TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or greater"});
       } else if (fbClass_3x != nil) {
         TeakLog_i(@"facebook.sdk", @{@"version" : @"3.x"});
       } else {
@@ -711,6 +712,11 @@ Teak* _teakSharedInstance;
   return [[TeakNotification alloc] initWithDictionary:aps];
 }
 
++ (BOOL)isTeakNotification:(UNNotification*)notification {
+  NSDictionary* aps = notification.request.content.userInfo[@"aps"];
+  return NSStringOrNilFor(aps[@"teakNotifId"]) != nil;
+}
+
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
        willPresentNotification:(UNNotification*)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
@@ -724,6 +730,17 @@ Teak* _teakSharedInstance;
 
   // Optionally display the notification in the foreground if requested
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
+}
+
++ (BOOL)willPresentNotification:(UNNotification*)notification
+          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+  if ([Teak isTeakNotification:notification]) {
+    [[Teak sharedInstance] userNotificationCenter:[UNUserNotificationCenter currentNotificationCenter]
+                          willPresentNotification:notification
+                            withCompletionHandler:completionHandler];
+    return YES;
+  }
+  return NO;
 }
 
 // This method will be called whenever a taps on a notification
@@ -741,6 +758,17 @@ Teak* _teakSharedInstance;
   completionHandler();
 
   // TODO: HERE is where we report metric that a button was pressed
+}
+
++ (BOOL)didReceiveNotificationResponse:(UNNotificationResponse*)response
+                 withCompletionHandler:(void (^)(void))completionHandler {
+  if ([Teak isTeakNotification:response.notification]) {
+    [[Teak sharedInstance] userNotificationCenter:[UNUserNotificationCenter currentNotificationCenter]
+                   didReceiveNotificationResponse:response
+                            withCompletionHandler:completionHandler];
+    return YES;
+  }
+  return NO;
 }
 
 // This method is only called by iOS on versions of iOS which do not provide the

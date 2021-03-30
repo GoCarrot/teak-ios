@@ -16,3 +16,18 @@ task :clean do
                                             .select { |d| (Dir.entries(d) - %w[. ..]).empty? }
                                             .each   { |d| Dir.rmdir d }
 end
+
+task :docs do
+  # https://github.com/realm/jazzy
+  sh "jazzy \
+    --objc \
+    --clean \
+    --theme jony \
+    --author Teak.io, Inc. \
+    --author_url https://teak.io \
+    --module-version `cat VERSION` \
+    --readme VERSION \
+    --build-tool-arguments --objc,Teak/Teak.h,--,-x,objective-c,-isysroot,$(xcrun --show-sdk-path),-I,$(pwd) \
+    --module Teak \
+    --output docs/appledoc/objc_output"
+end

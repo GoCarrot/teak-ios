@@ -229,7 +229,7 @@ DefineTeakState(Expired, (@[]));
 
     if (dataCollectionConfiguration.enableFacebookAccessToken) {
       if (self.facebookAccessToken == nil) {
-        self.facebookAccessToken = [FacebookAccessTokenEvent currentAccessToken];
+        self.facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
       }
 
       if (self.facebookAccessToken != nil) {
@@ -409,7 +409,7 @@ DefineTeakState(Expired, (@[]));
           [TeakSession applicationWillResignActive];
         } break;
         case Logout: {
-          [TeakSession logout];
+          [TeakSession logoutReusingCurrentSession:false];
         } break;
         default:
           break;
@@ -419,10 +419,15 @@ DefineTeakState(Expired, (@[]));
   [TeakEvent addEventHandler:handler];
 }
 
-+ (void)logout {
++ (void)logoutReusingCurrentSession:(BOOL)reuseSession {
   @synchronized(currentSessionMutex) {
     @synchronized(currentSession) {
-      TeakSession* newSession = [[TeakSession alloc] initWithSession:currentSession];
+      TeakSession* newSession = nil;
+      if (reuseSession) {
+        newSession = [[TeakSession alloc] initWithSession:currentSession];
+      } else {
+        newSession = [[TeakSession alloc] init];
+      }
 
       [currentSession setState:[TeakSession Expiring]];
       [currentSession setState:[TeakSession Expired]];
@@ -442,7 +447,7 @@ DefineTeakState(Expired, (@[]));
     [TeakSession currentSession];
     @synchronized(currentSession) {
       if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
-        [TeakSession logout];
+        [TeakSession logoutReusingCurrentSession:true];
       }
 
       BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];

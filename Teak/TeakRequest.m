@@ -24,6 +24,34 @@ id NSNumber_UnsignedLongLong_SafeSumOrExisting(id existing, id addition) {
   return existing;
 }
 
+// Helper to turn payload dict into string to sign
+NSString* Teak_StringToSign(NSString* path, NSDictionary* payload, NSString* hostname) {
+  if (path == nil || path.length < 1) path = @"/";
+
+  // Build query string to sign
+  NSArray* queryKeysSorted = [[payload allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
+  NSMutableArray* sortedQueryStringArray = [[NSMutableArray alloc] init];
+  for (int i = 0; i < queryKeysSorted.count; i++) {
+    NSString* key = queryKeysSorted[i];
+    id value = payload[key];
+    NSString* encoded = TeakFormEncode(key, value, NO);
+    if ([encoded length] > 0) {
+      [sortedQueryStringArray addObject:encoded];
+    }
+  }
+
+  return [NSString stringWithFormat:@"%@\n%@\n%@\n%@", @"POST", hostname, path, [sortedQueryStringArray componentsJoinedByString:@"&"]];
+}
+
+NSString* Teak_SignString(NSString* stringToSign, NSString* apiKey) {
+  NSData* dataToSign = [stringToSign dataUsingEncoding:NSUTF8StringEncoding];
+  uint8_t digestBytes[CC_SHA256_DIGEST_LENGTH];
+  CCHmac(kCCHmacAlgSHA256, [apiKey UTF8String], apiKey.length, [dataToSign bytes], [dataToSign length], &digestBytes);
+
+  NSData* digestData = [NSData dataWithBytes:digestBytes length:CC_SHA256_DIGEST_LENGTH];
+  return [digestData base64EncodedStringWithOptions:0];
+}
+
 ///// Structs to match JSON
 
 @implementation TeakBatchConfiguration
@@ -216,33 +244,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (nonnull NSString*)stringToSign {
-  NSString* path = self.endpoint;
-  if (path == nil || path.length < 1) path = @"/";
-
-  // Build query string to sign
-  NSArray* queryKeysSorted = [[self.payload allKeys] sortedArrayUsingSelector:@selector(caseInsensitiveCompare:)];
-  NSMutableArray* sortedQueryStringArray = [[NSMutableArray alloc] init];
-  for (int i = 0; i < queryKeysSorted.count; i++) {
-    NSString* key = queryKeysSorted[i];
-    id value = self.payload[key];
-    NSString* encoded = TeakFormEncode(key, value, NO);
-    if ([encoded length] > 0) {
-      [sortedQueryStringArray addObject:encoded];
-    }
-  }
-
-  return [NSString stringWithFormat:@"%@\n%@\n%@\n%@", @"POST", self.hostname, path, [sortedQueryStringArray componentsJoinedByString:@"&"]];
+  return Teak_StringToSign(self.endpoint, self.payload, self.hostname);
 }
 
 - (nonnull NSString*)sig {
-  NSString* stringToSign = [self stringToSign];
-
-  NSData* dataToSign = [stringToSign dataUsingEncoding:NSUTF8StringEncoding];
-  uint8_t digestBytes[CC_SHA256_DIGEST_LENGTH];
-  CCHmac(kCCHmacAlgSHA256, [self.session.appConfiguration.apiKey UTF8String], self.session.appConfiguration.apiKey.length, [dataToSign bytes], [dataToSign length], &digestBytes);
-
-  NSData* digestData = [NSData dataWithBytes:digestBytes length:CC_SHA256_DIGEST_LENGTH];
-  return [digestData base64EncodedStringWithOptions:0];
+  return Teak_SignString([self stringToSign], self.session.appConfiguration.apiKey);
 }
 
 - (nonnull NSDictionary*)signedPayload {
@@ -312,10 +318,12 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     h[@"response_headers"] = response.allHeaderFields;
     TeakLog_i(@"request.reply", h);
 
-    if (response.statusCode == 403) {
+    NSString* errorMetadata = payload[@"metadata"] ? payload[@"metadata"][@"string_to_sign"] : nil;
+
+    if (response.statusCode == 403 || errorMetadata) {
       @try {
         NSString* clientSignedString = [self stringToSign];
-        NSString* serverSignedString = payload[@"string_to_sign"];
+        NSString* serverSignedString = errorMetadata ? errorMetadata : payload[@"string_to_sign"];
 
         TeakLog_e(@"request.error.signature", @{
           @"client" : clientSignedString,

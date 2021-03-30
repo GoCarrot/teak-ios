@@ -25,13 +25,17 @@
 
 @import AdSupport;
 
-@interface AppDelegate ()
+@interface AppDelegate () <UNUserNotificationCenterDelegate>
 
 @end
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
+  UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+  center.delegate = self;
+  [center setNotificationCategories:[[NSSet alloc] init]]; // This is intentional empty set
+
   [TeakLink registerRoute:@"/test/:data"
                      name:@"Test"
               description:@"Echo to log"
@@ -160,6 +164,24 @@ extern NSTimeInterval TeakSameSessionDeltaSeconds;
     NSLog(@"Notification scheduled: %@", notif.teakNotifId);
   });
   return nil;
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+       willPresentNotification:(UNNotification*)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+  if (![Teak willPresentNotification:notification withCompletionHandler:completionHandler]) {
+    // Perform your processing
+    completionHandler(UNNotificationPresentationOptionAlert);
+  }
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center
+    didReceiveNotificationResponse:(UNNotificationResponse*)response
+             withCompletionHandler:(void (^)(void))completionHandler {
+  if (![Teak didReceiveNotificationResponse:response withCompletionHandler:completionHandler]) {
+    // Perform your processing
+    completionHandler();
+  }
 }
 
 @end
