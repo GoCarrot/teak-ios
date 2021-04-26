@@ -31,6 +31,10 @@ jobs:
       - run:
           name: Build Teak SDK
           command: ./compile
+      - run:
+          name: Compute Checksums
+          command: |
+            sha512sum build/Release-iphoneos/Teak.framework.zip > Teak.framework.zip.sha512
       - persist_to_workspace:
           root: .
           paths:
@@ -40,6 +44,7 @@ jobs:
             - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
             - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
             - TeakExtensions.zip
+            - Teak.framework.zip.sha512
 
   tag_build:
     docker:
@@ -69,6 +74,7 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions-$(git describe --tags --always).zip --acl public-read
+            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip.sha512 --acl public-read
 
   deploy_latest:
     docker:
@@ -90,6 +96,7 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService.appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent.appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions.zip --acl public-read
+            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak.framework.zip.sha512 --acl public-read
 
 workflows:
   version: 2
