@@ -430,23 +430,6 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setupInternalDeepLinkRoutes {
-  // Register default purchase deep link
-  [TeakLink registerRoute:@"/teak_internal/store/:sku"
-                     name:@""
-              description:@""
-                    block:^(NSDictionary* _Nonnull parameters) {
-                      [ProductRequest productRequestForSku:parameters[@"sku"]
-                                                  callback:^(NSDictionary* unused, SKProductsResponse* response) {
-                                                    if (response != nil && response.products != nil && response.products.count > 0) {
-                                                      SKProduct* product = [response.products objectAtIndex:0];
-
-                                                      SKMutablePayment* payment = [SKMutablePayment paymentWithProduct:product];
-                                                      payment.quantity = 1;
-                                                      [[SKPaymentQueue defaultQueue] addPayment:payment];
-                                                    }
-                                                  }];
-                    }];
-
   // Register callback for Teak companion app
   [TeakLink registerRoute:@"/teak_internal/companion"
                      name:@""
