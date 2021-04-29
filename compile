@@ -14,7 +14,7 @@ if [ ! $? -eq 0 ]; then
 fi
 
 # Disabling the analysis on CI for now
-if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
+if [ -z ${CI+x} ]; then
   oclint-json-compilation-database --exclude '^.*/3rdParty/.*$' -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
   if [ ! $EXIT_CODE -eq 0 ]; then
     echo "oclint found issues"
