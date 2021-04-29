@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Compute Checksums
           command: |
-            sha512sum build/Release-iphoneos/Teak.framework.zip > Teak.framework.zip.sha512
+            shasum -a 512 build/Release-iphoneos/Teak.framework.zip > Teak.framework.zip.sha512
       - persist_to_workspace:
           root: .
           paths:
