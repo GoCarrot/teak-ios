@@ -15,7 +15,7 @@ fi
 
 # Disabling the analysis on CI for now
 if [ -z ${CI+x} ]; then
-  oclint-json-compilation-database --exclude "^.*/3rdParty/.*$" -- -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
+  oclint-json-compilation-database --exclude "^.*/3rdParty/.*$" -- -extra-arg=-Wno-everything -report-type html -o oclint_result.html || EXIT_CODE=$? && true ;
   if [ ! $EXIT_CODE -eq 0 ]; then
     echo "oclint found issues"
     if [ -z ${CIRCLE_ARTIFACTS+x} ]; then
