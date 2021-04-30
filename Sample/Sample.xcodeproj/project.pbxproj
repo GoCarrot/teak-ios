@@ -366,7 +366,7 @@
 		431C98541C7E6DE200B19DD5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 1130;
 				ORGANIZATIONNAME = "GoCarrot Inc.";
 				TargetAttributes = {
 					431C985B1C7E6DE300B19DD5 = {
@@ -397,10 +397,9 @@
 			};
 			buildConfigurationList = 431C98571C7E6DE200B19DD5 /* Build configuration list for PBXProject "Sample" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				English,
 				en,
 				Base,
 			);
@@ -707,7 +706,6 @@
 		5649BAF7D6ECE9B4845C9FB9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
@@ -725,7 +723,6 @@
 		6B98CE36BE51F753B738A090 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
@@ -743,7 +740,6 @@
 		D5EA76D27F41B262D48CE174 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
@@ -762,7 +758,6 @@
 		F4AAA9B659C4B3F362137F84 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
