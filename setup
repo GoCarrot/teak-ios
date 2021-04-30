@@ -3,4 +3,5 @@ set -euo pipefail
 IFS=$'\n\t'
 
 if [ "$(which clang-format)" == "" ]; then brew install clang-format; fi
-if [ "$(which oclint-json-compilation-database)" == "" ]; then brew tap oclint/formulae; brew install oclint; fi
+if [ "$(which oclint-json-compilation-database)" == "" ]; then brew install oclint/formulae/oclint; fi
+if [ "$(which python3)" == "" ]; then brew install python3; fi
