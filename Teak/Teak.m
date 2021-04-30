@@ -381,20 +381,6 @@ Teak* _teakSharedInstance;
   }
 }
 
-- (void)fbAccessTokenChanged_3x:(NSNotification*)notification {
-  TeakUnused(notification);
-  Class fbSession = NSClassFromString(@"FBSession");
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-  id activeSession = [fbSession performSelector:sel_getUid("activeSession")];
-  id accessTokenData = [activeSession performSelector:sel_getUid("accessTokenData")];
-  id accessToken = [accessTokenData performSelector:sel_getUid("accessToken")];
-  if (accessToken != nil && accessToken != [NSNull null]) {
-    [FacebookAccessTokenEvent accessTokenUpdated:accessToken];
-  }
-#pragma clang diagnostic pop
-}
-
 - (BOOL)handleOpenURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication {
   // I'm really not happy about this hack, but something is wrong with returning
   // YES from application:didFinishLaunchingWithOptions: and so we need to not
@@ -482,7 +468,6 @@ Teak* _teakSharedInstance;
 
   // Facebook SDKs
   Class fbClass_4x_or_greater = NSClassFromString(@"FBSDKProfile");
-  Class fbClass_3x = NSClassFromString(@"FBSession");
   teak_try {
     if (fbClass_4x_or_greater != nil) {
       BOOL arg = YES;
@@ -497,19 +482,11 @@ Teak* _teakSharedInstance;
                                                selector:@selector(fbProfileChanged:)
                                                    name:TeakFBSDKProfileDidChangeNotification
                                                  object:nil];
-    } else if (fbClass_3x != nil) {
-      // accessTokenData
-      [[NSNotificationCenter defaultCenter] addObserver:self
-                                               selector:@selector(fbAccessTokenChanged_3x:)
-                                                   name:TeakFBSessionDidBecomeOpenActiveSessionNotification
-                                                 object:nil];
     }
 
     if (self.enableDebugOutput) {
       if (fbClass_4x_or_greater != nil) {
         TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or greater"});
-      } else if (fbClass_3x != nil) {
-        TeakLog_i(@"facebook.sdk", @{@"version" : @"3.x"});
       } else {
         TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
       }

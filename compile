@@ -25,7 +25,7 @@ if [ -z ${CI+x} ]; then
       mkdir -p $oclintArtifacts
       cp oclint_result.html $oclintArtifacts
     fi
-    #exit 1 # TODO: Uncomment when we want oclint to cause fail
+    # exit 1 # TODO: Uncomment when we want oclint to cause fail
   fi
 
   if ! [[ -z `find $clangTemp -name *.html -print -quit` ]]; then
