@@ -12,7 +12,7 @@
 NSString* INFO = @"INFO";
 NSString* ERROR = @"ERROR";
 
-extern BOOL Teak_isProductionBuild();
+extern BOOL Teak_isProductionBuild(void);
 
 #define kTeakLogTrace @"TeakLogTrace"
 
