@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.0.3
+  teak: teak/sdk-utils@0.0.10
 
 jobs:
   test:
