@@ -49,7 +49,7 @@ jobs:
     steps:
       - checkout
       - teak/tag-promote:
-          fingerprint: "87:61:22:71:86:9b:f2:75:51:fc:e7:eb:63:d3:d2:05"
+          fingerprint: "37:03:c0:84:88:7c:4a:da:bf:3f:84:d2:c4:8e:f9:12"
 
   deploy_versioned:
     docker:
@@ -191,7 +191,7 @@ commands:
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - add_ssh_keys:
           fingerprints:
-            - "ab:48:b1:f2:a7:e9:0f:ba:81:3b:0c:16:48:6b:91:3d"
+            - "37:03:c0:84:88:7c:4a:da:bf:3f:84:d2:c4:8e:f9:12"
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
