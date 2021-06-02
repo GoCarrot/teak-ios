@@ -57,6 +57,13 @@ extern NSString* TeakFormEncode(NSString* name, id value, BOOL escape);
   XCTAssertEqualObjects(TeakFormEncode(@"some_dict", self.payload, YES), @"");
 }
 
+- (void)testMKSPercentError {
+  self.payload[@"value_is_string"] = @"5.31.21+-+Facebook+-+50%+off+reward";
+  XCTAssertEqualObjects(TeakFormEncode(@"some_dict", self.payload, YES), @"some_dict[value_is_string]=5.31.21%2B-%2BFacebook%2B-%2B50%25%2Boff%2Breward");
+
+  XCTAssertEqualObjects(TeakFormEncode(@"value_is_string", @"5.31.21+-+Facebook+-+50%+off+reward", YES), @"value_is_string=5.31.21%2B-%2BFacebook%2B-%2B50%25%2Boff%2Breward");
+}
+
 - (void)testPerformanceExample {
   // This is an example of a performance test case.
   [self measureBlock:^{
