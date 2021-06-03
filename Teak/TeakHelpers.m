@@ -74,20 +74,13 @@ NSString* TeakFormEncode(NSString* name, id value, BOOL escape) {
 }
 #undef IS_VALID_STRING_TO_APPEND
 
-///// Assign NSDictionary into 'application/x-www-form-urlencoded' request
+///// Assign NSDictionary into 'application/json' request
 
 void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload) {
-  NSMutableData* postData = [[NSMutableData alloc] init];
-  NSMutableArray* escapedPayloadComponents = [[NSMutableArray alloc] init];
-  for (NSString* key in payload) {
-    id value = payload[key];
-    [escapedPayloadComponents addObject:TeakFormEncode(key, value, YES)];
-  }
-  NSString* escapedPayloadString = [escapedPayloadComponents componentsJoinedByString:@"&"];
-  [postData appendData:[escapedPayloadString dataUsingEncoding:NSUTF8StringEncoding]];
+  NSData* postData = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
 
   [request setHTTPMethod:@"POST"];
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:postData];
-  [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+  [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 }
