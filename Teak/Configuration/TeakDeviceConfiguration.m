@@ -20,6 +20,9 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 @property (strong, nonatomic, readwrite) NSString* advertisingIdentifier;
 @property (strong, nonatomic, readwrite) NSString* notificationDisplayEnabled;
 @property (nonatomic, readwrite) BOOL limitAdTracking;
+@property (nonatomic, readwrite) unsigned long long phyiscalMemoryInBytes;
+@property (nonatomic, readwrite) NSUInteger numberOfCores;
+@property (nonatomic, readwrite) NSDictionary* displayMetrics;
 
 @property (strong, nonatomic) NSUserDefaults* userDefaults;
 @property (nonatomic) NSUInteger rerunGetAdvertisingInformation;
@@ -67,6 +70,16 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
       self.platformString = [NSString stringWithFormat:@"ios_%@", [[UIDevice currentDevice] systemVersion]];
     }
     teak_catch_report;
+
+    // Hardware info
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    self.phyiscalMemoryInBytes = [NSProcessInfo processInfo].physicalMemory;
+    self.numberOfCores = [[NSProcessInfo processInfo] processorCount];
+    self.displayMetrics = @{
+      @"width" : [NSNumber numberWithDouble:screenRect.size.width],
+      @"height" : [NSNumber numberWithDouble:screenRect.size.height],
+      @"dpi" : [NSNumber numberWithFloat:[[UIScreen mainScreen] scale]]
+    };
 
     // Make sure these are not nil
     self.advertisingIdentifier = @"";

@@ -205,6 +205,11 @@ DefineTeakState(Expired, (@[]));
       payload[@"ios_ad_id"] = @"";
     }
 
+    // Additional device information
+    payload[@"device_num_cores"] = [NSNumber numberWithUnsignedInteger:self.deviceConfiguration.numberOfCores];
+    payload[@"device_device_memory_in_bytes"] = [NSNumber numberWithUnsignedLongLong:self.deviceConfiguration.phyiscalMemoryInBytes];
+    payload[@"device_display_metrics"] = self.deviceConfiguration.displayMetrics;
+
     if (self.userIdentificationSent) {
       payload[@"do_not_track_event"] = @YES;
     }
