@@ -44,36 +44,6 @@ NSString* TeakHexStringFromData(NSData* data) {
   return [hexString copy];
 }
 
-///// Recursive form encode
-
-#define IS_VALID_STRING_TO_APPEND(x) (thingToJoin != [NSNull null] && [thingToJoin length] != 0 && ![thingToJoin isEqualToString:@"&"])
-NSString* TeakFormEncode(NSString* name, id value, BOOL escape) {
-  NSMutableArray* listOfThingsToJoin = [[NSMutableArray alloc] init];
-  if ([value isKindOfClass:NSDictionary.class]) {
-    for (id key in value) {
-      id thingToJoin = TeakFormEncode([NSString stringWithFormat:@"%@[%@]", name, key], value[key], escape);
-      if (IS_VALID_STRING_TO_APPEND(thingToJoin)) {
-        [listOfThingsToJoin addObject:thingToJoin];
-      }
-    }
-  } else if ([value isKindOfClass:NSArray.class]) {
-    for (id v in value) {
-      id thingToJoin = TeakFormEncode([NSString stringWithFormat:@"%@[]", name], v, escape);
-      if (IS_VALID_STRING_TO_APPEND(thingToJoin)) {
-        [listOfThingsToJoin addObject:thingToJoin];
-      }
-    }
-  } else if (value != nil && value != [NSNull null]) {
-    if (name == nil) {
-      [listOfThingsToJoin addObject:escape ? TeakURLEscapedString(TeakNSStringOrNilFor(value)) : TeakNSStringOrNilFor(value)];
-    } else {
-      [listOfThingsToJoin addObject:[NSString stringWithFormat:@"%@=%@", name, escape ? TeakURLEscapedString(TeakNSStringOrNilFor(value)) : TeakNSStringOrNilFor(value)]];
-    }
-  }
-  return [listOfThingsToJoin componentsJoinedByString:@"&"];
-}
-#undef IS_VALID_STRING_TO_APPEND
-
 ///// Assign NSDictionary into 'application/json' request
 
 void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload) {

@@ -20,7 +20,6 @@
 		4358FFBF2255328F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
 		4358FFC0225532970068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
 		4358FFC12255329F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
-		4358FFC3225536EE0068A4FD /* FormEncodeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FFC2225536EE0068A4FD /* FormEncodeTests.m */; };
 		43B4617522A1E10F004AC636 /* LogTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 43B4617422A1E10F004AC636 /* LogTests.m */; };
 		43B4618322A1EB05004AC636 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4617F22A1EB05004AC636 /* StoreKit.framework */; };
 		43B4618522A1EB0D004AC636 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618422A1EB0D004AC636 /* SystemConfiguration.framework */; };
@@ -29,7 +28,6 @@
 		43B4618F22A1EB54004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
 		43B4619922A20FDC004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
 		43B4619D22A20FE4004AC636 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4617F22A1EB05004AC636 /* StoreKit.framework */; };
-		43F37E902555DE810036F903 /* RequestSignatureTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 43F37E8F2555DE810036F903 /* RequestSignatureTests.m */; };
 		BF20EAD8B0CC8F23483B6FF0 /* Pods_AutomatedTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -86,7 +84,6 @@
 		4358FFA622541E550068A4FD /* AutomatedUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AutomatedUITests.m; sourceTree = "<group>"; };
 		4358FFA822541E550068A4FD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4358FFB4225420510068A4FD /* Teak.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Teak.xcodeproj; path = ../Teak.xcodeproj; sourceTree = "<group>"; };
-		4358FFC2225536EE0068A4FD /* FormEncodeTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FormEncodeTests.m; sourceTree = "<group>"; };
 		43B4617422A1E10F004AC636 /* LogTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LogTests.m; sourceTree = "<group>"; };
 		43B4617F22A1EB05004AC636 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		43B4618422A1EB0D004AC636 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
@@ -96,7 +93,6 @@
 		43B4618C22A1EB48004AC636 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		43B4618E22A1EB54004AC636 /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
 		43B4619222A1EBDF004AC636 /* OCMockito.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = OCMockito.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		43F37E8F2555DE810036F903 /* RequestSignatureTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RequestSignatureTests.m; sourceTree = "<group>"; };
 		58899BE40E40447A87FDF2D8 /* Pods-AutomatedTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedTests.release.xcconfig"; path = "Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests.release.xcconfig"; sourceTree = "<group>"; };
 		58C2AA35CD060472CAC08059 /* Pods-Automated.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Automated.debug.xcconfig"; path = "Target Support Files/Pods-Automated/Pods-Automated.debug.xcconfig"; sourceTree = "<group>"; };
 		6B7A960ECDD5D5D7E3CB6A8E /* Pods-AutomatedUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedUITests.debug.xcconfig"; path = "Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -200,9 +196,7 @@
 			children = (
 				4358FF9B22541E550068A4FD /* AutomatedTests.m */,
 				4358FF9D22541E550068A4FD /* Info.plist */,
-				4358FFC2225536EE0068A4FD /* FormEncodeTests.m */,
 				43B4617422A1E10F004AC636 /* LogTests.m */,
-				43F37E8F2555DE810036F903 /* RequestSignatureTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -515,10 +509,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				43F37E902555DE810036F903 /* RequestSignatureTests.m in Sources */,
 				43B4617522A1E10F004AC636 /* LogTests.m in Sources */,
 				4358FF9C22541E550068A4FD /* AutomatedTests.m in Sources */,
-				4358FFC3225536EE0068A4FD /* FormEncodeTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
