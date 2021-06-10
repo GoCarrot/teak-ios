@@ -48,8 +48,7 @@ jobs:
       - image: circleci/ruby:latest
     steps:
       - checkout
-      - teak/tag-promote:
-          fingerprint: "37:03:c0:84:88:7c:4a:da:bf:3f:84:d2:c4:8e:f9:12"
+      - teak/tag-promote
 
   deploy_versioned:
     docker:
@@ -189,9 +188,6 @@ commands:
             - Sample/vendor/bundle
             - ~/.rvm
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
-      - add_ssh_keys:
-          fingerprints:
-            - "37:03:c0:84:88:7c:4a:da:bf:3f:84:d2:c4:8e:f9:12"
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
