@@ -6,6 +6,7 @@
 #import "TeakLog.h"
 #import "TeakPushState.h"
 #import "TeakRaven.h"
+#import "TeakWaitForDeepLink.h"
 
 @class TeakCore;
 @class SKPaymentObserver;
@@ -24,7 +25,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 @property (strong, nonatomic) TeakIntegrationChecker* _Nonnull integrationChecker;
 
 @property (strong, nonatomic) NSOperationQueue* _Nonnull operationQueue;
-@property (strong, nonatomic) NSOperation* _Nonnull waitForDeepLinkOperation;
+@property (strong, nonatomic) TeakWaitForDeepLink* _Nonnull waitForDeepLink;
 
 @property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
 @property (strong, nonatomic) TeakLog* _Nonnull log;

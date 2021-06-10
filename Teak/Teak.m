@@ -350,7 +350,7 @@ Teak* _teakSharedInstance;
     [self.log logEvent:@"push_state.init" level:@"INFO" eventData:[self.pushState to_h]];
 
     // Default wait for deep link operation
-    self.waitForDeepLinkOperation = [NSBlockOperation blockOperationWithBlock:^{}];
+    self.waitForDeepLink = [[TeakWaitForDeepLink alloc] init];
 
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
@@ -367,11 +367,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)processDeepLinks {
-  @synchronized(self.waitForDeepLinkOperation) {
-    if (!self.waitForDeepLinkOperation.isFinished) {
-      [self.operationQueue addOperation:self.waitForDeepLinkOperation];
-    }
-  }
+  [self.waitForDeepLink addToQueue:self.operationQueue];
 }
 
 - (void)fbProfileChanged:(NSNotification*)notification {
