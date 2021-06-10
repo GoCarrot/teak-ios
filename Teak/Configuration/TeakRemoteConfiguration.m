@@ -155,7 +155,7 @@ extern NSString* TeakHostname;
     [request send];
   }];
 
-  [[Teak sharedInstance].waitForDeepLink addAsDependency:configOp];
+  [[Teak sharedInstance].waitForDeepLink whenFinishedRun:configOp];
   [[Teak sharedInstance].operationQueue addOperation:configOp];
 }
 

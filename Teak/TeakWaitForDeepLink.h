@@ -6,5 +6,5 @@
 
 - (nullable id)init;
 - (BOOL)addToQueue:(nonnull NSOperationQueue*)queue;
-- (void)addAsDependency:(nonnull NSOperation*)operation;
+- (void)whenFinishedRun:(nonnull NSOperation*)operation;
 @end

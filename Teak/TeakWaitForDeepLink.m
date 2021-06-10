@@ -27,7 +27,7 @@
   return NO;
 }
 
-- (void)addAsDependency:(nonnull NSOperation*)operation {
+- (void)whenFinishedRun:(nonnull NSOperation*)operation {
   [operation addDependency:self.operation];
 }
 
