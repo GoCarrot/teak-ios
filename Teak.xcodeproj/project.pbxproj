@@ -93,6 +93,8 @@
 		434861861FA3C08A00E0DA12 /* LifecycleEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 434861841FA3C08A00E0DA12 /* LifecycleEvent.m */; };
 		434862481FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434862461FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h */; };
 		434862491FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */; };
+		4355CE942672890100889B0B /* TeakWaitForDeepLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 4355CE922672890100889B0B /* TeakWaitForDeepLink.h */; };
+		4355CE952672890100889B0B /* TeakWaitForDeepLink.m in Sources */ = {isa = PBXBuildFile; fileRef = 4355CE932672890100889B0B /* TeakWaitForDeepLink.m */; };
 		4361E49F1D27529700672694 /* TeakRaven.h in Headers */ = {isa = PBXBuildFile; fileRef = 4361E49D1D27529700672694 /* TeakRaven.h */; };
 		4361E4A01D27529700672694 /* TeakRaven.m in Sources */ = {isa = PBXBuildFile; fileRef = 4361E49E1D27529700672694 /* TeakRaven.m */; };
 		437C7933204A00F3006BD4B9 /* RemoteConfigurationEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 437C7931204A00F3006BD4B9 /* RemoteConfigurationEvent.h */; };
@@ -244,6 +246,8 @@
 		434861841FA3C08A00E0DA12 /* LifecycleEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LifecycleEvent.m; sourceTree = "<group>"; };
 		434862461FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FacebookAccessTokenEvent.h; sourceTree = "<group>"; };
 		434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FacebookAccessTokenEvent.m; sourceTree = "<group>"; };
+		4355CE922672890100889B0B /* TeakWaitForDeepLink.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakWaitForDeepLink.h; sourceTree = "<group>"; };
+		4355CE932672890100889B0B /* TeakWaitForDeepLink.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakWaitForDeepLink.m; sourceTree = "<group>"; };
 		4361E49D1D27529700672694 /* TeakRaven.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRaven.h; sourceTree = "<group>"; };
 		4361E49E1D27529700672694 /* TeakRaven.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRaven.m; sourceTree = "<group>"; };
 		437C7931204A00F3006BD4B9 /* RemoteConfigurationEvent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteConfigurationEvent.h; sourceTree = "<group>"; };
@@ -390,6 +394,8 @@
 				4347A31D22405506001A3A8A /* TeakMPInt.m */,
 				43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */,
 				43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */,
+				4355CE922672890100889B0B /* TeakWaitForDeepLink.h */,
+				4355CE932672890100889B0B /* TeakWaitForDeepLink.m */,
 			);
 			path = Teak;
 			sourceTree = "<group>";
@@ -566,6 +572,7 @@
 				438372771D3442EA00B01F44 /* TeakSession.h in Headers */,
 				4347A2C922402D57001A3A8A /* tommath_private.h in Headers */,
 				4347A2C822402D57001A3A8A /* tommath_class.h in Headers */,
+				4355CE942672890100889B0B /* TeakWaitForDeepLink.h in Headers */,
 				43A00446242403F60034DB68 /* LogoutEvent.h in Headers */,
 				4348617B1FA3B5D800E0DA12 /* PurchaseEvent.h in Headers */,
 				438372801D34696500B01F44 /* TeakRemoteConfiguration.h in Headers */,
@@ -763,6 +770,7 @@
 				434862491FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m in Sources */,
 				4347A2C322402D24001A3A8A /* bn_mp_sqr.c in Sources */,
 				4347A30422403A91001A3A8A /* bn_mp_toradix.c in Sources */,
+				4355CE952672890100889B0B /* TeakWaitForDeepLink.m in Sources */,
 				43E601C11FFEF879003A09C5 /* TeakNotificationViewControllerCore.m in Sources */,
 				43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */,
 				4383727C1D34443D00B01F44 /* TeakState.m in Sources */,
