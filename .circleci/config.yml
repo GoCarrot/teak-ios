@@ -31,17 +31,16 @@ jobs:
       - run:
           name: Compute Checksums
           command: |
-            shasum -a 512 build/Release-iphoneos/Teak.framework.zip > Teak.framework.zip.sha512
+            shasum -a 512 build/Release-iphoneos/Teak.zip > Teak.zip.sha512
       - persist_to_workspace:
           root: .
           paths:
-            - build/Release-iphoneos/Teak.framework.zip
-            - build/Release-iphoneos/TeakResources.bundle.zip
+            - build/Release-iphoneos/Teak.zip
             - TeakExtensions/TeakNotificationContent/Info.plist
             - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
             - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
             - TeakExtensions.zip
-            - Teak.framework.zip.sha512
+            - Teak.zip.sha512
 
   tag_build:
     docker:
@@ -64,13 +63,12 @@ jobs:
       - run:
           name: Upload SDK to S3
           command: |
-            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
-            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/Teak.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).zip --acl public-read
             aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions-$(git describe --tags --always).zip --acl public-read
-            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip.sha512 --acl public-read
+            aws s3 cp workspace/Teak.zip.sha512 s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).zip.sha512 --acl public-read
 
   deploy_latest:
     docker:
@@ -86,13 +84,12 @@ jobs:
       - run:
           name: Upload SDK to S3
           command: |
-            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
-            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
+            aws s3 cp workspace/build/Release-iphoneos/Teak.zip s3://teak-build-artifacts/ios/Teak.zip --acl public-read
             aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService.appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent.appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions.zip --acl public-read
-            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak.framework.zip.sha512 --acl public-read
+            aws s3 cp workspace/Teak.zip.sha512 s3://teak-build-artifacts/ios/Teak.zip.sha512 --acl public-read
 
 workflows:
   version: 2
