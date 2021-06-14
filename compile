@@ -44,7 +44,9 @@ if [ -z ${CI+x} ]; then
 fi
 
 (cd Sample; bundle exec fastlane dev)
-(cd build/$buildtype-iphoneos/; zip -y -r Teak.zip Teak.framework/ TeakResources.bundle/)
+
+(cd build/$buildtype-iphoneos/; zip -y -r Teak.framework.zip Teak.framework/)
+(cd build/$buildtype-iphoneos/; zip -y -r TeakResources.bundle.zip TeakResources.bundle/)
 (cd Sample/build/Release-iphoneos/; zip -y -r TeakNotificationService.appex.zip TeakNotificationService.appex/)
 (cd Sample/build/Release-iphoneos/; zip -y -r TeakNotificationContent.appex.zip TeakNotificationContent.appex/)
 
