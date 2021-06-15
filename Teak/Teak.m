@@ -398,7 +398,7 @@ Teak* _teakSharedInstance;
 
   // Returns YES if it's a Teak link, in which case it will *not* be passed on to the host application.
   // Returns NO if it's not a Teak link, it will then be passed to the host application.
-  return [TeakSession didLaunchFromLink:url.absoluteString];
+  return [TeakSession didLaunchFromLink:url.absoluteString wasTeakLink:NO];
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
@@ -775,6 +775,7 @@ Teak* _teakSharedInstance;
       [session dataTaskWithURL:fetchUrl
              completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
                NSString* attributionUrlAsString = [webpageURL absoluteString];
+               BOOL wasTeakLink = NO;
 
                // If we aren't already retrying, and there's any kind of error (for example iOS 12 malarky)
                // wait 1.5 seconds and retry.
@@ -803,7 +804,18 @@ Teak* _teakSharedInstance;
                  if (error == nil) {
                    NSString* iOSPath = reply[@"iOSPath"];
                    if (iOSPath != nil) {
-                     attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:@"^[a-zA-Z0-9+\\.\\-_]*:"
+                                                                                             options:0
+                                                                                               error:&error];
+                     if (error != nil || [regExp numberOfMatchesInString:iOSPath
+                                                                 options:0
+                                                                   range:NSMakeRange(0, [iOSPath length])] == 0) {
+                       attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                     } else {
+                       attributionUrlAsString = iOSPath;
+                     }
+
+                     wasTeakLink = YES;
                      TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
                    }
 
@@ -819,7 +831,7 @@ Teak* _teakSharedInstance;
                }
 
                // Attribution
-               [TeakSession didLaunchFromLink:attributionUrlAsString];
+               [TeakSession didLaunchFromLink:attributionUrlAsString wasTeakLink:wasTeakLink];
              }];
   [task resume];
 }
