@@ -251,7 +251,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
     TeakAssignPayloadToRequest(request, self.payload);
-    [request setValue:@"Authorization" forHTTPHeaderField:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", self.sig]];
+    [request setValue:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", self.sig] forHTTPHeaderField:@"Authorization"];
     teak_log_breadcrumb(@"request.send.constructed");
 
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];
