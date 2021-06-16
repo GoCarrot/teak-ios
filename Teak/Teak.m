@@ -804,7 +804,7 @@ Teak* _teakSharedInstance;
                  if (error == nil) {
                    NSString* iOSPath = reply[@"iOSPath"];
                    if (iOSPath != nil) {
-                     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:@"^[a-zA-Z0-9+\\.\\-_]*:"
+                     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:@"^[a-zA-Z0-9+.\\-_]*:"
                                                                                              options:0
                                                                                                error:&error];
                      if (error != nil || [regExp numberOfMatchesInString:iOSPath
