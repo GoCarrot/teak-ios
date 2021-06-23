@@ -64,15 +64,18 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
       self.deviceModel = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
     }
     teak_catch_report;
-NSLog(@"TEAK GOT TO POINT A");
+
     self.platformString = @"ios_0.0";
     teak_try {
       self.platformString = [NSString stringWithFormat:@"ios_%@", [[UIDevice currentDevice] systemVersion]];
     }
     teak_catch_report;
-NSLog(@"TEAK GOT TO POINT B");
+
     // Hardware info
-    CGRect screenRect = [[UIScreen mainScreen] bounds];
+NSLog(@"TEAK GOT TO POINT A");
+    UIScreen* mainScreen = [UIScreen mainScreen];
+NSLog(@"TEAK GOT TO POINT B");
+    CGRect screenRect = [mainScreen bounds];
 NSLog(@"TEAK GOT TO POINT C");
     self.phyiscalMemoryInBytes = [NSProcessInfo processInfo].physicalMemory;
 NSLog(@"TEAK GOT TO POINT D");
@@ -81,7 +84,7 @@ NSLog(@"TEAK GOT TO POINT E");
     self.displayMetrics = @{
       @"width" : [NSNumber numberWithDouble:screenRect.size.width],
       @"height" : [NSNumber numberWithDouble:screenRect.size.height],
-      @"dpi" : [NSNumber numberWithFloat:[[UIScreen mainScreen] scale]]
+      @"dpi" : [NSNumber numberWithFloat:[mainScreen scale]]
     };
 
     // Make sure these are not nil
