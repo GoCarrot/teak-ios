@@ -73,19 +73,18 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 
     // Hardware info
 NSLog(@"TEAK GOT TO POINT A");
-    UIScreen* mainScreen = [UIScreen mainScreen];
-NSLog(@"TEAK GOT TO POINT B");
-    CGRect screenRect = [mainScreen bounds];
-NSLog(@"TEAK GOT TO POINT C");
     self.phyiscalMemoryInBytes = [NSProcessInfo processInfo].physicalMemory;
-NSLog(@"TEAK GOT TO POINT D");
+NSLog(@"TEAK GOT TO POINT B");
     self.numberOfCores = [[NSProcessInfo processInfo] processorCount];
-NSLog(@"TEAK GOT TO POINT E");
+NSLog(@"TEAK GOT TO POINT C");
+//    UIScreen* mainScreen = [UIScreen mainScreen];
+//    CGRect screenRect = [mainScreen bounds];
     self.displayMetrics = @{
-      @"width" : [NSNumber numberWithDouble:screenRect.size.width],
-      @"height" : [NSNumber numberWithDouble:screenRect.size.height],
-      @"dpi" : [NSNumber numberWithFloat:[mainScreen scale]]
+//      @"width" : [NSNumber numberWithDouble:screenRect.size.width],
+//      @"height" : [NSNumber numberWithDouble:screenRect.size.height],
+//      @"dpi" : [NSNumber numberWithFloat:[mainScreen scale]]
     };
+NSLog(@"TEAK GOT TO POINT D");
 
     // Make sure these are not nil
     self.advertisingIdentifier = @"";
