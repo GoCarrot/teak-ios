@@ -72,11 +72,10 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     teak_catch_report;
 
     // Hardware info
-NSLog(@"TEAK GOT TO POINT A");
     self.phyiscalMemoryInBytes = [NSProcessInfo processInfo].physicalMemory;
-NSLog(@"TEAK GOT TO POINT B");
     self.numberOfCores = [[NSProcessInfo processInfo] processorCount];
-NSLog(@"TEAK GOT TO POINT C");
+
+    // This is disabled, for now, because there are Xcode 12 and/or iOS 15 issues
 //    UIScreen* mainScreen = [UIScreen mainScreen];
 //    CGRect screenRect = [mainScreen bounds];
     self.displayMetrics = @{
@@ -84,7 +83,6 @@ NSLog(@"TEAK GOT TO POINT C");
 //      @"height" : [NSNumber numberWithDouble:screenRect.size.height],
 //      @"dpi" : [NSNumber numberWithFloat:[mainScreen scale]]
     };
-NSLog(@"TEAK GOT TO POINT D");
 
     // Make sure these are not nil
     self.advertisingIdentifier = @"";
