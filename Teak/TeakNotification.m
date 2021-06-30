@@ -10,7 +10,9 @@
 @property (strong, nonatomic, readwrite) NSString* teakRewardId;
 @property (strong, nonatomic, readwrite) NSString* teakDeepLink;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakScheduleName;
+@property (strong, nonatomic, readwrite) NSString* _Nullable teakScheduleId;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakCreativeName;
+@property (strong, nonatomic, readwrite) NSString* _Nullable teakCreativeId;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakChannelName;
 @property (strong, nonatomic, readwrite) NSDictionary* originalJson;
 @property (atomic, readwrite) BOOL showInForeground;
@@ -27,7 +29,9 @@
     self.teakRewardId = NSStringOrNilFor(dictionary[@"teakRewardIdStr"]);
     self.teakDeepLink = NSStringOrNilFor(dictionary[@"teakDeepLink"]);
     self.teakScheduleName = NSStringOrNilFor(dictionary[@"teakScheduleName"]);
+    self.teakScheduleId = NSStringOrNilFor(dictionary[@"teakScheduleId"]);
     self.teakCreativeName = NSStringOrNilFor(dictionary[@"teakCreativeName"]);
+    self.teakCreativeId = NSStringOrNilFor(dictionary[@"teakCreativeId"]);
     self.teakChannelName = NSStringOrNilFor(dictionary[@"teakChannelName"]);
     self.originalJson = dictionary;
     self.showInForeground = TeakBoolFor(dictionary[@"teakShowInForeground"]);
@@ -43,7 +47,9 @@
 #define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
   teakUserInfo[@"teakRewardId"] = ValueOrNSNull(self.teakRewardId);
   teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(self.teakScheduleName);
+  teakUserInfo[@"teakScheduleId"] = ValueOrNSNull(self.teakScheduleId);
   teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(self.teakCreativeName);
+  teakUserInfo[@"teakCreativeId"] = ValueOrNSNull(self.teakCreativeId);
   teakUserInfo[@"teakChannelName"] = ValueOrNSNull(self.teakChannelName);
   teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(self.teakDeepLink);
 #undef ValueOrNSNull

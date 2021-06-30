@@ -44,9 +44,19 @@
 @property (strong, nonatomic, readonly) NSString* _Nullable teakScheduleName;
 
 /**
+ * The id of the schedule, from the Teak dashboard, or nil.
+ */
+@property (strong, nonatomic, readonly) NSString* _Nullable teakScheduleId;
+
+/**
  * The name of the creative, from the Teak dashboard, or nil.
  */
 @property (strong, nonatomic, readonly) NSString* _Nullable teakCreativeName;
+
+/**
+ * The id of the creative, from the Teak dashboard, or nil.
+ */
+@property (strong, nonatomic, readonly) NSString* _Nullable teakCreativeId;
 
 /**
  * The channel name, from the Teak dashboard, or nil.

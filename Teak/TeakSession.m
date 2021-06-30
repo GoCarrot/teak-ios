@@ -537,8 +537,16 @@ DefineTeakState(Expired, (@[]));
     launchAttribution[@"teak_creative_name"] = notification.teakCreativeName;
   }
 
+  if (notification.teakCreativeId) {
+    launchAttribution[@"teak_creative_id"] = notification.teakCreativeId;
+  }
+
   if (notification.teakScheduleName) {
     launchAttribution[@"teak_schedule_name"] = notification.teakScheduleName;
+  }
+
+  if (notification.teakScheduleId) {
+    launchAttribution[@"teak_schedule_id"] = notification.teakScheduleId;
   }
 
   launchAttribution[@"notification_placement"] = inBackground ? @"background" : @"foreground";

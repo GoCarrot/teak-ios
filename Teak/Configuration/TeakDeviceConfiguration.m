@@ -76,12 +76,12 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     self.numberOfCores = [[NSProcessInfo processInfo] processorCount];
 
     // This is disabled, for now, because there are Xcode 12 and/or iOS 15 issues
-//    UIScreen* mainScreen = [UIScreen mainScreen];
-//    CGRect screenRect = [mainScreen bounds];
+    //    UIScreen* mainScreen = [UIScreen mainScreen];
+    //    CGRect screenRect = [mainScreen bounds];
     self.displayMetrics = @{
-//      @"width" : [NSNumber numberWithDouble:screenRect.size.width],
-//      @"height" : [NSNumber numberWithDouble:screenRect.size.height],
-//      @"dpi" : [NSNumber numberWithFloat:[mainScreen scale]]
+        //      @"width" : [NSNumber numberWithDouble:screenRect.size.width],
+        //      @"height" : [NSNumber numberWithDouble:screenRect.size.height],
+        //      @"dpi" : [NSNumber numberWithFloat:[mainScreen scale]]
     };
 
     // Make sure these are not nil
