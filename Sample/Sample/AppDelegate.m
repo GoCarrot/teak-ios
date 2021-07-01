@@ -106,6 +106,9 @@
 #pragma clang diagnostic pop
   }
 
+  // Test event
+  [[Teak sharedInstance] trackEventWithActionId:@"Player_Level_Up" forObjectTypeId:nil andObjectInstanceId:nil];
+
   return YES;
 }
 

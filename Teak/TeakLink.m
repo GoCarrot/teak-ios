@@ -77,7 +77,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     NSBlockOperation* handleDeepLinkOp = [NSBlockOperation blockOperationWithBlock:^{
       [TeakLink handleDeepLink:deepLink];
     }];
-    [handleDeepLinkOp addDependency:[Teak sharedInstance].waitForDeepLinkOperation];
+    [[Teak sharedInstance].waitForDeepLink whenFinishedRun:handleDeepLinkOp];
     [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
 
     return YES;

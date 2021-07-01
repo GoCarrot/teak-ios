@@ -110,7 +110,9 @@
       userInfo[@"teakNotifId"] = ValueOrNSNull(attribution[@"teak_notif_id"]);
       userInfo[@"teakRewardId"] = teakRewardId;
       userInfo[@"teakScheduleName"] = ValueOrNSNull(attribution[@"teak_schedule_name"]);
+      userInfo[@"teakScheduleId"] = ValueOrNSNull(attribution[@"teak_schedule_id"]);
       userInfo[@"teakCreativeName"] = ValueOrNSNull(teakCreativeName);
+      userInfo[@"teakCreativeId"] = ValueOrNSNull(attribution[@"teak_creative_id"]);
       userInfo[@"teakChannelName"] = ValueOrNSNull(attribution[@"teak_channel_name"]);
       userInfo[@"incentivized"] = @YES;
       [userInfo addEntriesFromDictionary:blockReward.json];

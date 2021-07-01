@@ -205,6 +205,11 @@ DefineTeakState(Expired, (@[]));
       payload[@"ios_ad_id"] = @"";
     }
 
+    // Additional device information
+    payload[@"device_num_cores"] = [NSNumber numberWithUnsignedInteger:self.deviceConfiguration.numberOfCores];
+    payload[@"device_device_memory_in_bytes"] = [NSNumber numberWithUnsignedLongLong:self.deviceConfiguration.phyiscalMemoryInBytes];
+    payload[@"device_display_metrics"] = self.deviceConfiguration.displayMetrics;
+
     if (self.userIdentificationSent) {
       payload[@"do_not_track_event"] = @YES;
     }
@@ -532,8 +537,16 @@ DefineTeakState(Expired, (@[]));
     launchAttribution[@"teak_creative_name"] = notification.teakCreativeName;
   }
 
+  if (notification.teakCreativeId) {
+    launchAttribution[@"teak_creative_id"] = notification.teakCreativeId;
+  }
+
   if (notification.teakScheduleName) {
     launchAttribution[@"teak_schedule_name"] = notification.teakScheduleName;
+  }
+
+  if (notification.teakScheduleId) {
+    launchAttribution[@"teak_schedule_id"] = notification.teakScheduleId;
   }
 
   launchAttribution[@"notification_placement"] = inBackground ? @"background" : @"foreground";
@@ -541,7 +554,7 @@ DefineTeakState(Expired, (@[]));
   [TeakSession setLaunchAttribution:launchAttribution];
 }
 
-+ (BOOL)didLaunchFromLink:(nonnull NSString*)launchLink {
++ (BOOL)didLaunchFromLink:(nonnull NSString*)launchLink wasTeakLink:(BOOL)wasTeakLink {
   // The launch link always goes into 'launch_link'
   NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:[launchLink copy], @"launch_link", nil];
 
@@ -556,11 +569,8 @@ DefineTeakState(Expired, (@[]));
   }
 
   // If we're personalizing it, we're sending it as 'deep_link' to the server
-  if (shouldPersonalizeLink) {
+  if (shouldPersonalizeLink || wasTeakLink) {
     launchAttribution[@"deep_link"] = [launchLink copy];
-  } else {
-    // If we aren't personalizing it, log that we are ignoring it
-    TeakLog_i(@"deep_link.ignored", @{@"url" : launchLink});
   }
 
   // Add any query parameter that starts with 'teak_' to the launch attribution dictionary

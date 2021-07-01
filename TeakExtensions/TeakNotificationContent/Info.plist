@@ -17,22 +17,41 @@
 	<key>CFBundlePackageType</key>
 	<string>XPC!</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>
 		<dict>
-			<key>UNNotificationExtensionUserInteractionEnabled</key>
-			<true/>
 			<key>UNNotificationExtensionCategory</key>
 			<array>
+				<string>TeakNotificationContent</string>
+				<string>TeakNotificationPlayNow</string>
+				<string>TeakNotificationClaimForFree</string>
+				<string>TeakNotificationBox123</string>
+				<string>TeakNotificationGetNow</string>
+				<string>TeakNotificationBuyNow</string>
+				<string>TeakNotificationInteractiveStop</string>
+				<string>TeakNotificationLaughingEmoji</string>
+				<string>TeakNotificationThumbsUpEmoji</string>
+				<string>TeakNotificationPartyEmoji</string>
+				<string>TeakNotificationSlotEmoji</string>
+				<string>TeakNotification123</string>
+				<string>TeakNotificationFreeGiftEmoji</string>
+				<string>TeakNotificationYes</string>
+				<string>TeakNotificationYesNo</string>
+				<string>TeakNotificationAccept</string>
+				<string>TeakNotificationOkay</string>
+				<string>TeakNotificationYesPlease</string>
+				<string>TeakNotificationClaimFreeBonus</string>
 			</array>
 			<key>UNNotificationExtensionDefaultContentHidden</key>
 			<false/>
 			<key>UNNotificationExtensionInitialContentSizeRatio</key>
 			<real>0.01</real>
+			<key>UNNotificationExtensionUserInteractionEnabled</key>
+			<true/>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.usernotifications.content-extension</string>

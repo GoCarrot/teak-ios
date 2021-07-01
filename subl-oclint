@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 `xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration Release BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" clean analyze | xcpretty -r json-compilation-database -o compile_commands.json`
-`oclint-json-compilation-database > oclint.result`
+`oclint-json-compilation-database --exclude "^.*/3rdParty/.*$" > oclint.result`
 File.readlines('oclint.result').each do |line|
   if /^(\/.*):(\d+):(\d+).*$/ =~ line
     `subl --new-window --wait #{Regexp.last_match(1)}:#{Regexp.last_match(2)}:#{Regexp.last_match(3)}`

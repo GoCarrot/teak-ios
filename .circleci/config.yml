@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.0.3
+  teak: teak/sdk-utils@0.0.10
 
 jobs:
   test:
@@ -13,9 +13,6 @@ jobs:
           name: Pre-start iOS Simulator
           command: xcrun instruments -w "iPhone 5s (12.2) [" || true
       - ios_setup
-      - run:
-          name: Validate Code Formatting
-          command: ./validate-code-format
       - run:
           name: Run Automated Tests
           command: bundle exec fastlane test
@@ -31,6 +28,10 @@ jobs:
       - run:
           name: Build Teak SDK
           command: ./compile
+      - run:
+          name: Compute Checksums
+          command: |
+            shasum -a 512 build/Release-iphoneos/Teak.framework.zip > Teak.framework.zip.sha512
       - persist_to_workspace:
           root: .
           paths:
@@ -40,14 +41,14 @@ jobs:
             - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
             - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
             - TeakExtensions.zip
+            - Teak.framework.zip.sha512
 
   tag_build:
     docker:
       - image: circleci/ruby:latest
     steps:
       - checkout
-      - teak/tag-promote:
-          fingerprint: "87:61:22:71:86:9b:f2:75:51:fc:e7:eb:63:d3:d2:05"
+      - teak/tag-promote
 
   deploy_versioned:
     docker:
@@ -69,6 +70,7 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions-$(git describe --tags --always).zip --acl public-read
+            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip.sha512 --acl public-read
 
   deploy_latest:
     docker:
@@ -90,6 +92,7 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService.appex.zip --acl public-read
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent.appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions.zip --acl public-read
+            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak.framework.zip.sha512 --acl public-read
 
 workflows:
   version: 2
@@ -173,14 +176,6 @@ commands:
       - checkout
       - restore_cache:
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
-      # - run:
-      #     name: Check Homebrew Version
-      #     command: |
-      #       echo "Checking for Homebrew version $HOMEBREW_VERSION"
-      #       [ `brew --version | sed -n 1p | sed 's/[^0-9.]*\([0-9.]*\).*/\1/'` = $HOMEBREW_VERSION ] || brew update
-      - run:
-          name: Homebrew Depenendcies
-          command: HOMEBREW_NO_AUTO_UPDATE=1 ./setup
       - run:
           name: Ruby Gems
           command: |
@@ -193,9 +188,6 @@ commands:
             - Sample/vendor/bundle
             - ~/.rvm
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
-      - add_ssh_keys:
-          fingerprints:
-            - "ab:48:b1:f2:a7:e9:0f:ba:81:3b:0c:16:48:6b:91:3d"
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv

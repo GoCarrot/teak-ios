@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0F9BB099DE5CFEDF8A8B30F9 /* Pods_AutomatedUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDCD65E1A5663F5B9041146E /* Pods_AutomatedUITests.framework */; };
+		433392912654423400B10DE4 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 433392902654423400B10DE4 /* CoreServices.framework */; };
 		4358FF8422541E540068A4FD /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF8322541E540068A4FD /* AppDelegate.m */; };
 		4358FF8722541E540068A4FD /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF8622541E540068A4FD /* ViewController.m */; };
 		4358FF8A22541E540068A4FD /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4358FF8822541E540068A4FD /* Main.storyboard */; };
@@ -19,17 +20,14 @@
 		4358FFBF2255328F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
 		4358FFC0225532970068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
 		4358FFC12255329F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
-		4358FFC3225536EE0068A4FD /* FormEncodeTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FFC2225536EE0068A4FD /* FormEncodeTests.m */; };
 		43B4617522A1E10F004AC636 /* LogTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 43B4617422A1E10F004AC636 /* LogTests.m */; };
 		43B4618322A1EB05004AC636 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4617F22A1EB05004AC636 /* StoreKit.framework */; };
 		43B4618522A1EB0D004AC636 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618422A1EB0D004AC636 /* SystemConfiguration.framework */; };
 		43B4618722A1EB19004AC636 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618622A1EB19004AC636 /* UserNotifications.framework */; };
 		43B4618B22A1EB30004AC636 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618A22A1EB30004AC636 /* AVFoundation.framework */; };
 		43B4618F22A1EB54004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
-		43B4619122A1EB89004AC636 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4619022A1EB89004AC636 /* MobileCoreServices.framework */; };
 		43B4619922A20FDC004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
 		43B4619D22A20FE4004AC636 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4617F22A1EB05004AC636 /* StoreKit.framework */; };
-		43F37E902555DE810036F903 /* RequestSignatureTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 43F37E8F2555DE810036F903 /* RequestSignatureTests.m */; };
 		BF20EAD8B0CC8F23483B6FF0 /* Pods_AutomatedTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -68,6 +66,7 @@
 		0D7BD679E00A2C57BE7AA5E3 /* Pods-AutomatedUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedUITests.release.xcconfig"; path = "Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests.release.xcconfig"; sourceTree = "<group>"; };
 		2CC8154D37CB560E22904A43 /* Pods-AutomatedTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedTests.debug.xcconfig"; path = "Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests.debug.xcconfig"; sourceTree = "<group>"; };
 		3FFF5A9E3FBB614BDDAF98EC /* Pods-Automated.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Automated.release.xcconfig"; path = "Target Support Files/Pods-Automated/Pods-Automated.release.xcconfig"; sourceTree = "<group>"; };
+		433392902654423400B10DE4 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		4358FF7F22541E540068A4FD /* Automated.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Automated.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4358FF8222541E540068A4FD /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		4358FF8322541E540068A4FD /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -85,7 +84,6 @@
 		4358FFA622541E550068A4FD /* AutomatedUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AutomatedUITests.m; sourceTree = "<group>"; };
 		4358FFA822541E550068A4FD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4358FFB4225420510068A4FD /* Teak.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Teak.xcodeproj; path = ../Teak.xcodeproj; sourceTree = "<group>"; };
-		4358FFC2225536EE0068A4FD /* FormEncodeTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FormEncodeTests.m; sourceTree = "<group>"; };
 		43B4617422A1E10F004AC636 /* LogTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LogTests.m; sourceTree = "<group>"; };
 		43B4617F22A1EB05004AC636 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		43B4618422A1EB0D004AC636 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
@@ -94,9 +92,7 @@
 		43B4618A22A1EB30004AC636 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		43B4618C22A1EB48004AC636 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		43B4618E22A1EB54004AC636 /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = System/Library/Frameworks/AdSupport.framework; sourceTree = SDKROOT; };
-		43B4619022A1EB89004AC636 /* MobileCoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileCoreServices.framework; path = System/Library/Frameworks/MobileCoreServices.framework; sourceTree = SDKROOT; };
 		43B4619222A1EBDF004AC636 /* OCMockito.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = OCMockito.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		43F37E8F2555DE810036F903 /* RequestSignatureTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RequestSignatureTests.m; sourceTree = "<group>"; };
 		58899BE40E40447A87FDF2D8 /* Pods-AutomatedTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedTests.release.xcconfig"; path = "Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests.release.xcconfig"; sourceTree = "<group>"; };
 		58C2AA35CD060472CAC08059 /* Pods-Automated.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Automated.debug.xcconfig"; path = "Target Support Files/Pods-Automated/Pods-Automated.debug.xcconfig"; sourceTree = "<group>"; };
 		6B7A960ECDD5D5D7E3CB6A8E /* Pods-AutomatedUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedUITests.debug.xcconfig"; path = "Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -110,7 +106,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				43B4619122A1EB89004AC636 /* MobileCoreServices.framework in Frameworks */,
+				433392912654423400B10DE4 /* CoreServices.framework in Frameworks */,
 				43B4618F22A1EB54004AC636 /* AdSupport.framework in Frameworks */,
 				43B4618B22A1EB30004AC636 /* AVFoundation.framework in Frameworks */,
 				43B4618722A1EB19004AC636 /* UserNotifications.framework in Frameworks */,
@@ -200,9 +196,7 @@
 			children = (
 				4358FF9B22541E550068A4FD /* AutomatedTests.m */,
 				4358FF9D22541E550068A4FD /* Info.plist */,
-				4358FFC2225536EE0068A4FD /* FormEncodeTests.m */,
 				43B4617422A1E10F004AC636 /* LogTests.m */,
-				43F37E8F2555DE810036F903 /* RequestSignatureTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -228,8 +222,8 @@
 		4358FFBE2255328F0068A4FD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				433392902654423400B10DE4 /* CoreServices.framework */,
 				43B4619222A1EBDF004AC636 /* OCMockito.framework */,
-				43B4619022A1EB89004AC636 /* MobileCoreServices.framework */,
 				43B4618E22A1EB54004AC636 /* AdSupport.framework */,
 				43B4618C22A1EB48004AC636 /* ImageIO.framework */,
 				43B4618A22A1EB30004AC636 /* AVFoundation.framework */,
@@ -515,10 +509,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				43F37E902555DE810036F903 /* RequestSignatureTests.m in Sources */,
 				43B4617522A1E10F004AC636 /* LogTests.m in Sources */,
 				4358FF9C22541E550068A4FD /* AutomatedTests.m in Sources */,
-				4358FFC3225536EE0068A4FD /* FormEncodeTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

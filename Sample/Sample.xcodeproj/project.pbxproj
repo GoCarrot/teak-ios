@@ -22,15 +22,15 @@
 		4348846C20366C8300EA82D0 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4348846920366B6000EA82D0 /* UIKit.framework */; };
 		4348846E2036715500EA82D0 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4348846D2036715500EA82D0 /* SystemConfiguration.framework */; };
 		4348846F203671CE00EA82D0 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4348846D2036715500EA82D0 /* SystemConfiguration.framework */; };
-		43499EE81FB406770082D0F7 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43499EE51FB406770082D0F7 /* MobileCoreServices.framework */; };
 		435A0C021FAEA140000EF1EF /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
+		438BC0142654413700B4E354 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 438BC0122654413700B4E354 /* CoreServices.framework */; };
 		43B5CE5F1FFEFE3200B3C501 /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C987C1C7E6DF400B19DD5 /* libTeak.a */; };
 		43B5CE601FFEFE3700B3C501 /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C987C1C7E6DF400B19DD5 /* libTeak.a */; };
 		43B5CE611FFEFE5800B3C501 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43E601C51FFEF949003A09C5 /* AVFoundation.framework */; };
+		43B927282654458D00002C8B /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 438BC0122654413700B4E354 /* CoreServices.framework */; };
 		43DCD10B2005982B009B6514 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43DCD1092005982A009B6514 /* ImageIO.framework */; };
 		43DCD10D2005A725009B6514 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43DCD1092005982A009B6514 /* ImageIO.framework */; };
 		43E601C61FFEF949003A09C5 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43E601C51FFEF949003A09C5 /* AVFoundation.framework */; };
-		43E601C71FFEF96D003A09C5 /* MobileCoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43499EE51FB406770082D0F7 /* MobileCoreServices.framework */; };
 		4B42F2E07D5AB45F9FCA756E /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
 		5F158A8EB9F1FA3311799D7A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
 		A628E016A31A3884318A4A8D /* TeakNotificationService.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = 743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */; };
@@ -130,7 +130,7 @@
 		431FDAF81FB38B6E009C0106 /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
 		4348846920366B6000EA82D0 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		4348846D2036715500EA82D0 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
-		43499EE51FB406770082D0F7 /* MobileCoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileCoreServices.framework; path = System/Library/Frameworks/MobileCoreServices.framework; sourceTree = SDKROOT; };
+		438BC0122654413700B4E354 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		43DCD1092005982A009B6514 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		43E601C51FFEF949003A09C5 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		6D34458518D7A040139D5987 /* UserNotificationsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotificationsUI.framework; path = System/Library/Frameworks/UserNotificationsUI.framework; sourceTree = SDKROOT; };
@@ -152,11 +152,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				438BC0142654413700B4E354 /* CoreServices.framework in Frameworks */,
 				4348846F203671CE00EA82D0 /* SystemConfiguration.framework in Frameworks */,
 				FAED5FC4202A2D06004FB297 /* CoreMedia.framework in Frameworks */,
 				FAED5FC3202A2CFD004FB297 /* AVKit.framework in Frameworks */,
 				43DCD10D2005A725009B6514 /* ImageIO.framework in Frameworks */,
-				43E601C71FFEF96D003A09C5 /* MobileCoreServices.framework in Frameworks */,
 				43E601C61FFEF949003A09C5 /* AVFoundation.framework in Frameworks */,
 				435A0C021FAEA140000EF1EF /* UserNotifications.framework in Frameworks */,
 				431C98971C7FAB0800B19DD5 /* libsqlite3.tbd in Frameworks */,
@@ -170,10 +170,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				43B927282654458D00002C8B /* CoreServices.framework in Frameworks */,
 				4348846E2036715500EA82D0 /* SystemConfiguration.framework in Frameworks */,
 				4348846C20366C8300EA82D0 /* UIKit.framework in Frameworks */,
 				43B5CE601FFEFE3700B3C501 /* libTeak.a in Frameworks */,
-				43499EE81FB406770082D0F7 /* MobileCoreServices.framework in Frameworks */,
 				5F158A8EB9F1FA3311799D7A /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -258,12 +258,12 @@
 		879C4E8A2BF50111224BCCB3 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				438BC0122654413700B4E354 /* CoreServices.framework */,
 				4348846D2036715500EA82D0 /* SystemConfiguration.framework */,
 				4348846920366B6000EA82D0 /* UIKit.framework */,
 				FAED5FC1202A2CE7004FB297 /* CoreMedia.framework */,
 				43DCD1092005982A009B6514 /* ImageIO.framework */,
 				43E601C51FFEF949003A09C5 /* AVFoundation.framework */,
-				43499EE51FB406770082D0F7 /* MobileCoreServices.framework */,
 				431FDAF81FB38B6E009C0106 /* AVKit.framework */,
 				F1858FF3B67742428E0B66BD /* iOS */,
 				E7BB850291E740CCB89F8860 /* UserNotifications.framework */,
@@ -366,7 +366,7 @@
 		431C98541C7E6DE200B19DD5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 1130;
 				ORGANIZATIONNAME = "GoCarrot Inc.";
 				TargetAttributes = {
 					431C985B1C7E6DE300B19DD5 = {
@@ -397,10 +397,9 @@
 			};
 			buildConfigurationList = 431C98571C7E6DE200B19DD5 /* Build configuration list for PBXProject "Sample" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				English,
 				en,
 				Base,
 			);
@@ -707,7 +706,6 @@
 		5649BAF7D6ECE9B4845C9FB9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
@@ -725,7 +723,6 @@
 		6B98CE36BE51F753B738A090 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
@@ -743,7 +740,6 @@
 		D5EA76D27F41B262D48CE174 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
@@ -762,7 +758,6 @@
 		F4AAA9B659C4B3F362137F84 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;

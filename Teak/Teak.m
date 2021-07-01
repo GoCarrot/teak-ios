@@ -350,7 +350,7 @@ Teak* _teakSharedInstance;
     [self.log logEvent:@"push_state.init" level:@"INFO" eventData:[self.pushState to_h]];
 
     // Default wait for deep link operation
-    self.waitForDeepLinkOperation = [NSBlockOperation blockOperationWithBlock:^{}];
+    self.waitForDeepLink = [[TeakWaitForDeepLink alloc] init];
 
     // Set up internal deep link routes
     [self setupInternalDeepLinkRoutes];
@@ -367,11 +367,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)processDeepLinks {
-  @synchronized(self.waitForDeepLinkOperation) {
-    if (!self.waitForDeepLinkOperation.isFinished) {
-      [self.operationQueue addOperation:self.waitForDeepLinkOperation];
-    }
-  }
+  [self.waitForDeepLink addToQueue:self.operationQueue];
 }
 
 - (void)fbProfileChanged:(NSNotification*)notification {
@@ -379,20 +375,6 @@ Teak* _teakSharedInstance;
   if (tokenString != nil && tokenString != [NSNull null]) {
     [FacebookAccessTokenEvent accessTokenUpdated:tokenString];
   }
-}
-
-- (void)fbAccessTokenChanged_3x:(NSNotification*)notification {
-  TeakUnused(notification);
-  Class fbSession = NSClassFromString(@"FBSession");
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-  id activeSession = [fbSession performSelector:sel_getUid("activeSession")];
-  id accessTokenData = [activeSession performSelector:sel_getUid("accessTokenData")];
-  id accessToken = [accessTokenData performSelector:sel_getUid("accessToken")];
-  if (accessToken != nil && accessToken != [NSNull null]) {
-    [FacebookAccessTokenEvent accessTokenUpdated:accessToken];
-  }
-#pragma clang diagnostic pop
 }
 
 - (BOOL)handleOpenURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication {
@@ -416,7 +398,7 @@ Teak* _teakSharedInstance;
 
   // Returns YES if it's a Teak link, in which case it will *not* be passed on to the host application.
   // Returns NO if it's not a Teak link, it will then be passed to the host application.
-  return [TeakSession didLaunchFromLink:url.absoluteString];
+  return [TeakSession didLaunchFromLink:url.absoluteString wasTeakLink:NO];
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
@@ -430,23 +412,6 @@ Teak* _teakSharedInstance;
 }
 
 - (void)setupInternalDeepLinkRoutes {
-  // Register default purchase deep link
-  [TeakLink registerRoute:@"/teak_internal/store/:sku"
-                     name:@""
-              description:@""
-                    block:^(NSDictionary* _Nonnull parameters) {
-                      [ProductRequest productRequestForSku:parameters[@"sku"]
-                                                  callback:^(NSDictionary* unused, SKProductsResponse* response) {
-                                                    if (response != nil && response.products != nil && response.products.count > 0) {
-                                                      SKProduct* product = [response.products objectAtIndex:0];
-
-                                                      SKMutablePayment* payment = [SKMutablePayment paymentWithProduct:product];
-                                                      payment.quantity = 1;
-                                                      [[SKPaymentQueue defaultQueue] addPayment:payment];
-                                                    }
-                                                  }];
-                    }];
-
   // Register callback for Teak companion app
   [TeakLink registerRoute:@"/teak_internal/companion"
                      name:@""
@@ -499,7 +464,6 @@ Teak* _teakSharedInstance;
 
   // Facebook SDKs
   Class fbClass_4x_or_greater = NSClassFromString(@"FBSDKProfile");
-  Class fbClass_3x = NSClassFromString(@"FBSession");
   teak_try {
     if (fbClass_4x_or_greater != nil) {
       BOOL arg = YES;
@@ -514,19 +478,11 @@ Teak* _teakSharedInstance;
                                                selector:@selector(fbProfileChanged:)
                                                    name:TeakFBSDKProfileDidChangeNotification
                                                  object:nil];
-    } else if (fbClass_3x != nil) {
-      // accessTokenData
-      [[NSNotificationCenter defaultCenter] addObserver:self
-                                               selector:@selector(fbAccessTokenChanged_3x:)
-                                                   name:TeakFBSessionDidBecomeOpenActiveSessionNotification
-                                                 object:nil];
     }
 
     if (self.enableDebugOutput) {
       if (fbClass_4x_or_greater != nil) {
         TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or greater"});
-      } else if (fbClass_3x != nil) {
-        TeakLog_i(@"facebook.sdk", @{@"version" : @"3.x"});
       } else {
         TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
       }
@@ -819,6 +775,7 @@ Teak* _teakSharedInstance;
       [session dataTaskWithURL:fetchUrl
              completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
                NSString* attributionUrlAsString = [webpageURL absoluteString];
+               BOOL wasTeakLink = NO;
 
                // If we aren't already retrying, and there's any kind of error (for example iOS 12 malarky)
                // wait 1.5 seconds and retry.
@@ -847,7 +804,18 @@ Teak* _teakSharedInstance;
                  if (error == nil) {
                    NSString* iOSPath = reply[@"iOSPath"];
                    if (iOSPath != nil) {
-                     attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:@"^[a-zA-Z0-9+.\\-_]*:"
+                                                                                             options:0
+                                                                                               error:&error];
+                     if (error != nil || [regExp numberOfMatchesInString:iOSPath
+                                                                 options:0
+                                                                   range:NSMakeRange(0, [iOSPath length])] == 0) {
+                       attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
+                     } else {
+                       attributionUrlAsString = iOSPath;
+                     }
+
+                     wasTeakLink = YES;
                      TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
                    }
 
@@ -863,7 +831,7 @@ Teak* _teakSharedInstance;
                }
 
                // Attribution
-               [TeakSession didLaunchFromLink:attributionUrlAsString];
+               [TeakSession didLaunchFromLink:attributionUrlAsString wasTeakLink:wasTeakLink];
              }];
   [task resume];
 }
