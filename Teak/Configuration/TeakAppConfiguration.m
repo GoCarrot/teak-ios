@@ -3,7 +3,7 @@
 
 extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
-BOOL Teak_isProductionBuild() {
+BOOL Teak_isProductionBuild(void) {
   static BOOL isProduction;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{

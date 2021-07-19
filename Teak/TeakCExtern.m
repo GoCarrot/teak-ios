@@ -28,7 +28,7 @@ void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const cha
                              andEmail:ns_email];
 }
 
-void TeakLogout() {
+void TeakLogout(void) {
   [[Teak sharedInstance] logout];
 }
 
@@ -45,7 +45,7 @@ void TeakIncrementEvent(const char* actionId, const char* objectTypeId, const ch
                                               count:count];
 }
 
-void TeakProcessDeepLinks() {
+void TeakProcessDeepLinks(void) {
   [[Teak sharedInstance] processDeepLinks];
 }
 
@@ -73,7 +73,7 @@ TeakNotification* TeakNotificationCancel(const char* scheduleId) {
   return [TeakNotification cancelScheduledNotification:[NSString stringWithUTF8String:scheduleId]];
 }
 
-TeakNotification* TeakNotificationCancelAll() {
+TeakNotification* TeakNotificationCancelAll(void) {
   return [TeakNotification cancelAll];
 }
 
@@ -97,11 +97,11 @@ void TeakRegisterRoute(const char* route, const char* name, const char* descript
   [TeakLink registerRoute:[NSString stringWithUTF8String:route] name:[NSString stringWithUTF8String:name] description:[NSString stringWithUTF8String:description] block:block];
 }
 
-BOOL TeakOpenSettingsAppToThisAppsSettings() {
+BOOL TeakOpenSettingsAppToThisAppsSettings(void) {
   return [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
 }
 
-int TeakGetNotificationState() {
+int TeakGetNotificationState(void) {
   return [[Teak sharedInstance] notificationState];
 }
 
@@ -124,19 +124,19 @@ void TeakSetStringAttribute(const char* cstr_key, const char* cstr_value) {
   }
 }
 
-const char* TeakGetAppConfiguration() {
+const char* TeakGetAppConfiguration(void) {
   return [[[Teak sharedInstance] getAppConfiguration] UTF8String];
 }
 
-const char* TeakGetDeviceConfiguration() {
+const char* TeakGetDeviceConfiguration(void) {
   return [[[Teak sharedInstance] getDeviceConfiguration] UTF8String];
 }
 
-void TeakReportTestException() {
+void TeakReportTestException(void) {
   [[Teak sharedInstance] reportTestException];
 }
 
-BOOL TeakRequestProvisionalPushAuthorization() {
+BOOL TeakRequestProvisionalPushAuthorization(void) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability-new"
   if (iOS12OrGreater() && NSClassFromString(@"UNUserNotificationCenter") != nil) {
