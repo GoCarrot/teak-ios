@@ -232,13 +232,15 @@ DefineTeakState(Expired, (@[]));
       }
     }
 
-    if (dataCollectionConfiguration.enableFacebookAccessToken) {
-      if (self.facebookAccessToken == nil) {
-        self.facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
-      }
+    if (!self.appConfiguration.sdk5Behaviors) {
+      if (dataCollectionConfiguration.enableFacebookAccessToken) {
+        if (self.facebookAccessToken == nil) {
+          self.facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
+        }
 
-      if (self.facebookAccessToken != nil) {
-        payload[@"access_token"] = self.facebookAccessToken;
+        if (self.facebookAccessToken != nil) {
+          payload[@"access_token"] = self.facebookAccessToken;
+        }
       }
     }
 
