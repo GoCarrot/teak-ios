@@ -33,6 +33,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @property (strong, nonatomic, readwrite) NSString* userId;
 @property (strong, nonatomic, readwrite) NSString* email;
+@property (strong, nonatomic, readwrite) NSString* facebookId;
 @property (strong, nonatomic, readwrite) NSString* sessionId;
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
@@ -244,6 +245,10 @@ DefineTeakState(Expired, (@[]));
       }
     }
 
+    if (self.facebookId != nil) {
+      payload[@"facebook_id"] = self.facebookId;
+    }
+
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
 
     __weak typeof(self) weakSelf = self;
@@ -404,10 +409,10 @@ DefineTeakState(Expired, (@[]));
           UserIdEvent* userIdEvent = (UserIdEvent*)event;
           TeakConfiguration* configuration = [TeakConfiguration configuration];
           if (configuration != nil) {
-            [configuration.dataCollectionConfiguration addConfigurationFromDeveloper:userIdEvent.optOut];
+            [configuration.dataCollectionConfiguration addConfigurationFromDeveloper:userIdEvent.userConfiguration];
           }
 
-          [TeakSession setUserId:userIdEvent.userId andEmail:userIdEvent.email];
+          [TeakSession setUserId:userIdEvent.userId andEmail:userIdEvent.userConfiguration.email andFacebookId:userIdEvent.userConfiguration.facebookId];
         } break;
         case LifecycleActivate: {
           [TeakSession applicationDidBecomeActive];
@@ -444,7 +449,7 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)setUserId:(nonnull NSString*)userId andEmail:(nullable NSString*)email {
++ (void)setUserId:(nonnull NSString*)userId andEmail:(nullable NSString*)email andFacebookId:(nullable NSString*)facebookId {
   if (userId.length == 0) {
     TeakLog_e(@"session", @"userId cannot be nil or empty.");
     return;
@@ -460,6 +465,10 @@ DefineTeakState(Expired, (@[]));
       BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
       if (![email isEqualToString:currentSession.email]) {
         currentSession.email = email;
+        needsIdentifyUser = YES;
+      }
+      if (![facebookId isEqualToString:currentSession.facebookId]) {
+        currentSession.facebookId = email;
         needsIdentifyUser = YES;
       }
 

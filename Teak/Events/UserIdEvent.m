@@ -2,17 +2,15 @@
 
 @interface UserIdEvent ()
 @property (strong, nonatomic, readwrite) NSString* _Nonnull userId;
-@property (strong, nonatomic, readwrite) NSArray* _Nonnull optOut;
-@property (strong, nonatomic, readwrite) NSString* _Nullable email;
+@property (strong, nonatomic, readwrite) TeakUserConfiguration* _Nonnull userConfiguration;
 @end
 
 @implementation UserIdEvent
 
-+ (void)userIdentified:(NSString*)userId withOptOutList:(NSArray*)optOut andEmail:(nullable NSString*)email {
++ (void)userIdentified:(nonnull NSString*)userId withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration {
   UserIdEvent* event = [[UserIdEvent alloc] initWithType:UserIdentified];
   event.userId = userId;
-  event.optOut = optOut;
-  event.email = email;
+  event.userConfiguration = userConfiguration;
   [TeakEvent postEvent:event];
 }
 @end

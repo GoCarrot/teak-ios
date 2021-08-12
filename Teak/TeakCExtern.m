@@ -6,26 +6,24 @@ void TeakSetDebugOutputEnabled(int enabled) {
   [Teak sharedInstance].enableDebugOutput = (enabled > 0);
 }
 
-void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email) {
-  NSArray* optOutList = @[];
-  if (optOutJsonArray != NULL) {
+void TeakIdentifyUser(const char* userId, const char* userConfigurationJson) {
+  TeakUserConfiguration* userConfiguration = [[TeakUserConfiguration alloc] init];
+  if (userConfigurationJson != NULL) {
     @try {
       NSError* error = nil;
-      NSData* jsonData = [[NSString stringWithUTF8String:optOutJsonArray] dataUsingEncoding:NSUTF8StringEncoding];
-      optOutList = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
-      if (error != nil || ![optOutList isKindOfClass:NSArray.class]) optOutList = @[];
+      NSData* jsonData = [[NSString stringWithUTF8String:userConfigurationJson] dataUsingEncoding:NSUTF8StringEncoding];
+      NSDictionary* configurationDict = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+      userConfiguration.email = configurationDict[@"email"];
+      userConfiguration.facebookId = configurationDict[@"facebookId"];
+      userConfiguration.optOutFacebook = [configurationDict[@"opt_out_facebook"] boolValue];
+      userConfiguration.optOutIdfa = [configurationDict[@"opt_out_idfa"] boolValue];
+      userConfiguration.optOutPushKey = [configurationDict[@"opt_out_push_key"] boolValue];
     } @catch (NSException* ignored) {
     }
   }
 
-  NSString* ns_email = nil;
-  if (email != NULL) {
-    ns_email = [NSString stringWithUTF8String:email];
-  }
-
   [[Teak sharedInstance] identifyUser:[NSString stringWithUTF8String:userId]
-                       withOptOutList:optOutList
-                             andEmail:ns_email];
+                    withConfiguration:userConfiguration];
 }
 
 void TeakLogout(void) {

@@ -113,7 +113,10 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut andEmail:(nullable NSString*)email {
-  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"optOut" : _(optOut), @"email" : _(email)});
+}
+
+- (void)identifyUser:(nonnull NSString*)userIdentifier withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration {
+  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"userConfiguration" : userConfiguration});
 
   [self processDeepLinks];
 
@@ -122,11 +125,9 @@ Teak* _teakSharedInstance;
     return;
   }
 
-  if (optOut == nil) optOut = @[];
+  TeakLog_i(@"identify_user", @{@"userIdentifier" : userIdentifier, @"userConfiguration" : userConfiguration});
 
-  TeakLog_i(@"identify_user", @{@"userId" : userIdentifier, @"optOut" : optOut});
-
-  [UserIdEvent userIdentified:[userIdentifier copy] withOptOutList:[optOut copy] andEmail:[email copy]];
+  [UserIdEvent userIdentified:[userIdentifier copy] withConfiguration:[userConfiguration copy]];
 }
 
 - (void)logout {
