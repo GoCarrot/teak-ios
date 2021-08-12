@@ -14,7 +14,7 @@ void TeakIdentifyUser(const char* userId, const char* userConfigurationJson) {
       NSData* jsonData = [[NSString stringWithUTF8String:userConfigurationJson] dataUsingEncoding:NSUTF8StringEncoding];
       NSDictionary* configurationDict = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
       userConfiguration.email = configurationDict[@"email"];
-      userConfiguration.facebookId = configurationDict[@"facebookId"];
+      userConfiguration.facebookId = configurationDict[@"facebook_id"];
       userConfiguration.optOutFacebook = [configurationDict[@"opt_out_facebook"] boolValue];
       userConfiguration.optOutIdfa = [configurationDict[@"opt_out_idfa"] boolValue];
       userConfiguration.optOutPushKey = [configurationDict[@"opt_out_push_key"] boolValue];

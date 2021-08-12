@@ -116,7 +116,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(nonnull NSString*)userIdentifier withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration {
-  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"userConfiguration" : userConfiguration});
+  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"userConfiguration" : [userConfiguration to_h]});
 
   [self processDeepLinks];
 
@@ -125,7 +125,7 @@ Teak* _teakSharedInstance;
     return;
   }
 
-  TeakLog_i(@"identify_user", @{@"userIdentifier" : userIdentifier, @"userConfiguration" : userConfiguration});
+  TeakLog_i(@"identify_user", @{@"userIdentifier" : userIdentifier, @"userConfiguration" : [userConfiguration to_h]});
 
   [UserIdEvent userIdentified:[userIdentifier copy] withConfiguration:[userConfiguration copy]];
 }
