@@ -26,6 +26,7 @@ BOOL Teak_isProductionBuild(void) {
 @property (nonatomic, readwrite) BOOL isProduction;
 @property (nonatomic, readwrite) BOOL traceLog;
 @property (nonatomic, readwrite) BOOL sdk5Behaviors;
+@property (nonatomic, readwrite) BOOL doNotRefreshPushToken;
 @end
 
 @implementation TeakAppConfiguration
@@ -69,9 +70,12 @@ BOOL Teak_isProductionBuild(void) {
 
 #define kTeakLogTrace @"TeakLogTrace"
 #define kTeakSDK5Behaviors @"TeakSDK5Behaviors"
+#define kTeakDoNotRefreshPushToken @"TeakDoNotRefreshPushToken"
+
 #define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? NO : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
     self.traceLog = IS_FEATURE_ENABLED(kTeakLogTrace);
     self.sdk5Behaviors = IS_FEATURE_ENABLED(kTeakSDK5Behaviors);
+    self.doNotRefreshPushToken = IS_FEATURE_ENABLED(kTeakDoNotRefreshPushToken);
 #undef IS_FEATURE_ENABLED
   }
   return self;

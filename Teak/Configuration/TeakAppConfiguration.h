@@ -10,6 +10,7 @@
 @property (nonatomic, readonly) BOOL isProduction;
 @property (nonatomic, readonly) BOOL traceLog;
 @property (nonatomic, readonly) BOOL sdk5Behaviors;
+@property (nonatomic, readonly) BOOL doNotRefreshPushToken;
 
 - (nullable id)initWithAppId:(nonnull NSString*)appId apiKey:(nonnull NSString*)apiKey;
 - (nonnull NSDictionary*)to_h;
