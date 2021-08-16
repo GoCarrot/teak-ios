@@ -521,55 +521,9 @@ Teak* _teakSharedInstance;
                                      annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
   }
 
-  // Check to see if the user has already enabled push notifications.
-  //
-  // If they've already enabled push, go ahead and register since it won't pop up a box.
-  // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
-  // even if the app developer doesn't follow Apple's best practices.
-  [self.pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
-    if (pushState == [TeakPushState Authorized]) {
-      if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-        [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
-                              completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                                if (granted) {
-                                  dispatch_async(dispatch_get_main_queue(), ^{
-                                    [application registerForRemoteNotifications];
-                                  });
-                                }
-                              }];
-      } else {
-        if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-          UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
-          [application registerUserNotificationSettings:settings];
-#pragma clang diagnostic pop
-        } else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-          UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
-          [application registerForRemoteNotificationTypes:types];
-#pragma clang diagnostic pop
-        }
-      }
-    } else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
-
-      // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability-new"
-      UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
-                            completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                              if (granted) {
-                                dispatch_async(dispatch_get_main_queue(), ^{
-                                  [application registerForRemoteNotifications];
-                                });
-                              }
-                            }];
-#pragma clang diagnostic pop
-    }
-  }];
+  if (!self.configuration.appConfiguration.doNotRefreshPushToken) {
+    [self refreshPushTokenIfAuthorized:application];
+  }
 
   // Lifecycle event
   [LifecycleEvent applicationFinishedLaunching];
@@ -633,6 +587,58 @@ Teak* _teakSharedInstance;
   } else {
     TeakLog_e(@"notification.registration.error", @"Failed to register for push notifications.", @{@"error" : @"unknown"});
   }
+}
+
+- (void)refreshPushTokenIfAuthorized:(UIApplication*)application {
+  // Check to see if the user has already enabled push notifications.
+  //
+  // If they've already enabled push, go ahead and register since it won't pop up a box.
+  // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
+  // even if the app developer doesn't follow Apple's best practices.
+  [self.pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
+    if (pushState == [TeakPushState Authorized]) {
+      if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+        [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
+                              completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                                if (granted) {
+                                  dispatch_async(dispatch_get_main_queue(), ^{
+                                    [application registerForRemoteNotifications];
+                                  });
+                                }
+                              }];
+      } else {
+        if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+          UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
+          [application registerUserNotificationSettings:settings];
+#pragma clang diagnostic pop
+        } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+          UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
+          [application registerForRemoteNotificationTypes:types];
+#pragma clang diagnostic pop
+        }
+      }
+    } else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
+
+      // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+      UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
+                            completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                              if (granted) {
+                                dispatch_async(dispatch_get_main_queue(), ^{
+                                  [application registerForRemoteNotifications];
+                                });
+                              }
+                            }];
+#pragma clang diagnostic pop
+    }
+  }];
 }
 
 // This MUST be called when we know that a user tapped on a notification.
