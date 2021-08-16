@@ -472,33 +472,35 @@ Teak* _teakSharedInstance;
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
-  // Facebook SDKs
-  Class fbClass_4x_or_greater = NSClassFromString(@"FBSDKProfile");
-  teak_try {
-    if (fbClass_4x_or_greater != nil) {
-      BOOL arg = YES;
-      SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
-      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x_or_greater methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
-      [inv setSelector:enableUpdatesOnAccessTokenChange];
-      [inv setTarget:fbClass_4x_or_greater];
-      [inv setArgument:&arg atIndex:2];
-      [inv invoke];
-
-      [[NSNotificationCenter defaultCenter] addObserver:self
-                                               selector:@selector(fbProfileChanged:)
-                                                   name:TeakFBSDKProfileDidChangeNotification
-                                                 object:nil];
-    }
-
-    if (self.enableDebugOutput) {
+  // Facebook SDKs, only if SDK5 behavior is not enabled
+  if (!self.configuration.appConfiguration.sdk5Behaviors) {
+    Class fbClass_4x_or_greater = NSClassFromString(@"FBSDKProfile");
+    teak_try {
       if (fbClass_4x_or_greater != nil) {
-        TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or greater"});
-      } else {
-        TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
+        BOOL arg = YES;
+        SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
+        NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x_or_greater methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
+        [inv setSelector:enableUpdatesOnAccessTokenChange];
+        [inv setTarget:fbClass_4x_or_greater];
+        [inv setArgument:&arg atIndex:2];
+        [inv invoke];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(fbProfileChanged:)
+                                                     name:TeakFBSDKProfileDidChangeNotification
+                                                   object:nil];
+      }
+
+      if (self.enableDebugOutput) {
+        if (fbClass_4x_or_greater != nil) {
+          TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or greater"});
+        } else {
+          TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
+        }
       }
     }
+    teak_catch_report;
   }
-  teak_catch_report;
 
   // Register push notification categories
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
