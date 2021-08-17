@@ -113,6 +113,13 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut andEmail:(nullable NSString*)email {
+  TeakUserConfiguration* userConfiguration = [[TeakUserConfiguration alloc] init];
+  userConfiguration.email = email;
+  userConfiguration.optOutFacebook = [optOut containsObject:TeakOptOutFacebook];
+  userConfiguration.optOutIdfa = [optOut containsObject:TeakOptOutIdfa];
+  userConfiguration.optOutPushKey = [optOut containsObject:TeakOptOutPushKey];
+
+  [self identifyUser:userIdentifier withConfiguration:userConfiguration];
 }
 
 - (void)identifyUser:(nonnull NSString*)userIdentifier withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration {
