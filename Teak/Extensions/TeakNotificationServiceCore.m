@@ -104,6 +104,8 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
       // Assign processed actions dictionary and content index
       {
         NSMutableDictionary* mutableUserInfo = [self.bestAttemptContent.userInfo mutableCopy];
+        mutableUserInfo[@"teak_service_processed"] = @YES;
+
         NSMutableDictionary* mutableAps = [mutableUserInfo[@"aps"] mutableCopy];
         mutableAps[@"content"] = contentIndex;
         mutableAps[@"playableActions"] = processedActions;

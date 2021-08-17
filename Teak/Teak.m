@@ -740,9 +740,15 @@ Teak* _teakSharedInstance;
              withCompletionHandler:(void (^)(void))completionHandler {
   TeakUnused(center);
 
+  // If this is a Teak notification
   TeakNotification* notif = [self teakNotificationFromUserInfo:response.notification.request.content.userInfo];
   if (notif) {
     [self didLaunchFromNotification:notif inBackground:[UIApplication sharedApplication].applicationState != UIApplicationStateActive];
+
+    // Integration check, if the service is not integrated, this will not be assigned
+    if (response.notification.request.content.userInfo[@"teak_service_processed"] == nil) {
+      TeakLog_e(@"notification.integration", @"TeakNotificationService extension is not integrated.");
+    }
   }
 
   // Let the OS know we're done handling this.
