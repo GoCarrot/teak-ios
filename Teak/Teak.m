@@ -528,8 +528,10 @@ Teak* _teakSharedInstance;
                                      annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
   }
 
+  // If requested, do not automatically refresh the push token, instead user
+  // must call [Teak refreshPushTokenIfAuthorized] themselves.
   if (!self.configuration.appConfiguration.doNotRefreshPushToken) {
-    [self refreshPushTokenIfAuthorized:application];
+    [self refreshPushTokenIfAuthorized];
   }
 
   // Lifecycle event
@@ -596,13 +598,15 @@ Teak* _teakSharedInstance;
   }
 }
 
-- (void)refreshPushTokenIfAuthorized:(UIApplication*)application {
+- (void)refreshPushTokenIfAuthorized {
   // Check to see if the user has already enabled push notifications.
   //
   // If they've already enabled push, go ahead and register since it won't pop up a box.
   // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
   // even if the app developer doesn't follow Apple's best practices.
   [self.pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
+    UIApplication* application = [UIApplication sharedApplication];
+
     if (pushState == [TeakPushState Authorized]) {
       if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
         UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
