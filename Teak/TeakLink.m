@@ -249,7 +249,10 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
               TeakLog_i(@"deep_link.url_open_attempt", @{@"url" : [url absoluteString], @"success" : [NSNumber numberWithBool:success]});
             }];
       } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         [application openURL:url];
+#pragma clang diagnostic pop
       }
     });
   } @finally {

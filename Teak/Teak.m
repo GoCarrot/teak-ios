@@ -205,7 +205,10 @@ Teak* _teakSharedInstance;
 
 - (BOOL)openSettingsAppToThisAppsSettings {
   TeakLog_t(@"[Teak openSettingsAppToThisAppsSettings]", @{});
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+#pragma clang diagnostic pop
 }
 
 - (void)setApplicationBadgeNumber:(int)count {
@@ -214,11 +217,14 @@ Teak* _teakSharedInstance;
   // If iOS 8+ then check first to see if we have permission to change badge, otherwise
   // just go ahead and change it.
   if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     UIUserNotificationSettings* notificationSettings = [[UIApplication sharedApplication] currentUserNotificationSettings];
     BOOL hasBadgeType = notificationSettings.types & UIUserNotificationTypeBadge;
     if (hasBadgeType) {
       [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
     }
+#pragma clang diagnostic pop
   } else {
     [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
   }
@@ -439,7 +445,10 @@ Teak* _teakSharedInstance;
 
                         NSString* openUrlString = [NSString stringWithFormat:@"teak:///callback?%@=%@", keyString, valueString];
                         dispatch_async(dispatch_get_main_queue(), ^{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
                           [[UIApplication sharedApplication] openURL:[NSURL URLWithString:openUrlString]];
+#pragma clang diagnostic pop
                         });
                       }];
                     }];
@@ -529,8 +538,11 @@ Teak* _teakSharedInstance;
                               }];
       } else {
         if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
           UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
           [application registerUserNotificationSettings:settings];
+#pragma clang diagnostic pop
         } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -586,10 +598,13 @@ Teak* _teakSharedInstance;
   [LifecycleEvent applicationDeactivate];
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {
   TeakUnused(notificationSettings);
   [application registerForRemoteNotifications];
 }
+#pragma clang diagnostic pop
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
   TeakUnused(application);

@@ -17,7 +17,10 @@
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings;
+#pragma clang diagnostic pop
 
 - (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error;
 
@@ -39,7 +42,10 @@ BOOL(*sHostAppOpenURLOptionsIMP)
 (id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*) = NULL;
 void (*sHostWEFIMP)(id, SEL, UIApplication*) = NULL;
 void (*sHostAppPushRegIMP)(id, SEL, UIApplication*, NSData*) = NULL;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 void (*sHostAppPushDidRegIMP)(id, SEL, UIApplication*, UIUserNotificationSettings*) = NULL;
+#pragma clang diagnostic pop
 void (*sHostAppPushRegFailIMP)(id, SEL, UIApplication*, NSError*) = NULL;
 void (*sHostWREIMP)(id, SEL, UIApplication*) = NULL;
 void (*sHostDRRNIMP)(id, SEL, UIApplication*, NSDictionary*) = NULL;
@@ -108,12 +114,15 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   }
 
   // application:didRegisterUserNotificationSettings:
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   {
     struct objc_method_description appPushDidRegMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didRegisterUserNotificationSettings:), NO, YES);
 
     Method ctAppPushDidReg = class_getInstanceMethod([TeakAppDelegateHooks class], appPushDidRegMethod.name);
     sHostAppPushDidRegIMP = (void (*)(id, SEL, UIApplication*, UIUserNotificationSettings*))class_replaceMethod(appDelegateClass, appPushDidRegMethod.name, method_getImplementation(ctAppPushDidReg), appPushDidRegMethod.types);
   }
+#pragma clang diagnostic pop
 
   // application:didFailToRegisterForRemoteNotificationsWithError:
   {
@@ -219,12 +228,15 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   }
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {
   [[Teak sharedInstance] application:application didRegisterUserNotificationSettings:notificationSettings];
   if (sHostAppPushDidRegIMP) {
     sHostAppPushDidRegIMP(self, @selector(application:didRegisterUserNotificationSettings:), application, notificationSettings);
   }
 }
+#pragma clang diagnostic pop
 
 - (void)application:(UIApplication*)application didFailToRegisterForRemoteNotificationsWithError:(NSError*)error {
   [[Teak sharedInstance] application:application didFailToRegisterForRemoteNotificationsWithError:error];
