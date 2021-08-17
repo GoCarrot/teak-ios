@@ -234,10 +234,13 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
                                          canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
         } break;
 #endif
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_14_0
           // "The application is temporarily authorized to post notifications. Only available to app clips."
           // This is not used by Teak, but silence the warning.
         case UNAuthorizationStatusEphemeral: {
         } break;
+#endif
       }
       dispatch_semaphore_signal(sema);
     }];
