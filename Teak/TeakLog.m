@@ -85,7 +85,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 @property (strong, nonatomic) TeakDataCollectionConfiguration* dataCollectionConfiguration;
 
 @property (strong, nonatomic) NSString* runId;
-@property (nonatomic) volatile OSAtomic_int64_aligned64_t eventCounter;
+@property (nonatomic) volatile atomic_uint_fast64_t eventCounter;
 @end
 
 @interface TeakLogSender : NSObject
@@ -139,7 +139,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 - (void)logEvent:(nonnull NSString*)eventType level:(nonnull NSString*)logLevel eventData:(nullable NSDictionary*)eventData {
   NSMutableDictionary* payload = [[NSMutableDictionary alloc] init];
   payload[@"run_id"] = self.runId;
-  payload[@"event_id"] = [NSNumber numberWithLongLong:OSAtomicIncrement64(&_eventCounter)];
+  payload[@"event_id"] = [NSNumber numberWithUnsignedLongLong:atomic_fetch_add(&_eventCounter, 1)];
   payload[@"timestamp"] = [NSNumber numberWithLong:[[NSDate date] timeIntervalSince1970]];
   payload[@"sdk_version"] = self.sdkVersion;
   payload[@"xcode_version"] = self.xcodeVersion;
