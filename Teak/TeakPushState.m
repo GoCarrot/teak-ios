@@ -234,6 +234,10 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
                                          canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
         } break;
 #endif
+          // "The application is temporarily authorized to post notifications. Only available to app clips."
+          // This is not used by Teak, but silence the warning.
+        case UNAuthorizationStatusEphemeral: {
+        } break;
       }
       dispatch_semaphore_signal(sema);
     }];
