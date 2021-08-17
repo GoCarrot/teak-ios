@@ -30,6 +30,10 @@ void TeakLogout(void) {
   [[Teak sharedInstance] logout];
 }
 
+void TeakRefreshPushTokenIfAuthorized(void) {
+  [[Teak sharedInstance] refreshPushTokenIfAuthorized];
+}
+
 void TeakTrackEvent(const char* actionId, const char* objectTypeId, const char* objectInstanceId) {
   [[Teak sharedInstance] trackEventWithActionId:actionId == NULL ? nil : [NSString stringWithUTF8String:actionId]
                                 forObjectTypeId:objectTypeId == NULL ? nil : [NSString stringWithUTF8String:objectTypeId]

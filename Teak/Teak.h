@@ -226,6 +226,14 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (void)logout;
 
 /**
+  * If the user has authorized push notifications, manually refresh the push token.
+ *
+ * This is used in conjunction with the 'TeakDoNotRefreshPushToken' Plist configuration flag.
+ * If 'TeakDoNotRefreshPushToken' is false, or not present, you do not need to call this method.
+ */
+- (void)refreshPushTokenIfAuthorized;
+
+/**
  * Track an arbitrary event in Teak.
  *
  * @param actionId         The identifier for the action, e.g. 'complete'.
