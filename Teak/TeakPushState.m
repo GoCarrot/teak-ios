@@ -217,9 +217,6 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
         case UNAuthorizationStatusDenied: {
           pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Denied]];
         } break;
-        case UNAuthorizationStatusNotDetermined: {
-          // Remains as state 'NotDetermined'
-        } break;
         case UNAuthorizationStatusAuthorized: {
           pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]
                                                  canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
@@ -235,12 +232,10 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
         } break;
 #endif
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_14_0
-          // "The application is temporarily authorized to post notifications. Only available to app clips."
-          // This is not used by Teak, but silence the warning.
-        case UNAuthorizationStatusEphemeral: {
+        // UNAuthorizationStatusNotDetermined
+        // UNAuthorizationStatusEphemeral
+        default: {
         } break;
-#endif
       }
       dispatch_semaphore_signal(sema);
     }];
