@@ -463,11 +463,11 @@ DefineTeakState(Expired, (@[]));
       }
 
       BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
-      if (![email isEqualToString:currentSession.email]) {
+      if (currentSession.email != nil && ![currentSession.email isEqualToString:email]) {
         currentSession.email = email;
         needsIdentifyUser = YES;
       }
-      if (![facebookId isEqualToString:currentSession.facebookId]) {
+      if (currentSession.facebookId != nil && ![currentSession.facebookId isEqualToString:facebookId]) {
         currentSession.facebookId = email;
         needsIdentifyUser = YES;
       }
