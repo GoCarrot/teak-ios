@@ -28,7 +28,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic) dispatch_source_t heartbeat;
 @property (strong, nonatomic) NSDictionary* launchAttribution;
 @property (nonatomic) BOOL launchAttributionProcessed;
-@property (strong, nonatomic) NSMutableArray* attributionChain;
 @property (strong, nonatomic) NSString* facebookAccessToken;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
@@ -330,7 +329,6 @@ DefineTeakState(Expired, (@[]));
     self.startDate = [[NSDate alloc] init];
     self.appConfiguration = configuration.appConfiguration;
     self.deviceConfiguration = configuration.deviceConfiguration;
-    self.attributionChain = [[NSMutableArray alloc] init];
 
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
     CFStringRef string = CFUUIDCreateString(NULL, theUUID);
@@ -353,7 +351,6 @@ DefineTeakState(Expired, (@[]));
   self = [self init];
   if (self) {
     if (session != nil) {
-      [self.attributionChain addObjectsFromArray:session.attributionChain];
       self.userId = session.userId;
       self.facebookAccessToken = session.facebookAccessToken;
     }
@@ -499,7 +496,6 @@ DefineTeakState(Expired, (@[]));
     }
 
     currentSession.launchAttribution = attribution;
-    [currentSession.attributionChain addObject:attribution];
 
     [currentSession identifyUserInfoHasChanged];
   }
