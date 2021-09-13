@@ -53,7 +53,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 }
 
 + (TeakLaunchDataOperation*)fromUniversalLink:(NSURL*)url {
-  return [[TeakLaunchDataOperation alloc] initWithTarget:self selector:@selector(resolveUniversalLink:) object:url];
+  TeakLaunchDataOperation* launchDataOp = [TeakLaunchDataOperation alloc];
+  return [launchDataOp initWithTarget:launchDataOp selector:@selector(resolveUniversalLink:) object:url];
 }
 
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url {
