@@ -79,6 +79,14 @@
                                            selector:@selector(handleTeakReward:)
                                                name:TeakOnReward
                                              object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(handleTeakPostLaunchSummary:)
+                                               name:TeakPostLaunchSummary
+                                             object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(handleTeakLaunchedFromLink:)
+                                               name:TeakLaunchedFromLink
+                                             object:nil];
 
   // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
@@ -131,12 +139,13 @@
 // This is an example of a handler function that will be called when your app
 // is launched from a Push Notification.
 - (void)handleTeakNotification:(NSNotification*)notification {
-  NSLog(@"TEAK TOLD US ABOUT A NOTIFICATION, THANKS TEAK!");
+  NSDictionary* userInfo = notification.userInfo;
+  NSLog(@"handleTeakNotification: %@", userInfo);
 }
 
 - (void)handleTeakReward:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
-  NSLog(@"%@", userInfo);
+  NSLog(@"handleTeakReward: %@", userInfo);
 #ifdef SAMPLE_ALERT_ON_REWARD
   NSDictionary* reward = userInfo[@"reward"];
   if (reward) {
@@ -155,6 +164,16 @@
     });
   }
 #endif
+}
+
+- (void)handleTeakPostLaunchSummary:(NSNotification*)notification {
+  NSDictionary* userInfo = notification.userInfo;
+  NSLog(@"handleTeakPostLaunchSummary: %@", userInfo);
+}
+
+- (void)handleTeakLaunchedFromLink:(NSNotification*)notification {
+  NSDictionary* userInfo = notification.userInfo;
+  NSLog(@"handleTeakLaunchedFromLink: %@", userInfo);
 }
 
 // This is for our automated testing.
