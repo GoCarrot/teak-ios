@@ -54,3 +54,25 @@ void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payl
   [request setHTTPBody:postData];
   [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 }
+
+NSDictionary* TeakGetQueryParameterDictionaryFromUrl(NSURL* url) {
+  NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
+  if (url) {
+    NSURLComponents* launchUrlComponents = [NSURLComponents componentsWithString:url.absoluteString];
+    for (NSURLQueryItem* item in launchUrlComponents.queryItems) {
+      if ([dictionary objectForKey:item.name] != nil) {
+        if ([dictionary[item.name] isKindOfClass:[NSArray class]]) {
+          NSMutableArray* array = dictionary[item.name];
+          [array addObject:item.value];
+          dictionary[item.name] = array;
+        } else {
+          NSMutableArray* array = [NSMutableArray arrayWithObjects:dictionary[item.name], item.value, nil];
+          dictionary[item.name] = array;
+        }
+      } else {
+        dictionary[item.name] = item.value;
+      }
+    }
+  }
+  return dictionary;
+}
