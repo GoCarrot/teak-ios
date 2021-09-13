@@ -10,6 +10,7 @@
 #import "SKPaymentObserver.h"
 #import "TeakCore.h"
 #import "TeakIntegrationChecker.h"
+#import "TeakLaunchData.h"
 #import "TeakNotification.h"
 #import "TeakReward.h"
 #import "TeakVersion.h"
@@ -33,6 +34,7 @@ NSString* const TeakOnReward = @"TeakOnReward";
 NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
 NSString* const TeakAdditionalData = @"TeakAdditionalData";
 NSString* const TeakLaunchedFromLink = @"TeakLaunchedFromLink";
+NSString* const TeakPostLaunchSummary = @"TeakPostLaunchSummary";
 
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
@@ -61,6 +63,7 @@ NSDictionary* TeakXcodeVersion = nil;
 NSDictionary* TeakVersionDict = nil;
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
+extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 Teak* _teakSharedInstance;
 
@@ -410,9 +413,12 @@ Teak* _teakSharedInstance;
     return NO;
   }
 
+  TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromOpenUrl:url];
+  [TeakSession didLaunchWithData:launchData];
+
   // Returns YES if it's a Teak link, in which case it will *not* be passed on to the host application.
   // Returns NO if it's not a Teak link, it will then be passed to the host application.
-  return [TeakSession didLaunchFromLink:url.absoluteString wasTeakLink:NO];
+  return TeakLink_WillHandleDeepLink(url);
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
@@ -670,13 +676,8 @@ Teak* _teakSharedInstance;
 
   TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(notif.teakNotifId)});
 
-  [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
-
-  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-    [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                        object:self
-                                                      userInfo:notif.eventUserInfo];
-  }];
+  TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromPushNotification:notif];
+  [TeakSession didLaunchWithData:launchData];
 }
 
 // This should be called when a notification was received with the app in the
@@ -796,85 +797,11 @@ Teak* _teakSharedInstance;
   TeakUnused(restorationHandler);
 
   if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
-    [self resolveUniversalLinkAndSetAttribution:userActivity.webpageURL isRetry:NO];
+    TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromUniversalLink:userActivity.webpageURL];
+    [TeakSession didLaunchWithData:launchData];
   }
 
   return YES;
-}
-
-- (void)resolveUniversalLinkAndSetAttribution:(NSURL*)webpageURL isRetry:(BOOL)isRetry {
-  // Make sure the URL we fetch is https
-  NSURLComponents* components = [NSURLComponents componentsWithURL:webpageURL
-                                           resolvingAgainstBaseURL:YES];
-  components.scheme = @"https";
-  NSURL* fetchUrl = components.URL;
-
-  TeakLog_i(@"deep_link.request.send", [fetchUrl absoluteString]);
-  // Fetch the data for the short link
-  NSURLSession* session = [Teak URLSessionWithoutDelegate];
-  NSURLSessionDataTask* task =
-      [session dataTaskWithURL:fetchUrl
-             completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
-               NSString* attributionUrlAsString = [webpageURL absoluteString];
-               BOOL wasTeakLink = NO;
-
-               // If we aren't already retrying, and there's any kind of error (for example iOS 12 malarky)
-               // wait 1.5 seconds and retry.
-               if (error != nil && !isRetry) {
-                 __weak typeof(self) weakSelf = self;
-                 double delayInSeconds = 1.5;
-                 dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-                 dispatch_after(popTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^(void) {
-                   [weakSelf resolveUniversalLinkAndSetAttribution:webpageURL isRetry:YES];
-                 });
-
-                 // Bail out here so that we do not set the attribution
-                 return;
-               } else if (error != nil) {
-                 // We already retried, and there's still an error, so log the error
-                 TeakLog_e(@"deep_link.request.error", @{
-                   @"url" : attributionUrlAsString,
-                   @"error" : [error description]
-                 });
-
-                 // But don't return because we'll still send the link along as attribution
-               } else {
-                 TeakLog_i(@"deep_link.request.reply", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
-
-                 NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                 if (error == nil) {
-                   NSString* iOSPath = reply[@"iOSPath"];
-                   if (iOSPath != nil) {
-                     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:@"^[a-zA-Z0-9+.\\-_]*:"
-                                                                                             options:0
-                                                                                               error:&error];
-                     if (error != nil || [regExp numberOfMatchesInString:iOSPath
-                                                                 options:0
-                                                                   range:NSMakeRange(0, [iOSPath length])] == 0) {
-                       attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
-                     } else {
-                       attributionUrlAsString = iOSPath;
-                     }
-
-                     wasTeakLink = YES;
-                     TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
-                   }
-
-                   [[NSNotificationCenter defaultCenter] postNotificationName:TeakLaunchedFromLink
-                                                                       object:self
-                                                                     userInfo:reply];
-                 } else {
-                   TeakLog_e(@"deep_link.json.error", @{
-                     @"url" : attributionUrlAsString,
-                     @"error" : [error description]
-                   });
-                 }
-               }
-
-               // Attribution
-               [TeakSession didLaunchFromLink:attributionUrlAsString wasTeakLink:wasTeakLink];
-             }];
-  [task resume];
 }
 
 @end

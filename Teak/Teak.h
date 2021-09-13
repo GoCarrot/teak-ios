@@ -46,6 +46,15 @@ extern NSString* _Nonnull const TeakAdditionalData;
 extern NSString* _Nonnull const TeakLaunchedFromLink;
 
 /**
+ * Use this named notification to listen for the information about the launch of your app.
+ * [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                selector:@selector(handleTeakPostLAunchSummary:)
+ *                                 name:TeakPostLaunchSummary
+ *                                 object:nil];
+ */
+extern NSString* _Nonnull const TeakPostLaunchSummary;
+
+/**
  * Value provided to identifyUser:withOptOutList: to opt out of collecting an IDFA for this specific user.
  *
  * If you prevent Teak from collecting the Identifier For Advertisers (IDFA),

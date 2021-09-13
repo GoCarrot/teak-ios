@@ -5,6 +5,7 @@
 #import "TeakAppConfiguration.h"
 #import "TeakDebugConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakLaunchData.h"
 #import "TeakRemoteConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakReward.h"
@@ -16,7 +17,7 @@ NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
-extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
+extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 
 @interface TeakSession ()
 @property (strong, nonatomic, readwrite) TeakState* currentState;
@@ -26,7 +27,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic) NSString* countryCode;
 @property (strong, nonatomic) dispatch_queue_t heartbeatQueue;
 @property (strong, nonatomic) dispatch_source_t heartbeat;
-@property (strong, nonatomic) NSDictionary* launchAttribution;
+@property (strong, nonatomic) TeakLaunchDataOperation* launchDataOperation;
 @property (nonatomic) BOOL launchAttributionProcessed;
 @property (strong, nonatomic) NSString* facebookAccessToken;
 
@@ -165,6 +166,7 @@ DefineTeakState(Expired, (@[]));
 }
 
 - (void)sendUserIdentifier {
+  // This method is executed via an NSInvocationOperation
   @synchronized(self) {
     if ([self setState:[TeakSession IdentifyingUser]] == NO) {
       return;
@@ -226,12 +228,6 @@ DefineTeakState(Expired, (@[]));
       payload[@"apns_push_key"] = @"";
     }
 
-    if (self.launchAttribution != nil) {
-      for (NSString* key in self.launchAttribution) {
-        payload[key] = self.launchAttribution[key];
-      }
-    }
-
     if (!self.appConfiguration.sdk5Behaviors) {
       if (dataCollectionConfiguration.enableFacebookAccessToken) {
         if (self.facebookAccessToken == nil) {
@@ -246,6 +242,12 @@ DefineTeakState(Expired, (@[]));
 
     if (self.facebookId != nil) {
       payload[@"facebook_id"] = self.facebookId;
+    }
+
+    // Then add the attribution, then send request
+    // The launchDataOperation is a dependency for this operation, so it should always be ready
+    if (self.launchDataOperation && self.launchDataOperation.isFinished) {
+      [payload addEntriesFromDictionary:[self.launchDataOperation.result sessionAttribution]];
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
@@ -272,9 +274,10 @@ DefineTeakState(Expired, (@[]));
                                                     // Deep link
                                                     if (reply[@"deep_link"]) {
                                                       NSString* deepLink = reply[@"deep_link"];
-                                                      NSMutableDictionary* updatedAttribution = [NSMutableDictionary dictionaryWithDictionary:blockSelf.launchAttribution];
-                                                      updatedAttribution[@"deep_link"] = deepLink;
-                                                      blockSelf.launchAttribution = updatedAttribution;
+                                                      NSURL* url = [NSURL URLWithString:deepLink];
+                                                      if (url && blockSelf.launchDataOperation) {
+                                                        [blockSelf.launchDataOperation.result updateDeepLink:url];
+                                                      }
                                                       TeakLog_i(@"deep_link.processed", deepLink);
                                                     }
 
@@ -329,6 +332,10 @@ DefineTeakState(Expired, (@[]));
     self.startDate = [[NSDate alloc] init];
     self.appConfiguration = configuration.appConfiguration;
     self.deviceConfiguration = configuration.deviceConfiguration;
+
+    // Assign unattributed launch at init
+    self.launchDataOperation = [TeakLaunchDataOperation unattributed];
+    [[Teak sharedInstance].operationQueue addOperation:self.launchDataOperation];
 
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
     CFStringRef string = CFUUIDCreateString(NULL, theUUID);
@@ -385,15 +392,41 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
+- (NSOperation*)identifyUserOperation {
+  NSOperation* identifyUserOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(sendUserIdentifier) object:nil];
+  if (self.launchDataOperation) {
+    [identifyUserOperation addDependency:self.launchDataOperation];
+  }
+  return identifyUserOperation;
+}
+
 - (void)processAttributionAndDispatchEvents {
-  if (self.launchAttribution == nil || self.launchAttributionProcessed) return;
+  if (self.launchDataOperation == nil || !self.launchDataOperation.finished || self.launchAttributionProcessed) return;
   self.launchAttributionProcessed = YES;
 
-  // Check for a deep link, and dispatch
-  [TeakLink checkAttributionForDeepLinkAndDispatchEvents:self.launchAttribution];
+  // Grab the resolved launch data (it should never be nil, but let's still check)
+  TeakLaunchData* launchData = self.launchDataOperation.result;
+  if (launchData == nil) return;
 
-  // Check for a reward, and dispatch
-  [TeakReward checkAttributionForRewardAndDispatchEvents:self.launchAttribution];
+  TeakReward* reward = nil;
+  if ([launchData isKindOfClass:[TeakAttributedLaunchData class]]) {
+    TeakAttributedLaunchData* attributedLaunchData = (TeakAttributedLaunchData*)launchData;
+
+    // Check for a reward, and dispatch
+    reward = [TeakSession checkLaunchDataForRewardAndDispatchEvents:attributedLaunchData];
+
+    [TeakSession checkLaunchDataForNotificationAndDispatchEvents:attributedLaunchData withReward:reward];
+  }
+
+  // Check for a deep link, and dispatch
+  [TeakSession checkLaunchDataForDeepLinkAndDispatchEvents:launchData withReward:reward];
+
+  // Always send out an app launch
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    [[NSNotificationCenter defaultCenter] postNotificationName:TeakPostLaunchSummary
+                                                        object:session
+                                                      userInfo:[launchData to_h]];
+  }];
 }
 
 + (void)registerStaticEventListeners {
@@ -472,32 +505,9 @@ DefineTeakState(Expired, (@[]));
       currentSession.userId = userId;
 
       if (needsIdentifyUser) {
-        [currentSession sendUserIdentifier];
+        [[Teak sharedInstance].operationQueue addOperation:[currentSession identifyUserOperation]];
       }
     }
-  }
-}
-
-+ (void)setLaunchAttribution:(nonnull NSDictionary*)attribution {
-  @synchronized(currentSessionMutex) {
-    // Call getCurrentSession() so the null || Expired logic stays in one place
-    [TeakSession currentSession];
-
-    // If there's already an active session, then create a new one
-    if (currentSession.currentState != [TeakSession Allocated] &&
-        currentSession.currentState != [TeakSession Created]) {
-      TeakLog_i(@"session.attribution", attribution);
-
-      TeakSession* oldSession = currentSession;
-      currentSession = [[TeakSession alloc] initWithSession:oldSession];
-
-      [oldSession setState:[TeakSession Expiring]];
-      [oldSession setState:[TeakSession Expired]];
-    }
-
-    currentSession.launchAttribution = attribution;
-
-    [currentSession identifyUserInfoHasChanged];
   }
 }
 
@@ -526,81 +536,32 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-+ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification inBackground:(BOOL)inBackground {
-  NSMutableDictionary* launchAttribution = [[NSMutableDictionary alloc] init];
++ (void)didLaunchWithData:(nonnull TeakLaunchDataOperation*)launchDataOperation {
+  @synchronized(currentSessionMutex) {
+    // Call getCurrentSession() so the null || Expired logic stays in one place
+    [TeakSession currentSession];
 
-  launchAttribution[@"teak_notif_id"] = notification.teakNotifId;
+    // If there's already an active session, then create a new one
+    if (currentSession.currentState != [TeakSession Allocated] &&
+        currentSession.currentState != [TeakSession Created]) {
 
-  if (notification.teakDeepLink != nil) {
-    launchAttribution[@"launch_link"] = [notification.teakDeepLink copy];
-    launchAttribution[@"deep_link"] = [notification.teakDeepLink copy];
-  }
+      TeakSession* oldSession = currentSession;
+      currentSession = [[TeakSession alloc] initWithSession:oldSession];
 
-  if (notification.teakRewardId) {
-    launchAttribution[@"teak_reward_id"] = notification.teakRewardId;
-  }
-
-  if (notification.teakCreativeName) {
-    launchAttribution[@"teak_creative_name"] = notification.teakCreativeName;
-  }
-
-  if (notification.teakCreativeId) {
-    launchAttribution[@"teak_creative_id"] = notification.teakCreativeId;
-  }
-
-  if (notification.teakScheduleName) {
-    launchAttribution[@"teak_schedule_name"] = notification.teakScheduleName;
-  }
-
-  if (notification.teakScheduleId) {
-    launchAttribution[@"teak_schedule_id"] = notification.teakScheduleId;
-  }
-
-  launchAttribution[@"notification_placement"] = inBackground ? @"background" : @"foreground";
-
-  [TeakSession setLaunchAttribution:launchAttribution];
-}
-
-+ (BOOL)didLaunchFromLink:(nonnull NSString*)launchLink wasTeakLink:(BOOL)wasTeakLink {
-  // The launch link always goes into 'launch_link'
-  NSMutableDictionary* launchAttribution = [NSMutableDictionary dictionaryWithObjectsAndKeys:[launchLink copy], @"launch_link", nil];
-
-  // If the link begins with teakXXXX:// we should attempt to personalize it
-  BOOL shouldPersonalizeLink = NO;
-  @try {
-    NSURL* launchUrl = [NSURL URLWithString:launchLink];
-    if (launchUrl) {
-      shouldPersonalizeLink = TeakLink_WillHandleDeepLink(launchUrl);
+      [oldSession setState:[TeakSession Expiring]];
+      [oldSession setState:[TeakSession Expired]];
     }
-  } @finally {
-  }
 
-  // If we're personalizing it, we're sending it as 'deep_link' to the server
-  if (shouldPersonalizeLink || wasTeakLink) {
-    launchAttribution[@"deep_link"] = [launchLink copy];
-  }
+    // Assign launch data
+    currentSession.launchDataOperation = launchDataOperation;
 
-  // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
-  NSURLComponents* components = [NSURLComponents componentsWithString:launchLink];
-  for (NSURLQueryItem* item in components.queryItems) {
-    if ([item.name hasPrefix:@"teak_"]) {
-      if ([launchAttribution objectForKey:item.name] != nil) {
-        if ([[launchAttribution objectForKey:item.name] isKindOfClass:[NSArray class]]) {
-          NSMutableArray* array = [launchAttribution objectForKey:item.name];
-          [array addObject:item.value];
-          [launchAttribution setValue:array forKey:item.name];
-        } else {
-          NSMutableArray* array = [NSMutableArray arrayWithObjects:[launchAttribution objectForKey:item.name], item.value, nil];
-          [launchAttribution setValue:array forKey:item.name];
-        }
-      } else {
-        [launchAttribution setValue:item.value forKey:item.name];
-      }
-    }
-  }
+    // This will use launchData as a dependency for an identify user operation, if
+    // an identify user is needed.
+    [currentSession identifyUserInfoHasChanged];
 
-  [TeakSession setLaunchAttribution:launchAttribution];
-  return shouldPersonalizeLink;
+    // Enqueue processing the launch data
+    [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
+  }
 }
 
 + (TeakSession*)currentSession {
@@ -630,10 +591,94 @@ DefineTeakState(Expired, (@[]));
     // Re-send identify user if needed
     @synchronized(self) {
       if (self.userIdentificationSent) {
-        [self sendUserIdentifier];
+        [[Teak sharedInstance].operationQueue addOperation:[self identifyUserOperation]];
       }
     }
   }];
+}
+
++ (TeakReward*)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
+  if (launchData.rewardId == nil) return nil;
+
+  TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId];
+  if (reward == nil) return nil;
+
+  __weak TeakReward* tempWeakReward = reward;
+  reward.onComplete = ^() {
+    __strong TeakReward* blockReward = tempWeakReward;
+    if (blockReward.json != nil) {
+      NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
+      [userInfo addEntriesFromDictionary:blockReward.json];
+
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                            object:session
+                                                          userInfo:userInfo];
+      }];
+    }
+  };
+
+  return reward;
+}
+
++ (void)checkLaunchDataForNotificationAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData withReward:(TeakReward*)reward {
+  if (![launchData isKindOfClass:[TeakNotificationLaunchData class]]) return;
+
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
+    if (reward.json != nil) {
+      [userInfo addEntriesFromDictionary:reward.json];
+    }
+
+    [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
+                                                        object:session
+                                                      userInfo:userInfo];
+  }];
+}
+
++ (void)checkLaunchDataForDeepLinkAndDispatchEvents:(nonnull TeakLaunchData*)launchData withReward:(TeakReward*)reward {
+  if (NSNullOrNil(launchData.launchUrl)) return;
+
+  @try {
+    // Time to handle our deep link, finally!
+    BOOL deepLinkHandled = TeakLink_HandleDeepLink(launchData.launchUrl);
+    if (deepLinkHandled && [launchData isKindOfClass:[TeakRewardlinkLaunchData class]]) {
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+        NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
+        if (reward.json != nil) {
+          [userInfo addEntriesFromDictionary:reward.json];
+        }
+
+        [[NSNotificationCenter defaultCenter] postNotificationName:TeakLaunchedFromLink
+                                                            object:session
+                                                          userInfo:userInfo];
+      }];
+    }
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+      UIApplication* application = [UIApplication sharedApplication];
+
+      // It is safe to do this even with links that are handled by Teak,
+      // because the Teak delegate hooks check if the link was opened by the
+      // host app and bail if it was. By doing this, we ensure that all links
+      // are handled to application delegates even in cases where Teak failed
+      // to hook the application delegate, e.g. Unity custom application
+      // delegates.
+      if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
+        [application openURL:launchData.launchUrl
+            options:@{}
+            completionHandler:^(BOOL success) {
+              TeakLog_i(@"deep_link.url_open_attempt", @{@"url" : [launchData.launchUrl absoluteString], @"success" : [NSNumber numberWithBool:success]});
+            }];
+      } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        [application openURL:launchData.launchUrl];
+#pragma clang diagnostic pop
+      }
+    });
+  } @finally {
+  }
 }
 
 KeyValueObserverFor(TeakSession, TeakSession, currentState) {
@@ -648,7 +693,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
     } else if (newValue == [TeakSession Configured]) {
       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         if (self.userId != nil) {
-          [self sendUserIdentifier];
+          [[Teak sharedInstance].operationQueue addOperation:[self identifyUserOperation]];
         }
       });
     } else if (newValue == [TeakSession UserIdentified]) {
