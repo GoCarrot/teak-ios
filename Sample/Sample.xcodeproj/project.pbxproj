@@ -669,7 +669,7 @@
 					"-framework",
 					CFNetwork,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.native.dev;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.unity.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -698,7 +698,7 @@
 					"-framework",
 					CFNetwork,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.native.dev;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.unity.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -714,7 +714,7 @@
 				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.native.dev.TeakNotificationContent;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.unity.dev.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -731,7 +731,7 @@
 				INFOPLIST_FILE = TeakNotificationService/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.native.dev.TeakNotificationService;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.unity.dev.TeakNotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
@@ -748,7 +748,7 @@
 				INFOPLIST_FILE = TeakNotificationService/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.native.dev.TeakNotificationService;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.unity.dev.TeakNotificationService;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -766,7 +766,7 @@
 				INFOPLIST_FILE = TeakNotificationContent/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.native.dev.TeakNotificationContent;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.app.unity.dev.TeakNotificationContent;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				PROVISIONING_PROFILE_SPECIFIER = "";
