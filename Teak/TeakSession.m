@@ -408,18 +408,17 @@ DefineTeakState(Expired, (@[]));
   TeakLaunchData* launchData = self.launchDataOperation.result;
   if (launchData == nil) return;
 
-  TeakReward* reward = nil;
   if ([launchData isKindOfClass:[TeakAttributedLaunchData class]]) {
     TeakAttributedLaunchData* attributedLaunchData = (TeakAttributedLaunchData*)launchData;
 
     // Check for a reward, and dispatch
-    reward = [TeakSession checkLaunchDataForRewardAndDispatchEvents:attributedLaunchData];
+    [TeakSession checkLaunchDataForRewardAndDispatchEvents:attributedLaunchData];
 
-    [TeakSession checkLaunchDataForNotificationAndDispatchEvents:attributedLaunchData withReward:reward];
+    [TeakSession checkLaunchDataForNotificationAndDispatchEvents:attributedLaunchData];
   }
 
   // Check for a deep link, and dispatch
-  [TeakSession checkLaunchDataForDeepLinkAndDispatchEvents:launchData withReward:reward];
+  [TeakSession checkLaunchDataForDeepLinkAndDispatchEvents:launchData];
 
   // Always send out an app launch
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
@@ -597,11 +596,11 @@ DefineTeakState(Expired, (@[]));
   }];
 }
 
-+ (TeakReward*)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
-  if (launchData.rewardId == nil) return nil;
++ (void)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
+  if (launchData.rewardId == nil) return;
 
   TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId];
-  if (reward == nil) return nil;
+  if (reward == nil) return;
 
   __weak TeakReward* tempWeakReward = reward;
   reward.onComplete = ^() {
@@ -617,26 +616,19 @@ DefineTeakState(Expired, (@[]));
       }];
     }
   };
-
-  return reward;
 }
 
-+ (void)checkLaunchDataForNotificationAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData withReward:(TeakReward*)reward {
++ (void)checkLaunchDataForNotificationAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
   if (![launchData isKindOfClass:[TeakNotificationLaunchData class]]) return;
 
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-    NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
-    if (reward.json != nil) {
-      [userInfo addEntriesFromDictionary:reward.json];
-    }
-
     [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
                                                         object:session
-                                                      userInfo:userInfo];
+                                                      userInfo:[launchData to_h]];
   }];
 }
 
-+ (void)checkLaunchDataForDeepLinkAndDispatchEvents:(nonnull TeakLaunchData*)launchData withReward:(TeakReward*)reward {
++ (void)checkLaunchDataForDeepLinkAndDispatchEvents:(nonnull TeakLaunchData*)launchData {
   if (NSNullOrNil(launchData.launchUrl)) return;
 
   @try {
@@ -644,14 +636,9 @@ DefineTeakState(Expired, (@[]));
     BOOL deepLinkHandled = TeakLink_HandleDeepLink(launchData.launchUrl);
     if (deepLinkHandled && [launchData isKindOfClass:[TeakRewardlinkLaunchData class]]) {
       [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
-        if (reward.json != nil) {
-          [userInfo addEntriesFromDictionary:reward.json];
-        }
-
         [[NSNotificationCenter defaultCenter] postNotificationName:TeakLaunchedFromLink
                                                             object:session
-                                                          userInfo:userInfo];
+                                                          userInfo:[launchData to_h]];
       }];
     }
 
