@@ -2,7 +2,7 @@ git_url("git@github.com:GoCarrot/teak-match-certificates.git")
 
 type("development")
 
-app_identifiers = ["io.teak.app.native.dev"]
+app_identifiers = ["io.teak.app.unity.dev"]
 app_extensions = ["TeakNotificationService", "TeakNotificationContent"]
 app_identifier(app_identifiers.push(app_identifiers.collect { |app| app_extensions.collect { |extension| "#{app}.#{extension}" } }).flatten)
 

@@ -34,7 +34,7 @@ platform :ios do
       # Create/fetch and store provisioning profiles
       ios_provisioning_profile = {}
       ios_provisioning_profile_uuid = {}
-      ["io.teak.app.native.dev"].each do |app_id|
+      ["io.teak.app.unity.dev"].each do |app_id|
         match(
           app_identifier: app_id,
           type: CONFIG_TYPE,
