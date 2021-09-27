@@ -11,7 +11,6 @@
 @property (nonatomic, readwrite) BOOL enableIDFA;
 @property (nonatomic, readwrite) BOOL enableFacebookAccessToken;
 @property (nonatomic, readwrite) BOOL enablePushKey;
-@property (strong, nonatomic) NSArray* optOutList;
 @end
 
 @implementation TeakDataCollectionConfiguration
@@ -42,12 +41,6 @@
   self.enablePushKey = IS_FEATURE_ENABLED(kTeakEnablePushKey);
 #undef IS_FEATURE_ENABLED
 
-  if (self.optOutList != nil) {
-    self.enableIDFA &= ![self.optOutList containsObject:TeakOptOutIdfa];
-    self.enableFacebookAccessToken &= ![self.optOutList containsObject:TeakOptOutFacebook];
-    self.enablePushKey &= ![self.optOutList containsObject:TeakOptOutPushKey];
-  }
-
   self.enableIDFA &= [TeakDataCollectionConfiguration adTrackingAuthorized];
 }
 
@@ -59,9 +52,12 @@
   };
 }
 
-- (void)addConfigurationFromDeveloper:(NSArray*)optOutList {
-  self.optOutList = optOutList;
+- (void)addConfigurationFromDeveloper:(TeakUserConfiguration*)userConfiguration {
   [self determineFeatures];
+
+  self.enableIDFA &= !userConfiguration.optOutIdfa;
+  self.enableFacebookAccessToken &= !userConfiguration.optOutFacebook;
+  self.enablePushKey &= !userConfiguration.optOutPushKey;
 }
 
 - (void)dealloc {

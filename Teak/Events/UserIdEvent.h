@@ -1,9 +1,9 @@
 #import "TeakEvent.h"
+#import "TeakUserConfiguration.h"
 
 @interface UserIdEvent : TeakEvent
 @property (strong, nonatomic, readonly) NSString* _Nonnull userId;
-@property (strong, nonatomic, readonly) NSArray* _Nonnull optOut;
-@property (strong, nonatomic, readonly) NSString* _Nullable email;
+@property (strong, nonatomic, readonly) TeakUserConfiguration* _Nonnull userConfiguration;
 
-+ (void)userIdentified:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut andEmail:(nullable NSString*)email;
++ (void)userIdentified:(nonnull NSString*)userId withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration;
 @end

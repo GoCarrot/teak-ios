@@ -53,7 +53,6 @@
   teakUserInfo[@"teakChannelName"] = ValueOrNSNull(self.teakChannelName);
   teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(self.teakDeepLink);
 #undef ValueOrNSNull
-  teakUserInfo[@"incentivized"] = self.teakRewardId == nil ? @NO : @YES;
 
   return teakUserInfo;
 }

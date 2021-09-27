@@ -8,7 +8,7 @@ NSString* TeakLocalizedStringWithDefaultValue(NSString* key, NSString* tbl, NSBu
   return [ret length] > 0 ? ret : val;
 }
 
-__attribute__((constructor)) void teak_init_notification_categories() {
+__attribute__((constructor)) void teak_init_notification_categories(void) {
   @try {
     NSURL* bundleUrl = [[NSBundle mainBundle] URLForResource:@"TeakResources" withExtension:@"bundle"];
     TeakResourceBundle = [NSBundle bundleWithURL:bundleUrl];

@@ -21,8 +21,8 @@
     }                                                                                                                                                                                    \
   }
 
-#define KeyValueObserverFor(_thisClass, _className, _key)                                                                                                                                                                                                                     \
-  __attribute__((constructor)) void _##_thisClass##_className##_##_key##Reg() { [kvoRegDictionaryForClassName##_thisClass(@ #_className) setObject:NSStringFromSelector(@selector(_##_className##_##_key##_ChangedFrom:to:)) forKey:NSStringFromSelector(@selector(_key))]; } \
+#define KeyValueObserverFor(_thisClass, _className, _key)                                                                                                                                                                                                                         \
+  __attribute__((constructor)) void _##_thisClass##_className##_##_key##Reg(void) { [kvoRegDictionaryForClassName##_thisClass(@ #_className) setObject:NSStringFromSelector(@selector(_##_className##_##_key##_ChangedFrom:to:)) forKey:NSStringFromSelector(@selector(_key))]; } \
   -(void)_##_className##_##_key##_ChangedFrom : (id)oldValue to : (id)newValue
 
 #define RegisterKeyValueObserverFor(_object, _key) [_object addObserver:self forKeyPath:NSStringFromSelector(@selector(_key)) options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:nil]

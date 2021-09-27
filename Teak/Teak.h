@@ -46,6 +46,15 @@ extern NSString* _Nonnull const TeakAdditionalData;
 extern NSString* _Nonnull const TeakLaunchedFromLink;
 
 /**
+ * Use this named notification to listen for the information about the launch of your app.
+ * [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                selector:@selector(handleTeakPostLAunchSummary:)
+ *                                 name:TeakPostLaunchSummary
+ *                                 object:nil];
+ */
+extern NSString* _Nonnull const TeakPostLaunchSummary;
+
+/**
  * Value provided to identifyUser:withOptOutList: to opt out of collecting an IDFA for this specific user.
  *
  * If you prevent Teak from collecting the Identifier For Advertisers (IDFA),
@@ -93,6 +102,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 #import <Teak/TeakNotification.h>
 #import <Teak/TeakNotificationServiceCore.h>
 #import <Teak/TeakNotificationViewControllerCore.h>
+#import <Teak/TeakUserConfiguration.h>
 #import <UIKit/UIKit.h>
 
 /**
@@ -160,7 +170,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * This should be how you identify the user in your back-end.
  *
  * This functionality is also accessable from the C API:
- *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
+ *    extern void TeakIdentifyUser(const char* userId, const char* userConfigurationJson);
  *
  * @param userId           The string Teak should use to identify the current user.
  */
@@ -172,12 +182,12 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * This should be how you identify the user in your back-end.
  *
  * This functionality is also accessable from the C API:
- *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
+ *    extern void TeakIdentifyUser(const char* userId, const char* userConfigurationJson);
  *
  * @param userId           The string Teak should use to identify the current user.
  * @param email            The email address for the current user.
  */
-- (void)identifyUser:(nonnull NSString*)userId withEmail:(nonnull NSString*)email;
+- (void)identifyUser:(nonnull NSString*)userId withEmail:(nonnull NSString*)email __deprecated;
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
@@ -185,12 +195,12 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * This should be how you identify the user in your back-end.
  *
  * This functionality is also accessable from the C API:
- *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
+ *    extern void TeakIdentifyUser(const char* userId, const char* userConfigurationJson);
  *
  * @param userId           The string Teak should use to identify the current user.
  * @param optOut           A list containing zero or more of: TeakOptOutIdfa, TeakOptOutPushKey, TeakOptOutFacebook
  */
-- (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut;
+- (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut __deprecated;
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
@@ -198,18 +208,39 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * This should be how you identify the user in your back-end.
  *
  * This functionality is also accessable from the C API:
- *    extern void TeakIdentifyUser(const char* userId, const char* optOutJsonArray, const char* email);
+ *    extern void TeakIdentifyUser(const char* userId, const char* userConfigurationJson);
  *
  * @param userId           The string Teak should use to identify the current user.
  * @param optOut           A list containing zero or more of: TeakOptOutIdfa, TeakOptOutPushKey, TeakOptOutFacebook
  * @param email            The email address for the current user.
  */
-- (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut andEmail:(nullable NSString*)email;
+- (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut andEmail:(nullable NSString*)email __deprecated;
+
+/**
+ * Tell Teak how to identify the current user, with data collection opt-out.
+ *
+ * This should be how you identify the user in your back-end.
+ *
+ * This functionality is also accessable from the C API:
+ *    extern void TeakIdentifyUser(const char* userId, const char* userConfigurationJson);
+ *
+ * @param userIdentifier              The string Teak should use to identify the current user.
+ * @param userConfiguration       Additional configuration for the current user.
+ */
+- (void)identifyUser:(nonnull NSString*)userIdentifier withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration;
 
 /**
  * Logout the current user
  */
 - (void)logout;
+
+/**
+  * If the user has authorized push notifications, manually refresh the push token.
+ *
+ * This is used in conjunction with the 'TeakDoNotRefreshPushToken' Plist configuration flag.
+ * If 'TeakDoNotRefreshPushToken' is false, or not present, you do not need to call this method.
+ */
+- (void)refreshPushTokenIfAuthorized;
 
 /**
  * Track an arbitrary event in Teak.

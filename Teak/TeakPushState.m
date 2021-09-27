@@ -217,9 +217,6 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
         case UNAuthorizationStatusDenied: {
           pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Denied]];
         } break;
-        case UNAuthorizationStatusNotDetermined: {
-          // Remains as state 'NotDetermined'
-        } break;
         case UNAuthorizationStatusAuthorized: {
           pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]
                                                  canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
@@ -234,6 +231,11 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
                                          canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
         } break;
 #endif
+
+        // UNAuthorizationStatusNotDetermined
+        // UNAuthorizationStatusEphemeral
+        default: {
+        } break;
       }
       dispatch_semaphore_signal(sema);
     }];

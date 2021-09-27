@@ -47,6 +47,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 // App launch
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
 

@@ -61,12 +61,15 @@
 - (void)displayErrorWithDescription:(nonnull NSString*)description andCategory:(nonnull NSString*)category {
   // Execute on the main thread
   dispatch_async(dispatch_get_main_queue(), ^{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     UIAlertView* alert = [[UIAlertView alloc] initWithTitle:category
                                                     message:description
                                                    delegate:nil
                                           cancelButtonTitle:@"OK"
                                           otherButtonTitles:nil];
     [alert show];
+#pragma clang diagnostic pop
   });
 }
 

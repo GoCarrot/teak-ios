@@ -20,5 +20,4 @@ typedef void (^RewardCompleted)(void);
 @property (nonatomic, copy) RewardCompleted _Nullable onComplete;
 
 + (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId;
-+ (void)checkAttributionForRewardAndDispatchEvents:(nonnull NSDictionary*)attribution;
 @end

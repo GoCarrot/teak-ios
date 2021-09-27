@@ -38,6 +38,8 @@
 		431C981F1C7E679900B19DD5 /* TeakHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C981B1C7E679900B19DD5 /* TeakHooks.m */; };
 		431C98201C7E679900B19DD5 /* TeakRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C981C1C7E679900B19DD5 /* TeakRequest.h */; };
 		431C98211C7E679900B19DD5 /* TeakRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C981D1C7E679900B19DD5 /* TeakRequest.m */; };
+		431FAB0A26C477E2005954CE /* TeakUserConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 431FAB0826C477E2005954CE /* TeakUserConfiguration.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		431FAB0B26C477E2005954CE /* TeakUserConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 431FAB0926C477E2005954CE /* TeakUserConfiguration.m */; };
 		432EDF091CC02CE3007E9C5C /* TeakNotification.h in Headers */ = {isa = PBXBuildFile; fileRef = 432EDF071CC02CE3007E9C5C /* TeakNotification.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		432EDF0A1CC02CE3007E9C5C /* TeakNotification.m in Sources */ = {isa = PBXBuildFile; fileRef = 432EDF081CC02CE3007E9C5C /* TeakNotification.m */; };
 		432FB0EC1D29BEAE009136F1 /* amIBeingDebugged.m in Sources */ = {isa = PBXBuildFile; fileRef = 432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */; };
@@ -127,6 +129,8 @@
 		43A00447242403F60034DB68 /* LogoutEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 43A00445242403F60034DB68 /* LogoutEvent.m */; };
 		43A8ACF9244A41F3003B1C3C /* TeakIntegrationChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = 43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */; };
 		43A8ACFA244A41F3003B1C3C /* TeakIntegrationChecker.m in Sources */ = {isa = PBXBuildFile; fileRef = 43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */; };
+		43B503B726E96B8A006B5339 /* TeakLaunchData.h in Headers */ = {isa = PBXBuildFile; fileRef = 43B503B526E96B8A006B5339 /* TeakLaunchData.h */; };
+		43B503B826E96B8A006B5339 /* TeakLaunchData.m in Sources */ = {isa = PBXBuildFile; fileRef = 43B503B626E96B8A006B5339 /* TeakLaunchData.m */; };
 		43C28C4F1CFE7EFA00F20404 /* isProductionProvisioningProfile.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */; };
 		43C735C11CC1AA2700484B67 /* TeakCExtern.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C735C01CC1AA2700484B67 /* TeakCExtern.m */; };
 		43CEF65C1E4137C20065E4E5 /* TeakLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 43CEF65A1E4137C20065E4E5 /* TeakLink.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -191,6 +195,8 @@
 		431C981B1C7E679900B19DD5 /* TeakHooks.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakHooks.m; sourceTree = "<group>"; };
 		431C981C1C7E679900B19DD5 /* TeakRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRequest.h; sourceTree = "<group>"; };
 		431C981D1C7E679900B19DD5 /* TeakRequest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRequest.m; sourceTree = "<group>"; };
+		431FAB0826C477E2005954CE /* TeakUserConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakUserConfiguration.h; sourceTree = "<group>"; };
+		431FAB0926C477E2005954CE /* TeakUserConfiguration.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakUserConfiguration.m; sourceTree = "<group>"; };
 		432EDF071CC02CE3007E9C5C /* TeakNotification.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakNotification.h; sourceTree = "<group>"; };
 		432EDF081CC02CE3007E9C5C /* TeakNotification.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakNotification.m; sourceTree = "<group>"; };
 		432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = amIBeingDebugged.m; sourceTree = "<group>"; };
@@ -283,6 +289,8 @@
 		43A00445242403F60034DB68 /* LogoutEvent.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = LogoutEvent.m; sourceTree = "<group>"; };
 		43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakIntegrationChecker.h; sourceTree = "<group>"; };
 		43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakIntegrationChecker.m; sourceTree = "<group>"; };
+		43B503B526E96B8A006B5339 /* TeakLaunchData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakLaunchData.h; sourceTree = "<group>"; };
+		43B503B626E96B8A006B5339 /* TeakLaunchData.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakLaunchData.m; sourceTree = "<group>"; };
 		43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = isProductionProvisioningProfile.m; sourceTree = "<group>"; };
 		43C735C01CC1AA2700484B67 /* TeakCExtern.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakCExtern.m; sourceTree = "<group>"; };
 		43CEF65A1E4137C20065E4E5 /* TeakLink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakLink.h; sourceTree = "<group>"; };
@@ -396,6 +404,8 @@
 				43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */,
 				4355CE922672890100889B0B /* TeakWaitForDeepLink.h */,
 				4355CE932672890100889B0B /* TeakWaitForDeepLink.m */,
+				431FAB0826C477E2005954CE /* TeakUserConfiguration.h */,
+				431FAB0926C477E2005954CE /* TeakUserConfiguration.m */,
 			);
 			path = Teak;
 			sourceTree = "<group>";
@@ -518,6 +528,8 @@
 				439815C61FA299F8005303F1 /* TeakCore.m */,
 				4311B881206AC8CB00E542E3 /* TeakUserProfile.h */,
 				4311B882206AC8CB00E542E3 /* TeakUserProfile.m */,
+				43B503B526E96B8A006B5339 /* TeakLaunchData.h */,
+				43B503B626E96B8A006B5339 /* TeakLaunchData.m */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -540,6 +552,8 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				43B503B726E96B8A006B5339 /* TeakLaunchData.h in Headers */,
+				431FAB0A26C477E2005954CE /* TeakUserConfiguration.h in Headers */,
 				439815CB1FA29A6E005303F1 /* TrackEventEvent.h in Headers */,
 				431C98201C7E679900B19DD5 /* TeakRequest.h in Headers */,
 				4347A31E22405506001A3A8A /* TeakMPInt.h in Headers */,
@@ -627,7 +641,7 @@
 		431C97F21C7E609800B19DD5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 1250;
 				ORGANIZATIONNAME = "GoCarrot Inc.";
 				TargetAttributes = {
 					430E64661FB62EEE008DE15B = {
@@ -701,7 +715,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nset +u\n# Avoid recursively calling this script.\nif [[ $SF_MASTER_SCRIPT_RUNNING ]]\nthen\nexit 0\nfi\nset -u\nexport SF_MASTER_SCRIPT_RUNNING=1\n\nSF_TARGET_NAME=${PROJECT_NAME}\nSF_EXECUTABLE_PATH=\"lib${SF_TARGET_NAME}.a\"\nSF_WRAPPER_NAME=\"${SF_TARGET_NAME}.framework\"\n\n# The following conditionals come from\n# https://github.com/kstenerud/iOS-Universal-Framework\n\nif [[ \"$SDK_NAME\" =~ ([A-Za-z]+) ]]\nthen\nSF_SDK_PLATFORM=${BASH_REMATCH[1]}\nelse\necho \"Could not find platform name from SDK_NAME: $SDK_NAME\"\nexit 1\nfi\n\nif [[ \"$SDK_NAME\" =~ ([0-9]+.*$) ]]\nthen\nSF_SDK_VERSION=${BASH_REMATCH[1]}\nelse\necho \"Could not find sdk version from SDK_NAME: $SDK_NAME\"\nexit 1\nfi\n\nif [[ \"$SF_SDK_PLATFORM\" = \"iphoneos\" ]]\nthen\nSF_OTHER_PLATFORM=iphonesimulator\nelse\nSF_OTHER_PLATFORM=iphoneos\nfi\n\nif [[ \"$BUILT_PRODUCTS_DIR\" =~ (.*)$SF_SDK_PLATFORM$ ]]\nthen\nSF_OTHER_BUILT_PRODUCTS_DIR=\"${BASH_REMATCH[1]}${SF_OTHER_PLATFORM}\"\nelse\necho \"Could not find platform name from build products directory: $BUILT_PRODUCTS_DIR\"\nexit 1\nfi\n\n# Build the other platform.\nxcrun xcodebuild -project \"${PROJECT_FILE_PATH}\" -target \"${TARGET_NAME}\" -configuration \"${CONFIGURATION}\" -sdk ${SF_OTHER_PLATFORM}${SF_SDK_VERSION} BUILD_DIR=\"${BUILD_DIR}\" OBJROOT=\"$OBJROOT/DependentBuilds\" BUILD_ROOT=\"${BUILD_ROOT}\" SYMROOT=\"${SYMROOT}\" $ACTION\n\n# Smash the two static libraries into one fat binary and store it in the .framework\nxcrun lipo -create \"${BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" -output \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\n\n# Copy the binary to the other architecture folder to have a complete framework in both.\ncp -a \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\" \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\n";
+			shellScript = "set -e\nset +u\n# Avoid recursively calling this script.\nif [[ $SF_MASTER_SCRIPT_RUNNING ]]\nthen\nexit 0\nfi\nset -u\nexport SF_MASTER_SCRIPT_RUNNING=1\n\nSF_TARGET_NAME=${PROJECT_NAME}\nSF_EXECUTABLE_PATH=\"lib${SF_TARGET_NAME}.a\"\nSF_WRAPPER_NAME=\"${SF_TARGET_NAME}.framework\"\n\n# The following conditionals come from\n# https://github.com/kstenerud/iOS-Universal-Framework\n\nif [[ \"$SDK_NAME\" =~ ([A-Za-z]+) ]]\nthen\nSF_SDK_PLATFORM=${BASH_REMATCH[1]}\nelse\necho \"Could not find platform name from SDK_NAME: $SDK_NAME\"\nexit 1\nfi\n\nif [[ \"$SDK_NAME\" =~ ([0-9]+.*$) ]]\nthen\nSF_SDK_VERSION=${BASH_REMATCH[1]}\nelse\necho \"Could not find sdk version from SDK_NAME: $SDK_NAME\"\nexit 1\nfi\n\nif [[ \"$SF_SDK_PLATFORM\" = \"iphoneos\" ]]\nthen\nSF_OTHER_PLATFORM=iphonesimulator\nelse\nSF_OTHER_PLATFORM=iphoneos\nfi\n\nif [[ \"$BUILT_PRODUCTS_DIR\" =~ (.*)$SF_SDK_PLATFORM$ ]]\nthen\nSF_OTHER_BUILT_PRODUCTS_DIR=\"${BASH_REMATCH[1]}${SF_OTHER_PLATFORM}\"\nelse\necho \"Could not find platform name from build products directory: $BUILT_PRODUCTS_DIR\"\nexit 1\nfi\n\n# Build the other platform.\n# REMOVED 7/19/2021, Nobody uses the simulator.\n# xcrun xcodebuild -project \"${PROJECT_FILE_PATH}\" -target \"${TARGET_NAME}\" -configuration \"${CONFIGURATION}\" -sdk ${SF_OTHER_PLATFORM}${SF_SDK_VERSION} BUILD_DIR=\"${BUILD_DIR}\" OBJROOT=\"$OBJROOT/DependentBuilds\" BUILD_ROOT=\"${BUILD_ROOT}\" SYMROOT=\"${SYMROOT}\" $ACTION\n\n# Smash the two static libraries into one fat binary and store it in the .framework\n# REMOVED 7/19/2021, Copy the file now that we only have the iphoneos target\n# xcrun lipo -create \"${BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" -output \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\nif [[ \"$SF_SDK_PLATFORM\" = \"iphoneos\" ]]\nthen\ncp \"${BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\nelse\ncp \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\nfi\n\n# Copy the binary to the other architecture folder to have a complete framework in both.\n# REMOVED 7/19/2021, No longer needed\n#cp -a \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\" \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\n";
 		};
 		439AFA731CD81EC10024BCAA /* Define Version */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -779,6 +793,7 @@
 				4347A30222403263001A3A8A /* bncore.c in Sources */,
 				43DCD108200595B7009B6514 /* UIImage+animatedGIF.m in Sources */,
 				4383726C1D3419D000B01F44 /* TeakDebugConfiguration.m in Sources */,
+				43B503B826E96B8A006B5339 /* TeakLaunchData.m in Sources */,
 				43CEF65D1E4137C20065E4E5 /* TeakLink.m in Sources */,
 				4361E4A01D27529700672694 /* TeakRaven.m in Sources */,
 				4347A30C22403B50001A3A8A /* bn_mp_div_2d.c in Sources */,
@@ -798,6 +813,7 @@
 				43F7CFF91EF0957E00361256 /* TeakLog.m in Sources */,
 				4347A2E82240316F001A3A8A /* bn_s_mp_add.c in Sources */,
 				4347A2E02240310F001A3A8A /* bn_mp_div_2.c in Sources */,
+				431FAB0B26C477E2005954CE /* TeakUserConfiguration.m in Sources */,
 				438372841D35889800B01F44 /* TeakHelpers.m in Sources */,
 				4347A30E22403B7A001A3A8A /* bn_mp_radix_smap.c in Sources */,
 				4347A2C522402D24001A3A8A /* bn_mp_init.c in Sources */,
@@ -909,6 +925,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -933,7 +950,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -962,6 +979,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -980,7 +998,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
@@ -999,7 +1017,7 @@
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Teak/Teak.pch;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-fembed-bitcode-marker";
 				OTHER_LDFLAGS = "-ObjC";
@@ -1022,7 +1040,7 @@
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Teak/Teak.pch;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-fembed-bitcode";
 				OTHER_LDFLAGS = "-ObjC";

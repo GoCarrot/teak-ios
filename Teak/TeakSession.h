@@ -8,6 +8,7 @@
 @class TeakAppConfiguration;
 @class TeakDeviceConfiguration;
 @class TeakRemoteConfiguration;
+@class TeakLaunchDataOperation;
 
 typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 
@@ -17,6 +18,7 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readonly) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
 @property (strong, nonatomic, readonly) NSString* _Nullable userId;
 @property (strong, nonatomic, readonly) NSString* _Nullable email;
+@property (strong, nonatomic, readonly) NSString* _Nullable facebookId;
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
 @property (strong, nonatomic, readonly) TeakState* _Nonnull currentState;
 @property (strong, nonatomic, readonly) TeakUserProfile* _Nonnull userProfile;
@@ -33,8 +35,5 @@ DeclareTeakState(Expired);
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;
 + (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
-+ (void)didLaunchFromTeakNotification:(nonnull TeakNotification*)notification inBackground:(BOOL)inBackground;
-
-// Returns YES if Teak will process the link, NO otherwise
-+ (BOOL)didLaunchFromLink:(nonnull NSString*)launchLink wasTeakLink:(BOOL)wasTeakLink;
++ (void)didLaunchWithData:(nonnull TeakLaunchDataOperation*)launchData;
 @end

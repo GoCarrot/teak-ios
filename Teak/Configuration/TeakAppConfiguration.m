@@ -3,7 +3,7 @@
 
 extern BOOL isProductionProvisioningProfile(NSString* profilePath);
 
-BOOL Teak_isProductionBuild() {
+BOOL Teak_isProductionBuild(void) {
   static BOOL isProduction;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
@@ -25,6 +25,8 @@ BOOL Teak_isProductionBuild() {
 @property (strong, nonatomic, readwrite) NSSet* urlSchemes;
 @property (nonatomic, readwrite) BOOL isProduction;
 @property (nonatomic, readwrite) BOOL traceLog;
+@property (nonatomic, readwrite) BOOL sdk5Behaviors;
+@property (nonatomic, readwrite) BOOL doNotRefreshPushToken;
 @end
 
 @implementation TeakAppConfiguration
@@ -67,8 +69,13 @@ BOOL Teak_isProductionBuild() {
     teak_catch_report;
 
 #define kTeakLogTrace @"TeakLogTrace"
+#define kTeakSDK5Behaviors @"TeakSDK5Behaviors"
+#define kTeakDoNotRefreshPushToken @"TeakDoNotRefreshPushToken"
+
 #define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? NO : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
     self.traceLog = IS_FEATURE_ENABLED(kTeakLogTrace);
+    self.sdk5Behaviors = IS_FEATURE_ENABLED(kTeakSDK5Behaviors);
+    self.doNotRefreshPushToken = IS_FEATURE_ENABLED(kTeakDoNotRefreshPushToken);
 #undef IS_FEATURE_ENABLED
   }
   return self;
@@ -81,12 +88,13 @@ BOOL Teak_isProductionBuild() {
     @"bundleId" : self.bundleId,
     @"appVersion" : self.appVersion,
     @"isProduction" : self.isProduction ? @YES : @NO,
-    @"traceLog" : self.traceLog ? @YES : @NO
+    @"traceLog" : self.traceLog ? @YES : @NO,
+    @"sdk5Behaviors" : self.sdk5Behaviors ? @YES : @NO
   };
 }
 
 - (NSString*)description {
-  return [NSString stringWithFormat:@"<%@: %p> app-id: %@; api-key: %@; bundle-id: %@; app-version: %@; is-production: %@; trace-log: %@",
+  return [NSString stringWithFormat:@"<%@: %p> app-id: %@; api-key: %@; bundle-id: %@; app-version: %@; is-production: %@; trace-log: %@; sdk5-behaviors: %@",
                                     NSStringFromClass([self class]),
                                     self, // @"0x%016llx"
                                     self.appId,
@@ -94,6 +102,7 @@ BOOL Teak_isProductionBuild() {
                                     self.bundleId,
                                     self.appVersion,
                                     self.isProduction ? @"YES" : @"NO",
-                                    self.traceLog ? @"YES" : @"NO"];
+                                    self.traceLog ? @"YES" : @"NO",
+                                    self.sdk5Behaviors ? @"YES" : @"NO"];
 }
 @end

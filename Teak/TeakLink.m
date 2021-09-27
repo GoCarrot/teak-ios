@@ -1,8 +1,6 @@
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
 
-BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
-
 NSString* const TeakLinkIncomingUrlKey = @"__incoming_url";
 NSString* const TeakLinkIncomingUrlPathKey = @"__incoming_path";
 
@@ -220,40 +218,6 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
   TeakLink* link = [[TeakLink alloc] initWithName:name description:description argumentOrder:argumentOrder block:block route:route];
   [[TeakLink deepLinkRegistration] setValue:link forKey:pattern];
-}
-
-+ (void)checkAttributionForDeepLinkAndDispatchEvents:(nonnull NSDictionary*)attribution {
-  NSString* deepLink = attribution[@"deep_link"];
-  if (NSNullOrNil(deepLink)) return;
-
-  @try {
-    NSURL* url = [NSURL URLWithString:deepLink];
-    if (!url) return;
-
-    // Time to handle our deep link, finally!
-    TeakLink_HandleDeepLink(url);
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-      UIApplication* application = [UIApplication sharedApplication];
-
-      // It is safe to do this even with links that are handled by Teak,
-      // because the Teak delegate hooks check if the link was opened by the
-      // host app and bail if it was. By doing this, we ensure that all links
-      // are handled to application delegates even in cases where Teak failed
-      // to hook the application delegate, e.g. Unity custom application
-      // delegates.
-      if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
-        [application openURL:url
-            options:@{}
-            completionHandler:^(BOOL success) {
-              TeakLog_i(@"deep_link.url_open_attempt", @{@"url" : [url absoluteString], @"success" : [NSNumber numberWithBool:success]});
-            }];
-      } else {
-        [application openURL:url];
-      }
-    });
-  } @finally {
-  }
 }
 
 @end

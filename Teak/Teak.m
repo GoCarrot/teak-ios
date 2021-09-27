@@ -10,6 +10,7 @@
 #import "SKPaymentObserver.h"
 #import "TeakCore.h"
 #import "TeakIntegrationChecker.h"
+#import "TeakLaunchData.h"
 #import "TeakNotification.h"
 #import "TeakReward.h"
 #import "TeakVersion.h"
@@ -33,6 +34,7 @@ NSString* const TeakOnReward = @"TeakOnReward";
 NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
 NSString* const TeakAdditionalData = @"TeakAdditionalData";
 NSString* const TeakLaunchedFromLink = @"TeakLaunchedFromLink";
+NSString* const TeakPostLaunchSummary = @"TeakPostLaunchSummary";
 
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
@@ -61,6 +63,7 @@ NSDictionary* TeakXcodeVersion = nil;
 NSDictionary* TeakVersionDict = nil;
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
+extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 Teak* _teakSharedInstance;
 
@@ -113,7 +116,17 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withOptOutList:(NSArray*)optOut andEmail:(nullable NSString*)email {
-  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"optOut" : _(optOut), @"email" : _(email)});
+  TeakUserConfiguration* userConfiguration = [[TeakUserConfiguration alloc] init];
+  userConfiguration.email = email;
+  userConfiguration.optOutFacebook = [optOut containsObject:TeakOptOutFacebook];
+  userConfiguration.optOutIdfa = [optOut containsObject:TeakOptOutIdfa];
+  userConfiguration.optOutPushKey = [optOut containsObject:TeakOptOutPushKey];
+
+  [self identifyUser:userIdentifier withConfiguration:userConfiguration];
+}
+
+- (void)identifyUser:(nonnull NSString*)userIdentifier withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration {
+  TeakLog_t(@"[Teak identifyUser]", @{@"userIdentifier" : _(userIdentifier), @"userConfiguration" : [userConfiguration to_h]});
 
   [self processDeepLinks];
 
@@ -122,11 +135,9 @@ Teak* _teakSharedInstance;
     return;
   }
 
-  if (optOut == nil) optOut = @[];
+  TeakLog_i(@"identify_user", @{@"userIdentifier" : userIdentifier, @"userConfiguration" : [userConfiguration to_h]});
 
-  TeakLog_i(@"identify_user", @{@"userId" : userIdentifier, @"optOut" : optOut});
-
-  [UserIdEvent userIdentified:[userIdentifier copy] withOptOutList:[optOut copy] andEmail:[email copy]];
+  [UserIdEvent userIdentified:[userIdentifier copy] withConfiguration:[userConfiguration copy]];
 }
 
 - (void)logout {
@@ -204,7 +215,10 @@ Teak* _teakSharedInstance;
 
 - (BOOL)openSettingsAppToThisAppsSettings {
   TeakLog_t(@"[Teak openSettingsAppToThisAppsSettings]", @{});
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+#pragma clang diagnostic pop
 }
 
 - (void)setApplicationBadgeNumber:(int)count {
@@ -213,11 +227,14 @@ Teak* _teakSharedInstance;
   // If iOS 8+ then check first to see if we have permission to change badge, otherwise
   // just go ahead and change it.
   if ([[UIApplication sharedApplication] respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     UIUserNotificationSettings* notificationSettings = [[UIApplication sharedApplication] currentUserNotificationSettings];
     BOOL hasBadgeType = notificationSettings.types & UIUserNotificationTypeBadge;
     if (hasBadgeType) {
       [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
     }
+#pragma clang diagnostic pop
   } else {
     [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
   }
@@ -396,9 +413,12 @@ Teak* _teakSharedInstance;
     return NO;
   }
 
+  TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromOpenUrl:url];
+  [TeakSession didLaunchWithData:launchData];
+
   // Returns YES if it's a Teak link, in which case it will *not* be passed on to the host application.
   // Returns NO if it's not a Teak link, it will then be passed to the host application.
-  return [TeakSession didLaunchFromLink:url.absoluteString wasTeakLink:NO];
+  return TeakLink_WillHandleDeepLink(url);
 }
 
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url options:(NSDictionary<NSString*, id>*)options {
@@ -438,7 +458,10 @@ Teak* _teakSharedInstance;
 
                         NSString* openUrlString = [NSString stringWithFormat:@"teak:///callback?%@=%@", keyString, valueString];
                         dispatch_async(dispatch_get_main_queue(), ^{
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
                           [[UIApplication sharedApplication] openURL:[NSURL URLWithString:openUrlString]];
+#pragma clang diagnostic pop
                         });
                       }];
                     }];
@@ -462,33 +485,35 @@ Teak* _teakSharedInstance;
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
   TeakLog_i(@"lifecycle", @{@"callback" : NSStringFromSelector(_cmd)});
 
-  // Facebook SDKs
-  Class fbClass_4x_or_greater = NSClassFromString(@"FBSDKProfile");
-  teak_try {
-    if (fbClass_4x_or_greater != nil) {
-      BOOL arg = YES;
-      SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
-      NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x_or_greater methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
-      [inv setSelector:enableUpdatesOnAccessTokenChange];
-      [inv setTarget:fbClass_4x_or_greater];
-      [inv setArgument:&arg atIndex:2];
-      [inv invoke];
-
-      [[NSNotificationCenter defaultCenter] addObserver:self
-                                               selector:@selector(fbProfileChanged:)
-                                                   name:TeakFBSDKProfileDidChangeNotification
-                                                 object:nil];
-    }
-
-    if (self.enableDebugOutput) {
+  // Facebook SDKs, only if SDK5 behavior is not enabled
+  if (!self.configuration.appConfiguration.sdk5Behaviors) {
+    Class fbClass_4x_or_greater = NSClassFromString(@"FBSDKProfile");
+    teak_try {
       if (fbClass_4x_or_greater != nil) {
-        TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or greater"});
-      } else {
-        TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
+        BOOL arg = YES;
+        SEL enableUpdatesOnAccessTokenChange = NSSelectorFromString(@"enableUpdatesOnAccessTokenChange:");
+        NSInvocation* inv = [NSInvocation invocationWithMethodSignature:[fbClass_4x_or_greater methodSignatureForSelector:enableUpdatesOnAccessTokenChange]];
+        [inv setSelector:enableUpdatesOnAccessTokenChange];
+        [inv setTarget:fbClass_4x_or_greater];
+        [inv setArgument:&arg atIndex:2];
+        [inv invoke];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(fbProfileChanged:)
+                                                     name:TeakFBSDKProfileDidChangeNotification
+                                                   object:nil];
+      }
+
+      if (self.enableDebugOutput) {
+        if (fbClass_4x_or_greater != nil) {
+          TeakLog_i(@"facebook.sdk", @{@"version" : @"4.x or greater"});
+        } else {
+          TeakLog_i(@"facebook.sdk", @{@"version" : [NSNull null]});
+        }
       }
     }
+    teak_catch_report;
   }
-  teak_catch_report;
 
   // Register push notification categories
   if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
@@ -509,52 +534,11 @@ Teak* _teakSharedInstance;
                                      annotation:launchOptions[UIApplicationLaunchOptionsAnnotationKey]];
   }
 
-  // Check to see if the user has already enabled push notifications.
-  //
-  // If they've already enabled push, go ahead and register since it won't pop up a box.
-  // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
-  // even if the app developer doesn't follow Apple's best practices.
-  [self.pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
-    if (pushState == [TeakPushState Authorized]) {
-      if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-        [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
-                              completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                                if (granted) {
-                                  dispatch_async(dispatch_get_main_queue(), ^{
-                                    [application registerForRemoteNotifications];
-                                  });
-                                }
-                              }];
-      } else {
-        if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
-          UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
-          [application registerUserNotificationSettings:settings];
-        } else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-          UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
-          [application registerForRemoteNotificationTypes:types];
-#pragma clang diagnostic pop
-        }
-      }
-    } else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
-
-      // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability-new"
-      UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
-                            completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                              if (granted) {
-                                dispatch_async(dispatch_get_main_queue(), ^{
-                                  [application registerForRemoteNotifications];
-                                });
-                              }
-                            }];
-#pragma clang diagnostic pop
-    }
-  }];
+  // If requested, do not automatically refresh the push token, instead user
+  // must call [Teak refreshPushTokenIfAuthorized] themselves.
+  if (!self.configuration.appConfiguration.doNotRefreshPushToken) {
+    [self refreshPushTokenIfAuthorized];
+  }
 
   // Lifecycle event
   [LifecycleEvent applicationFinishedLaunching];
@@ -585,10 +569,13 @@ Teak* _teakSharedInstance;
   [LifecycleEvent applicationDeactivate];
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 - (void)application:(UIApplication*)application didRegisterUserNotificationSettings:(UIUserNotificationSettings*)notificationSettings {
   TeakUnused(notificationSettings);
   [application registerForRemoteNotifications];
 }
+#pragma clang diagnostic pop
 
 - (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
   TeakUnused(application);
@@ -617,6 +604,60 @@ Teak* _teakSharedInstance;
   }
 }
 
+- (void)refreshPushTokenIfAuthorized {
+  // Check to see if the user has already enabled push notifications.
+  //
+  // If they've already enabled push, go ahead and register since it won't pop up a box.
+  // This is to ensure that we always get didRegisterForRemoteNotificationsWithDeviceToken:
+  // even if the app developer doesn't follow Apple's best practices.
+  [self.pushState determineCurrentPushStateWithCompletionHandler:^(TeakState* pushState) {
+    UIApplication* application = [UIApplication sharedApplication];
+
+    if (pushState == [TeakPushState Authorized]) {
+      if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+        UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+        [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge
+                              completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                                if (granted) {
+                                  dispatch_async(dispatch_get_main_queue(), ^{
+                                    [application registerForRemoteNotifications];
+                                  });
+                                }
+                              }];
+      } else {
+        if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+          UIUserNotificationSettings* settings = application.currentUserNotificationSettings;
+          [application registerUserNotificationSettings:settings];
+#pragma clang diagnostic pop
+        } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+          UIRemoteNotificationType types = [application enabledRemoteNotificationTypes];
+          [application registerForRemoteNotificationTypes:types];
+#pragma clang diagnostic pop
+        }
+      }
+    } else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
+
+      // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunguarded-availability-new"
+      UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
+                            completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                              if (granted) {
+                                dispatch_async(dispatch_get_main_queue(), ^{
+                                  [application registerForRemoteNotifications];
+                                });
+                              }
+                            }];
+#pragma clang diagnostic pop
+    }
+  }];
+}
+
 // This MUST be called when we know that a user tapped on a notification.
 - (void)didLaunchFromNotification:(TeakNotification*)notif inBackground:(BOOL)isInBackground {
   // This is a workaround for when we track that we launched through a
@@ -635,13 +676,8 @@ Teak* _teakSharedInstance;
 
   TeakLog_i(@"notification.opened", @{@"teakNotifId" : _(notif.teakNotifId)});
 
-  [TeakSession didLaunchFromTeakNotification:notif inBackground:isInBackground];
-
-  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-    [[NSNotificationCenter defaultCenter] postNotificationName:TeakNotificationAppLaunch
-                                                        object:self
-                                                      userInfo:notif.eventUserInfo];
-  }];
+  TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromPushNotification:notif];
+  [TeakSession didLaunchWithData:launchData];
 }
 
 // This should be called when a notification was received with the app in the
@@ -705,9 +741,15 @@ Teak* _teakSharedInstance;
              withCompletionHandler:(void (^)(void))completionHandler {
   TeakUnused(center);
 
+  // If this is a Teak notification
   TeakNotification* notif = [self teakNotificationFromUserInfo:response.notification.request.content.userInfo];
   if (notif) {
     [self didLaunchFromNotification:notif inBackground:[UIApplication sharedApplication].applicationState != UIApplicationStateActive];
+
+    // Integration check, if the service is not integrated, this will not be assigned
+    if (response.notification.request.content.userInfo[@"teak_service_processed"] == nil) {
+      TeakLog_e(@"notification.integration", @"TeakNotificationService extension is not integrated.");
+    }
   }
 
   // Let the OS know we're done handling this.
@@ -755,85 +797,11 @@ Teak* _teakSharedInstance;
   TeakUnused(restorationHandler);
 
   if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
-    [self resolveUniversalLinkAndSetAttribution:userActivity.webpageURL isRetry:NO];
+    TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromUniversalLink:userActivity.webpageURL];
+    [TeakSession didLaunchWithData:launchData];
   }
 
   return YES;
-}
-
-- (void)resolveUniversalLinkAndSetAttribution:(NSURL*)webpageURL isRetry:(BOOL)isRetry {
-  // Make sure the URL we fetch is https
-  NSURLComponents* components = [NSURLComponents componentsWithURL:webpageURL
-                                           resolvingAgainstBaseURL:YES];
-  components.scheme = @"https";
-  NSURL* fetchUrl = components.URL;
-
-  TeakLog_i(@"deep_link.request.send", [fetchUrl absoluteString]);
-  // Fetch the data for the short link
-  NSURLSession* session = [Teak URLSessionWithoutDelegate];
-  NSURLSessionDataTask* task =
-      [session dataTaskWithURL:fetchUrl
-             completionHandler:^(NSData* _Nullable data, NSURLResponse* _Nullable response, NSError* _Nullable error) {
-               NSString* attributionUrlAsString = [webpageURL absoluteString];
-               BOOL wasTeakLink = NO;
-
-               // If we aren't already retrying, and there's any kind of error (for example iOS 12 malarky)
-               // wait 1.5 seconds and retry.
-               if (error != nil && !isRetry) {
-                 __weak typeof(self) weakSelf = self;
-                 double delayInSeconds = 1.5;
-                 dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
-                 dispatch_after(popTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^(void) {
-                   [weakSelf resolveUniversalLinkAndSetAttribution:webpageURL isRetry:YES];
-                 });
-
-                 // Bail out here so that we do not set the attribution
-                 return;
-               } else if (error != nil) {
-                 // We already retried, and there's still an error, so log the error
-                 TeakLog_e(@"deep_link.request.error", @{
-                   @"url" : attributionUrlAsString,
-                   @"error" : [error description]
-                 });
-
-                 // But don't return because we'll still send the link along as attribution
-               } else {
-                 TeakLog_i(@"deep_link.request.reply", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
-
-                 NSDictionary* reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-                 if (error == nil) {
-                   NSString* iOSPath = reply[@"iOSPath"];
-                   if (iOSPath != nil) {
-                     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:@"^[a-zA-Z0-9+.\\-_]*:"
-                                                                                             options:0
-                                                                                               error:&error];
-                     if (error != nil || [regExp numberOfMatchesInString:iOSPath
-                                                                 options:0
-                                                                   range:NSMakeRange(0, [iOSPath length])] == 0) {
-                       attributionUrlAsString = [NSString stringWithFormat:@"teak%@://%@", self.configuration.appConfiguration.appId, iOSPath];
-                     } else {
-                       attributionUrlAsString = iOSPath;
-                     }
-
-                     wasTeakLink = YES;
-                     TeakLog_i(@"deep_link.request.resolve", attributionUrlAsString);
-                   }
-
-                   [[NSNotificationCenter defaultCenter] postNotificationName:TeakLaunchedFromLink
-                                                                       object:self
-                                                                     userInfo:reply];
-                 } else {
-                   TeakLog_e(@"deep_link.json.error", @{
-                     @"url" : attributionUrlAsString,
-                     @"error" : [error description]
-                   });
-                 }
-               }
-
-               // Attribution
-               [TeakSession didLaunchFromLink:attributionUrlAsString wasTeakLink:wasTeakLink];
-             }];
-  [task resume];
 }
 
 @end
