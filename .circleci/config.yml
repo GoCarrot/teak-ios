@@ -127,9 +127,9 @@ workflows:
                 - master
     jobs:
       - test:
-          xcode-version: "13.0.0"
+          xcode-version: "12.0.0"
       - build:
-          xcode-version: "13.0.0"
+          xcode-version: "12.0.0"
 
   un-tagged-build:
     jobs:
