@@ -16,8 +16,6 @@ NSString* const TeakLinkIncomingUrlPathKey = @"__incoming_path";
 
 + (nonnull NSMutableDictionary*)deepLinkRegistration;
 
-+ (BOOL)handleDeepLink:(NSURL*)deepLink;
-
 @end
 
 typedef NSString* (^TeakRegexReplaceBlock)(NSString*);

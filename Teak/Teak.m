@@ -394,6 +394,12 @@ Teak* _teakSharedInstance;
   }
 }
 
+- (BOOL)handleDeepLinkPath:(NSString*)path {
+  TeakLog_t(@"[Teak handleDeepLinkPath]", @{@"path" : _(path)});
+  NSString* url = [NSString stringWithFormat:@"%@://%@", [TeakConfiguration configuration].appConfiguration.urlSchemes.allObjects[0], path];
+  return [TeakLink handleDeepLink:[NSURL URLWithString:url]];
+}
+
 - (BOOL)handleOpenURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication {
   // I'm really not happy about this hack, but something is wrong with returning
   // YES from application:didFinishLaunchingWithOptions: and so we need to not

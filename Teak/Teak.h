@@ -331,6 +331,20 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (void)processDeepLinks;
 
 /**
+ * Manually pass Teak a deep link path to handle.
+ *
+ * This path should be prefixed with a forward slash, and can contain query parameters, e.g.
+ *     /foo/bar?fizz=buzz
+ * It should not contain a host, or a scheme.
+ *
+ * This function will only execute deep links that have been defined through Teak.
+ * It has no visibility into any other SDKs or custom code.
+ * @param path The deep link path to process.
+ * @return true if the deep link was found and handled.
+ */
+- (BOOL)handleDeepLinkPath:(nonnull NSString*)path;
+
+/**
  * Returns true if the notification was sent by Teak.
  */
 + (BOOL)isTeakNotification:(nonnull UNNotification*)notification;

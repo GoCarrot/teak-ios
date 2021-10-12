@@ -161,3 +161,8 @@ BOOL TeakRequestProvisionalPushAuthorization(void) {
 void TeakSetLogListener(TeakLogListener listener) {
   [[Teak sharedInstance] setLogListener:listener];
 }
+
+BOOL TeakHandleDeepLinkPath(const char* pathAsCStr) {
+  NSString* path = [NSString stringWithUTF8String:pathAsCStr];
+  return [[Teak sharedInstance] handleDeepLinkPath:path];
+}
