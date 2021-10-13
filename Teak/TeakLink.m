@@ -79,10 +79,6 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     return YES;
   }
 
-  if ([deepLink.scheme hasPrefix:@"http"]) {
-    return [TeakLink handleDeepLink:deepLink];
-  }
-
   return NO;
 }
 
