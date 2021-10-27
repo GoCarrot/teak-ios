@@ -117,19 +117,19 @@ workflows:
       - test
       - build
 
-  nightly-latest:
-    triggers:
-      - schedule:
-          cron: "0 0 * * 1-5"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - test:
-          xcode-version: "12.0.0"
-      - build:
-          xcode-version: "12.0.0"
+  # nightly-latest:
+  #   triggers:
+  #     - schedule:
+  #         cron: "0 0 * * 1-5"
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #   jobs:
+  #     - test:
+  #         xcode-version: "13.0.0"
+  #     - build:
+  #         xcode-version: "13.0.0"
 
   un-tagged-build:
     jobs:
