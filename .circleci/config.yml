@@ -34,6 +34,9 @@ jobs:
     steps:
       - ios_setup
       - run:
+          name: Ensure IPHONEOS_DEPLOYMENT_TARGET is 9.0
+          command: ./deployment_target_check.rb
+      - run:
           name: Build Teak SDK
           command: ./compile
       - run:
