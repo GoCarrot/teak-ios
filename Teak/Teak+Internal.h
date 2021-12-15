@@ -30,7 +30,7 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 @property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
 @property (strong, nonatomic) TeakLog* _Nonnull log;
 @property (strong, nonatomic) TeakCore* _Nonnull core;
-@property (strong, nonatomic) SKPaymentObserver* _Nonnull paymentObserver;
+@property (strong, nonatomic) SKPaymentObserver* _Nullable paymentObserver;
 @property (strong, nonatomic) TeakPushState* _Nonnull pushState;
 
 @property (nonatomic) BOOL skipTheNextOpenUrl;
