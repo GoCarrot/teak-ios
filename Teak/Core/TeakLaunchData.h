@@ -12,9 +12,9 @@
 @interface TeakLaunchData : NSObject
 @property (copy, nonatomic, readonly) NSURL* launchUrl;
 
-- (void)updateDeepLink:(NSURL*)url;
 - (NSDictionary*)sessionAttribution;
 - (NSDictionary*)to_h;
+- (void)updateDeepLink:(NSURL*)updatedDeepLink;
 @end
 
 @interface TeakAttributedLaunchData : TeakLaunchData
@@ -24,16 +24,18 @@
 @property (copy, nonatomic, readonly) NSString* creativeId;
 @property (copy, nonatomic, readonly) NSString* channelName;
 @property (copy, nonatomic, readonly) NSString* rewardId;
+@property (copy, nonatomic, readonly) NSURL* deepLink;
 
 - (NSDictionary*)sessionAttribution;
+- (void)updateDeepLink:(NSURL*)updatedDeepLink;
 @end
 
 @interface TeakNotificationLaunchData : TeakAttributedLaunchData
 @property (copy, nonatomic, readonly) NSString* sourceSendId;
 
 - (NSDictionary*)sessionAttribution;
+- (void)updateDeepLink:(NSURL*)updatedDeepLink;
 @end
 
 @interface TeakRewardlinkLaunchData : TeakAttributedLaunchData
-@property (copy, nonatomic, readonly) NSURL* shortLink;
 @end

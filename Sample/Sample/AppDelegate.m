@@ -43,6 +43,13 @@
                       NSLog(@"%@", parameters);
                     }];
 
+  [TeakLink registerRoute:@"/slots/:slot"
+                     name:@"Test"
+              description:@"Echo to log"
+                    block:^(NSDictionary* _Nonnull parameters) {
+                      NSLog(@"%@", parameters);
+                    }];
+
   // Register a deep link that opens the store to the specific SKU
   // Routes use pattern matching to capture variables. Variables are prefixed with ':', so ':sku' will create
   //    a key named 'sku' in the dictionary passed to the block.
