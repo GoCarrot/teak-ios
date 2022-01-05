@@ -648,7 +648,7 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability-new"
       UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
+      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
                             completionHandler:^(BOOL granted, NSError* _Nullable error) {
                               if (granted) {
                                 dispatch_async(dispatch_get_main_queue(), ^{
