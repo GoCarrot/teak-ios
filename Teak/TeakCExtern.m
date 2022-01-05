@@ -138,26 +138,6 @@ void TeakReportTestException(void) {
   [[Teak sharedInstance] reportTestException];
 }
 
-BOOL TeakRequestProvisionalPushAuthorization(void) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunguarded-availability-new"
-  if (iOS12OrGreater() && NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional;
-    [center requestAuthorizationWithOptions:authOptions
-                          completionHandler:^(BOOL granted, NSError* _Nullable error) {
-                            if (granted) {
-                              dispatch_async(dispatch_get_main_queue(), ^{
-                                [[UIApplication sharedApplication] registerForRemoteNotifications];
-                              });
-                            }
-                          }];
-    return YES;
-  }
-#pragma clang diagnostic pop
-  return NO;
-}
-
 void TeakSetLogListener(TeakLogListener listener) {
   [[Teak sharedInstance] setLogListener:listener];
 }
@@ -165,4 +145,54 @@ void TeakSetLogListener(TeakLogListener listener) {
 BOOL TeakHandleDeepLinkPath(const char* pathAsCStr) {
   NSString* path = [NSString stringWithUTF8String:pathAsCStr];
   return [[Teak sharedInstance] handleDeepLinkPath:path];
+}
+
+BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
+  UIApplication* application = [UIApplication sharedApplication];
+
+  // If provisional auth is requested, but this is not iOS 12+, bail out and return NO
+  if (includeProvisional) {
+    if (@available(iOS 12.0, *)) {
+      // The @available syntactic sugar does not allow negation
+    } else {
+      return NO;
+    }
+  }
+
+  // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge;
+    if (@available(iOS 12.0, *)) {
+      if (includeProvisional) { // the @available syntactic sugar is odd, so I have to do this nested if
+        authOptions |= UNAuthorizationOptionProvisional;
+      }
+    }
+    [center requestAuthorizationWithOptions:authOptions
+                          completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                            if (granted) {
+                              dispatch_async(dispatch_get_main_queue(), ^{
+                                [application registerForRemoteNotifications];
+                              });
+                            }
+                          }];
+    return YES;
+  } else if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    UIUserNotificationSettings* settings = [UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeAlert | UIUserNotificationTypeBadge | UIUserNotificationTypeSound) categories:nil];
+    [application registerUserNotificationSettings:settings];
+#pragma clang diagnostic pop
+    return YES;
+  } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    UIRemoteNotificationType myTypes = UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeSound;
+    [application registerForRemoteNotificationTypes:myTypes];
+#pragma clang diagnostic pop
+    return YES;
+  }
+
+  // Should never get here
+  return NO;
 }
