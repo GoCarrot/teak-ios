@@ -1,0 +1,25 @@
+# Only generate XML
+OUTPUT_DIRECTORY       = _doxygen
+GENERATE_LATEX         = NO
+GENERATE_HTML          = NO
+GENERATE_XML           = YES
+XML_PROGRAMLISTING     = NO
+
+# First line of comment should be the 'brief'
+JAVADOC_AUTOBRIEF      = YES
+
+# Stop the automatic ref generation (for the word Teak for example)
+AUTOLINK_SUPPORT       = NO
+
+# Project-specific configuration
+INPUT                  = Teak/Teak.h
+FILE_PATTERNS          = *
+EXTENSION_MAPPING      = h=objc m=objc
+EXCLUDE                = 
+EXCLUDE_SYMBOLS        = 
+
+# ObjC Things
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = NS_AVAILABLE_IOS(x)= __OBJC__

@@ -1,0 +1,8 @@
+input: _doxygen/xml
+output: adoc-out
+template:
+  struct: doxygen2adoc/struct.adoc
+  class: doxygen2adoc/struct.adoc
+
+partial:
+  function: doxygen2adoc/function.adoc

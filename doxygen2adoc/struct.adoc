@@ -1,0 +1,14 @@
+= {{name}}
+
+{{brief}}
+
+{{#if attributes}}== Attributes
+{{#each attributes}}
+* {{this.name}} {{this.type}}
+{{/each}}{{/if}}
+
+
+{{#if methods}}== Methods
+{{#each methods}}
+* {{> function}}
+{{/each}}{{/if}}
