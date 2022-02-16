@@ -1,8 +1,11 @@
 input: _doxygen/xml
-output: adoc-out
+output: docs/modules/ROOT/pages
+nav: docs/modules/ROOT/nav.adoc
 template:
   struct: doxygen2adoc/struct.adoc
   class: doxygen2adoc/struct.adoc
+  index: doxygen2adoc/index.adoc
+  nav: doxygen2adoc/nav.adoc
 
 partial:
   function: doxygen2adoc/function.adoc

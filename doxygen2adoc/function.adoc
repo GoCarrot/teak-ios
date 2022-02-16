@@ -1,2 +1,24 @@
-{{type}} {{name}}{{argString}}
+
+=== {{name}}
 {{brief}}
+
+{{#if return.description}}
+*Return*
+{{return.description}}
+{{/if}}
+[source,csharp]
+----
+{{{type}}} {{name}}{{{argString}}}
+----
+// TODO: collapseable here?
+{{description}}
+{{#if params}}
+[cols="1,2a"]
+|===
+|Parameter |Description
+
+{{#each params}}
+|{{name}} |{{description}}
+{{/each}}
+|===
+{{/if}}

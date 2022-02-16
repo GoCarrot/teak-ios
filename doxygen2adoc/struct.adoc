@@ -4,11 +4,23 @@
 
 {{#if attributes}}== Attributes
 {{#each attributes}}
-* {{this.name}} {{this.type}}
+{{this.name}} {{this.type}}
 {{/each}}{{/if}}
-
-
 {{#if methods}}== Methods
 {{#each methods}}
-* {{> function}}
+{{> function}}
 {{/each}}{{/if}}
+{{#if events}}== Events
+{{#each events}}
+{{> function}}
+{{/each}}{{/if}}
+{{#if properties}}== Properties
+[cols="1,2a"]
+|===
+|Property |Description
+
+{{#each properties}}
+|{{name}} |{{brief}}
+{{/each}}
+|===
+{{/if}}

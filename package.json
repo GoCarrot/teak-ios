@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "doxygen2adoc": "https://github.com/GoCarrot/doxygen2adoc"
+  }
+}
