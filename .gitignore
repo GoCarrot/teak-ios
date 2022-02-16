@@ -25,4 +25,4 @@ fastlane/README.md
 fastlane/report.xml
 
 _doxygen
-adoc-out
+node_modules
