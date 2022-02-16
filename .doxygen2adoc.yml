@@ -1,6 +1,6 @@
 input: _doxygen/xml
 output: docs/modules/ROOT/pages
-nav: docs/modules/ROOT/nav.adoc
+nav: docs/modules/ROOT/partials/nav.adoc
 template:
   struct: doxygen2adoc/struct.adoc
   class: doxygen2adoc/struct.adoc
