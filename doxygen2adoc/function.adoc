@@ -1,5 +1,5 @@
 
-=== {{name}}
+=== {{#if static}}+ {{else}}- {{/if}}{{name}}
 {{brief}}
 
 {{#if return.description}}
@@ -8,7 +8,7 @@
 {{/if}}
 [source,csharp]
 ----
-{{{type}}} {{name}}{{{argString}}}
+{{#if static}}+{{else}}-{{/if}} {{declaration}}
 ----
 // TODO: collapseable here?
 {{description}}
