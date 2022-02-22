@@ -1,4 +1,5 @@
 = {{name}}
+:caution-caption: Deprecated
 
 {{brief}}
 

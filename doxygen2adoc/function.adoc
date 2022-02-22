@@ -1,5 +1,12 @@
 
 === {{#if static}}+ {{else}}- {{/if}}{{name}}
+{{#if deprecated}}
+[CAUTION]
+====
+{{deprecatedDocs}}
+====
+{{/if}}
+
 {{brief}}
 
 {{#if return.description}}
