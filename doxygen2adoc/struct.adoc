@@ -1,27 +1,58 @@
 = {{name}}
 :caution-caption: Deprecated
+:table-caption!:
 
 {{brief}}
 
 {{#if attributes}}== Attributes
+[cols="1,2a,3a", stripes="even"]
+|===
+|Name |Type |Description
+
 {{#each attributes}}
-{{this.name}} {{this.type}}
-{{/each}}{{/if}}
+|{{name}} |``{{return.type}}`` |{{brief}}
+{{/each}}
+|===
+{{/if}}
+
 {{#if methods}}== Methods
 {{#each methods}}
 {{> function}}
 {{/each}}{{/if}}
+
+{{#if staticMethods}}== Static Methods
+{{#each staticMethods}}
+{{> function}}
+{{/each}}{{/if}}
+
+{{#if properties}}== Properties
+[cols="2a,2a,3a,1", stripes="even"]
+|===
+|Name |Type |Description |Access
+
+{{#each properties}}
+|{{name}} |``{{return.type}}`` |{{{brief}}} |Get{{#if settable}}/Set{{/if}}
+{{/each}}
+|===
+{{/if}}
+
 {{#if events}}== Events
 {{#each events}}
 {{> function}}
 {{/each}}{{/if}}
-{{#if properties}}== Properties
-[cols="1,2a"]
-|===
-|Property |Description
 
-{{#each properties}}
-|{{name}} |{{brief}}
+{{#if enums}}== Enums
+{{#each enums}}
+=== {{name}}
+{{brief}}
+
+[cols="1,3a", stripes="even"]
+|===
+|Name |Description
+
+{{#each values}}
+|{{name}} |{{{brief}}}
 {{/each}}
 |===
+{{/each}}
 {{/if}}

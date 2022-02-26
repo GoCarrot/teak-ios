@@ -142,16 +142,23 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  *
  * 	int main(int argc, char *argv[])
  * 	{
- * 		@autoreleasepool {
- * 			// Add this line here.
- * 			[Teak initForApplicationId:@"your_app_id" withClass:[YourAppDelegate class] andApiKey:@"your_api_key"];
+ * 	  @autoreleasepool {
+ * 	    // Add this line here.
+ * 	    [Teak initForApplicationId:@"your_app_id"
+ * 	                     withClass:[YourAppDelegate class]
+ * 	                     andApiKey:@"your_api_key"];
  *
- * 			return UIApplicationMain(argc, argv, nil, NSStringFromClass([YourAppDelegate class]));
- * 		}
+ * 	    return UIApplicationMain(argc, argv, nil,
+ * 	        NSStringFromClass([YourAppDelegate class]));
+ * 	  }
  * 	}
  *
+ *
  * This functionality is also accessable from the C API:
- *    extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
+ *
+ * 	extern void Teak_Plant(Class appDelegateClass,
+ * 	                       NSString* appId,
+ * 	                       NSString* appSecret);
  *
  * @param appId            Teak Application Id
  * @param appDelegateClass Class of your application delegate, ex: [YourAppDelegate class].
