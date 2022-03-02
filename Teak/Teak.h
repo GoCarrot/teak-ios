@@ -2,55 +2,55 @@
 
 /**
  * Use this named notification to listen for when your app gets launched from a Teak notification.
- * [[NSNotificationCenter defaultCenter] addObserver:self
- *                                          selector:@selector(handleTeakNotification:)
- *                                               name:TeakNotificationAppLaunch
- *                                             object:nil];
+ * 	[[NSNotificationCenter defaultCenter] addObserver:self
+ * 	                                        selector:@selector(handleTeakNotification:)
+ * 	                                             name:TeakNotificationAppLaunch
+ * 	                                           object:nil];
  */
 extern NSString* _Nonnull const TeakNotificationAppLaunch;
 
 /**
  * Use this named notification to listen for when a reward claim is attempted.
- * [[NSNotificationCenter defaultCenter] addObserver:self
- *                                          selector:@selector(handleTeakReward:)
- *                                               name:TeakOnReward
- *                                             object:nil];
+ * 	[[NSNotificationCenter defaultCenter] addObserver:self
+ * 	                                         selector:@selector(handleTeakReward:)
+ * 	                                             name:TeakOnReward
+ * 	                                           object:nil];
  */
 extern NSString* _Nonnull const TeakOnReward;
 
 /**
  * Use this named notification to listen for when your app receives a Teak notification while in the foreground.
- * [[NSNotificationCenter defaultCenter] addObserver:self
- *                                          selector:@selector(handleTeakForegroundNotification:)
- *                                               name:TeakForegroundNotification
- *                                             object:nil];
+ * 	[[NSNotificationCenter defaultCenter] addObserver:self
+ * 	                                         selector:@selector(handleTeakForegroundNotification:)
+ * 	                                             name:TeakForegroundNotification
+ * 	                                           object:nil];
  */
 extern NSString* _Nonnull const TeakForegroundNotification;
 
 /**
  * Use this named notification to listen for when your app receives additional data for the current user.
- * [[NSNotificationCenter defaultCenter] addObserver:self
- *                                          selector:@selector(handleTeakAdditionalData:)
- *                                               name:TeakAdditionalData
- *                                             object:nil];
+ * 	[[NSNotificationCenter defaultCenter] addObserver:self
+ * 	                                         selector:@selector(handleTeakAdditionalData:)
+ * 	                                             name:TeakAdditionalData
+ * 	                                           object:nil];
  */
 extern NSString* _Nonnull const TeakAdditionalData;
 
 /**
 * Use this named notification to listen for when your app is launched from a link created by the Teak dashboard.
-* [[NSNotificationCenter defaultCenter] addObserver:self
-*                                          selector:@selector(handleTeakLaunchedFromLink:)
-*                                               name:TeakLaunchedFromLink
-*                                             object:nil];
+* 	[[NSNotificationCenter defaultCenter] addObserver:self
+* 	                                         selector:@selector(handleTeakLaunchedFromLink:)
+* 	                                             name:TeakLaunchedFromLink
+* 	                                           object:nil];
 */
 extern NSString* _Nonnull const TeakLaunchedFromLink;
 
 /**
  * Use this named notification to listen for the information about the launch of your app.
- * [[NSNotificationCenter defaultCenter] addObserver:self
- *                                selector:@selector(handleTeakPostLAunchSummary:)
- *                                 name:TeakPostLaunchSummary
- *                                 object:nil];
+ * 	[[NSNotificationCenter defaultCenter] addObserver:self
+ * 	                                         selector:@selector(handleTeakPostLAunchSummary:)
+ * 	                                             name:TeakPostLaunchSummary
+ * 	                                           object:nil];
  */
 extern NSString* _Nonnull const TeakPostLaunchSummary;
 
