@@ -12,7 +12,7 @@ JAVADOC_AUTOBRIEF      = YES
 AUTOLINK_SUPPORT       = NO
 
 # Project-specific configuration
-INPUT                  = Teak/Teak.h
+INPUT                  = Teak/Teak.h Teak/TeakNotification.h
 FILE_PATTERNS          = *
 EXTENSION_MAPPING      = h=objc m=objc
 EXCLUDE                = 
