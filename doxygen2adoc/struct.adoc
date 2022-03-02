@@ -25,9 +25,11 @@
 |Name |Type |Description
 
 {{#each attributes}}
-|[[{{id}}]]{{name}}
+|[[{{id}}]]``{{name}}``
 
-|``{{return.type}}``
+|++++
+<pre class="highlightjs"><code class="language-objc hljs" data-lang="objc">{{return.type}}</code></pre>
+++++
 
 |{{{brief}}}
 {{/each}}
@@ -40,9 +42,11 @@
 |Name |Type |Description
 
 {{#each staticAttributes}}
-|[[{{id}}]]{{name}}
+|[[{{id}}]]``{{name}}``
 
-|``{{return.type}}``
+|++++
+<pre class="highlightjs"><code class="language-objc hljs" data-lang="objc">{{return.type}}</code></pre>
+++++
 
 |{{{brief}}}
 {{/each}}
@@ -65,7 +69,7 @@
 |Name |Type |Description |Access
 
 {{#each properties}}
-|``[[{{id}}]]{{name}}``
+|[[{{id}}]]``{{name}}``
 
 |++++
 <pre class="highlightjs"><code class="language-objc hljs" data-lang="objc">{{return.type}}</code></pre>
