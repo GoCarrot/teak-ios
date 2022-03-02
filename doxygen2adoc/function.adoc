@@ -1,4 +1,4 @@
-
+[#{{id}}]
 === {{#if static}}+ {{else}}- {{/if}}{{name}}
 {{#if deprecated}}
 [CAUTION]
@@ -9,7 +9,7 @@
 
 {{{brief}}}
 
-[source,csharp]
+[source,objc]
 ----
 {{{declaration}}}
 ----

@@ -1,8 +1,22 @@
-= {{name}}
 :caution-caption: Deprecated
 :table-caption!:
 
-{{brief}}
+[#{{id}}]
+= {{name}}
+
+{{#if inheritsFrom}}
+{{name}} +
+{{#each inheritsFrom}}└ {{this}} +{{/each}}
+{{/if}}
+
+{{{brief}}}
+
+{{#if deprecated}}
+[CAUTION]
+====
+{{{deprecatedDocs}}}
+====
+{{/if}}
 
 {{#if attributes}}== Attributes
 [cols="1,2a,3a", stripes="even"]
@@ -10,7 +24,18 @@
 |Name |Type |Description
 
 {{#each attributes}}
-|{{name}} |``{{return.type}}`` |{{brief}}
+|[[{{id}}]]{{name}} |``{{return.type}}`` |{{{brief}}}
+{{/each}}
+|===
+{{/if}}
+
+{{#if staticAttributes}}== Static Attributes
+[cols="1,2a,3a", stripes="even"]
+|===
+|Name |Type |Description
+
+{{#each staticAttributes}}
+|[[{{id}}]]{{name}} |``{{return.type}}`` |{{{brief}}}
 {{/each}}
 |===
 {{/if}}
@@ -31,7 +56,7 @@
 |Name |Type |Description |Access
 
 {{#each properties}}
-|{{name}} |``{{return.type}}`` |{{{brief}}} |Get{{#if settable}}/Set{{/if}}
+|[[{{id}}]]{{name}} |``{{return.type}}`` |{{{brief}}} |Get{{#if settable}}/Set{{/if}}
 {{/each}}
 |===
 {{/if}}
@@ -51,7 +76,7 @@
 |Name |Description
 
 {{#each values}}
-|{{name}} |{{{brief}}}
+|[[{{id}}]]{{name}} |{{{brief}}}
 {{/each}}
 |===
 {{/each}}
