@@ -1,9 +1,7 @@
-:caution-caption: Deprecated
-:table-caption!:
-:source-language: objc
+:struct-name: @interface {{name}}
 
 [#{{id}}]
-= {{name}}
+= {struct-name}
 
 {{#if inheritsFrom}}
 {{name}} +
@@ -28,7 +26,7 @@
 |[[{{id}}]]``{{name}}``
 
 |++++
-<pre class="highlightjs"><code class="language-objc hljs" data-lang="objc">{{return.type}}</code></pre>
+<pre class="highlightjs"><code class="language-{source-language} hljs" data-lang="{source-language}">{{return.type}}</code></pre>
 ++++
 
 |{{{brief}}}
@@ -45,7 +43,7 @@
 |[[{{id}}]]``{{name}}``
 
 |++++
-<pre class="highlightjs"><code class="language-objc hljs" data-lang="objc">{{return.type}}</code></pre>
+<pre class="highlightjs"><code class="language-{source-language} hljs" data-lang="{source-language}">{{return.type}}</code></pre>
 ++++
 
 |{{{brief}}}
@@ -72,7 +70,7 @@
 |[[{{id}}]]``{{name}}``
 
 |++++
-<pre class="highlightjs"><code class="language-objc hljs" data-lang="objc">{{return.type}}</code></pre>
+<pre class="highlightjs"><code class="language-{source-language} hljs" data-lang="{source-language}">{{return.type}}</code></pre>
 ++++
 
 |{{{brief}}}
