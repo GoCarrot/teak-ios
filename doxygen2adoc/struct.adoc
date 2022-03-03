@@ -97,7 +97,7 @@
 |Name |Description
 
 {{#each values}}
-|{{name}}
+|``{{name}}``
 
 |{{{brief}}}
 {{/each}}
