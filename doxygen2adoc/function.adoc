@@ -17,7 +17,7 @@
 ++++
 
 {{#if return.description}}==== Return
-{{return.description}}{{/if}}
+{{{return.description}}}{{/if}}
 
 {{{description}}}
 
