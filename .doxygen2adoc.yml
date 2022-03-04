@@ -9,6 +9,9 @@ template:
 partial:
   function: doxygen2adoc/function.adoc
 
+global:
+  sourceLanguage: objc
+
 nav: docs/modules/ROOT/partials/nav.adoc
 
 exclude:

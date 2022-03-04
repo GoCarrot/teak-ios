@@ -6,6 +6,5 @@ nav:
 
 asciidoc:
   attributes:
-    source-language: objc@
     table-caption: false
     caution-caption: Deprecated@
