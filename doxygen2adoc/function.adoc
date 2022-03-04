@@ -22,11 +22,17 @@
 {{{description}}}
 
 {{#each note}}
-NOTE: {{{this}}}
+[NOTE]
+====
+{{{this}}}
+====
 {{/each}}
 
 {{#each warning}}
-WARNING: {{{this}}}
+[WARNING]
+====
+{{{this}}}
+====
 {{/each}}
 
 {{#if params}}
