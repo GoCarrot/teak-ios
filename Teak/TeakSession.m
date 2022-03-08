@@ -491,7 +491,6 @@ DefineTeakState(Expired, (@[]));
       if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
         [TeakSession logoutReusingCurrentSession:true];
       }
-      
 
       BOOL needsIdentifyUser = (currentSession.currentState == [TeakSession Configured]);
 #define NEEDS_UPDATE(x, str) (x == [NSNull null] || ![x isEqualToString:str])
