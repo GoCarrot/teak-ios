@@ -491,18 +491,23 @@ DefineTeakState(Expired, (@[]));
       if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
         [TeakSession logoutReusingCurrentSession:true];
       }
+      
 
-      BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
-      if (currentSession.email != nil && ![currentSession.email isEqualToString:email]) {
-        currentSession.email = email;
+      BOOL needsIdentifyUser = (currentSession.currentState == [TeakSession Configured]);
+#define NEEDS_UPDATE(x, str) (x == [NSNull null] || ![x isEqualToString:str])
+#define CURRENT_SESSION_STATE_IS_IDENTIFIED (currentSession.currentState == [TeakSession IdentifyingUser] || currentSession.currentState == [TeakSession UserIdentified])
+      if (NEEDS_UPDATE(currentSession.email, email) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
-      if (currentSession.facebookId != nil && ![currentSession.facebookId isEqualToString:facebookId]) {
-        currentSession.facebookId = email;
+      if (NEEDS_UPDATE(currentSession.facebookId, facebookId) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
+#undef CURRENT_SESSION_STATE_IS_IDENTIFIED
+#undef NEEDS_UPDATE
 
       currentSession.userId = userId;
+      currentSession.email = email;
+      currentSession.facebookId = facebookId;
 
       if (needsIdentifyUser) {
         [[Teak sharedInstance].operationQueue addOperation:[currentSession identifyUserOperation]];
