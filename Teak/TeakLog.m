@@ -119,10 +119,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   [formatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
   formatter.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
   [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss"];
-  NSString* iso8601String = [formatter stringFromDate:[NSDate date]];
-  
-  NSDictionary* dateTime = @{@"at" : [iso8601String stringByAppendingString:@"Z"]};
-  [self logEvent:@"sdk_init" level:INFO eventData:@{@"at" : dateTime}];
+  NSString* iso8601String = [[formatter stringFromDate:[NSDate date]] stringByAppendingString:@"Z"];
+
+  [self logEvent:@"sdk_init" level:INFO eventData:@{@"at" : iso8601String}];
 }
 
 - (void)useDeviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {
