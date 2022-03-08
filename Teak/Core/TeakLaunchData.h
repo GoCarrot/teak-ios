@@ -7,6 +7,8 @@
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url;
 + (TeakLaunchDataOperation*)fromPushNotification:(TeakNotification*)teakNotification;
 + (TeakLaunchDataOperation*)unattributed;
+
+- (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink;
 @end
 
 @interface TeakLaunchData : NSObject

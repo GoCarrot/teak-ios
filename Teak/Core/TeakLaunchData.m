@@ -86,6 +86,19 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return launchData;
 }
 
+- (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink {
+  TeakLaunchData* launchData = self.result;
+  if ([launchData isKindOfClass:TeakAttributedLaunchData.class]) {
+    [launchData updateDeepLink:updatedDeepLink];
+    return self;
+  }
+
+  // Create a new launch data operation and queue it (it uses the returnLaunchData: path)
+  TeakLaunchDataOperation* launchDataOperation = [TeakLaunchDataOperation fromOpenUrl:updatedDeepLink];
+  [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
+  return launchDataOperation;
+}
+
 // This will get run as an NSInvocationOperation
 - (TeakLaunchData*)resolveUniversalLink:(NSURL*)url {
   // Resolve the universal link, wait for the NSURLSession to complete (or timeout)
