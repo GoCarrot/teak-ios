@@ -26,7 +26,7 @@
 |[[{{id}}]]``{{name}}``
 
 |++++
-<pre class="highlightjs"><code class="language-{{sourceLanguage}} hljs" data-lang="{{sourceLanguage}}">{{return.type}}</code></pre>
+<pre class="highlightjs"><code class="language-{{@root.sourceLanguage}} hljs" data-lang="{{@root.sourceLanguage}}">{{{return.type}}}</code></pre>
 ++++
 
 |{{{brief}}}
@@ -43,7 +43,7 @@
 |[[{{id}}]]``{{name}}``
 
 |++++
-<pre class="highlightjs"><code class="language-{{sourceLanguage}} hljs" data-lang="{{sourceLanguage}}">{{return.type}}</code></pre>
+<pre class="highlightjs"><code class="language-{{@root.sourceLanguage}} hljs" data-lang="{{@root.sourceLanguage}}">{{{return.type}}}</code></pre>
 ++++
 
 |{{{brief}}}
@@ -70,7 +70,7 @@
 |[[{{id}}]]``{{name}}``
 
 |++++
-<pre class="highlightjs"><code class="language-{{sourceLanguage}} hljs" data-lang="{{sourceLanguage}}">{{return.type}}</code></pre>
+<pre class="highlightjs"><code class="language-{{@root.sourceLanguage}} hljs" data-lang="{{@root.sourceLanguage}}">{{{return.type}}}</code></pre>
 ++++
 
 |{{{brief}}}

@@ -13,7 +13,7 @@
 {{{brief}}}
 
 ++++
-<pre class="highlightjs highlight"><code class="language-{{@root.sourceLanguage}} hljs" data-lang="{{@root.sourceLanguage}}">{{declaration}}</code></pre>
+<pre class="highlightjs highlight"><code class="language-{{@root.sourceLanguage}} hljs" data-lang="{{@root.sourceLanguage}}">{{{declaration}}}</code></pre>
 ++++
 
 {{#if return.description}}==== Return
