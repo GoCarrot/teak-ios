@@ -277,7 +277,9 @@ DefineTeakState(Expired, (@[]));
                                                       NSString* deepLink = reply[@"deep_link"];
                                                       NSURL* url = [NSURL URLWithString:deepLink];
                                                       if (url && blockSelf.launchDataOperation != nil) {
-                                                        blockSelf.launchDataOperation = [blockSelf.launchDataOperation updateDeepLink:url];
+                                                        NSString* payloadLaunchLink = payload[@"launch_link"];
+                                                        NSURL* launchLink = payloadLaunchLink == nil || payloadLaunchLink == [NSNull null] ? nil : [NSURL URLWithString:payloadLaunchLink];
+                                                        blockSelf.launchDataOperation = [blockSelf.launchDataOperation updateDeepLink:url withLaunchLink:launchLink];
                                                       }
                                                       TeakLog_i(@"deep_link.processed", deepLink);
                                                     }

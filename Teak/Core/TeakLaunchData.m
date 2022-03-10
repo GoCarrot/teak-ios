@@ -56,21 +56,22 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return [launchDataOp initWithTarget:launchDataOp selector:@selector(resolveUniversalLink:) object:url];
 }
 
-+ (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url {
++ (TeakLaunchData*)launchDataFromUrl:(NSURL*)url withShortlink:(NSURL*)shortLink {
   NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(url);
-
-  TeakLaunchData* launchData = nil;
   if (query[@"teak_rewardlink_id"]) {
     // If it has a 'teak_rewardlink_id' then it's a reward link
-    launchData = [[TeakRewardlinkLaunchData alloc] initWithUrl:url andShortLink:nil];
+    return [[TeakRewardlinkLaunchData alloc] initWithUrl:url andShortLink:nil];
   } else if (query[@"teak_notif_id"]) {
     // If it has a 'teak_notif_id' then it's a notification
-    launchData = [[TeakNotificationLaunchData alloc] initWithUrl:url];
-  } else {
-    // Otherwise this is not a Teak attributed launch
-    launchData = [[TeakLaunchData alloc] initWithUrl:url];
+    return [[TeakNotificationLaunchData alloc] initWithUrl:url];
   }
 
+  // Otherwise this is not a Teak attributed launch
+  return [[TeakLaunchData alloc] initWithUrl:url];
+}
+
++ (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url {
+  TeakLaunchData* launchData = [TeakLaunchDataOperation launchDataFromUrl:url withShortlink:nil];
   return [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
 }
 
@@ -86,7 +87,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return launchData;
 }
 
-- (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink {
+- (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink withLaunchLink:(NSURL*)launchLink {
   TeakLaunchData* launchData = self.result;
   if ([launchData isKindOfClass:TeakAttributedLaunchData.class]) {
     [launchData updateDeepLink:updatedDeepLink];
@@ -94,7 +95,9 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   }
 
   // Create a new launch data operation and queue it (it uses the returnLaunchData: path)
-  TeakLaunchDataOperation* launchDataOperation = [TeakLaunchDataOperation fromOpenUrl:updatedDeepLink];
+  launchData = [TeakLaunchDataOperation launchDataFromUrl:updatedDeepLink
+                                            withShortlink:launchLink];
+  TeakLaunchDataOperation* launchDataOperation = [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
   [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
   return launchDataOperation;
 }
@@ -107,6 +110,9 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   [self resolveUniversalLink:url retryCount:0 thenSignal:sema];
   dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
+  // NOTE: This is different logic for what goes into the unattributed
+  // launch case from launchDataFromUrl:andShortLink:
+
   // Process the resolved link
   NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(self.resolvedLaunchUrl);
   if (query[@"teak_rewardlink_id"]) {
@@ -115,10 +121,10 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   } else if (query[@"teak_notif_id"]) {
     // If it has a 'teak_notif_id' then it's a notification
     return [[TeakNotificationLaunchData alloc] initWithUrl:self.resolvedLaunchUrl];
-  } else {
-    // Otherwise this is not a Teak attributed launch
-    return [[TeakLaunchData alloc] initWithUrl:url];
   }
+
+  // Otherwise this is not a Teak attributed launch
+  return [[TeakLaunchData alloc] initWithUrl:url];
 }
 
 - (void)resolveUniversalLink:(NSURL*)url retryCount:(int)retryCount thenSignal:(dispatch_semaphore_t)sema {
