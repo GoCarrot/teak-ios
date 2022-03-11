@@ -9,7 +9,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @interface TeakLaunchData ()
 @property (copy, nonatomic, readwrite) NSURL* launchUrl;
-
 @property (strong, nonatomic) NSDictionary* launchUrlQuery;
 
 - (id)init;
@@ -23,8 +22,10 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (copy, nonatomic, readwrite) NSString* creativeId;
 @property (copy, nonatomic, readwrite) NSString* channelName;
 @property (copy, nonatomic, readwrite) NSString* rewardId;
+@property (copy, nonatomic, readwrite) NSURL* deepLink;
+@property (strong, nonatomic) NSDictionary* deepLinkUrlQuery;
 
-- (id)initWithUrl:(NSURL*)url;
+- (id)initWithUrl:(NSURL*)url andShortLink:(NSURL*)shortLink;
 @end
 
 @interface TeakNotificationLaunchData ()
@@ -35,8 +36,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @end
 
 @interface TeakRewardlinkLaunchData ()
-@property (copy, nonatomic, readwrite) NSURL* shortLink;
-
 - (id)initWithUrl:(NSURL*)url andShortLink:(NSURL*)shortLink;
 @end
 
@@ -57,9 +56,23 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return [launchDataOp initWithTarget:launchDataOp selector:@selector(resolveUniversalLink:) object:url];
 }
 
++ (TeakLaunchData*)launchDataFromUrl:(NSURL*)url withShortlink:(NSURL*)shortLink {
+  NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(url);
+  if (query[@"teak_rewardlink_id"]) {
+    // If it has a 'teak_rewardlink_id' then it's a reward link
+    return [[TeakRewardlinkLaunchData alloc] initWithUrl:url andShortLink:nil];
+  } else if (query[@"teak_notif_id"]) {
+    // If it has a 'teak_notif_id' then it's a notification
+    return [[TeakNotificationLaunchData alloc] initWithUrl:url];
+  }
+
+  // Otherwise this is not a Teak attributed launch
+  return [[TeakLaunchData alloc] initWithUrl:url];
+}
+
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url {
-  TeakRewardlinkLaunchData* rewardLinkLaunchData = [[TeakRewardlinkLaunchData alloc] initWithUrl:url andShortLink:nil];
-  return [[TeakLaunchDataOperation alloc] initWithLaunchData:rewardLinkLaunchData];
+  TeakLaunchData* launchData = [TeakLaunchDataOperation launchDataFromUrl:url withShortlink:nil];
+  return [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
 }
 
 + (TeakLaunchDataOperation*)unattributed {
@@ -74,6 +87,21 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return launchData;
 }
 
+- (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink withLaunchLink:(NSURL*)launchLink {
+  TeakLaunchData* launchData = self.result;
+  if ([launchData isKindOfClass:TeakAttributedLaunchData.class]) {
+    [launchData updateDeepLink:updatedDeepLink];
+    return self;
+  }
+
+  // Create a new launch data operation and queue it (it uses the returnLaunchData: path)
+  launchData = [TeakLaunchDataOperation launchDataFromUrl:updatedDeepLink
+                                            withShortlink:launchLink];
+  TeakLaunchDataOperation* launchDataOperation = [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
+  [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
+  return launchDataOperation;
+}
+
 // This will get run as an NSInvocationOperation
 - (TeakLaunchData*)resolveUniversalLink:(NSURL*)url {
   // Resolve the universal link, wait for the NSURLSession to complete (or timeout)
@@ -82,15 +110,20 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   [self resolveUniversalLink:url retryCount:0 thenSignal:sema];
   dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
+  // NOTE: This is different logic for what goes into the unattributed
+  // launch case from launchDataFromUrl:andShortLink:
+
   // Process the resolved link
   NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(self.resolvedLaunchUrl);
   if (query[@"teak_rewardlink_id"]) {
+    // If it has a 'teak_rewardlink_id' then it's a reward link
     return [[TeakRewardlinkLaunchData alloc] initWithUrl:self.resolvedLaunchUrl andShortLink:url];
   } else if (query[@"teak_notif_id"]) {
+    // If it has a 'teak_notif_id' then it's a notification
     return [[TeakNotificationLaunchData alloc] initWithUrl:self.resolvedLaunchUrl];
   }
 
-  // This is not Teak attributed
+  // Otherwise this is not a Teak attributed launch
   return [[TeakLaunchData alloc] initWithUrl:url];
 }
 
@@ -192,40 +225,42 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return dictionary;
 }
 
-- (void)updateDeepLink:(NSURL*)url {
-  self.launchUrl = url;
-  self.launchUrlQuery = TeakGetQueryParameterDictionaryFromUrl(url);
-}
-
 - (NSDictionary*)to_h {
   NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
   dictionary[@"launch_link"] = ValueOrNSNull(self.launchUrl.absoluteString);
   return dictionary;
 }
 
+- (void)updateDeepLink:(NSURL*)updatedDeepLink {
+  // Empty on purpose
+}
+
 @end
 
 @implementation TeakAttributedLaunchData
 
-- (id)initWithUrl:(NSURL*)url {
-  self = [super initWithUrl:url];
+- (id)initWithUrl:(NSURL*)deepLink andShortLink:(NSURL*)shortLink {
+  self = [super initWithUrl:shortLink];
   if (self) {
-    self.scheduleName = self.launchUrlQuery[@"teak_schedule_name"];
-    self.scheduleId = self.launchUrlQuery[@"teak_schedule_id"];
+    self.deepLink = self.launchUrlQuery[@"teak_deep_link"] != nil ? [NSURL URLWithString:self.launchUrlQuery[@"teak_deep_link"]] : deepLink;
+    self.deepLinkUrlQuery = TeakGetQueryParameterDictionaryFromUrl(self.deepLink);
+
+    self.scheduleName = self.deepLinkUrlQuery[@"teak_schedule_name"];
+    self.scheduleId = self.deepLinkUrlQuery[@"teak_schedule_id"];
 
     // In the non-mobile world, there is no such thing as "not a link launch" and so the
     // parameter names are different to properly differentiate session source
-    self.creativeName = self.launchUrlQuery[@"teak_creative_name"];
+    self.creativeName = self.deepLinkUrlQuery[@"teak_creative_name"];
     if (self.creativeName == nil) {
-      self.creativeName = self.launchUrlQuery[@"teak_rewardlink_name"];
+      self.creativeName = self.deepLinkUrlQuery[@"teak_rewardlink_name"];
     }
-    self.creativeId = self.launchUrlQuery[@"teak_creative_id"];
+    self.creativeId = self.deepLinkUrlQuery[@"teak_creative_id"];
     if (self.creativeId == nil) {
-      self.creativeId = self.launchUrlQuery[@"teak_rewardlink_id"];
+      self.creativeId = self.deepLinkUrlQuery[@"teak_rewardlink_id"];
     }
 
-    self.channelName = self.launchUrlQuery[@"teak_channel_name"];
-    self.rewardId = self.launchUrlQuery[@"teak_reward_id"];
+    self.channelName = self.deepLinkUrlQuery[@"teak_channel_name"];
+    self.rewardId = self.deepLinkUrlQuery[@"teak_reward_id"];
   }
   return self;
 }
@@ -239,38 +274,38 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
     self.creativeId = teakNotification.teakCreativeId;
     self.channelName = teakNotification.teakChannelName;
     self.rewardId = teakNotification.teakRewardId;
+    self.deepLink = self.launchUrl; // 'teakNotification.teakDeepLink', resolved by call to super
+    self.deepLinkUrlQuery = TeakGetQueryParameterDictionaryFromUrl(self.deepLink);
   }
   return self;
 }
 
-- (void)updateDeepLink:(NSURL*)url {
-  [super updateDeepLink:url];
-
-  self.scheduleName = NewIfNotOld(self.scheduleName, self.launchUrlQuery[@"teak_schedule_name"]);
-  self.scheduleId = NewIfNotOld(self.scheduleId, self.launchUrlQuery[@"teak_schedule_id"]);
-
-  // In the non-mobile world, there is no such thing as "not a link launch" and so the
-  // parameter names are different to properly differentiate session source
-  self.creativeName = NewIfNotOld(self.creativeName, self.launchUrlQuery[@"teak_creative_name"]);
-  self.creativeName = NewIfNotOld(self.creativeName, self.launchUrlQuery[@"teak_rewardlink_name"]);
-
-  self.creativeId = NewIfNotOld(self.creativeId, self.launchUrlQuery[@"teak_creative_id"]);
-  self.creativeId = NewIfNotOld(self.creativeId, self.launchUrlQuery[@"teak_rewardlink_id"]);
-
-  self.channelName = NewIfNotOld(self.channelName, self.launchUrlQuery[@"teak_channel_name"]);
-  self.rewardId = NewIfNotOld(self.rewardId, self.launchUrlQuery[@"teak_reward_id"]);
+- (id)initWithAttributedLaunchData:(TeakAttributedLaunchData*)oldLaunchData andUpdatedDeepLink:(NSURL*)updatedDeepLink {
+  self = [super initWithUrl:oldLaunchData.launchUrl];
+  if (self) {
+    TeakAttributedLaunchData* newLaunchData = [[TeakAttributedLaunchData alloc] initWithUrl:updatedDeepLink];
+    self.scheduleName = NewIfNotOld(oldLaunchData.scheduleName, newLaunchData.scheduleName);
+    self.scheduleId = NewIfNotOld(oldLaunchData.scheduleId, newLaunchData.scheduleId);
+    self.creativeName = NewIfNotOld(oldLaunchData.creativeName, newLaunchData.creativeName);
+    self.creativeId = NewIfNotOld(oldLaunchData.creativeId, newLaunchData.creativeId);
+    self.rewardId = NewIfNotOld(oldLaunchData.rewardId, newLaunchData.rewardId);
+    self.channelName = NewIfNotOld(oldLaunchData.channelName, newLaunchData.channelName);
+    self.deepLink = updatedDeepLink;
+    self.deepLinkUrlQuery = TeakGetQueryParameterDictionaryFromUrl(self.deepLink);
+  }
+  return self;
 }
 
 - (NSDictionary*)sessionAttribution {
   NSMutableDictionary* dictionary = (NSMutableDictionary*)[super sessionAttribution];
 
-  if (self.launchUrl != nil && TeakLink_WillHandleDeepLink(self.launchUrl)) {
-    dictionary[@"deep_link"] = self.launchUrl.absoluteString;
+  if (self.deepLink != nil) {
+    dictionary[@"deep_link"] = self.deepLink.absoluteString;
 
     // Add any query parameter that starts with 'teak_' to the launch attribution dictionary
-    for (NSString* key in self.launchUrlQuery) {
+    for (NSString* key in self.deepLinkUrlQuery) {
       if ([key hasPrefix:@"teak_"]) {
-        dictionary[key] = self.launchUrlQuery[key];
+        dictionary[key] = self.deepLinkUrlQuery[key];
       }
     }
   }
@@ -290,6 +325,18 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return dictionary;
 }
 
+- (void)updateDeepLink:(NSURL*)updatedDeepLink {
+  TeakAttributedLaunchData* updatedLaunchData = [[TeakAttributedLaunchData alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
+  self.scheduleName = updatedLaunchData.scheduleName;
+  self.scheduleId = updatedLaunchData.scheduleId;
+  self.creativeName = updatedLaunchData.creativeName;
+  self.creativeId = updatedLaunchData.creativeId;
+  self.rewardId = updatedLaunchData.rewardId;
+  self.channelName = updatedLaunchData.channelName;
+  self.deepLink = updatedLaunchData.deepLink;
+  self.deepLinkUrlQuery = updatedLaunchData.deepLinkUrlQuery;
+}
+
 @end
 
 @implementation TeakNotificationLaunchData
@@ -303,9 +350,17 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 }
 
 - (id)initWithUrl:(NSURL*)url {
-  self = [super initWithUrl:url];
+  self = [super initWithUrl:url andShortLink:nil];
   if (self) {
-    self.sourceSendId = self.launchUrlQuery[@"teak_notif_id"];
+    self.sourceSendId = self.deepLinkUrlQuery[@"teak_notif_id"];
+  }
+  return self;
+}
+
+- (id)initWithAttributedLaunchData:(TeakNotificationLaunchData*)oldLaunchData andUpdatedDeepLink:(NSURL*)updatedDeepLink {
+  self = [super initWithAttributedLaunchData:oldLaunchData andUpdatedDeepLink:updatedDeepLink];
+  if (self) {
+    self.sourceSendId = NewIfNotOld(oldLaunchData.sourceSendId, self.deepLinkUrlQuery[@"teak_notif_id"]);
   }
   return self;
 }
@@ -316,16 +371,17 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   return dictionary;
 }
 
-- (void)updateDeepLink:(NSURL*)url {
-  [super updateDeepLink:url];
-
-  self.sourceSendId = NewIfNotOld(self.sourceSendId, self.launchUrlQuery[@"teak_notif_id"]);
-}
-
 - (NSDictionary*)to_h {
   NSMutableDictionary* dictionary = (NSMutableDictionary*)[super to_h];
   dictionary[@"teakNotifId"] = ValueOrNSNull(self.sourceSendId);
   return dictionary;
+}
+
+- (void)updateDeepLink:(NSURL*)updatedDeepLink {
+  [super updateDeepLink:updatedDeepLink];
+
+  TeakNotificationLaunchData* updatedLaunchData = [[TeakNotificationLaunchData alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
+  self.sourceSendId = updatedLaunchData.sourceSendId;
 }
 
 @end
@@ -333,9 +389,9 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @implementation TeakRewardlinkLaunchData
 
 - (id)initWithUrl:(NSURL*)url andShortLink:(NSURL*)shortLink {
-  self = [super initWithUrl:url];
+  self = [super initWithUrl:url andShortLink:shortLink];
   if (self) {
-    self.shortLink = shortLink;
+    // Nothing right now
   }
   return self;
 }

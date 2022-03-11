@@ -113,7 +113,15 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 - (void)useSdk:(nonnull NSDictionary*)sdkVersion andXcode:(nonnull NSDictionary*)xcodeVersion {
   self.sdkVersion = sdkVersion;
   self.xcodeVersion = xcodeVersion;
-  [self logEvent:@"sdk_init" level:INFO eventData:nil];
+
+  // Log ISO8601 format timestamp at init
+  NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
+  [formatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
+  formatter.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
+  [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss'Z'"];
+  NSString* iso8601String = [formatter stringFromDate:[NSDate date]];
+
+  [self logEvent:@"sdk_init" level:INFO eventData:@{@"at" : iso8601String}];
 }
 
 - (void)useDeviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration {

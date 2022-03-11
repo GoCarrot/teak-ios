@@ -360,7 +360,10 @@ Teak* _teakSharedInstance;
     self.core = [[TeakCore alloc] init];
 
     // Payment observer
-    self.paymentObserver = [[SKPaymentObserver alloc] init];
+    // If TeakNoAutoTrackPurchase is set, do not create a payment observer
+    if (![[[NSBundle mainBundle] objectForInfoDictionaryKey:@"TeakNoAutoTrackPurchase"] boolValue]) {
+      self.paymentObserver = [[SKPaymentObserver alloc] init];
+    }
 
     // Push State - Log it here, since sharedInstance has not yet been assigned at this point
     self.pushState = [[TeakPushState alloc] init];
@@ -645,7 +648,7 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunguarded-availability-new"
       UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | TeakUNAuthorizationOptionProvisional
+      [center requestAuthorizationWithOptions:UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge | UNAuthorizationOptionProvisional
                             completionHandler:^(BOOL granted, NSError* _Nullable error) {
                               if (granted) {
                                 dispatch_async(dispatch_get_main_queue(), ^{

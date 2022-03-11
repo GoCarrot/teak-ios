@@ -23,8 +23,6 @@ extern NSDictionary* TeakGetQueryParameterDictionaryFromUrl(NSURL* url);
 
 #define iOS12OrGreater() ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0)
 
-#define TeakUNAuthorizationOptionProvisional (1 << 6)
-
 #endif /* Teak_h */
 
 #endif /* __OBJC__ */

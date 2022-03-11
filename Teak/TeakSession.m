@@ -18,6 +18,7 @@ TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
+extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @interface TeakSession ()
 @property (strong, nonatomic, readwrite) TeakState* currentState;
@@ -275,8 +276,10 @@ DefineTeakState(Expired, (@[]));
                                                     if (reply[@"deep_link"]) {
                                                       NSString* deepLink = reply[@"deep_link"];
                                                       NSURL* url = [NSURL URLWithString:deepLink];
-                                                      if (url && blockSelf.launchDataOperation) {
-                                                        [blockSelf.launchDataOperation.result updateDeepLink:url];
+                                                      if (url && blockSelf.launchDataOperation != nil) {
+                                                        NSString* payloadLaunchLink = payload[@"launch_link"];
+                                                        NSURL* launchLink = payloadLaunchLink == nil || payloadLaunchLink == [NSNull null] ? nil : [NSURL URLWithString:payloadLaunchLink];
+                                                        blockSelf.launchDataOperation = [blockSelf.launchDataOperation updateDeepLink:url withLaunchLink:launchLink];
                                                       }
                                                       TeakLog_i(@"deep_link.processed", deepLink);
                                                     }
@@ -491,17 +494,21 @@ DefineTeakState(Expired, (@[]));
         [TeakSession logoutReusingCurrentSession:true];
       }
 
-      BOOL needsIdentifyUser = currentSession.currentState == [TeakSession Configured];
-      if (currentSession.email != nil && ![currentSession.email isEqualToString:email]) {
-        currentSession.email = email;
+      BOOL needsIdentifyUser = (currentSession.currentState == [TeakSession Configured]);
+#define NEEDS_UPDATE(x, str) (x == [NSNull null] || ![x isEqualToString:str])
+#define CURRENT_SESSION_STATE_IS_IDENTIFIED (currentSession.currentState == [TeakSession IdentifyingUser] || currentSession.currentState == [TeakSession UserIdentified])
+      if (NEEDS_UPDATE(currentSession.email, email) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
-      if (currentSession.facebookId != nil && ![currentSession.facebookId isEqualToString:facebookId]) {
-        currentSession.facebookId = email;
+      if (NEEDS_UPDATE(currentSession.facebookId, facebookId) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
+#undef CURRENT_SESSION_STATE_IS_IDENTIFIED
+#undef NEEDS_UPDATE
 
       currentSession.userId = userId;
+      currentSession.email = email;
+      currentSession.facebookId = facebookId;
 
       if (needsIdentifyUser) {
         [[Teak sharedInstance].operationQueue addOperation:[currentSession identifyUserOperation]];
@@ -629,41 +636,56 @@ DefineTeakState(Expired, (@[]));
 }
 
 + (void)checkLaunchDataForDeepLinkAndDispatchEvents:(nonnull TeakLaunchData*)launchData {
-  if (NSNullOrNil(launchData.launchUrl)) return;
-
   @try {
-    // Time to handle our deep link, finally!
-    BOOL deepLinkHandled = TeakLink_HandleDeepLink(launchData.launchUrl);
-    if (deepLinkHandled && [launchData isKindOfClass:[TeakRewardlinkLaunchData class]]) {
-      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:TeakLaunchedFromLink
-                                                            object:session
-                                                          userInfo:[launchData to_h]];
-      }];
-    }
+    // This is an attributed launch, it came from a Teak source
+    if ([launchData isKindOfClass:[TeakAttributedLaunchData class]]) {
+      TeakAttributedLaunchData* attributedLaunchData = (TeakAttributedLaunchData*)launchData;
 
-    dispatch_async(dispatch_get_main_queue(), ^{
-      UIApplication* application = [UIApplication sharedApplication];
+      // If this was a RewardLink send the appropriate event
+      if ([attributedLaunchData isKindOfClass:[TeakRewardlinkLaunchData class]]) {
+        [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+          [[NSNotificationCenter defaultCenter] postNotificationName:TeakLaunchedFromLink
+                                                              object:session
+                                                            userInfo:[launchData to_h]];
+        }];
+      }
 
-      // It is safe to do this even with links that are handled by Teak,
-      // because the Teak delegate hooks check if the link was opened by the
-      // host app and bail if it was. By doing this, we ensure that all links
-      // are handled to application delegates even in cases where Teak failed
-      // to hook the application delegate, e.g. Unity custom application
-      // delegates.
-      if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
-        [application openURL:launchData.launchUrl
-            options:@{}
-            completionHandler:^(BOOL success) {
-              TeakLog_i(@"deep_link.url_open_attempt", @{@"url" : [launchData.launchUrl absoluteString], @"success" : [NSNumber numberWithBool:success]});
-            }];
-      } else {
+      // If TeakLinks will not handle the deep link, then it's an external deep link and
+      // so we should launch an intent with it
+      if (attributedLaunchData.deepLink != nil && !TeakLink_WillHandleDeepLink(attributedLaunchData.deepLink)) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+          UIApplication* application = [UIApplication sharedApplication];
+
+          // It is safe to do this even with links that are handled by Teak,
+          // because the Teak delegate hooks check if the link was opened by the
+          // host app and bail if it was. By doing this, we ensure that all links
+          // are handled to application delegates even in cases where Teak failed
+          // to hook the application delegate, e.g. Unity custom application
+          // delegates.
+          if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
+            [application openURL:attributedLaunchData.deepLink
+                options:@{}
+                completionHandler:^(BOOL success) {
+                  TeakLog_i(@"deep_link.url_open_attempt", @{@"url" : [attributedLaunchData.deepLink absoluteString], @"success" : [NSNumber numberWithBool:success]});
+                }];
+          } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        [application openURL:launchData.launchUrl];
+            [application openURL:attributedLaunchData.deepLink];
 #pragma clang diagnostic pop
+          }
+        });
+      } else {
+        // Otherwise, handle the deep link
+        TeakLink_HandleDeepLink(attributedLaunchData.deepLink);
       }
-    });
+    } else {
+      // If this is not an attributed launch, then we should check to see if TeakLinks can
+      // do anything with the **launchLink**, because a customer may still want to use the
+      // TeakLink system outside of the context of a Teak Reward Link, and that should still
+      // function properly.
+      TeakLink_HandleDeepLink(launchData.launchUrl);
+    }
   } @finally {
   }
 }
