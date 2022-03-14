@@ -8,3 +8,4 @@ asciidoc:
   attributes:
     table-caption: false
     caution-caption: Deprecated@
+    source-language: obj-c@
