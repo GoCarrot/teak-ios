@@ -86,7 +86,9 @@
 {{/each}}{{/if}}
 
 {{#if enums}}== Enums
+
 {{#each enums}}
+[#{{id}}]
 === {{name}}
 {{brief}}
 
