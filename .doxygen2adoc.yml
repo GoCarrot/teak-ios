@@ -1,10 +1,10 @@
 input: _doxygen/xml
 output: docs/modules/ROOT/pages
 template:
-  struct: doxygen2adoc/struct.adoc
-  class: doxygen2adoc/struct.adoc
   index: doxygen2adoc/index.adoc
   nav: doxygen2adoc/nav.adoc
+
+header: doxygen2adoc/header.adoc
 
 partial:
   function: doxygen2adoc/function.adoc

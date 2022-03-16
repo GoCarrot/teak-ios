@@ -37,7 +37,7 @@ color-name@~1.1.4:
 
 "doxygen2adoc@https://github.com/GoCarrot/doxygen2adoc":
   version "1.0.0"
-  resolved "https://github.com/GoCarrot/doxygen2adoc#4ea56e7e53d180e779eb80782cfafbbb8f20ca34"
+  resolved "https://github.com/GoCarrot/doxygen2adoc#03d54c0ae83e39a65cb8b63ac1c8a5c919177835"
   dependencies:
     fast-xml-parser "^4.0.1"
     handlebars "^4.7.7"
