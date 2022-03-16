@@ -4,10 +4,9 @@ template:
   index: doxygen2adoc/index.adoc
   nav: doxygen2adoc/nav.adoc
 
-header: doxygen2adoc/header.adoc
-
 partial:
-  function: doxygen2adoc/function.adoc
+  functionTitle: doxygen2adoc/functionTitle.adoc
+  structTitle: doxygen2adoc/structTitle.adoc
 
 global:
   sourceLanguage: objc
