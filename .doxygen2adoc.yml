@@ -8,9 +8,6 @@ partial:
   functionTitle: doxygen2adoc/functionTitle.adoc
   structTitle: doxygen2adoc/structTitle.adoc
 
-global:
-  sourceLanguage: objc
-
 antora: docs/antora.yml
 
 nav: docs/modules/ROOT/partials/nav.adoc
