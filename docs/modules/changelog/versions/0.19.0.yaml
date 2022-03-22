@@ -1,0 +1,12 @@
+new:
+  - Updated Sentry exception reporting properties
+  - Tracks historical changes in the state of push permissions
+  - Per-user opt-out of tracking, configured via identifyUser
+  - iOS 12 Support
+  - Support for Provisional push authorization
+bug:
+  - Updated Sentry exception reporting properties
+  - Tracks historical changes in the state of push permissions
+  - Per-user opt-out of tracking, configured via identifyUser
+  - iOS 12 Support
+  - Support for Provisional push authorization

@@ -1,0 +1,2 @@
+bug:
+  - No longer hooks ``application:openURL:options:`` unless the host app implements it (Fixes Facebook login issues for certain Unity Facebook SDK versions)

@@ -1,0 +1,5 @@
+new:
+  - Users can now be their own UNNotificationCenter delegates and pass the calls to Teak
+  - Added ``isTeakNotification:``
+  - Added ``didReceiveNotificationResponse:withCompletionHandler:``
+  - Added ``willPresentNotification:withCompletionHandler:``

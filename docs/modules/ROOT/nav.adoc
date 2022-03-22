@@ -8,3 +8,4 @@
 --
 include::partial$nav.adoc[]
 --
+* xref:ios-api:changelog:page$changelog.adoc[Changelog]

@@ -1,0 +1,5 @@
+new:
+  - Added additional lifecycle callback logging
+  - Additional info in the notification/reward payload
+bug:
+  - Fix for crash on Facebook logout (or otherwise sending a null token)

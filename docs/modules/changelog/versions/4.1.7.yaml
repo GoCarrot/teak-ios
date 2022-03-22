@@ -1,0 +1,5 @@
+new:
+  - Added ``TeakRequestPushAuthorization``
+  - Added ``TeakNoAutoTrackPurchase`` plist configuration, which will disable automatic purchase tracking
+bug:
+  - Fix issue of opening browser when launched with the host for a teak shortlink, but no path

@@ -1,0 +1,2 @@
+new:
+  - Detects iOS 14 IDFA permission grant.

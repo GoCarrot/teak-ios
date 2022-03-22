@@ -1,0 +1,6 @@
+breaking:
+  - Now requires additional frameworks:
+    - "``AVFoundation.framework``"
+    - "``MobileCoreServices.framework``"
+new:
+  - Interactive notifications
