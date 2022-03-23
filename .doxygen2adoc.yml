@@ -12,6 +12,11 @@ antora: docs/antora.yml
 
 nav: docs/modules/ROOT/partials/nav.adoc
 
+changelog:
+  input: docs/modules/changelog/versions/
+  output: docs/modules/changelog/partials/
+  index: docs/modules/changelog/pages/changelog.adoc
+
 parts:
   methods: ~
   staticMethods: ~
