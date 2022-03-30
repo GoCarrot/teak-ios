@@ -17,6 +17,8 @@ changelog:
   output: docs/modules/changelog/partials/
   index: docs/modules/changelog/pages/changelog.adoc
 
+symbolMap: docs/symbolMap.json
+
 parts:
   methods: ~
   staticMethods: ~
