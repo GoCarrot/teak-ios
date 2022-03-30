@@ -1,11 +1,10 @@
 * iOS
-// +
-// --
-// include::sdk-reference:unity:partial$nav.adoc[]
-// --
++
+--
+include::sdk-reference:ios:partial$nav.adoc[]
+--
 ** API
 +
 --
 include::partial$nav.adoc[]
 --
-* xref:ios-api:changelog:page$changelog.adoc[Changelog]
