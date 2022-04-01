@@ -42,7 +42,7 @@ compare-versions@^4.1.3:
 
 "doxygen2adoc@https://github.com/GoCarrot/doxygen2adoc":
   version "1.0.0"
-  resolved "https://github.com/GoCarrot/doxygen2adoc#28edb6ae46ddff3aabe60efec4a9bad332608a26"
+  resolved "https://github.com/GoCarrot/doxygen2adoc#545a65eb616354c13ec384de8bb4a725ed83db45"
   dependencies:
     compare-versions "^4.1.3"
     fast-xml-parser "^4.0.1"
