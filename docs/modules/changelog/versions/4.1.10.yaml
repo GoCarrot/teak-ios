@@ -1,0 +1,2 @@
+bug:
+  - Check for ``NSNull`` before ``isEqualToString``

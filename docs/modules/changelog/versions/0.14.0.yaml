@@ -1,0 +1,9 @@
+new:
+  - Playable notifications!
+bug:
+  - Deep links will no longer get processed twice when the deep link starts the app (if it was not already running)
+  - Will no longer crash when passing NULL to TeakTrackEvent (C function)
+  - Now using Thread Local Storage for RavenLocationHelper stack
+  - Now copying input values from public API functions
+  - Ravens (internal bug reporters) are now getting DSNs assigned properly, and as such are now working again
+  - The SDK reported purchase time now includes seconds as well as hours/minutes

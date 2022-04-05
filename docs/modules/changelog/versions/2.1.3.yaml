@@ -1,0 +1,2 @@
+bug:
+  - Fixes crash when ``waitForDeepLinkOperation`` was re-submitted after finishing.

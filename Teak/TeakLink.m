@@ -16,8 +16,6 @@ NSString* const TeakLinkIncomingUrlPathKey = @"__incoming_path";
 
 + (nonnull NSMutableDictionary*)deepLinkRegistration;
 
-+ (BOOL)handleDeepLink:(NSURL*)deepLink;
-
 @end
 
 typedef NSString* (^TeakRegexReplaceBlock)(NSString*);
@@ -79,10 +77,6 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     [[Teak sharedInstance].operationQueue addOperation:handleDeepLinkOp];
 
     return YES;
-  }
-
-  if ([deepLink.scheme hasPrefix:@"http"]) {
-    return [TeakLink handleDeepLink:deepLink];
   }
 
   return NO;
@@ -189,6 +183,11 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 }
 
 + (void)registerRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block {
+  TeakLog_i(@"deep_link.register", @{
+    @"route" : route,
+    @"name" : name,
+    @"description" : description
+  });
 
   // Sanitize route
   NSString* escapedRoute = TeakRegexHelper(@"[\\?\\%\\\\/\\:\\*]", route, ^NSString*(NSString* toReplace) {

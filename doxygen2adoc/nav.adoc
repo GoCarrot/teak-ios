@@ -1,0 +1,3 @@
+{{#each items}}
+* xref:ios-api:ROOT:page${{id}}.adoc[{{name}}]
+{{/each}}

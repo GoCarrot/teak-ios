@@ -216,3 +216,25 @@ commands:
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
+  #
+  # Trigger a playbook build
+  #
+  build_antora_playbook:
+    description: "Build Teak Docs"
+    parameters:
+      build_type:
+        type: enum
+        default: "development"
+        enum: ["development", "production"]
+    steps:
+      - run:
+          name: Trigger Antora Playbook Build
+          command: |
+            curl --location --request POST 'https://circleci.com/api/v2/project/github/GoCarrot/antora-ui-teak/pipeline' \
+            --header 'Content-Type: application/json' \
+            -u "${CIRCLE_API_TOKEN}" \
+            -d '{
+              "parameters": {
+                "build_type": "<< parameters.build_type >>"
+              }
+            }'

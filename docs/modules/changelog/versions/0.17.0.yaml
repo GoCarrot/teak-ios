@@ -1,0 +1,2 @@
+new:
+  - Reward Link Name is now the 'creative name' if the on reward callback was triggered from a deep link

@@ -1,0 +1,5 @@
+new:
+  - iOS 12 expanded view notifications now perform the first custom action when the view area is tapped (via invisible button)
+  - Notification assets (video/image/etc) are now cached downloads
+  - Notification extensions are now uploaded as artifacts for Adobe AIR repacker
+  - Long distance notifications

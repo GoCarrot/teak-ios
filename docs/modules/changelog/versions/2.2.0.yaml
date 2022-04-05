@@ -1,0 +1,6 @@
+new:
+  - "``TeakForegroundNotification`` named notification dispatched when a Push Notification is received while the app is in the foreground."
+  - "``ms_since_first_event`` is now included in batched requests."
+  - "``logListener`` is an assignable delegate which will get called each time the Teak SDK logs an event."
+bug:
+  - Fixes background crash if a notification attachment failed to get loaded properly, ``[_UNNotificationServiceExtensionRemoteContext _stageAttachmentsForNotificationContent]``.

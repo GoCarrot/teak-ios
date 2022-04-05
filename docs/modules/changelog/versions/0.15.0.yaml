@@ -1,0 +1,5 @@
+new:
+  - User profile
+  - Batching for trackEvent and user profile
+bug:
+  - Circular reference in expanded push notification view fixed

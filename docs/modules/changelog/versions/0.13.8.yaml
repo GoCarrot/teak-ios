@@ -1,0 +1,11 @@
+breaking:
+  - Now requires additional frameworks:
+    - "``ImageIO.framework``"
+new:
+  - Added ``setApplicationBadgeNumber:``
+  - Added ``hasUserDisabledPushNotifications:``
+  - Added ``openSettingsAppToThisAppsSettings``
+  - "``teakRewardId`` is now included in the ``TeakOnReward`` event"
+  - Now will warn via logs if ``unregisterForRemoteNotifications`` is called
+bug:
+  - "``teakRewardId`` in the ``TeakNotificationAppLaunch`` event is now a string (matches Android behavior, and fixes issues in Adobe Air)"

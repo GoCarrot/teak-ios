@@ -277,7 +277,9 @@ DefineTeakState(Expired, (@[]));
                                                       NSString* deepLink = reply[@"deep_link"];
                                                       NSURL* url = [NSURL URLWithString:deepLink];
                                                       if (url && blockSelf.launchDataOperation != nil) {
-                                                        [blockSelf.launchDataOperation.result updateDeepLink:url];
+                                                        NSString* payloadLaunchLink = payload[@"launch_link"];
+                                                        NSURL* launchLink = payloadLaunchLink == nil || payloadLaunchLink == [NSNull null] ? nil : [NSURL URLWithString:payloadLaunchLink];
+                                                        blockSelf.launchDataOperation = [blockSelf.launchDataOperation updateDeepLink:url withLaunchLink:launchLink];
                                                       }
                                                       TeakLog_i(@"deep_link.processed", deepLink);
                                                     }
@@ -491,7 +493,6 @@ DefineTeakState(Expired, (@[]));
       if (currentSession.userId != nil && ![currentSession.userId isEqualToString:userId]) {
         [TeakSession logoutReusingCurrentSession:true];
       }
-      
 
       BOOL needsIdentifyUser = (currentSession.currentState == [TeakSession Configured]);
 #define NEEDS_UPDATE(x, str) (x == [NSNull null] || ![x isEqualToString:str])
