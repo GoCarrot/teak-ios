@@ -277,7 +277,9 @@ DefineTeakState(Expired, (@[]));
                                                       NSString* deepLink = reply[@"deep_link"];
                                                       NSURL* url = [NSURL URLWithString:deepLink];
                                                       if (url && blockSelf.launchDataOperation != nil) {
-                                                        [blockSelf.launchDataOperation.result updateDeepLink:url];
+                                                        NSString* payloadLaunchLink = payload[@"launch_link"];
+                                                        NSURL* launchLink = payloadLaunchLink == nil || payloadLaunchLink == [NSNull null] ? nil : [NSURL URLWithString:payloadLaunchLink];
+                                                        blockSelf.launchDataOperation = [blockSelf.launchDataOperation updateDeepLink:url withLaunchLink:launchLink];
                                                       }
                                                       TeakLog_i(@"deep_link.processed", deepLink);
                                                     }
@@ -493,14 +495,16 @@ DefineTeakState(Expired, (@[]));
       }
 
       BOOL needsIdentifyUser = (currentSession.currentState == [TeakSession Configured]);
+#define NEEDS_UPDATE(x, str) (x == [NSNull null] || ![x isEqualToString:str])
 #define CURRENT_SESSION_STATE_IS_IDENTIFIED (currentSession.currentState == [TeakSession IdentifyingUser] || currentSession.currentState == [TeakSession UserIdentified])
-      if (![currentSession.email isEqualToString:email] && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
+      if (NEEDS_UPDATE(currentSession.email, email) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
-      if (![currentSession.facebookId isEqualToString:facebookId] && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
+      if (NEEDS_UPDATE(currentSession.facebookId, facebookId) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
 #undef CURRENT_SESSION_STATE_IS_IDENTIFIED
+#undef NEEDS_UPDATE
 
       currentSession.userId = userId;
       currentSession.email = email;
