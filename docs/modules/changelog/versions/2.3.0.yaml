@@ -1,0 +1,3 @@
+new:
+  - Deep links now recieve ``__incoming_path`` and ``__incoming_url``
+  - Adds email to identify user

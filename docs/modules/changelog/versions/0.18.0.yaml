@@ -1,0 +1,7 @@
+new:
+  - Ability to disable collection of IDFA, Push Key, and/or Facebook Access Token:
+    - "``<key>TeakEnableIDFA</key><false/>``"
+    - "``<key>TeakEnableFacebook</key><false/>``"
+    - "``<key>TeakEnablePushKey</key><false/>``"
+bug:
+  - Fixed logging of events during alloc/init of the Teak object

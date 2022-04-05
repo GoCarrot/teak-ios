@@ -1,0 +1,7 @@
+new:
+  - "``teakDeepLink`` is now included in the ``TeakNotificationAppLaunch`` and ``TeakForegroundNotification`` events."
+  - "``teakShowInForeground`` can be specified on a per-notification basis, to allow notifications to be displayed while the app is running."
+  - "``/teak_internal/app_settings`` deep link added. Opens iOS settings to the settings for this app."
+  - Adds ``xcode_version`` to log output.
+bug:
+  - Fixes encoding of ``%`` during form encodes.

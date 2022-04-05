@@ -1,0 +1,2 @@
+bug:
+  - No longer DDoS ourselves with remote logging

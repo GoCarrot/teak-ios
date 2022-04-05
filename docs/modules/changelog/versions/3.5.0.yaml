@@ -1,0 +1,4 @@
+bug:
+  - When logging out, the new Session is no longer intialized using the previous user id or Facebook token.
+  - Fixes invalid signatures on some events
+  - Reset ``firstSentTime`` when UserProfile is sent.

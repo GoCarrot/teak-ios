@@ -23,3 +23,6 @@ TeakExtensions.zip
 test_output/
 fastlane/README.md
 fastlane/report.xml
+
+_doxygen
+node_modules

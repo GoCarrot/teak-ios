@@ -1,0 +1,11 @@
+name: ios-api
+title: iOS API
+version: 4.2.0
+nav:
+- modules/ROOT/nav.adoc
+
+asciidoc:
+  attributes:
+    table-caption: false
+    caution-caption: Deprecated@
+    source-language: obj-c@

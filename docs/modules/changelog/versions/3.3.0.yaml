@@ -1,0 +1,6 @@
+new:
+  - iOS now supports enhanced integration checks
+  - iOS now supports ``report_client_error`` and will popup warnings when enhanced integration checks are enabled
+bug:
+  - Push State Chain has a max length of 50
+  - "``OnReward`` event will now always contain a ``status`` key"

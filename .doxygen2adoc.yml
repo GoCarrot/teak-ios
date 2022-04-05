@@ -1,0 +1,30 @@
+input: _doxygen/xml
+output: docs/modules/ROOT/pages
+template:
+  index: doxygen2adoc/index.adoc
+  nav: doxygen2adoc/nav.adoc
+
+partial:
+  functionTitle: doxygen2adoc/functionTitle.adoc
+  structTitle: doxygen2adoc/structTitle.adoc
+
+antora: docs/antora.yml
+
+nav: docs/modules/ROOT/partials/nav.adoc
+
+changelog:
+  input: docs/modules/changelog/versions/
+  output: docs/modules/changelog/partials/
+  index: docs/modules/changelog/pages/changelog.adoc
+
+symbolMap: docs/symbolMap.json
+
+parts:
+  methods: ~
+  staticMethods: ~
+
+exclude:
+  - file
+  - dir
+  - namespace
+  - page

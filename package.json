@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "docs": "doxygen && doxygen2adoc --config .doxygen2adoc.yml build --clean",
+    "changelog": "doxygen2adoc --config .doxygen2adoc.yml changelog --clean"
+  },
+  "dependencies": {
+    "doxygen2adoc": "https://github.com/GoCarrot/doxygen2adoc"
+  }
+}

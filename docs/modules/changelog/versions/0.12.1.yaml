@@ -1,0 +1,4 @@
+new:
+  - Supports iOS 10 push delegate ``application:didReceiveRemoteNotification:fetchCompletionHandler:``
+bug:
+  - Enable Bitcode support

@@ -1,0 +1,7 @@
+new:
+  - Added a flag to preview SDK 5 changes, ``TeakSDK5Behaviors``:
+    - Will no longer automatically collect Facebook Access Token, instead you must pass the Facebook User Id to ``[Teak identifyUser:withConfiguration:]``
+  - Added flag to disable automatic push token refresh at app launch, ``TeakDoNotRefreshPushToken``
+  - Added ``TeakPostLaunchSummary`` event which is posted with each app launch, with information about the launch.
+bug:
+  - When app is launched via an email link ``TeakNotificationAppLaunch`` event is now correctly posted.

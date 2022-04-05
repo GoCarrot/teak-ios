@@ -1,0 +1,2 @@
+bug:
+  - Fix idenifyUser server call for manually specifying Facebook Id and/or Email
