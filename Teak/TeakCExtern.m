@@ -196,3 +196,10 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
   // Should never get here
   return NO;
 }
+void TeakSetOptOutPush(BOOL optOut) {
+  [[Teak sharedInstance] setOptOutPush:optOut];
+}
+
+void TeakSetOptOutEmail(BOOL optOut) {
+  [[Teak sharedInstance] setOptOutEmail:optOut];
+}

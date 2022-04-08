@@ -22,6 +22,9 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
 @property (strong, nonatomic, readonly) TeakState* _Nonnull currentState;
 @property (strong, nonatomic, readonly) TeakUserProfile* _Nonnull userProfile;
+@property (nonatomic, readonly) BOOL optOutPush;
+@property (nonatomic, readonly) BOOL optOutEmail;
+@property (strong, nonatomic, readonly) NSDictionary* additionalData;
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);
@@ -36,4 +39,7 @@ DeclareTeakState(Expired);
 + (void)whenUserIdIsOrWasReadyRun:(nonnull UserIdReadyBlock)block;
 
 + (void)didLaunchWithData:(nonnull TeakLaunchDataOperation*)launchData;
+
+- (void)setOptOutPush:(BOOL)optOut;
+- (void)setOptOutEmail:(BOOL)optOut;
 @end

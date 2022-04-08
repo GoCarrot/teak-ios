@@ -35,6 +35,7 @@ NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
 NSString* const TeakAdditionalData = @"TeakAdditionalData";
 NSString* const TeakLaunchedFromLink = @"TeakLaunchedFromLink";
 NSString* const TeakPostLaunchSummary = @"TeakPostLaunchSummary";
+NSString* const TeakUserData = @"TeakUserData";
 
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
@@ -731,6 +732,18 @@ Teak* _teakSharedInstance;
 
   // Optionally display the notification in the foreground if requested
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
+}
+
+- (void)setOptOutPush:(BOOL)optOut {
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+    [session setOptOutPush:optOut];
+  }];
+}
+
+- (void)setOptOutEmail:(BOOL)optOut {
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+    [session setOptOutEmail:optOut];
+  }];
 }
 
 + (BOOL)willPresentNotification:(UNNotification*)notification

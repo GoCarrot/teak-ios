@@ -11,6 +11,7 @@
 #import "TeakReward.h"
 #import "TeakUserProfile.h"
 #import "UserIdEvent.h"
+#import "UserDataEvent.h"
 
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
@@ -39,6 +40,10 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
+
+@property (nonatomic, readwrite) BOOL optOutPush;
+@property (nonatomic, readwrite) BOOL optOutEmail;
+@property (strong, nonatomic, readwrite) NSDictionary* additionalData;
 
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
@@ -286,10 +291,22 @@ DefineTeakState(Expired, (@[]));
 
                                                     // Additional data
                                                     if (reply[@"additional_data"]) {
-                                                      NSDictionary* additionalData = reply[@"additional_data"];
-                                                      TeakLog_i(@"additional_data.received", additionalData);
-                                                      [AdditionalDataEvent additionalDataReceived:additionalData];
+                                                      blockSelf.additionalData = reply[@"additional_data"];
+                                                      TeakLog_i(@"additional_data.received", blockSelf.additionalData);
+                                                      [AdditionalDataEvent additionalDataReceived:blockSelf.additionalData];
                                                     }
+      
+                                                    // Opt Out State
+      if (reply[@"opt_out_push"]) {
+        blockSelf.optOutPush = [reply[@"opt_out_push"] boolValue];
+      }
+      
+      if (reply[@"opt_out_email"]) {
+        blockSelf.optOutEmail = [reply[@"opt_out_email"] boolValue];
+      }
+      
+      [blockSelf dispatchUserDataEvent];
+                                                    
 
                                                     // Assign new state
                                                     // Prevent warning for 'do_not_track_event'
@@ -345,6 +362,9 @@ DefineTeakState(Expired, (@[]));
     CFRelease(theUUID);
     self.sessionId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
     CFRelease(string);
+    
+    self.optOutEmail = NO;
+    self.optOutPush = NO;
 
     RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
     RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -766,6 +786,45 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       // TODO: Report Session to server, once we collect that info.
     }
   }
+}
+
+- (void)dispatchUserDataEvent {
+  @synchronized(self) {
+    [UserDataEvent userDataReceived:self.additionalData optOutEmail:self.optOutEmail optOutPush:self.optOutPush];
+  }
+}
+
+- (void)setOptOut:(NSDictionary*)payload {
+  __weak typeof(self) weakSelf = self;
+  TeakRequest* request = [TeakRequest requestWithSession:self
+                                             forEndpoint:@"/me/opt_out.json"
+                                             withPayload:payload
+                                                callback:^(NSDictionary* reply) {
+    @synchronized(weakSelf) {
+      if (reply[@"push"]) {
+        weakSelf.optOutPush = [reply[@"push"] boolValue];
+      }
+      
+      if (reply[@"email"]) {
+        weakSelf.optOutEmail = [reply[@"email"] boolValue];
+      }
+
+      [weakSelf dispatchUserDataEvent];
+    }
+  }];
+  [request send];
+}
+
+- (void)setOptOutPush:(BOOL)optOut {
+  [self setOptOut:@{
+    @"push" : [NSNumber numberWithBool:optOut]
+  }];
+}
+
+- (void)setOptOutEmail:(BOOL)optOut {
+  [self setOptOut:@{
+    @"email" : [NSNumber numberWithBool:optOut]
+  }];
 }
 
 KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, advertisingIdentifier) {

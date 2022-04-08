@@ -1,5 +1,6 @@
 #import "TeakCore.h"
 #import "AdditionalDataEvent.h"
+#import "UserDataEvent.h"
 #import "PurchaseEvent.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
@@ -52,6 +53,14 @@
         [[NSNotificationCenter defaultCenter] postNotificationName:TeakAdditionalData
                                                             object:self
                                                           userInfo:((AdditionalDataEvent*)event).additionalData];
+      }];
+    } break;
+      
+    case UserData: {
+      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+        [[NSNotificationCenter defaultCenter] postNotificationName:TeakUserData
+                                                            object:self
+                                                          userInfo:[((UserDataEvent*)event) toDictionary]];
       }];
     } break;
 

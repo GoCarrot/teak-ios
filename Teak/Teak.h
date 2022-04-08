@@ -48,11 +48,20 @@ extern NSString* _Nonnull const TeakLaunchedFromLink;
 /**
  * Use this named notification to listen for the information about the launch of your app.
  * 	[[NSNotificationCenter defaultCenter] addObserver:self
- * 	                                         selector:@selector(handleTeakPostLAunchSummary:)
+ * 	                                         selector:@selector(handleTeakPostLaunchSummary:)
  * 	                                             name:TeakPostLaunchSummary
  * 	                                           object:nil];
  */
 extern NSString* _Nonnull const TeakPostLaunchSummary;
+
+/**
+ * Use this named notification to listen for the information about the identified user.
+ *   [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                            selector:@selector(handleTeakUserData:)
+ *                                                name:TeakUserData
+ *                                              object:nil];
+ */
+extern NSString* _Nonnull const TeakUserData;
 
 /**
  * Value provided to identifyUser:withOptOutList: to opt out of collecting an IDFA for this specific user.
@@ -374,6 +383,22 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * @return true if the deep link was found and handled.
  */
 - (BOOL)handleDeepLinkPath:(nonnull NSString*)path;
+
+/**
+ * Set the opt out state for push notifications.
+ *
+ * If the user wants to opt out of receiving Teak push notification campaigns, set this to true.
+ * @param optOut true if the user wants to opt out of Teak push notification campaigns; false otherwise.
+ */
+- (void)setOptOutPush:(BOOL)optOut;
+
+/**
+ * Set the opt out state for email.
+ *
+ * If the user wants to opt out of receiving Teak email campaigns, set this to true.
+ * @param optOut true if the user wants to opt out of Teak email campaigns; false otherwise.
+ */
+- (void)setOptOutEmail:(BOOL)optOut;
 
 /**
  * Returns true if the notification was sent by Teak.
