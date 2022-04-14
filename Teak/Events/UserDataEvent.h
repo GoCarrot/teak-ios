@@ -2,10 +2,10 @@
 
 @interface UserDataEvent : TeakEvent
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull additionalData;
-@property (nonatomic, readonly) BOOL optOutEmail;
-@property (nonatomic, readonly) BOOL optOutPush;
+@property (strong, nonatomic, readonly) NSString* optOutEmail;
+@property (strong, nonatomic, readonly) NSString* optOutPush;
 
 - (NSDictionary*)toDictionary;
 
-+ (void)userDataReceived:(NSDictionary* _Nonnull)additionalData optOutEmail:(BOOL)optOutEmail optOutPush:(BOOL)optOutPush;
++ (void)userDataReceived:(NSDictionary* _Nonnull)additionalData optOutEmail:(NSString*)optOutEmail optOutPush:(NSString*)optOutPush;
 @end

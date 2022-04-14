@@ -10,6 +10,10 @@
 @class TeakRemoteConfiguration;
 @class TeakLaunchDataOperation;
 
+extern NSString* _Nonnull const TeakOptedIn;
+extern NSString* _Nonnull const TeakOptedOut;
+extern NSString* _Nonnull const TeakAvailable;
+
 typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 
 @interface TeakSession : NSObject <TeakEventHandler>
@@ -22,9 +26,9 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
 @property (strong, nonatomic, readonly) TeakState* _Nonnull currentState;
 @property (strong, nonatomic, readonly) TeakUserProfile* _Nonnull userProfile;
-@property (nonatomic, readonly) BOOL optOutPush;
-@property (nonatomic, readonly) BOOL optOutEmail;
-@property (strong, nonatomic, readonly) NSDictionary* additionalData;
+@property (strong, nonatomic, readonly) NSString* _Nullable optOutPush;
+@property (strong, nonatomic, readonly) NSString* _Nullable optOutEmail;
+@property (strong, nonatomic, readonly) NSDictionary* _Nullable additionalData;
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);
@@ -40,6 +44,6 @@ DeclareTeakState(Expired);
 
 + (void)didLaunchWithData:(nonnull TeakLaunchDataOperation*)launchData;
 
-- (void)setOptOutPush:(BOOL)optOut;
-- (void)setOptOutEmail:(BOOL)optOut;
+- (void)optOutPushPreference:(NSString*)optOut;
+- (void)setOptOutEmailPreference:(NSString*)optOut;
 @end

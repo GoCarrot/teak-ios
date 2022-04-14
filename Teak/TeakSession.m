@@ -18,6 +18,10 @@ NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
+NSString* const TeakOptedIn = @"opted_in";
+NSString* const TeakOptedOut = @"opted_out";
+NSString* const TeakAvailable = @"available";
+
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
@@ -41,8 +45,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 
-@property (nonatomic, readwrite) BOOL optOutPush;
-@property (nonatomic, readwrite) BOOL optOutEmail;
+@property (strong, nonatomic, readwrite) NSString* optOutPush;
+@property (strong, nonatomic, readwrite) NSString* optOutEmail;
 @property (strong, nonatomic, readwrite) NSDictionary* additionalData;
 
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
@@ -298,11 +302,11 @@ DefineTeakState(Expired, (@[]));
       
                                                     // Opt Out State
       if (reply[@"opt_out_push"]) {
-        blockSelf.optOutPush = [reply[@"opt_out_push"] boolValue];
+        blockSelf.optOutPush = reply[@"opt_out_push"];
       }
       
       if (reply[@"opt_out_email"]) {
-        blockSelf.optOutEmail = [reply[@"opt_out_email"] boolValue];
+        blockSelf.optOutEmail = reply[@"opt_out_email"];
       }
       
       [blockSelf dispatchUserDataEvent];
@@ -363,8 +367,8 @@ DefineTeakState(Expired, (@[]));
     self.sessionId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
     CFRelease(string);
     
-    self.optOutEmail = NO;
-    self.optOutPush = NO;
+    self.optOutEmail = nil;
+    self.optOutPush = nil;
 
     RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
     RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -794,19 +798,21 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   }
 }
 
-- (void)setOptOut:(NSDictionary*)payload {
+- (void)setPreferences:(NSDictionary*)payload {
   __weak typeof(self) weakSelf = self;
   TeakRequest* request = [TeakRequest requestWithSession:self
-                                             forEndpoint:@"/me/opt_out.json"
+                                             forEndpoint:@"/me/preferences.json"
                                              withPayload:payload
                                                 callback:^(NSDictionary* reply) {
     @synchronized(weakSelf) {
-      if (reply[@"push"]) {
-        weakSelf.optOutPush = [reply[@"push"] boolValue];
-      }
-      
-      if (reply[@"email"]) {
-        weakSelf.optOutEmail = [reply[@"email"] boolValue];
+      if (reply[@"opt_out"]) {
+        if (reply[@"opt_out"][@"push"]) {
+          weakSelf.optOutPush = reply[@"push"];
+        }
+
+        if (reply[@"opt_out"][@"email"]) {
+          weakSelf.optOutEmail = reply[@"email"];
+        }
       }
 
       [weakSelf dispatchUserDataEvent];
@@ -815,15 +821,19 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   [request send];
 }
 
-- (void)setOptOutPush:(BOOL)optOut {
-  [self setOptOut:@{
-    @"push" : [NSNumber numberWithBool:optOut]
+- (void)optOutPushPreference:(NSString*)optOut {
+  [self setPreferences:@{
+    @"opt_out" : @{
+      @"push" : optOut
+    }
   }];
 }
 
-- (void)setOptOutEmail:(BOOL)optOut {
-  [self setOptOut:@{
-    @"email" : [NSNumber numberWithBool:optOut]
+- (void)optOutEmailPreference:(NSString*)optOut {
+  [self setPreferences:@{
+    @"opt_out" : @{
+      @"email" : optOut
+    }
   }];
 }
 
