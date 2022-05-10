@@ -1,10 +1,6 @@
-* iOS
-+
---
-include::sdk-reference:ios:partial$nav.adoc[]
---
-** API
-+
---
-include::partial$nav.adoc[]
---
+* xref:page$integration.adoc[Integration]
+* xref:page$working-with-teak.adoc[Working With Teak]
+* xref:page$keychain-access-email.adoc[Potential Loss of Keychain Access]
+* xref:page$version-string-mismatch-email.adoc[CFBundle(Short)VersionString Mismatch]
+* xref:page$third-party.adoc[Third-Party Code]
+* xref:changelog:page$changelog.adoc[Changelog]

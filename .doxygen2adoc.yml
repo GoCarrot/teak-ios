@@ -1,5 +1,5 @@
 input: _doxygen/xml
-output: docs/modules/ROOT/pages
+output: docs/modules/api/pages
 template:
   index: doxygen2adoc/index.adoc
   nav: doxygen2adoc/nav.adoc
@@ -10,7 +10,7 @@ partial:
 
 antora: docs/antora.yml
 
-nav: docs/modules/ROOT/partials/nav.adoc
+nav: docs/modules/api/nav.adoc
 
 changelog:
   input: docs/modules/changelog/versions/

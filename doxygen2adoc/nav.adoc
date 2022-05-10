@@ -1,3 +1,4 @@
+* API
 {{#each items}}
-* xref:ios-api:ROOT:page${{id}}.adoc[{{name}}]
+** xref:api:page${{id}}.adoc[{{name}}]
 {{/each}}

@@ -1,0 +1,102 @@
+= Working with Teak on iOS
+
+The Teak SDK is exposed both via Objective-C as well as with a C interface.
+
+== Identify User
+This tells Teak how the user should be referenced in the Teak system.
+
+All Teak events will be delayed until ``identifyUser`` is called.
+
+doxygen2adoc:identifyUser:withConfiguration:[]
+
+.Example
+[source,objc]
+----
+[[Teak sharedInstance] identifyUser:@"someuserid"];
+----
+
+IMPORTANT: This should be the same way that you identify the user in your system, so that when you export data from Teak, it will be easy for you to associate with your own data.
+
+== User Attributes
+
+Teak allows you to add a limited number of attributes to users. A maximum of 16 string and 16 numeric attributes can be used.
+
+You can set a numeric attribute using ``<<setNumericAttribute:forKey:>>``.
+
+.Setting a numeric attribute from C
+[source,c]
+----
+void TeakSetNumericAttribute(const char* cstr_key, double value)
+----
+
+You can set a string attribute using ``<<setStringAttribute:forKey:>>``.
+
+.Setting a string attribute from C
+[source,c]
+----
+void TeakSetStringAttribute(const char* cstr_key, const char* cstr_value)
+----
+
+.Example
+[source,objc]
+----
+[[Teak sharedInstance] setStringAttribute:@"unicorn_slots"
+                                   forKey:@"last_played_slot"];
+
+[[Teak sharedInstance] setNumericAttribute:@123456
+                                    forKey:@"last_bet_amount"];
+----
+
+== Notifications
+
+=== Scheduling a Notification
+
+You can schedule a notification to be delivered for the current player by using ``<<scheduleNotificationForCreative:withMessage:secondsFromNow:>>``
+
+.Scheduling a notification from C
+[source,c]
+----
+TeakNotification* TeakNotificationSchedule(const char* creativeId,
+                                           const char* message,
+                                           int64_t delay)
+----
+
+You can schedule a notification do be delivered to other players--a long-distance notification--by using ``<<scheduleNotificationForCreative:secondsFromNow:forUserIds:>>``.
+
+.Scheduling a long-distance notification from C
+[source,c]
+----
+TeakNotification* TeakNotificationScheduleLongDistance(const char* creativeId,
+                                                       int64_t delay,
+                                                       const char* inUserIds[],
+                                                       int inUserIdCount)
+----
+
+.Scheduling a long-distance notification from C using an NSArray
+[source,c]
+----
+TeakNotification* TeakNotificationScheduleLongDistanceWithNSArray(const char* creativeId,
+                                                                  int64_t delay,
+                                                                  NSArray* userIds)
+----
+
+
+=== Canceling a Scheduled Notification
+
+To cancel a notification that you've scheduled from the client use ``<<cancelScheduledNotification:>>``.
+
+.Canceling a scheduled notification from C
+[source,c]
+----
+TeakNotification* TeakNotificationCancel(const char* scheduleId)
+----
+
+=== Cancel All Client-Scheduled Notifications
+
+Using ``<<cancelAll>>`` will cancel all of the notifications which were scheduled from client-side code.
+
+.Canceling all scheduled notifications from C
+[source,c]
+----
+TeakNotification* TeakNotificationCancelAll()
+----
