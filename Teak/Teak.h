@@ -182,6 +182,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user.
+ * 
+ * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
  *
@@ -196,6 +198,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user.
+ * 
+ * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
  *
@@ -213,6 +217,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
+ * 
+ * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
  *
@@ -230,6 +236,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
+ * 
+ * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
  *
@@ -248,6 +256,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
+ * 
+ * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
  *
