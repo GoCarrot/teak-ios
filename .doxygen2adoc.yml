@@ -8,7 +8,9 @@ partial:
   functionTitle: doxygen2adoc/functionTitle.adoc
   structTitle: doxygen2adoc/structTitle.adoc
 
-antora: docs/antora.yml
+antora:
+  _config: docs/antora.yml
+  module: api
 
 nav: docs/modules/api/nav.adoc
 

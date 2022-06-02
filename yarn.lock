@@ -42,7 +42,7 @@ compare-versions@^4.1.3:
 
 "doxygen2adoc@https://github.com/GoCarrot/doxygen2adoc":
   version "1.0.0"
-  resolved "https://github.com/GoCarrot/doxygen2adoc#e8b852e7660c100fccf06f0723ce6c9245eb73cb"
+  resolved "https://github.com/GoCarrot/doxygen2adoc#1ebf452c3a99e2a2abb248812be4794f33aca527"
   dependencies:
     compare-versions "^4.1.3"
     fast-xml-parser "^4.0.1"
@@ -61,9 +61,9 @@ escalade@^3.1.1:
   integrity sha512-k0er2gUkLf8O0zKJiAhmkTnJlTvINGv7ygDNPbeIsX/TJjGJZHuh9B2UxbsaEkmlEo9MfhrSzmhIlhRlI2GXnw==
 
 fast-xml-parser@^4.0.1:
-  version "4.0.7"
-  resolved "https://registry.yarnpkg.com/fast-xml-parser/-/fast-xml-parser-4.0.7.tgz#570a0f3754f259a8e5e7a85e7c667401e15e4872"
-  integrity sha512-dMtibyus3kC7nbxj1CpVtysLzO13UOAZEFAb5vpQg3T4O6qvetmSePpXKFx5KPNCHKoGwjtgjfF5DOyn7s1ylQ==
+  version "4.0.8"
+  resolved "https://registry.yarnpkg.com/fast-xml-parser/-/fast-xml-parser-4.0.8.tgz#abf0fbfe477b90b796118bd097a3afa4b9b4673f"
+  integrity sha512-N4XqZaRMuHMvOFwFlqeBTlvrnXU+QN8wvCl2g9fHzMx2BnLoIYRDwy6XwI8FxogHMFI9OfGQBCddgckvSLTnvg==
   dependencies:
     strnum "^1.0.5"
 
@@ -131,9 +131,9 @@ strnum@^1.0.5:
   integrity sha512-J8bbNyKKXl5qYcR36TIO8W3mVGVHrmmxsd5PAItGkmyzwJvybiw2IVq5nqd0i4LSNSkB/sx9VHllbfFdr9k1JA==
 
 uglify-js@^3.1.4:
-  version "3.15.4"
-  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.15.4.tgz#fa95c257e88f85614915b906204b9623d4fa340d"
-  integrity sha512-vMOPGDuvXecPs34V74qDKk4iJ/SN4vL3Ow/23ixafENYvtrNvtbcgUeugTcUGRGsOF/5fU8/NYSL5Hyb3l1OJA==
+  version "3.15.5"
+  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.15.5.tgz#2b10f9e0bfb3f5c15a8e8404393b6361eaeb33b3"
+  integrity sha512-hNM5q5GbBRB5xB+PMqVRcgYe4c8jbyZ1pzZhS6jbq54/4F2gFK869ZheiE5A8/t+W5jtTNpWef/5Q9zk639FNQ==
 
 wordwrap@^1.0.0:
   version "1.0.0"
@@ -165,9 +165,9 @@ yargs-parser@^21.0.0:
   integrity sha512-9BK1jFpLzJROCI5TzwZL/TU4gqjK5xiHV/RfWLOahrjAko/e4DJkRDZQXfvqAsiZzzYhgAzbgz6lg48jcm4GLg==
 
 yargs@^17.3.1:
-  version "17.4.1"
-  resolved "https://registry.yarnpkg.com/yargs/-/yargs-17.4.1.tgz#ebe23284207bb75cee7c408c33e722bfb27b5284"
-  integrity sha512-WSZD9jgobAg3ZKuCQZSa3g9QOJeCCqLoLAykiWgmXnDo9EPnn4RPf5qVTtzgOx66o6/oqhcA5tHtJXpG8pMt3g==
+  version "17.5.1"
+  resolved "https://registry.yarnpkg.com/yargs/-/yargs-17.5.1.tgz#e109900cab6fcb7fd44b1d8249166feb0b36e58e"
+  integrity sha512-t6YAJcxDkNX7NFYiVtKvWUz8l+PaKTLiL63mJYWR2GnHq2gjEWISzsLp9wg3aY36dY1j+gfIEL3pIF+XlJJfbA==
   dependencies:
     cliui "^7.0.2"
     escalade "^3.1.1"
