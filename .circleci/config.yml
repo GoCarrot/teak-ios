@@ -56,14 +56,14 @@ jobs:
 
   tag_build:
     docker:
-      - image: circleci/ruby:latest
+      - image: cimg/ruby:3.1
     steps:
       - checkout
       - teak/tag-promote
 
   deploy_versioned:
     docker:
-      - image: circleci/ruby:latest
+      - image: cimg/ruby:3.1
     steps:
       - checkout
       - run: git fetch --tags
@@ -85,7 +85,7 @@ jobs:
 
   deploy_latest:
     docker:
-      - image: circleci/ruby:latest
+      - image: cimg/ruby:3.1
     steps:
       - checkout
       - run: git fetch --tags
