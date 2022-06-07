@@ -69,7 +69,9 @@ jobs:
       - run: git fetch --tags
       - run:
           name: Install AWS CLI
-          command: sudo apt-get -y -qq install awscli
+          command: |
+            sudo apt-get update
+            sudo apt-get -y -qq install awscli
       - attach_workspace:
           at: workspace/
       - run:
@@ -91,7 +93,9 @@ jobs:
       - run: git fetch --tags
       - run:
           name: Install AWS CLI
-          command: sudo apt-get -y -qq install awscli
+          command: |
+            sudo apt-get update
+            sudo apt-get -y -qq install awscli
       - attach_workspace:
           at: workspace/
       - run:
