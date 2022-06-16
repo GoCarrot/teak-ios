@@ -55,13 +55,13 @@ This will add the ``teak123456://`` URL scheme in order for deep link fallbacks 
 ----
 <key>com.apple.developer.associated-domains</key>
 <array>
-    <string>applinks:YOUR_SUBDOMAIN.jckpt.me</string>
+    <string>applinks:YOUR_SHORTLINK_DOMAIN.jckpt.me</string>
 </array>
 ----
 
-NOTE: Replace `YOUR_SUBDOMAIN` with your game's subdomain.
+NOTE: Replace `YOUR_SHORTLINK_DOMAIN` with your game's subdomain.
 
-Your Teak Subdomain can be found in the Settings for your app on the Teak dashboard.
+Your Teak Shortlink Domain can be found in the Settings for your app on the Teak dashboard.
 
 == Initialize Teak
 
