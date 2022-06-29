@@ -6,7 +6,7 @@ Teak SDK 5 will contain many changes, and break many things. We do not have a fi
 
 Starting in SDK 4.1.0 there is a way to preview SDK 5 behaviors.
 
-To enable this, simply add the ``TeakSDK5Behaviors`` boolean key to your ``Info.plist``, and set it to ``true``.
+To enable this, add the ``TeakSDK5Behaviors`` boolean key to your ``Info.plist``, and set it to ``true``.
 
 .Info.plist
 [source,xml]
@@ -17,4 +17,4 @@ To enable this, simply add the ``TeakSDK5Behaviors`` boolean key to your ``Info.
 
 == SDK 5 Behavior Preview Functionality
 
-- Will no longer automatically collect Facebook Access Token, instead you must pass the Facebook User Id to ``[Teak identifyUser:withConfiguration:]``
+- Will no longer automatically collect Facebook Access Token, instead you must pass the Facebook User Id to <<identifyUser:withConfiguration:>>
