@@ -17,5 +17,5 @@ To enable this, add the ``TeakSDK5Behaviors`` boolean key to your ``Info.plist``
 
 == SDK 5 Behavior Preview Functionality
 
-- Will no longer automatically collect Facebook Access Token, instead you must pass the Facebook User Id to <<identifyUser:withConfiguration:>>
-- The Teak server will no longer automatically collect email addresses from Facebook, instead you must pass the email address to <<identifyUser:withConfiguration:>>
+- Teak will no longer automatically collect Facebook Access Token, instead you must pass the Facebook User Id to <<identifyUser:withConfiguration:>>
+- Teak will no longer automatically collect email addresses from Facebook, instead you must pass the email address to <<identifyUser:withConfiguration:>>
