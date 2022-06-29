@@ -8,7 +8,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "12.0.1"
+        default: "12.5.1"
     macos:
       xcode: << parameters.xcode-version >>
     shell: /bin/bash --login -eo pipefail
@@ -27,7 +27,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "12.0.1"
+        default: "12.5.1"
     macos:
       xcode: << parameters.xcode-version >>
     shell: /bin/bash --login -eo pipefail
