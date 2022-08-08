@@ -19,8 +19,8 @@
 + (void)userDataReceived:(NSDictionary*)additionalData optOutEmail:(NSString*)optOutEmail optOutPush:(NSString*)optOutPush {
   UserDataEvent* event = [[UserDataEvent alloc] initWithType:UserData];
   event.additionalData = additionalData;
-  event.optOutEmail = optOutEmail;
-  event.optOutPush = optOutPush;
+  event.optOutEmail = optOutEmail ? optOutEmail : [NSNull null];
+  event.optOutPush = optOutPush ? optOutPush : [NSNull null];
   [TeakEvent postEvent:event];
 }
 @end
