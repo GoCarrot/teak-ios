@@ -34,7 +34,7 @@
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
     NSString* urlString = [NSString stringWithFormat:@"/%@/clicks", teakRewardId];
     TeakRequest* request = [TeakRequest requestWithSession:session
-                                               forHostname:[NSString stringWithFormat:@"rewards.%@", TeakHostname]
+                                               forHostname:[NSString stringWithFormat:@"rewards.%@", kTeakHostname]
                                               withEndpoint:urlString
                                                withPayload:@{@"clicking_user_id" : session.userId}
                                                   callback:^(NSDictionary* reply) {

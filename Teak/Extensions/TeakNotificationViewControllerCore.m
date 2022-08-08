@@ -310,7 +310,8 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
-  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_expanded"]];
+  NSString* urlString = [NSString stringWithFormat:@"https://parsnip.%@/notification_expanded", kTeakHostname];
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
   TeakAssignPayloadToRequest(request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];

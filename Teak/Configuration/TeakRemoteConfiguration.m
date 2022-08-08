@@ -112,7 +112,7 @@
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
                                                withPayload:payload
                                                   callback:^(NSDictionary* reply) {
-                                                    self.hostname = TeakHostname;
+                                                    self.hostname = kTeakHostname;
 
                                                     NSString* sdkSentryDsn = reply[@"sdk_sentry_dsn"];
                                                     if (sdkSentryDsn != nil && sdkSentryDsn != (NSString*)[NSNull null]) {

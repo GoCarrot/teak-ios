@@ -143,7 +143,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
-  return [TeakRequest requestWithSession:session forHostname:TeakHostname withEndpoint:endpoint withPayload:payload callback:callback];
+  return [TeakRequest requestWithSession:session forHostname:kTeakHostname withEndpoint:endpoint withPayload:payload callback:callback];
 }
 
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
@@ -363,7 +363,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 
 - (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session {
   self = [super initWithSession:session
-                    forHostname:TeakHostname
+                    forHostname:kTeakHostname
                    withEndpoint:@"/me/events"
                     withPayload:@{}
                        callback:^(NSDictionary* reply) {
