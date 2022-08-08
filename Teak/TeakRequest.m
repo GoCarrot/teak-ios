@@ -9,7 +9,6 @@
 
 #include <CommonCrypto/CommonHMAC.h>
 
-extern NSString* TeakHostname;
 extern NSDictionary* TeakVersionDict;
 extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
 extern NSString* TeakHexStringFromData(NSData* data);

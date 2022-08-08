@@ -13,6 +13,8 @@
 
 #define kBlackholeUnregisterForRemoteNotifications @"TeakBlackholeUnregisterForRemoteNotifications"
 
+extern NSString* _Nonnull const TeakHostname;
+
 extern NSDictionary* _Nonnull TeakNotificationCategories;
 
 @interface Teak () <UNUserNotificationCenterDelegate>

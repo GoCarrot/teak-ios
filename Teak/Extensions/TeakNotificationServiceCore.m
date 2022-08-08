@@ -5,6 +5,8 @@
 
 #import <sys/utsname.h>
 
+extern NSString* _Nonnull const TeakHostname;
+
 extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
 
 @interface TeakNotificationServiceCore ()
@@ -213,7 +215,8 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
-  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_received"]];
+  NSString* urlString = [NSString stringWithFormat:@"https://parsnip.%@/notification_received", TeakHostname];
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
   TeakAssignPayloadToRequest(request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];

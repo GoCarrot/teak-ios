@@ -7,8 +7,6 @@
 #import "TeakRequest.h"
 #import "TeakSession.h"
 
-extern NSString* TeakHostname;
-
 @interface TeakRemoteConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* hostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;

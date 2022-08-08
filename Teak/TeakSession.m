@@ -327,7 +327,8 @@ DefineTeakState(Expired, (@[]));
 
 - (void)sendHeartbeat {
   NSString* urlString = [NSString stringWithFormat:
-                                      @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
+                                      @"https://iroko.%@/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
+                                      TeakHostname,
                                       URLEscapedString(self.appConfiguration.appId),
                                       URLEscapedString(self.userId),
                                       URLEscapedString([Teak sharedInstance].sdkVersion),

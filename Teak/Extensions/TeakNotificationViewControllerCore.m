@@ -10,6 +10,8 @@
 #define iOS12OrGreater() ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0)
 /////
 
+extern NSString* _Nonnull const TeakHostname;
+
 extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
 extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
 
@@ -310,7 +312,8 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 }
 
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
-  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/notification_expanded"]];
+  NSString* urlString = [NSString stringWithFormat:@"https://parsnip.%@/notification_expanded", TeakHostname];
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
   TeakAssignPayloadToRequest(request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];

@@ -2,8 +2,6 @@
 #import "Teak+Internal.h"
 #import "TeakSession.h"
 
-extern NSString* TeakHostname;
-
 @interface TeakUserProfile ()
 @property (strong, nonatomic) NSMutableDictionary* stringAttributes;
 @property (strong, nonatomic) NSMutableDictionary* numberAttributes;
