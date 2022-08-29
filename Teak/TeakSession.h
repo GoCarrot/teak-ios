@@ -44,6 +44,6 @@ DeclareTeakState(Expired);
 
 + (void)didLaunchWithData:(nonnull TeakLaunchDataOperation*)launchData;
 
-- (void)optOutPushPreference:(NSString*)optOut;
-- (void)setOptOutEmailPreference:(NSString*)optOut;
+- (void)optOutPushPreference:(nonnull NSString*)optOut;
+- (void)setOptOutEmailPreference:(nonnull NSString*)optOut;
 @end
