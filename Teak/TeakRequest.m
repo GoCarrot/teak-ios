@@ -37,12 +37,12 @@ NSString* Teak_SignString(NSString* stringToSign, NSString* apiKey) {
 }
 
 // Helper to turn payload dict into string to sign
-NSString* Teak_StringToSign(NSString* path, NSDictionary* payload, NSString* hostname, NSString* apiKey) {
+NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payload, NSString* hostname, NSString* apiKey) {
   if (path == nil || path.length < 1) path = @"/";
 
   NSData* postData = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
 
-  return [NSString stringWithFormat:@"TeakV2-HMAC-SHA256\nPOST\n%@\n%@\n%@\n", hostname, path, Teak_SignData(postData, apiKey)];
+  return [NSString stringWithFormat:@"TeakV2-HMAC-SHA256\%@\n%@\n%@\n%@\n", method, hostname, path, Teak_SignData(postData, apiKey)];
 }
 
 ///// Structs to match JSON
@@ -237,7 +237,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (nonnull NSString*)stringToSign {
-  return Teak_StringToSign(self.endpoint, self.payload, self.hostname, self.session.appConfiguration.apiKey);
+  return Teak_StringToSign(@"POST", self.endpoint, self.payload, self.hostname, self.session.appConfiguration.apiKey);
 }
 
 - (nonnull NSString*)sig {
