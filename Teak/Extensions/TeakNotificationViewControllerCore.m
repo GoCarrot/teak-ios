@@ -11,7 +11,7 @@
 /////
 
 extern UIImage* UIImage_animatedImageWithAnimatedGIFData(NSData* data);
-extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
+extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* request, NSDictionary* payload);
 
 /////
 
@@ -312,7 +312,7 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
   NSString* urlString = [NSString stringWithFormat:@"https://parsnip.%@/notification_expanded", kTeakHostname];
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
-  TeakAssignPayloadToRequest(request, payload);
+  TeakAssignPayloadToRequest(@"POST", request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];
   NSURLSessionUploadTask* uploadTask =

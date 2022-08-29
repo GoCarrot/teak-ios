@@ -10,7 +10,7 @@
 #include <CommonCrypto/CommonHMAC.h>
 
 extern NSDictionary* TeakVersionDict;
-extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
+extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* request, NSDictionary* payload);
 extern NSString* TeakHexStringFromData(NSData* data);
 
 // Helper to safe-sum NSNumbers or return the existing value, unmodified
@@ -249,7 +249,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
-    TeakAssignPayloadToRequest(request, self.payload);
+    TeakAssignPayloadToRequest(@"POST", request, self.payload);
     [request setValue:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", self.sig] forHTTPHeaderField:@"Authorization"];
     teak_log_breadcrumb(@"request.send.constructed");
 

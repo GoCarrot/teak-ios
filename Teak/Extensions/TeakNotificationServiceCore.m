@@ -5,7 +5,7 @@
 
 #import <sys/utsname.h>
 
-extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload);
+extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* request, NSDictionary* payload);
 
 @interface TeakNotificationServiceCore ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);
@@ -215,7 +215,7 @@ extern void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionar
 - (NSOperation*)sendMetricForPayload:(NSDictionary*)payload {
   NSString* urlString = [NSString stringWithFormat:@"https://parsnip.%@/notification_received", kTeakHostname];
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlString]];
-  TeakAssignPayloadToRequest(request, payload);
+  TeakAssignPayloadToRequest(@"POST", request, payload);
 
   NSOperation* metricOperation = [NSBlockOperation blockOperationWithBlock:^{}];
   NSURLSessionUploadTask* uploadTask =
