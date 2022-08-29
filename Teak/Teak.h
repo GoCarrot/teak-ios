@@ -285,6 +285,11 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (void)refreshPushTokenIfAuthorized;
 
 /**
+ * Delete any email address associated with the current user.
+ */
+- (void)deleteEmail;
+
+/**
  * Track an arbitrary event in Teak.
  *
  * @param actionId         The identifier for the action, e.g. 'complete'.

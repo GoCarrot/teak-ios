@@ -732,6 +732,19 @@ Teak* _teakSharedInstance;
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
 }
 
+- (void)deleteEmail {
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+      TeakRequest* request = [TeakRequest requestWithSession:session
+                                                 forEndpoint:@"/me/email"
+                                                 withPayload:@{}
+                                                      method:TeakRequest_DELETE
+                                                    callback:nil];
+      [request send];
+    }];
+  }];
+}
+
 - (void)setOptOutPush:(BOOL)optOut {
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
     [session optOutPushPreference:optOut ? TeakOptedOut : TeakOptedIn];
