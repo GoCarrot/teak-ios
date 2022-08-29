@@ -734,13 +734,13 @@ Teak* _teakSharedInstance;
 
 - (void)setOptOutPush:(BOOL)optOut {
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    [session optOutPushPreference:optOut ? TeakOptedOut: TeakOptedIn];
+    [session optOutPushPreference:optOut ? TeakOptedOut : TeakOptedIn];
   }];
 }
 
 - (void)setOptOutEmail:(BOOL)optOut {
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    [session setOptOutEmailPreference:optOut ? TeakOptedOut: TeakOptedIn];
+    [session setOptOutEmailPreference:optOut ? TeakOptedOut : TeakOptedIn];
   }];
 }
 

@@ -10,8 +10,8 @@
 #import "TeakRequest.h"
 #import "TeakReward.h"
 #import "TeakUserProfile.h"
-#import "UserIdEvent.h"
 #import "UserDataEvent.h"
+#import "UserIdEvent.h"
 
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
@@ -300,18 +300,17 @@ DefineTeakState(Expired, (@[]));
                                                       TeakLog_i(@"additional_data.received", blockSelf.additionalData);
                                                       [AdditionalDataEvent additionalDataReceived:blockSelf.additionalData];
                                                     }
-      
+
                                                     // Opt Out State
-      if (reply[@"opt_out_push"]) {
-        blockSelf.optOutPush = reply[@"opt_out_push"];
-      }
-      
-      if (reply[@"opt_out_email"]) {
-        blockSelf.optOutEmail = reply[@"opt_out_email"];
-      }
-      
-      [blockSelf dispatchUserDataEvent];
-                                                    
+                                                    if (reply[@"opt_out_push"]) {
+                                                      blockSelf.optOutPush = reply[@"opt_out_push"];
+                                                    }
+
+                                                    if (reply[@"opt_out_email"]) {
+                                                      blockSelf.optOutEmail = reply[@"opt_out_email"];
+                                                    }
+
+                                                    [blockSelf dispatchUserDataEvent];
 
                                                     // Assign new state
                                                     // Prevent warning for 'do_not_track_event'
@@ -368,7 +367,7 @@ DefineTeakState(Expired, (@[]));
     CFRelease(theUUID);
     self.sessionId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
     CFRelease(string);
-    
+
     self.optOutEmail = nil;
     self.optOutPush = nil;
 
@@ -807,20 +806,20 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
                                              withPayload:payload
                                                   method:TeakRequest_POST
                                                 callback:^(NSDictionary* reply) {
-    @synchronized(weakSelf) {
-      if (reply[@"opt_out"]) {
-        if (reply[@"opt_out"][@"push"]) {
-          weakSelf.optOutPush = reply[@"push"];
-        }
+                                                  @synchronized(weakSelf) {
+                                                    if (reply[@"opt_out"]) {
+                                                      if (reply[@"opt_out"][@"push"]) {
+                                                        weakSelf.optOutPush = reply[@"push"];
+                                                      }
 
-        if (reply[@"opt_out"][@"email"]) {
-          weakSelf.optOutEmail = reply[@"email"];
-        }
-      }
+                                                      if (reply[@"opt_out"][@"email"]) {
+                                                        weakSelf.optOutEmail = reply[@"email"];
+                                                      }
+                                                    }
 
-      [weakSelf dispatchUserDataEvent];
-    }
-  }];
+                                                    [weakSelf dispatchUserDataEvent];
+                                                  }
+                                                }];
   [request send];
 }
 
