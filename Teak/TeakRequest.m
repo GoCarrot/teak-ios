@@ -9,6 +9,9 @@
 
 #include <CommonCrypto/CommonHMAC.h>
 
+NSString* _Nonnull const TeakRequest_POST = @"POST";
+NSString* _Nonnull const TeakRequest_DELETE = @"DELETE";
+
 extern NSDictionary* TeakVersionDict;
 extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* request, NSDictionary* payload);
 extern NSString* TeakHexStringFromData(NSData* data);
@@ -142,21 +145,22 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return dict;
 }
 
-+ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
-  return [TeakRequest requestWithSession:session forHostname:kTeakHostname withEndpoint:endpoint withPayload:payload callback:callback];
++ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback {
+  return [TeakRequest requestWithSession:session forHostname:kTeakHostname withEndpoint:endpoint withPayload:payload method:method callback:callback];
 }
 
-+ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback {
++ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback {
   TeakRequest* ret = nil;
   if ([@"/me/events" isEqualToString:endpoint]) {
+    // Future-Ezri: method is still being assumed here
     ret = [TeakTrackEventBatchedRequest batchRequestWithSession:session forEndpoint:endpoint withPayload:payload andCallback:callback];
   } else {
-    ret = [[TeakRequest alloc] initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload callback:callback addCommonPayload:YES];
+    ret = [[TeakRequest alloc] initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload method:method callback:callback addCommonPayload:YES];
   }
   return ret;
 }
 
-- (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
+- (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
   self = [super init];
   if (self) {
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
@@ -173,6 +177,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     self.retry = [[TeakRetryConfiguration alloc] init];
     self.batch = [[TeakBatchConfiguration alloc] init];
     self.blackhole = NO;
+    self.method = method;
 
     @try {
       // Assign configuration
@@ -237,7 +242,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (nonnull NSString*)stringToSign {
-  return Teak_StringToSign(@"POST", self.endpoint, self.payload, self.hostname, self.session.appConfiguration.apiKey);
+  return Teak_StringToSign(self.method, self.endpoint, self.payload, self.hostname, self.session.appConfiguration.apiKey);
 }
 
 - (nonnull NSString*)sig {
@@ -249,7 +254,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
   teak_try {
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
-    TeakAssignPayloadToRequest(@"POST", request, self.payload);
+    TeakAssignPayloadToRequest(self.method, request, self.payload);
     [request setValue:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", self.sig] forHTTPHeaderField:@"Authorization"];
     teak_log_breadcrumb(@"request.send.constructed");
 
@@ -366,6 +371,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
                     forHostname:kTeakHostname
                    withEndpoint:@"/me/events"
                     withPayload:@{}
+                         method:TeakRequest_POST
                        callback:^(NSDictionary* reply) {
                          // Trigger any callbacks
                          for (TeakRequestResponse callback in self.callbacks) {
@@ -426,7 +432,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 }
 
 - (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
-  self = [super initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload callback:callback addCommonPayload:addCommonToPayload];
+  self = [super initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload method:TeakRequest_POST callback:callback addCommonPayload:addCommonToPayload];
   if (self) {
     self.sent = NO;
     self.callbacks = [[NSMutableArray alloc] init];

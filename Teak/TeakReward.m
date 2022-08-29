@@ -37,6 +37,7 @@
                                                forHostname:[NSString stringWithFormat:@"rewards.%@", kTeakHostname]
                                               withEndpoint:urlString
                                                withPayload:@{@"clicking_user_id" : session.userId}
+                                                    method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:reply[@"response"]];
                                                     rewardResponse[@"teakRewardId"] = teakRewardId;

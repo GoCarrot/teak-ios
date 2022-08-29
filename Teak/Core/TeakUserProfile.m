@@ -13,7 +13,7 @@
 @implementation TeakUserProfile
 
 - (TeakUserProfile*)initForSession:(TeakSession*)session withDictionary:(NSDictionary*)dictionary {
-  self = [super initWithSession:session forHostname:kTeakHostname withEndpoint:@"/me/profile" withPayload:@{} callback:nil addCommonPayload:YES];
+  self = [super initWithSession:session forHostname:kTeakHostname withEndpoint:@"/me/profile" withPayload:@{} method:TeakRequest_POST callback:nil addCommonPayload:YES];
   if (self) {
     self.stringAttributes = [dictionary[@"string_attributes"] mutableCopy];
     self.numberAttributes = [dictionary[@"number_attributes"] mutableCopy];

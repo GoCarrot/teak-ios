@@ -266,6 +266,7 @@ DefineTeakState(Expired, (@[]));
     TeakRequest* request = [TeakRequest requestWithSession:self
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
                                                withPayload:payload
+                                                    method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     __strong typeof(self) blockSelf = weakSelf;
 
@@ -804,6 +805,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   TeakRequest* request = [TeakRequest requestWithSession:self
                                              forEndpoint:@"/me/preferences.json"
                                              withPayload:payload
+                                                  method:TeakRequest_POST
                                                 callback:^(NSDictionary* reply) {
     @synchronized(weakSelf) {
       if (reply[@"opt_out"]) {

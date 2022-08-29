@@ -111,6 +111,7 @@
     TeakRequest* request = [TeakRequest requestWithSession:session
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
                                                withPayload:payload
+                                                    method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     self.hostname = kTeakHostname;
 
