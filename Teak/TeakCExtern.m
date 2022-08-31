@@ -30,6 +30,10 @@ void TeakLogout(void) {
   [[Teak sharedInstance] logout];
 }
 
+void TeakDeleteEmail(void) {
+  [[Teak sharedInstance] deleteEmail];
+}
+
 void TeakRefreshPushTokenIfAuthorized(void) {
   [[Teak sharedInstance] refreshPushTokenIfAuthorized];
 }
