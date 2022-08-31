@@ -733,6 +733,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)deleteEmail {
+  TeakLog_t(@"[Teak deleteEmail]", @{});
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
     [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
       TeakRequest* request = [TeakRequest requestWithSession:session
