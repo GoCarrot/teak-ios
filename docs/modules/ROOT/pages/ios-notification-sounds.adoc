@@ -1,16 +1,19 @@
 = Custom iOS Notification Sounds
 
-On iOS, your notifications can play a custom sound. The sound file needs to be included in your application bundle and then added to your notification in the Teak dashboard.
+On iOS, a notification can play a custom sound. The setup involves two basic steps: 
 
-== Supported Formats
+. A developer adds the sound file to the application bundle.
+. The sound's filename is entered in the iOS notification content in the Teak dashboard.
 
-iOS has https://developer.apple.com/documentation/usernotifications/unnotificationsound[specific requirements] for audio files that are played for notifications:
+== Audio Requirements
+
+iOS has https://developer.apple.com/documentation/usernotifications/unnotificationsound[specific requirements, window=_blank] for audio files that are played for notifications:
 
 * Packaged as an aiff, wav, or caf file
 * Encoded as Linear PCM, MA4 (IMA/ADPCM), µLaw, or aLaw
 * Must be less than 30 second in length
 
-If there are issues with the sound file, the default system sound will be played. See the https://developer.apple.com/documentation/usernotifications/unnotificationsound[Apple's iOS notification docs] for more information.
+If there are issues with the sound file, the default system sound will be played. See the https://developer.apple.com/documentation/usernotifications/unnotificationsound[Apple's iOS notification docs, window=_blank] for more information.
 
 == Add the sound file to your bundle
 
@@ -21,7 +24,7 @@ If there are issues with the sound file, the default system sound will be played
 .Airhorn in Xcode
 image::sound-file-in-xcode.png[Xcode screenshot, 200px, role="thumb, right"]
 
-How to you put the sound file in the right place will depend on your build process.
+The sound file must exist in the right place in your game build for iOS to play it. How to you put the sound file in the right place will depend on your build process.
 
 iOS will look for the sound file in 3 places:
 
@@ -54,4 +57,4 @@ Save your content and send it to a preview to your device to test if it's workin
 
 --
 
-WARNING: Do not use the DJ Airhorn sound effect for your notifications. Our internal testing has shown that it is very annoying.
+WARNING: Do not use the link:{attachmentsdir}/dj-airhorn-sound.wav[DJ Airhorn, window=_blank] sound for your notifications. Our internal testing has shown that it is very annoying.
