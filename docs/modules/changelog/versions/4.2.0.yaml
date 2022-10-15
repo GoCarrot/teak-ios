@@ -3,3 +3,4 @@ breaking:
   - ``TeakSDK5Behaviors`` is now enabled by default.
 new:
   - "``<<handleDeepLinkPath:>>`` lets you manually resolve a deep link path, e.g. /foo/bar?fizz=buzz"
+  - Adds ``pushRegistration`` to UserDataEvent

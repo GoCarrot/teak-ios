@@ -795,7 +795,15 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
 - (void)dispatchUserDataEvent {
   @synchronized(self) {
-    [UserDataEvent userDataReceived:self.additionalData optOutEmail:self.optOutEmail optOutPush:self.optOutPush];
+    TeakDataCollectionConfiguration* dataCollectionConfiguration = [[TeakConfiguration configuration] dataCollectionConfiguration];
+
+    NSDictionary* pushRegistration = (NSDictionary*)[NSNull null];
+    if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+      pushRegistration = @{
+        @"apns" : self.deviceConfiguration.pushToken
+      };
+    }
+    [UserDataEvent userDataReceived:self.additionalData optOutEmail:self.optOutEmail optOutPush:self.optOutPush pushRegistration:pushRegistration];
   }
 }
 
