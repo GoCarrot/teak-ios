@@ -431,8 +431,8 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
   return nil;
 }
 
-- (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
-  self = [super initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload method:TeakRequest_POST callback:callback addCommonPayload:addCommonToPayload];
+- (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
+  self = [super initWithSession:session forHostname:hostname withEndpoint:endpoint withPayload:payload method:method callback:callback addCommonPayload:addCommonToPayload];
   if (self) {
     self.sent = NO;
     self.callbacks = [[NSMutableArray alloc] init];
