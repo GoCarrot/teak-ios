@@ -45,7 +45,7 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 
   NSData* postData = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
 
-  return [NSString stringWithFormat:@"TeakV2-HMAC-SHA256\%@\n%@\n%@\n%@\n", method, hostname, path, Teak_SignData(postData, apiKey)];
+  return [NSString stringWithFormat:@"TeakV2-HMAC-SHA256\n%@\n%@\n%@\n%@\n", method, hostname, path, Teak_SignData(postData, apiKey)];
 }
 
 ///// Structs to match JSON
