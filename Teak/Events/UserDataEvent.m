@@ -2,8 +2,9 @@
 
 @interface UserDataEvent ()
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull additionalData;
-@property (strong, nonatomic, readwrite) NSString* optOutEmail;
-@property (strong, nonatomic, readwrite) NSString* optOutPush;
+@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
+@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
+@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull pushRegistration;
 @end
 
@@ -11,18 +12,20 @@
 
 - (NSDictionary*)toDictionary {
   return @{
-    @"optOutEmail" : self.optOutEmail,
-    @"optOutPush" : self.optOutPush,
+    @"emailStatus" : self.emailStatus,
+    @"pushStatus" : self.pushStatus,
+    @"smsStatus" : self.smsStatus,
     @"additionalData" : self.additionalData ? self.additionalData : [NSNull null],
     @"pushRegistration" : self.pushRegistration ? self.pushRegistration : [NSNull null]
   };
 }
 
-+ (void)userDataReceived:(NSDictionary*)additionalData optOutEmail:(NSString*)optOutEmail optOutPush:(NSString*)optOutPush pushRegistration:(NSDictionary*)pushRegistration {
++ (void)userDataReceived:(NSDictionary*)additionalData emailStatus:(TeakChannelStatus*)emailStatus pushStatus:(TeakChannelStatus*)pushStatus smsStatus:(TeakChannelStatus*)smsStatus pushRegistration:(NSDictionary*)pushRegistration {
   UserDataEvent* event = [[UserDataEvent alloc] initWithType:UserData];
   event.additionalData = additionalData;
-  event.optOutEmail = optOutEmail ? optOutEmail : (NSString*)[NSNull null];
-  event.optOutPush = optOutPush ? optOutPush : (NSString*)[NSNull null];
+  event.emailStatus = emailStatus;
+  event.pushStatus = pushStatus;
+  event.smsStatus = smsStatus;
   [TeakEvent postEvent:event];
   event.pushRegistration = pushRegistration;
 }
