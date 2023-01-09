@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   teak: teak/sdk-utils@0.0.10
+  buildomat: teak/buildomat@0.1
 
 jobs:
   test:
@@ -74,6 +75,7 @@ jobs:
             sudo apt-get -y -qq install awscli
       - attach_workspace:
           at: workspace/
+      - buildomat/aws-oidc-assume
       - run:
           name: Upload SDK to S3
           command: |
@@ -98,6 +100,7 @@ jobs:
             sudo apt-get -y -qq install awscli
       - attach_workspace:
           at: workspace/
+      - buildomat/aws-oidc-assume
       - run:
           name: Upload SDK to S3
           command: |
@@ -170,6 +173,8 @@ workflows:
             tags:
               only: /.*/
       - deploy_versioned:
+          context:
+            - AWS-OIDC-Role
           requires:
             - build
           filters:
@@ -187,6 +192,8 @@ workflows:
             tags:
               only: /.*/
       - deploy_latest:
+          context:
+            - AWS-OIDC-Role
           requires:
             - hold
           filters:
