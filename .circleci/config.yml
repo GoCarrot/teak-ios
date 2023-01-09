@@ -124,8 +124,12 @@ workflows:
               only:
                 - develop
     jobs:
-      - test
-      - build
+      - test:
+          context:
+            - iOS-Build
+      - build:
+          context:
+            - iOS-Build
 
   nightly-latest:
     triggers:
@@ -137,17 +141,25 @@ workflows:
                 - master
     jobs:
       - test:
+          context:
+            - iOS-Build
           xcode-version: "13.2.1"
       - build:
+          context:
+            - iOS-Build
           xcode-version: "13.2.1"
 
   un-tagged-build:
     jobs:
       - test:
+          context:
+            - iOS-Build
           filters:
             tags:
               ignore: /.*/
       - build:
+          context:
+            - iOS-Build
           filters:
             tags:
               ignore: /.*/
@@ -161,12 +173,16 @@ workflows:
   tagged-build:
     jobs:
       - test:
+          context:
+            - iOS-Build
           filters:
             branches:
               ignore: /.*/
             tags:
               only: /.*/
       - build:
+          context:
+            - iOS-Build
           filters:
             branches:
               ignore: /.*/
