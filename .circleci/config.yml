@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.0.10
+  teak: teak/sdk-utils@1
   buildomat: teak/buildomat@0.1
 
 jobs:
