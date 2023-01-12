@@ -36,7 +36,7 @@ NSString* _Nonnull const TeakChannelStatusUnknown = @"unknown";
 
   self = [super init];
   if (self) {
-    if ([TeakChannelStatusStates containsObject:status]) {
+    if ([status isEqualToString:TeakChannelStatusUnknown] || [TeakChannelStatusStates containsObject:status]) {
       self.status = status;
       self.deliveryFault = deliveryFault;
     } else {
@@ -47,7 +47,9 @@ NSString* _Nonnull const TeakChannelStatusUnknown = @"unknown";
 }
 
 - (id)initWithDictionary:(NSDictionary*)dictionary {
-  return [[TeakChannelStatus alloc] initWithStatus:[dictionary[@"state"] stringValue]
+  if (dictionary == nil) return [TeakChannelStatus unknown];
+
+  return [[TeakChannelStatus alloc] initWithStatus:dictionary[@"state"]
                                   hasDeliveryFault:[dictionary[@"delivery_fault"] boolValue]];
 }
 
