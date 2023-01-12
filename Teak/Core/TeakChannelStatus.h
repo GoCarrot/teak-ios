@@ -15,6 +15,7 @@ extern NSString* _Nonnull const TeakChannelStatusUnknown;
 + (nonnull TeakChannelStatus*)unknown;
 
 - (id)initWithDictionary:(NSDictionary*)dict;
+- (NSDictionary*)toDictionary;
 @end
 
 NS_ASSUME_NONNULL_END

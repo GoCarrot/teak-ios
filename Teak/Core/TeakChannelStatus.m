@@ -51,4 +51,11 @@ NSString* _Nonnull const TeakChannelStatusUnknown = @"unknown";
                                   hasDeliveryFault:[dictionary[@"delivery_fault"] boolValue]];
 }
 
+- (NSDictionary*)toDictionary {
+  return @{
+    @"state" : self.status,
+    @"delivery_fault" : self.deliveryFault ? @"true" : @"false"
+  };
+}
+
 @end

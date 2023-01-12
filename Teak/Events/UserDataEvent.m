@@ -12,9 +12,9 @@
 
 - (NSDictionary*)toDictionary {
   return @{
-    @"emailStatus" : self.emailStatus,
-    @"pushStatus" : self.pushStatus,
-    @"smsStatus" : self.smsStatus,
+    @"emailStatus" : [self.emailStatus toDictionary],
+    @"pushStatus" : [self.pushStatus toDictionary],
+    @"smsStatus" : [self.smsStatus toDictionary],
     @"additionalData" : self.additionalData ? self.additionalData : [NSNull null],
     @"pushRegistration" : self.pushRegistration ? self.pushRegistration : [NSNull null]
   };
