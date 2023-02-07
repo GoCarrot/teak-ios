@@ -746,18 +746,6 @@ Teak* _teakSharedInstance;
   }];
 }
 
-- (void)setOptOutPush:(BOOL)optOut {
-  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    // TODO
-  }];
-}
-
-- (void)setOptOutEmail:(BOOL)optOut {
-  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    // TODO
-  }];
-}
-
 + (BOOL)willPresentNotification:(UNNotification*)notification
           withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
   if ([Teak isTeakNotification:notification]) {

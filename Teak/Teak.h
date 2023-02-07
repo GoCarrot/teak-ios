@@ -400,22 +400,6 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (BOOL)handleDeepLinkPath:(nonnull NSString*)path;
 
 /**
- * Set the opt out state for push notifications.
- *
- * If the user wants to opt out of receiving Teak push notification campaigns, set this to true.
- * @param optOut true if the user wants to opt out of Teak push notification campaigns; false otherwise.
- */
-- (void)setOptOutPush:(BOOL)optOut;
-
-/**
- * Set the opt out state for email.
- *
- * If the user wants to opt out of receiving Teak email campaigns, set this to true.
- * @param optOut true if the user wants to opt out of Teak email campaigns; false otherwise.
- */
-- (void)setOptOutEmail:(BOOL)optOut;
-
-/**
  * Returns true if the notification was sent by Teak.
  */
 + (BOOL)isTeakNotification:(nonnull UNNotification*)notification;
