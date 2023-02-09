@@ -56,7 +56,10 @@
   [self determineFeatures];
 
   self.enableIDFA &= !userConfiguration.optOutIdfa;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   self.enableFacebookAccessToken &= !userConfiguration.optOutFacebook;
+#pragma clang diagnostic pop
   self.enablePushKey &= !userConfiguration.optOutPushKey;
 }
 

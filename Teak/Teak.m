@@ -103,7 +103,10 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   [self identifyUser:userIdentifier withOptOutList:@[] andEmail:nil];
+#pragma clang diagnostic pop
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withEmail:(nonnull NSString*)email {

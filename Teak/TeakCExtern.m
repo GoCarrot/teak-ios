@@ -15,7 +15,10 @@ void TeakIdentifyUser(const char* userId, const char* userConfigurationJson) {
       NSDictionary* configurationDict = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
       userConfiguration.email = configurationDict[@"email"];
       userConfiguration.facebookId = configurationDict[@"facebook_id"];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
       userConfiguration.optOutFacebook = [configurationDict[@"opt_out_facebook"] boolValue];
+#pragma clang diagnostic pop
       userConfiguration.optOutIdfa = [configurationDict[@"opt_out_idfa"] boolValue];
       userConfiguration.optOutPushKey = [configurationDict[@"opt_out_push_key"] boolValue];
     } @catch (NSException* ignored) {
