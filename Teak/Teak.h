@@ -99,6 +99,15 @@ typedef enum TeakNotificationState : int {
 } TeakNotificationState;
 
 /**
+ * Values for Teak Marketing Channel States
+ */
+extern NSString* _Nonnull const TeakChannelStateOptOut;
+extern NSString* _Nonnull const TeakChannelStateAvailable;
+extern NSString* _Nonnull const TeakChannelStateOptIn;
+extern NSString* _Nonnull const TeakChannelStateAbsent;
+extern NSString* _Nonnull const TeakChannelStateUnknown;
+
+/**
  * Callback used for Log Listeners
  */
 typedef void (^TeakLogListener)(NSString* _Nonnull event,

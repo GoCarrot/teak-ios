@@ -1,13 +1,13 @@
 #import "TeakChannelStatus.h"
 
-NSString* _Nonnull const TeakChannelStatusOptOut = @"opt_out";
-NSString* _Nonnull const TeakChannelStatusAvailable = @"available";
-NSString* _Nonnull const TeakChannelStatusOptIn = @"opt_in";
-NSString* _Nonnull const TeakChannelStatusAbsent = @"absent";
-NSString* _Nonnull const TeakChannelStatusUnknown = @"unknown";
+NSString* _Nonnull const TeakChannelStateOptOut = @"opt_out";
+NSString* _Nonnull const TeakChannelStateAvailable = @"available";
+NSString* _Nonnull const TeakChannelStateOptIn = @"opt_in";
+NSString* _Nonnull const TeakChannelStateAbsent = @"absent";
+NSString* _Nonnull const TeakChannelStateUnknown = @"unknown";
 
 @interface TeakChannelStatus ()
-@property (strong, nonatomic, readwrite) NSString* status;
+@property (strong, nonatomic, readwrite) NSString* state;
 @property (nonatomic, readwrite) BOOL deliveryFault;
 @end
 
@@ -17,27 +17,27 @@ NSString* _Nonnull const TeakChannelStatusUnknown = @"unknown";
   static TeakChannelStatus* unknownStatus = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
-    unknownStatus = [[TeakChannelStatus alloc] initWithStatus:TeakChannelStatusUnknown hasDeliveryFault:false];
+    unknownStatus = [[TeakChannelStatus alloc] initWithState:TeakChannelStateUnknown hasDeliveryFault:false];
   });
   return unknownStatus;
 }
 
-- (id)initWithStatus:(NSString*)status hasDeliveryFault:(BOOL)deliveryFault {
+- (id)initWithState:(NSString*)state hasDeliveryFault:(BOOL)deliveryFault {
   static dispatch_once_t onceToken;
-  static NSArray* TeakChannelStatusStates = nil;
+  static NSArray* TeakChannelStates = nil;
   dispatch_once(&onceToken, ^{
-    TeakChannelStatusStates = @[
-      TeakChannelStatusOptOut,
-      TeakChannelStatusAvailable,
-      TeakChannelStatusOptIn,
-      TeakChannelStatusAbsent
+    TeakChannelStates = @[
+      TeakChannelStateOptOut,
+      TeakChannelStateAvailable,
+      TeakChannelStateOptIn,
+      TeakChannelStateAbsent
     ];
   });
 
   self = [super init];
   if (self) {
-    if ([status isEqualToString:TeakChannelStatusUnknown] || [TeakChannelStatusStates containsObject:status]) {
-      self.status = status;
+    if ([state isEqualToString:TeakChannelStateUnknown] || [TeakChannelStates containsObject:state]) {
+      self.state = state;
       self.deliveryFault = deliveryFault;
     } else {
       return [TeakChannelStatus unknown];
@@ -49,13 +49,13 @@ NSString* _Nonnull const TeakChannelStatusUnknown = @"unknown";
 - (id)initWithDictionary:(NSDictionary*)dictionary {
   if (dictionary == nil) return [TeakChannelStatus unknown];
 
-  return [[TeakChannelStatus alloc] initWithStatus:dictionary[@"state"]
+  return [[TeakChannelStatus alloc] initWithState:dictionary[@"state"]
                                   hasDeliveryFault:[dictionary[@"delivery_fault"] boolValue]];
 }
 
 - (NSDictionary*)toDictionary {
   return @{
-    @"state" : self.status,
+    @"state" : self.state,
     @"delivery_fault" : self.deliveryFault ? @"true" : @"false"
   };
 }
