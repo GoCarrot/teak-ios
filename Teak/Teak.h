@@ -107,6 +107,11 @@ extern NSString* _Nonnull const TeakChannelStateOptIn;
 extern NSString* _Nonnull const TeakChannelStateAbsent;
 extern NSString* _Nonnull const TeakChannelStateUnknown;
 
+extern NSString* _Nonnull const TeakChannelTypePush;
+extern NSString* _Nonnull const TeakChannelTypeEmail;
+extern NSString* _Nonnull const TeakChannelTypeSms;
+extern NSString* _Nonnull const TeakChannelTypeUnknown;
+
 /**
  * Callback used for Log Listeners
  */
@@ -121,6 +126,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 #import <Teak/TeakNotificationServiceCore.h>
 #import <Teak/TeakNotificationViewControllerCore.h>
 #import <Teak/TeakUserConfiguration.h>
+#import <Teak/TeakOperation.h>
 #import <UIKit/UIKit.h>
 
 /**
@@ -428,6 +434,12 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  */
 + (BOOL)willPresentNotification:(nonnull UNNotification*)notification
           withCompletionHandler:(nonnull void (^)(UNNotificationPresentationOptions))completionHandler;
+
+/**
+ * asdf
+ */
+- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel;
+
 @end
 
 #endif /* __OBJC__ */

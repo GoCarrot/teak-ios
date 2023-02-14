@@ -760,6 +760,12 @@ Teak* _teakSharedInstance;
   return NO;
 }
 
+- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel {
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state" withPayload:@{@"channel" : channel, @"state" :state}];
+  [self.operationQueue addOperation:op];
+  return op;
+}
+
 // This method will be called whenever a taps on a notification
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
     didReceiveNotificationResponse:(UNNotificationResponse*)response

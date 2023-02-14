@@ -1,17 +1,15 @@
-//
-//  TeakOperation.h
-//  Teak
-//
-//  Created by Ezri Coniglio on 2/7/23.
-//  Copyright © 2023 GoCarrot Inc. All rights reserved.
-//
-
 #import <Foundation/Foundation.h>
 
-NS_ASSUME_NONNULL_BEGIN
-
-@interface TeakOperation : NSOperation
-
+@interface TeakOperationChannelStateResult : NSObject
+@property (nonatomic, readonly) BOOL error;
+@property (strong, nonatomic, readonly) NSString* _Nonnull state;
+@property (strong, nonatomic, readonly) NSString* _Nonnull channel;
+@property (strong, nonatomic, readonly) NSDictionary* _Nullable errors;
 @end
 
-NS_ASSUME_NONNULL_END
+@interface TeakOperation : NSInvocationOperation
+
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint;
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload;
+
+@end

@@ -6,6 +6,11 @@ NSString* _Nonnull const TeakChannelStateOptIn = @"opt_in";
 NSString* _Nonnull const TeakChannelStateAbsent = @"absent";
 NSString* _Nonnull const TeakChannelStateUnknown = @"unknown";
 
+NSString* _Nonnull const TeakChannelTypePush = @"push";
+NSString* _Nonnull const TeakChannelTypeEmail = @"email";
+NSString* _Nonnull const TeakChannelTypeSms = @"sms";
+NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
+
 @interface TeakChannelStatus ()
 @property (strong, nonatomic, readwrite) NSString* state;
 @property (nonatomic, readwrite) BOOL deliveryFault;

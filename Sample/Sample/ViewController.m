@@ -50,9 +50,10 @@ extern void TeakReportTestException(void);
   [[Teak sharedInstance] trackEventWithActionId:@"test1" forObjectTypeId:nil andObjectInstanceId:nil];
   [[Teak sharedInstance] trackEventWithActionId:@"test2" forObjectTypeId:nil andObjectInstanceId:nil];*/
   //[[Teak sharedInstance] setNumericAttribute:(drand48() * DBL_MAX) forKey:@"coins"];
-  [[Teak sharedInstance] setStringAttribute:@"asshole_cats" forKey:@"last_slot"];
-  [[Teak sharedInstance] incrementEventWithActionId:@"spin" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:1];
-  [[Teak sharedInstance] incrementEventWithActionId:@"coin_sink" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:50000];
+//  [[Teak sharedInstance] setStringAttribute:@"asshole_cats" forKey:@"last_slot"];
+//  [[Teak sharedInstance] incrementEventWithActionId:@"spin" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:1];
+//  [[Teak sharedInstance] incrementEventWithActionId:@"coin_sink" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:50000];
+  [[Teak sharedInstance] setState:TeakChannelStateAvailable forChannel:TeakChannelTypePush];
   //TeakReportTestException();
   return;
 
