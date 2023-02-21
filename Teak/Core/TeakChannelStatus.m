@@ -6,7 +6,9 @@ NSString* _Nonnull const TeakChannelStateOptIn = @"opt_in";
 NSString* _Nonnull const TeakChannelStateAbsent = @"absent";
 NSString* _Nonnull const TeakChannelStateUnknown = @"unknown";
 
-NSString* _Nonnull const TeakChannelTypePush = @"push";
+NSString* _Nonnull const TeakChannelTypeMobilePush = @"push";
+NSString* _Nonnull const TeakChannelTypeDesktopPush = @"desktop_push";
+NSString* _Nonnull const TeakChannelTypePlatformPush = @"platform_push";
 NSString* _Nonnull const TeakChannelTypeEmail = @"email";
 NSString* _Nonnull const TeakChannelTypeSms = @"sms";
 NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";

@@ -107,7 +107,9 @@ extern NSString* _Nonnull const TeakChannelStateOptIn;
 extern NSString* _Nonnull const TeakChannelStateAbsent;
 extern NSString* _Nonnull const TeakChannelStateUnknown;
 
-extern NSString* _Nonnull const TeakChannelTypePush;
+extern NSString* _Nonnull const TeakChannelTypeMobilePush;
+extern NSString* _Nonnull const TeakChannelTypeDesktopPush;
+extern NSString* _Nonnull const TeakChannelTypePlatformPush;
 extern NSString* _Nonnull const TeakChannelTypeEmail;
 extern NSString* _Nonnull const TeakChannelTypeSms;
 extern NSString* _Nonnull const TeakChannelTypeUnknown;
