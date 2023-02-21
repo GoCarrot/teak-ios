@@ -204,4 +204,8 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
   return NO;
 }
 
-
+TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channelCstr) {
+  NSString* state = [NSString stringWithUTF8String:stateCstr];
+  NSString* channel = [NSString stringWithUTF8String:channelCstr];
+  return [[Teak sharedInstance] setState:state forChannel:channel];
+}
