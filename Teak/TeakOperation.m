@@ -15,6 +15,14 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
 @end
 
 @implementation TeakOperationChannelStateResult
+- (nonnull NSDictionary*)toDictionary {
+  return @{
+    @"error" : self.error ? @"true" : @"false",
+    @"state" : self.state,
+    @"channel" : self.channel,
+    @"errors" : self.errors == nil ? [NSNull null] : self.errors
+  };
+}
 @end
 
 @implementation TeakOperation

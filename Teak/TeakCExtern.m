@@ -209,3 +209,7 @@ TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channel
   NSString* channel = [NSString stringWithUTF8String:channelCstr];
   return [[Teak sharedInstance] setState:state forChannel:channel];
 }
+
+NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation) {
+  return [[operation result] toDictionary];
+}

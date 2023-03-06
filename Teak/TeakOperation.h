@@ -5,6 +5,8 @@
 @property (strong, nonatomic, readonly) NSString* _Nonnull state;
 @property (strong, nonatomic, readonly) NSString* _Nonnull channel;
 @property (strong, nonatomic, readonly) NSDictionary* _Nullable errors;
+
+- (nonnull NSDictionary*)toDictionary;
 @end
 
 @interface TeakOperation : NSInvocationOperation
