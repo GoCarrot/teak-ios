@@ -213,3 +213,7 @@ TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channel
 NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation) {
   return [[operation result] toDictionary];
 }
+
+void TeakAddOperationToQueue(NSOperation* op) {
+  [[Teak sharedInstance].operationQueue addOperation:op];
+}
