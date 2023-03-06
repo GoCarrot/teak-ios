@@ -761,7 +761,9 @@ Teak* _teakSharedInstance;
 }
 
 - (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel {
-  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state" withPayload:@{@"channel" : channel, @"state" :state}];
+  // If "PlatformPush" is requested , this is iOS; so it's MobilePush
+  channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state" withPayload:@{@"channel" : channel, @"state" : state}];
   [self.operationQueue addOperation:op];
   return op;
 }
