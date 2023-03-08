@@ -438,7 +438,13 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
           withCompletionHandler:(nonnull void (^)(UNNotificationPresentationOptions))completionHandler;
 
 /**
- * asdf
+ * Assign the opt-out state to a Teak Marketing Channel.
+ *
+ * @note You may only assign the values ``TeakChannelStateOptOut`` and ``TeakChannelStateAvailable`` to Push Channels; OptIn is not allowed.
+ *
+ * @param state     The state to assign to the channel.
+ * @param channel The channel for which the opt-out state is being assigned.
+ * @return A TeakOperation which contains the status and result of the call.
  */
 - (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel;
 
