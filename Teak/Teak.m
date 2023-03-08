@@ -223,6 +223,18 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic pop
 }
 
+- (BOOL)openNotificationSettings {
+  if (@available(iOS 15.4, *)) {
+    NSURL* url = [[NSURL alloc] initWithString:UIApplicationOpenNotificationSettingsURLString];
+    [[UIApplication sharedApplication] openURL:url
+                                       options:@{}
+                             completionHandler:nil];
+    return YES;
+  } else {
+    return NO;
+  }
+}
+
 - (void)setApplicationBadgeNumber:(int)count {
   TeakLog_t(@"[Teak setApplicationBadgeNumber]", @{@"count" : [NSNumber numberWithInt:count]});
 

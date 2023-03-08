@@ -343,6 +343,15 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (BOOL)openSettingsAppToThisAppsSettings;
 
 /**
+ * Open Settings.app to the notification settings for this application.
+ *
+ * @note This is only available on iOS 15.4 and greater, it will return NO on incompatible versions of iOS.
+ *
+ * @return                YES if Settings.app was opened.
+ */
+- (BOOL)openNotificationSettings;
+
+/**
  * Set the badge number on the icon of the application.
  *
  * @param count           The number that should be displayed on the icon.

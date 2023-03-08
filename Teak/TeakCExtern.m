@@ -110,6 +110,10 @@ BOOL TeakOpenSettingsAppToThisAppsSettings(void) {
   return [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
 }
 
+BOOL TeakOpenNotificationSettings(void) {
+  return [[Teak sharedInstance] openNotificationSettings];
+}
+
 int TeakGetNotificationState(void) {
   return [[Teak sharedInstance] notificationState];
 }
