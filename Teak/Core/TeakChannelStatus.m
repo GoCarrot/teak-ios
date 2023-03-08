@@ -57,7 +57,7 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
   if (dictionary == nil) return [TeakChannelStatus unknown];
 
   return [[TeakChannelStatus alloc] initWithState:dictionary[@"state"]
-                                  hasDeliveryFault:[dictionary[@"delivery_fault"] boolValue]];
+                                 hasDeliveryFault:[dictionary[@"delivery_fault"] boolValue]];
 }
 
 - (NSDictionary*)toDictionary {

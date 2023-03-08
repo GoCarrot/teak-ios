@@ -127,8 +127,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 #import <Teak/TeakNotification.h>
 #import <Teak/TeakNotificationServiceCore.h>
 #import <Teak/TeakNotificationViewControllerCore.h>
-#import <Teak/TeakUserConfiguration.h>
 #import <Teak/TeakOperation.h>
+#import <Teak/TeakUserConfiguration.h>
 #import <UIKit/UIKit.h>
 
 /**

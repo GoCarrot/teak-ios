@@ -1,6 +1,6 @@
 #import "TeakOperation.h"
-#import "TeakSession.h"
 #import "TeakRequest.h"
+#import "TeakSession.h"
 
 const static NSString* const kEndpoint = @"endpoint";
 const static NSString* const kPayload = @"payload";
@@ -36,10 +36,10 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
 }
 
 - (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload {
-  
+
   // TODO: Put any pre-send validation here
-  
-  self = [self initWithTarget:self selector:@selector(performRequest:) object:@{ kEndpoint : endpoint, kPayload : payload }];
+
+  self = [self initWithTarget:self selector:@selector(performRequest:) object:@{kEndpoint : endpoint, kPayload : payload}];
   return self;
 }
 

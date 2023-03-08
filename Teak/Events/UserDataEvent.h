@@ -1,5 +1,5 @@
-#import "TeakEvent.h"
 #import "TeakChannelStatus.h"
+#import "TeakEvent.h"
 
 @interface UserDataEvent : TeakEvent
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull additionalData;
