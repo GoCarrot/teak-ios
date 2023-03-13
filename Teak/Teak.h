@@ -336,11 +336,27 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (TeakNotificationState)notificationState;
 
 /**
+ * Can Settings.app be opened to the settings for this application.
+ *
+ * @note This is YES for all versions of iOS.
+ *
+ * @return                YES if Settings.app can be opened to the settings for this application.
+ */
+- (BOOL)canOpenSettingsAppToThisAppsSettings;
+
+/**
  * Open Settings.app to the settings for this application.
  *
  * @return                YES if Settings.app was opened.
  */
 - (BOOL)openSettingsAppToThisAppsSettings;
+
+/**
+ * Open can Settings.app be opened to the notification settings for this application.
+ *
+ * @return                YES if Settings.app can be opened to the notification settings for this application.
+ */
+- (BOOL)canOpenNotificationSettings;
 
 /**
  * Open Settings.app to the notification settings for this application.

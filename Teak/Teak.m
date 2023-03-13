@@ -217,12 +217,24 @@ Teak* _teakSharedInstance;
   return TeakNotificationStateUnknown;
 }
 
+- (BOOL)canOpenSettingsAppToThisAppsSettings {
+  return YES;
+}
+
 - (BOOL)openSettingsAppToThisAppsSettings {
   TeakLog_t(@"[Teak openSettingsAppToThisAppsSettings]", @{});
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 #pragma clang diagnostic pop
+}
+
+- (BOOL)canOpenNotificationSettings {
+  if (@available(iOS 15.4, *)) {
+    return YES;
+  } else {
+    return NO;
+  }
 }
 
 - (BOOL)openNotificationSettings {

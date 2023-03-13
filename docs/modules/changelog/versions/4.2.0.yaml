@@ -4,3 +4,5 @@ breaking:
 new:
   - "``<<handleDeepLinkPath:>>`` lets you manually resolve a deep link path, e.g. /foo/bar?fizz=buzz"
   - Adds ``pushRegistration`` to UserDataEvent
+  - "``<<canOpenNotificationSettings>>`` and ``<<openNotificationSettings>>`` to allow users to open the settings app directly to the notification settings for their app"
+  - "``<<canOpenSettingsAppToThisAppsSettings>>`` added"
