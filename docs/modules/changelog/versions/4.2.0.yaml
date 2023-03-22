@@ -4,5 +4,6 @@ breaking:
 new:
   - "``<<handleDeepLinkPath:>>`` lets you manually resolve a deep link path, e.g. /foo/bar?fizz=buzz"
   - Adds ``pushRegistration`` to UserDataEvent
+  - "``<<setState:forChannel:>>has been added to let users opt in/out of Teak marketing channels"
   - "``<<canOpenNotificationSettings>>`` and ``<<openNotificationSettings>>`` to allow users to open the settings app directly to the notification settings for their app"
   - "``<<canOpenSettingsAppToThisAppsSettings>>`` added"
