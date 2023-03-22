@@ -7,3 +7,4 @@ new:
   - "``<<setState:forChannel:>>has been added to let users opt in/out of Teak marketing channels"
   - "``<<canOpenNotificationSettings>>`` and ``<<openNotificationSettings>>`` to allow users to open the settings app directly to the notification settings for their app"
   - "``<<canOpenSettingsAppToThisAppsSettings>>`` added"
+  - "``<<deleteEmail>>`` added"
