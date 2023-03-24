@@ -239,7 +239,8 @@ Teak* _teakSharedInstance;
 
 - (BOOL)openNotificationSettings {
   if (@available(iOS 15.4, *)) {
-    NSURL* url = [[NSURL alloc] initWithString:UIApplicationOpenNotificationSettingsURLString];
+    // UIApplicationOpenNotificationSettingsURLString = @"app-settings:notifications"
+    NSURL* url = [[NSURL alloc] initWithString:@"app-settings:notifications"];
     [[UIApplication sharedApplication] openURL:url
                                        options:@{}
                              completionHandler:nil];
