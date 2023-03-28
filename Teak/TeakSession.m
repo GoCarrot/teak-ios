@@ -10,12 +10,17 @@
 #import "TeakRequest.h"
 #import "TeakReward.h"
 #import "TeakUserProfile.h"
+#import "UserDataEvent.h"
 #import "UserIdEvent.h"
 
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
+
+NSString* const TeakOptedIn = @"opted_in";
+NSString* const TeakOptedOut = @"opted_out";
+NSString* const TeakAvailable = @"available";
 
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
@@ -39,6 +44,12 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
+
+@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
+@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
+@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
+
+@property (strong, nonatomic, readwrite) NSDictionary* additionalData;
 
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
@@ -257,6 +268,7 @@ DefineTeakState(Expired, (@[]));
     TeakRequest* request = [TeakRequest requestWithSession:self
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/users.json", self.appConfiguration.appId]
                                                withPayload:payload
+                                                    method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     __strong typeof(self) blockSelf = weakSelf;
 
@@ -278,7 +290,7 @@ DefineTeakState(Expired, (@[]));
                                                       NSURL* url = [NSURL URLWithString:deepLink];
                                                       if (url && blockSelf.launchDataOperation != nil) {
                                                         NSString* payloadLaunchLink = payload[@"launch_link"];
-                                                        NSURL* launchLink = payloadLaunchLink == nil || payloadLaunchLink == [NSNull null] ? nil : [NSURL URLWithString:payloadLaunchLink];
+                                                        NSURL* launchLink = payloadLaunchLink == nil || payloadLaunchLink == ((NSString*)[NSNull null]) ? nil : [NSURL URLWithString:payloadLaunchLink];
                                                         blockSelf.launchDataOperation = [blockSelf.launchDataOperation updateDeepLink:url withLaunchLink:launchLink];
                                                       }
                                                       TeakLog_i(@"deep_link.processed", deepLink);
@@ -286,10 +298,19 @@ DefineTeakState(Expired, (@[]));
 
                                                     // Additional data
                                                     if (reply[@"additional_data"]) {
-                                                      NSDictionary* additionalData = reply[@"additional_data"];
-                                                      TeakLog_i(@"additional_data.received", additionalData);
-                                                      [AdditionalDataEvent additionalDataReceived:additionalData];
+                                                      blockSelf.additionalData = reply[@"additional_data"];
+                                                      TeakLog_i(@"additional_data.received", blockSelf.additionalData);
+                                                      [AdditionalDataEvent additionalDataReceived:blockSelf.additionalData];
                                                     }
+
+                                                    // Opt Out State
+                                                    if (reply[@"opt_out_states"]) {
+                                                      blockSelf.emailStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"email"]];
+                                                      blockSelf.pushStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"push"]];
+                                                      blockSelf.smsStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"sms"]];
+                                                    }
+
+                                                    [blockSelf dispatchUserDataEvent];
 
                                                     // Assign new state
                                                     // Prevent warning for 'do_not_track_event'
@@ -306,7 +327,8 @@ DefineTeakState(Expired, (@[]));
 
 - (void)sendHeartbeat {
   NSString* urlString = [NSString stringWithFormat:
-                                      @"https://iroko.gocarrot.com/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
+                                      @"https://iroko.%@/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
+                                      kTeakHostname,
                                       URLEscapedString(self.appConfiguration.appId),
                                       URLEscapedString(self.userId),
                                       URLEscapedString([Teak sharedInstance].sdkVersion),
@@ -345,6 +367,10 @@ DefineTeakState(Expired, (@[]));
     CFRelease(theUUID);
     self.sessionId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
     CFRelease(string);
+
+    self.emailStatus = [TeakChannelStatus unknown];
+    self.pushStatus = [TeakChannelStatus unknown];
+    self.smsStatus = [TeakChannelStatus unknown];
 
     RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
     RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -495,7 +521,7 @@ DefineTeakState(Expired, (@[]));
       }
 
       BOOL needsIdentifyUser = (currentSession.currentState == [TeakSession Configured]);
-#define NEEDS_UPDATE(x, str) (x == [NSNull null] || ![x isEqualToString:str])
+#define NEEDS_UPDATE(x, str) (x == (NSString*)[NSNull null] || ![x isEqualToString:str])
 #define CURRENT_SESSION_STATE_IS_IDENTIFIED (currentSession.currentState == [TeakSession IdentifyingUser] || currentSession.currentState == [TeakSession UserIdentified])
       if (NEEDS_UPDATE(currentSession.email, email) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
@@ -766,6 +792,32 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       // TODO: Report Session to server, once we collect that info.
     }
   }
+}
+
+- (void)dispatchUserDataEvent {
+  @synchronized(self) {
+    TeakDataCollectionConfiguration* dataCollectionConfiguration = [[TeakConfiguration configuration] dataCollectionConfiguration];
+
+    NSDictionary* pushRegistration = (NSDictionary*)[NSNull null];
+    if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+      pushRegistration = @{
+        @"apns" : self.deviceConfiguration.pushToken
+      };
+    }
+    [UserDataEvent userDataReceived:self.additionalData
+                        emailStatus:self.emailStatus
+                         pushStatus:self.pushStatus
+                          smsStatus:self.smsStatus
+                   pushRegistration:pushRegistration];
+  }
+}
+
+- (void)optOutPushPreference:(NSString*)optOut {
+  // TODO: The thing
+}
+
+- (void)optOutEmailPreference:(NSString*)optOut {
+  // TODO: The thing
 }
 
 KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, advertisingIdentifier) {

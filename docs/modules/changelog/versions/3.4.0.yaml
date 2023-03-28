@@ -1,0 +1,6 @@
+breaking:
+  - SDK is now built using Xcode 11.3.1
+new:
+  - Added ``TeakLaunchedFromLink`` event
+bug:
+  - Fixed crash if ``CFBundleShortVersionString`` or ``CFBundleVersion`` were nil

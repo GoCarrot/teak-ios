@@ -1,0 +1,2 @@
+bug:
+  - Fixes form encode of ``[NSNull null]`` and ``nil``

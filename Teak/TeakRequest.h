@@ -3,6 +3,9 @@
 @class TeakRequest;
 @class TeakSession;
 
+extern NSString* _Nonnull const TeakRequest_POST;
+extern NSString* _Nonnull const TeakRequest_DELETE;
+
 typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 
 @interface TeakBatchConfiguration : NSObject
@@ -26,9 +29,11 @@ typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 @property (strong, nonatomic, readonly) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readonly) BOOL blackhole;
 
-+ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback;
-+ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback;
-- (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
+@property (strong, nonatomic, readonly) NSString* _Nonnull method;
+
++ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback;
++ (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback;
+- (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 
 - (void)send;
 - (NSDictionary* _Nonnull)to_h;

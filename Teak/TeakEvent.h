@@ -16,6 +16,7 @@ typedef enum {
   FacebookAccessToken,
   RemoteConfigurationReady,
   AdditionalData,
+  UserData,
   Logout
 } TeakEventType;
 

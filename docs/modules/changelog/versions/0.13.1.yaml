@@ -1,0 +1,5 @@
+new:
+  - Media-push supported, basic image/gif only
+bug:
+  - Hotfix from 0.12.9 integrated
+  - Internal system re-write

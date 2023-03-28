@@ -1,14 +1,15 @@
 version: 2.1
 
 orbs:
-  teak: teak/sdk-utils@0.0.10
+  teak: teak/sdk-utils@1
+  buildomat: teak/buildomat@0.1
 
 jobs:
   test:
     parameters:
       xcode-version:
         type: string
-        default: "12.0.1"
+        default: "13.4.1"
     macos:
       xcode: << parameters.xcode-version >>
     shell: /bin/bash --login -eo pipefail
@@ -27,7 +28,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "12.0.1"
+        default: "13.4.1"
     macos:
       xcode: << parameters.xcode-version >>
     shell: /bin/bash --login -eo pipefail
@@ -56,22 +57,25 @@ jobs:
 
   tag_build:
     docker:
-      - image: circleci/ruby:latest
+      - image: cimg/ruby:3.1
     steps:
       - checkout
       - teak/tag-promote
 
   deploy_versioned:
     docker:
-      - image: circleci/ruby:latest
+      - image: cimg/ruby:3.1
     steps:
       - checkout
       - run: git fetch --tags
       - run:
           name: Install AWS CLI
-          command: sudo apt-get -y -qq install awscli
+          command: |
+            sudo apt-get update
+            sudo apt-get -y -qq install awscli
       - attach_workspace:
           at: workspace/
+      - buildomat/aws-oidc-assume
       - run:
           name: Upload SDK to S3
           command: |
@@ -85,15 +89,18 @@ jobs:
 
   deploy_latest:
     docker:
-      - image: circleci/ruby:latest
+      - image: cimg/ruby:3.1
     steps:
       - checkout
       - run: git fetch --tags
       - run:
           name: Install AWS CLI
-          command: sudo apt-get -y -qq install awscli
+          command: |
+            sudo apt-get update
+            sudo apt-get -y -qq install awscli
       - attach_workspace:
           at: workspace/
+      - buildomat/aws-oidc-assume
       - run:
           name: Upload SDK to S3
           command: |
@@ -117,30 +124,42 @@ workflows:
               only:
                 - develop
     jobs:
-      - test
-      - build
+      - test:
+          context:
+            - iOS-Build
+      - build:
+          context:
+            - iOS-Build
 
-  # nightly-latest:
-  #   triggers:
-  #     - schedule:
-  #         cron: "0 0 * * 1-5"
-  #         filters:
-  #           branches:
-  #             only:
-  #               - master
-  #   jobs:
-  #     - test:
-  #         xcode-version: "13.0.0"
-  #     - build:
-  #         xcode-version: "13.0.0"
+  nightly-latest:
+    triggers:
+      - schedule:
+          cron: "0 0 * * 1-5"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - test:
+          context:
+            - iOS-Build
+          xcode-version: "13.4.1"
+      - build:
+          context:
+            - iOS-Build
+          xcode-version: "13.4.1"
 
   un-tagged-build:
     jobs:
       - test:
+          context:
+            - iOS-Build
           filters:
             tags:
               ignore: /.*/
       - build:
+          context:
+            - iOS-Build
           filters:
             tags:
               ignore: /.*/
@@ -154,18 +173,24 @@ workflows:
   tagged-build:
     jobs:
       - test:
+          context:
+            - iOS-Build
           filters:
             branches:
               ignore: /.*/
             tags:
               only: /.*/
       - build:
+          context:
+            - iOS-Build
           filters:
             branches:
               ignore: /.*/
             tags:
               only: /.*/
       - deploy_versioned:
+          context:
+            - AWS-OIDC-Role
           requires:
             - build
           filters:
@@ -183,6 +208,8 @@ workflows:
             tags:
               only: /.*/
       - deploy_latest:
+          context:
+            - AWS-OIDC-Role
           requires:
             - hold
           filters:
@@ -216,3 +243,25 @@ commands:
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
+  #
+  # Trigger a playbook build
+  #
+  build_antora_playbook:
+    description: "Build Teak Docs"
+    parameters:
+      build_type:
+        type: enum
+        default: "development"
+        enum: ["development", "production"]
+    steps:
+      - run:
+          name: Trigger Antora Playbook Build
+          command: |
+            curl --location --request POST 'https://circleci.com/api/v2/project/github/GoCarrot/antora-ui-teak/pipeline' \
+            --header 'Content-Type: application/json' \
+            -u "${CIRCLE_API_TOKEN}" \
+            -d '{
+              "parameters": {
+                "build_type": "<< parameters.build_type >>"
+              }
+            }'

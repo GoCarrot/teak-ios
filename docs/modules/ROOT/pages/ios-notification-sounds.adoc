@@ -1,0 +1,60 @@
+= Custom iOS Notification Sounds
+
+On iOS, a notification can play a custom sound. The setup involves two basic steps: 
+
+. A developer adds the sound file to the application bundle.
+. The sound's filename is entered in the iOS notification content in the Teak dashboard.
+
+== Audio Requirements
+
+iOS has https://developer.apple.com/documentation/usernotifications/unnotificationsound[specific requirements, window=_blank] for audio files that are played for notifications:
+
+* Packaged as an aiff, wav, or caf file
+* Encoded as Linear PCM, MA4 (IMA/ADPCM), µLaw, or aLaw
+* Must be less than 30 second in length
+
+If there are issues with the sound file, the default system sound will be played. See the https://developer.apple.com/documentation/usernotifications/unnotificationsound[Apple's iOS notification docs, window=_blank] for more information.
+
+== Add the sound file to your bundle
+
+[.float-group]
+--
+
+[.right]
+.Airhorn in Xcode
+image::sound-file-in-xcode.png[Xcode screenshot, 200px, role="thumb, right"]
+
+The sound file must exist in the right place in your game build for iOS to play it. How to you put the sound file in the right place will depend on your build process.
+
+iOS will look for the sound file in 3 places:
+
+* The /Library/Sounds directory of the app’s container directory.
+* The /Library/Sounds directory of one of the app’s shared group container directories.
+* The main bundle of the current executable.
+
+The simplest location is to put it in the root of your app bundle (See Xcode screenshot).
+
+--
+
+== Add it to your notification content
+
+[.float-group]
+--
+
+[.right]
+.Airhorn in Teak
+image::sound-file-in-teak.png[Teak screenshot, 200px, role="thumb, right"]
+
+Enter the filename, including the file extension, as a custom sound in the notification content.
+
+In the Teak dashboard, create or edit a notification and navigate to the *iOS content*.
+
+. Click the "Show Advanced Options" link to reveal the sound option.
+. Select, "Custom," in the dropdown.
+. Enter the sound filename, including the file extension, in the text field.
+
+Save your content and send it to a preview to your device to test if it's working.
+
+--
+
+WARNING: Do not use the link:{attachmentsdir}/dj-airhorn-sound.wav[DJ Airhorn, window=_blank] sound for your notifications. Our internal testing has shown that it is very annoying.

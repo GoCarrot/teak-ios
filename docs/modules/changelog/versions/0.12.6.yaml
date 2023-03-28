@@ -1,0 +1,4 @@
+bug:
+  - Fix parameter checking logic bug in trackEvent
+  - Reduce memory usage via shared ``NSURLSessions``
+  - Fix duplicate ``identifyUser`` call

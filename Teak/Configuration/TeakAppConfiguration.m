@@ -72,11 +72,13 @@ BOOL Teak_isProductionBuild(void) {
 #define kTeakSDK5Behaviors @"TeakSDK5Behaviors"
 #define kTeakDoNotRefreshPushToken @"TeakDoNotRefreshPushToken"
 
-#define IS_FEATURE_ENABLED(_feature) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? NO : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
+#define IS_FEATURE_ENABLED_DEFAULT(_feature, _default) ([[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] == nil) ? _default : [[[[NSBundle mainBundle] infoDictionary] objectForKey:_feature] boolValue]
+#define IS_FEATURE_ENABLED(_feature) IS_FEATURE_ENABLED_DEFAULT(_feature, NO)
     self.traceLog = IS_FEATURE_ENABLED(kTeakLogTrace);
-    self.sdk5Behaviors = IS_FEATURE_ENABLED(kTeakSDK5Behaviors);
+    self.sdk5Behaviors = IS_FEATURE_ENABLED_DEFAULT(kTeakSDK5Behaviors, YES);
     self.doNotRefreshPushToken = IS_FEATURE_ENABLED(kTeakDoNotRefreshPushToken);
 #undef IS_FEATURE_ENABLED
+#undef IS_FEATURE_ENABLED_DEFAULT
   }
   return self;
 }

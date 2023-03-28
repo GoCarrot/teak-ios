@@ -15,7 +15,10 @@ void TeakIdentifyUser(const char* userId, const char* userConfigurationJson) {
       NSDictionary* configurationDict = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
       userConfiguration.email = configurationDict[@"email"];
       userConfiguration.facebookId = configurationDict[@"facebook_id"];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
       userConfiguration.optOutFacebook = [configurationDict[@"opt_out_facebook"] boolValue];
+#pragma clang diagnostic pop
       userConfiguration.optOutIdfa = [configurationDict[@"opt_out_idfa"] boolValue];
       userConfiguration.optOutPushKey = [configurationDict[@"opt_out_push_key"] boolValue];
     } @catch (NSException* ignored) {
@@ -28,6 +31,10 @@ void TeakIdentifyUser(const char* userId, const char* userConfigurationJson) {
 
 void TeakLogout(void) {
   [[Teak sharedInstance] logout];
+}
+
+void TeakDeleteEmail(void) {
+  [[Teak sharedInstance] deleteEmail];
 }
 
 void TeakRefreshPushTokenIfAuthorized(void) {
@@ -103,6 +110,18 @@ BOOL TeakOpenSettingsAppToThisAppsSettings(void) {
   return [[Teak sharedInstance] openSettingsAppToThisAppsSettings];
 }
 
+BOOL TeakCanOpenSettingsAppToThisAppsSettings(void) {
+  return [[Teak sharedInstance] canOpenSettingsAppToThisAppsSettings];
+}
+
+BOOL TeakCanOpenNotificationSettings(void) {
+  return [[Teak sharedInstance] canOpenNotificationSettings];
+}
+
+BOOL TeakOpenNotificationSettings(void) {
+  return [[Teak sharedInstance] openNotificationSettings];
+}
+
 int TeakGetNotificationState(void) {
   return [[Teak sharedInstance] notificationState];
 }
@@ -140,6 +159,11 @@ void TeakReportTestException(void) {
 
 void TeakSetLogListener(TeakLogListener listener) {
   [[Teak sharedInstance] setLogListener:listener];
+}
+
+BOOL TeakHandleDeepLinkPath(const char* pathAsCStr) {
+  NSString* path = [NSString stringWithUTF8String:pathAsCStr];
+  return [[Teak sharedInstance] handleDeepLinkPath:path];
 }
 
 BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
@@ -190,4 +214,18 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
 
   // Should never get here
   return NO;
+}
+
+TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channelCstr) {
+  NSString* state = [NSString stringWithUTF8String:stateCstr];
+  NSString* channel = [NSString stringWithUTF8String:channelCstr];
+  return [[Teak sharedInstance] setState:state forChannel:channel];
+}
+
+NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation) {
+  return [[operation result] toDictionary];
+}
+
+void TeakAddOperationToQueue(NSOperation* op) {
+  [[Teak sharedInstance].operationQueue addOperation:op];
 }

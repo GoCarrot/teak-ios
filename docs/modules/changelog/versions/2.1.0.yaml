@@ -1,0 +1,6 @@
+new:
+  - Support ``trackEvent`` for Adobe AIR
+  - Added ``[Teak incrementEventWithActionId:forObjectTypeId:andObjectInstanceId:count:]``
+bug:
+  - Properly handle deep links with '?' or '#' in a URL path element
+  - Fixed corner case bug where deep links would get evaluated before the host app was ready for them

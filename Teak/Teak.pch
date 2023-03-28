@@ -13,6 +13,8 @@ extern BOOL TeakBoolFor(id object);
 extern NSString* TeakHexStringFromData(NSData* data);
 extern NSDictionary* TeakGetQueryParameterDictionaryFromUrl(NSURL* url);
 
+#define kTeakHostname @"gocarrot.com"
+
 #define TeakUnused(_param) ((void)_param)
 #define TeakUnusedKVOValues TeakUnused(oldValue); TeakUnused(newValue);
 #define URLEscapedString(_inString) TeakURLEscapedString(_inString)

@@ -112,6 +112,7 @@
     TeakRequest* request = [TeakRequest requestWithSession:session
                                                forEndpoint:@"/me/local_notify"
                                                withPayload:payload
+                                                    method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     ret.status = reply[@"status"];
                                                     if ([ret.status isEqualToString:@"ok"]) {
@@ -173,6 +174,7 @@
     TeakRequest* request = [TeakRequest requestWithSession:session
                                                forEndpoint:@"/me/long_distance_notify"
                                                withPayload:payload
+                                                    method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     ret.status = reply[@"status"];
                                                     if ([ret.status isEqualToString:@"ok"]) {
@@ -218,6 +220,7 @@
     TeakRequest* request = [TeakRequest requestWithSession:session
                                                forEndpoint:@"/me/cancel_local_notify"
                                                withPayload:@{@"id" : scheduleIdCopy}
+                                                    method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     ret.status = reply[@"status"];
                                                     if ([ret.status isEqualToString:@"ok"]) {
@@ -244,6 +247,7 @@
     TeakRequest* request = [TeakRequest requestWithSession:session
         forEndpoint:@"/me/cancel_all_local_notifications"
         withPayload:@{}
+        method:TeakRequest_POST
         callback:^(NSDictionary* reply) {
           ret.status = reply[@"status"];
 

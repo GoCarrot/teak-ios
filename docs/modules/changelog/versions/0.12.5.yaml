@@ -1,0 +1,4 @@
+new:
+  - "``TeakVersionDict`` exposed"
+bug:
+  - Bogus JSON from server could cause a nil dictionary to get sent to nonnull.

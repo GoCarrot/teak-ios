@@ -17,6 +17,8 @@
 #import <Teak/Teak.h>
 
 extern void TeakReportTestException(void);
+extern NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation);
+extern void TeakAddOperationToQueue(NSOperation* op);
 
 @import StoreKit;
 
@@ -50,9 +52,18 @@ extern void TeakReportTestException(void);
   [[Teak sharedInstance] trackEventWithActionId:@"test1" forObjectTypeId:nil andObjectInstanceId:nil];
   [[Teak sharedInstance] trackEventWithActionId:@"test2" forObjectTypeId:nil andObjectInstanceId:nil];*/
   //[[Teak sharedInstance] setNumericAttribute:(drand48() * DBL_MAX) forKey:@"coins"];
-  [[Teak sharedInstance] setStringAttribute:@"asshole_cats" forKey:@"last_slot"];
-  [[Teak sharedInstance] incrementEventWithActionId:@"spin" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:1];
-  [[Teak sharedInstance] incrementEventWithActionId:@"coin_sink" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:50000];
+  //  [[Teak sharedInstance] setStringAttribute:@"asshole_cats" forKey:@"last_slot"];
+  //  [[Teak sharedInstance] incrementEventWithActionId:@"spin" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:1];
+  //  [[Teak sharedInstance] incrementEventWithActionId:@"coin_sink" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:50000];
+  [[Teak sharedInstance] openNotificationSettings];
+  return;
+
+  TeakOperation* op = [[Teak sharedInstance] setState:TeakChannelStateAvailable forChannel:TeakChannelTypePlatformPush];
+  NSBlockOperation* whenDone = [NSBlockOperation blockOperationWithBlock:^{
+    NSLog(@"DONE: %@", TeakOperationGetResultAsDictionary(op));
+  }];
+  [whenDone addDependency:op];
+  TeakAddOperationToQueue(whenDone);
   //TeakReportTestException();
   return;
 

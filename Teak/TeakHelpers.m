@@ -46,10 +46,10 @@ NSString* TeakHexStringFromData(NSData* data) {
 
 ///// Assign NSDictionary into 'application/json' request
 
-void TeakAssignPayloadToRequest(NSMutableURLRequest* request, NSDictionary* payload) {
+void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* request, NSDictionary* payload) {
   NSData* postData = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
 
-  [request setHTTPMethod:@"POST"];
+  [request setHTTPMethod:method];
   [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[postData length]] forHTTPHeaderField:@"Content-Length"];
   [request setHTTPBody:postData];
   [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];

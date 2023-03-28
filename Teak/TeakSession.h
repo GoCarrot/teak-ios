@@ -9,6 +9,11 @@
 @class TeakDeviceConfiguration;
 @class TeakRemoteConfiguration;
 @class TeakLaunchDataOperation;
+@class TeakChannelStatus;
+
+extern NSString* _Nonnull const TeakOptedIn;
+extern NSString* _Nonnull const TeakOptedOut;
+extern NSString* _Nonnull const TeakAvailable;
 
 typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 
@@ -22,6 +27,10 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
 @property (strong, nonatomic, readonly) TeakState* _Nonnull currentState;
 @property (strong, nonatomic, readonly) TeakUserProfile* _Nonnull userProfile;
+@property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull emailStatus;
+@property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull pushStatus;
+@property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull smsStatus;
+@property (strong, nonatomic, readonly) NSDictionary* _Nullable additionalData;
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);

@@ -185,9 +185,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   if ([self.teak enableRemoteLogging]) {
     NSString* urlString = nil;
     if (Teak_isProductionBuild()) {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/sdk.log.%@", logLevel];
+      urlString = [NSString stringWithFormat:@"https://logs.%@/sdk.log.%@", kTeakHostname, logLevel];
     } else {
-      urlString = [NSString stringWithFormat:@"https://logs.gocarrot.com/dev.sdk.log.%@", logLevel];
+      urlString = [NSString stringWithFormat:@"https://logs.%@/dev.sdk.log.%@", kTeakHostname, logLevel];
     }
     TeakLogSender* sender = [[TeakLogSender alloc] init];
     [sender sendData:jsonData toEndpoint:[NSURL URLWithString:urlString]];

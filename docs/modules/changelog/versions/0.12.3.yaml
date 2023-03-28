@@ -1,0 +1,2 @@
+bug:
+  - Fix incorrect conditional check during ``application:didReceiveRemoteNotification:fetchCompletionHandler:``

@@ -1,0 +1,5 @@
+new:
+  - "``TeakNotification`` now has a ``status`` field"
+  - Added ``[TeakNotification cancelAll]``
+bug:
+  - Fix for iOS 8 regex parsing

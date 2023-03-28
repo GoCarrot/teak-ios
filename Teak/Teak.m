@@ -35,12 +35,11 @@ NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
 NSString* const TeakAdditionalData = @"TeakAdditionalData";
 NSString* const TeakLaunchedFromLink = @"TeakLaunchedFromLink";
 NSString* const TeakPostLaunchSummary = @"TeakPostLaunchSummary";
+NSString* const TeakUserData = @"TeakUserData";
 
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
 NSString* const TeakOptOutFacebook = @"opt_out_facebook";
-
-NSString* const TeakHostname = @"gocarrot.com";
 
 // FB SDK 3.x
 NSString* const TeakFBSessionDidBecomeOpenActiveSessionNotification = @"com.facebook.sdk:FBSessionDidBecomeOpenActiveSessionNotification";
@@ -104,7 +103,12 @@ Teak* _teakSharedInstance;
 }
 
 - (void)identifyUser:(NSString*)userIdentifier {
-  [self identifyUser:userIdentifier withOptOutList:@[] andEmail:nil];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  [self identifyUser:userIdentifier
+      withOptOutList:@[]
+            andEmail:nil];
+#pragma clang diagnostic pop
 }
 
 - (void)identifyUser:(NSString*)userIdentifier withEmail:(nonnull NSString*)email {
@@ -213,12 +217,37 @@ Teak* _teakSharedInstance;
   return TeakNotificationStateUnknown;
 }
 
+- (BOOL)canOpenSettingsAppToThisAppsSettings {
+  return YES;
+}
+
 - (BOOL)openSettingsAppToThisAppsSettings {
   TeakLog_t(@"[Teak openSettingsAppToThisAppsSettings]", @{});
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
 #pragma clang diagnostic pop
+}
+
+- (BOOL)canOpenNotificationSettings {
+  if (@available(iOS 15.4, *)) {
+    return YES;
+  } else {
+    return NO;
+  }
+}
+
+- (BOOL)openNotificationSettings {
+  if (@available(iOS 15.4, *)) {
+    // UIApplicationOpenNotificationSettingsURLString = @"app-settings:notifications"
+    NSURL* url = [[NSURL alloc] initWithString:@"app-settings:notifications"];
+    [[UIApplication sharedApplication] openURL:url
+                                       options:@{}
+                             completionHandler:nil];
+    return YES;
+  } else {
+    return NO;
+  }
 }
 
 - (void)setApplicationBadgeNumber:(int)count {
@@ -395,6 +424,12 @@ Teak* _teakSharedInstance;
   if (tokenString != nil && tokenString != [NSNull null]) {
     [FacebookAccessTokenEvent accessTokenUpdated:tokenString];
   }
+}
+
+- (BOOL)handleDeepLinkPath:(NSString*)path {
+  TeakLog_t(@"[Teak handleDeepLinkPath]", @{@"path" : _(path)});
+  NSString* url = [NSString stringWithFormat:@"%@://%@", [TeakConfiguration configuration].appConfiguration.urlSchemes.allObjects[0], path];
+  return [TeakLink handleDeepLink:[NSURL URLWithString:url]];
 }
 
 - (BOOL)handleOpenURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication {
@@ -727,6 +762,20 @@ Teak* _teakSharedInstance;
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
 }
 
+- (void)deleteEmail {
+  TeakLog_t(@"[Teak deleteEmail]", @{});
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
+    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+      TeakRequest* request = [TeakRequest requestWithSession:session
+                                                 forEndpoint:@"/me/email"
+                                                 withPayload:@{}
+                                                      method:TeakRequest_DELETE
+                                                    callback:nil];
+      [request send];
+    }];
+  }];
+}
+
 + (BOOL)willPresentNotification:(UNNotification*)notification
           withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
   if ([Teak isTeakNotification:notification]) {
@@ -736,6 +785,14 @@ Teak* _teakSharedInstance;
     return YES;
   }
   return NO;
+}
+
+- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel {
+  // If "PlatformPush" is requested , this is iOS; so it's MobilePush
+  channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state" withPayload:@{@"channel" : channel, @"state" : state}];
+  [self.operationQueue addOperation:op];
+  return op;
 }
 
 // This method will be called whenever a taps on a notification

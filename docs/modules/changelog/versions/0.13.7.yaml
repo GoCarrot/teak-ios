@@ -1,0 +1,7 @@
+breaking:
+  - Now requires additional frameworks:
+    - "``ImageIO.framework``"
+new:
+  - Deploy ``Info.plist`` for ``TeakNotificationContent``
+bug:
+  - Animated GIFs now work properly in custom notification UI
