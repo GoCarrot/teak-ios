@@ -105,8 +105,15 @@
 
 - (void)configureForSession:(nonnull TeakSession*)session {
   NSBlockOperation* configOp = [NSBlockOperation blockOperationWithBlock:^{
+    NSString* locale = nil;
+    @try {
+      locale = [[NSLocale preferredLanguages] objectAtIndex:0];
+    } @catch (NSException* exception) {
+      locale = @"unknown";
+    }
     NSDictionary* payload = @{@"id" : session.appConfiguration.appId,
-                              @"deep_link_routes" : [TeakLink routeNamesAndDescriptions]};
+                              @"deep_link_routes" : [TeakLink routeNamesAndDescriptions],
+                              @"locale" : locale};
 
     TeakRequest* request = [TeakRequest requestWithSession:session
                                                forEndpoint:[NSString stringWithFormat:@"/games/%@/settings.json", session.appConfiguration.appId]
