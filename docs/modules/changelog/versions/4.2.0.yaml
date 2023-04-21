@@ -1,5 +1,5 @@
 breaking:
-  - Xcode 12.0.1 is now being used to build the Teak SDK.
+  - Xcode 13.4.1 is now being used to build the Teak SDK.
   - SDK 5 Behaviors now enabled by default (``TeakSDK5Behaviors``)
 new:
   - "``<<handleDeepLinkPath:>>`` lets you manually resolve a deep link path, e.g. /foo/bar?fizz=buzz"
