@@ -166,7 +166,7 @@ BOOL TeakHandleDeepLinkPath(const char* pathAsCStr) {
   return [[Teak sharedInstance] handleDeepLinkPath:path];
 }
 
-BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
+BOOL TeakRequestPushAuthorizationWithCallback(BOOL includeProvisional, void (*callback)(void*, BOOL, NSError*), void* context) {
   UIApplication* application = [UIApplication sharedApplication];
 
   // If provisional auth is requested, but this is not iOS 12+, bail out and return NO
@@ -174,6 +174,9 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
     if (@available(iOS 12.0, *)) {
       // The @available syntactic sugar does not allow negation
     } else {
+      if (callback != nil) {
+        callback(context, NO, [NSError errorWithDomain:@"teak" code:1 userInfo:@{@"description" : @"Provisional notifications requested but not supported"}]);
+      }
       return NO;
     }
   }
@@ -194,6 +197,10 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
                                 [application registerForRemoteNotifications];
                               });
                             }
+
+                            if (callback != nil) {
+                              callback(context, granted, error);
+                            }
                           }];
     return YES;
   } else if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
@@ -202,6 +209,9 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
     UIUserNotificationSettings* settings = [UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeAlert | UIUserNotificationTypeBadge | UIUserNotificationTypeSound) categories:nil];
     [application registerUserNotificationSettings:settings];
 #pragma clang diagnostic pop
+    if (callback != nil) {
+      callback(context, NO, [NSError errorWithDomain:@"teak" code:0 userInfo:@{@"description" : @"Deprecated version of iOS, callbacks not supported for this function."}]);
+    }
     return YES;
   } else {
 #pragma clang diagnostic push
@@ -209,11 +219,18 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
     UIRemoteNotificationType myTypes = UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeSound;
     [application registerForRemoteNotificationTypes:myTypes];
 #pragma clang diagnostic pop
+    if (callback != nil) {
+      callback(context, NO, [NSError errorWithDomain:@"teak" code:0 userInfo:@{@"description" : @"Deprecated version of iOS, callbacks not supported for this function."}]);
+    }
     return YES;
   }
 
   // Should never get here
   return NO;
+}
+
+BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
+  return TeakRequestPushAuthorizationWithCallback(includeProvisional, NULL, NULL);
 }
 
 TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channelCstr) {
