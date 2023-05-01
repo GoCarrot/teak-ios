@@ -18,8 +18,8 @@ const static NSString* const kPayload = @"payload";
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
   [ret addEntriesFromDictionary:@{
-      @"state" : self.state,
-      @"channel" : self.channel,
+    @"state" : self.state,
+    @"channel" : self.channel,
   }];
   return ret;
 }
@@ -39,7 +39,7 @@ const static NSString* const kPayload = @"payload";
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
   [ret addEntriesFromDictionary:@{
-      @"schedule_id" : self.scheduleId
+    @"schedule_ids" : self.scheduleIds
   }];
   return ret;
 }
@@ -51,6 +51,10 @@ const static NSString* const kPayload = @"payload";
 
 @implementation TeakOperation
 
++ (nonnull TeakOperation*)withResult:(nonnull id)result {
+  return [[TeakOperation alloc] initWithResult:result];
+}
+
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint {
   return [TeakOperation forEndpoint:endpoint withPayload:@{}];
 }
@@ -59,15 +63,20 @@ const static NSString* const kPayload = @"payload";
   return [TeakOperation forEndpoint:endpoint withPayload:@{} replyParser:nil];
 }
 
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable(NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
   return [TeakOperation forEndpoint:endpoint withPayload:@{} replyParser:replyParser];
 }
 
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable(NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
   return [[TeakOperation alloc] initForEndpoint:endpoint withPayload:payload replyParser:replyParser];
 }
 
-- (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
+- (id)initWithResult:(nonnull id)result {
+  self = [self initWithTarget:self selector:@selector(returnResult:) object:result];
+  return self;
+}
+
+- (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable(NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
 
   // TODO: Put any pre-send validation here
 
@@ -76,6 +85,10 @@ const static NSString* const kPayload = @"payload";
     self.replyParser = replyParser;
   }
   return self;
+}
+
+- (id)returnResult:(id)result {
+  return result;
 }
 
 - (id)performRequest:(id)requestParams {

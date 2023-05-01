@@ -1,11 +1,47 @@
 #import <Foundation/Foundation.h>
 
 @class TeakReward;
+@class TeakOperation;
 
 /**
- * The structure used to represent the results of a TeakNotification operation.
+ * Schedule notifications for the current player or other players to be delivered sometime in the future.
  */
 @interface TeakNotification : NSObject
+
+//
+
+//scheduleNotificationForCreative:toUserIds:secondsFromNow:userInfo:
+
+/**
+ * Schedule a notification for this user at a time in the future.
+ *
+ * @param creativeId The identifier of the notification in the Teak dashboard (will create if not found).
+ * @param delay            The delay in seconds from now to send the notification.
+ * @param userInfo     Optional dictionary of addiontal information which can be used for templating.
+ */
++ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay userInfo:(nullable NSDictionary*)userInfo;
+
+/**
+ * Schedules a push notification, to be delivered to other users, for some time in the future.
+ *
+ * @param creativeId The identifier of the notification in the Teak dashboard (will create if not found).
+ * @param userIds        A list of game-assigned user ids to deliver the notification to.
+ * @param delay            The delay in seconds from now to send the notification.
+ * @param userInfo     Optional dictionary of addiontal information which can be used for templating.
+ */
++ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId toUserIds:(nonnull NSArray*)userIds secondsFromNow:(int64_t)delay userInfo:(nullable NSDictionary*)userInfo;
+
+/**
+ * Cancel all notifications scheduled for the current player.
+ */
++ (nullable TeakOperation*)cancelAllScheduledNotifications;
+
+/**
+ * Cancel a previously scheduled push notification.
+ *
+ * @param scheduleId The schedule id of the notification to cancel.
+ */
++ (nullable TeakOperation*)cancelNotificationForScheduleId:(nonnull NSString*)scheduleId;
 
 /**
  * The identifier for the scheduled notification.
@@ -116,7 +152,7 @@
  * @param delay      The delay in seconds from now to send the notification.
  * @param userIds    A list of game-assigned user ids to deliver the notification to.
  */
-+ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds __deprecated_msg("Use scheduleNotificationForCreative:toUserIds:secondsFromNow:userInfo: instead");;
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds __deprecated_msg("Use scheduleNotificationForCreative:toUserIds:secondsFromNow:userInfo: instead");
 
 /**
  * Cancel a previously scheduled push notification.
