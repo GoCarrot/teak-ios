@@ -1,0 +1,2 @@
+new:
+- Added version of ``TeakRequestPushAuthorization`` that takes a callback
