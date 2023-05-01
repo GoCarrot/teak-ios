@@ -5,13 +5,6 @@
 const static NSString* const kEndpoint = @"endpoint";
 const static NSString* const kPayload = @"payload";
 
-id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
-
-@interface TeakOperationResult ()
-@property (nonatomic, readwrite) BOOL error;
-@property (strong, nonatomic, readwrite) NSDictionary* errors;
-@end
-
 @implementation TeakOperationResult
 - (nonnull NSDictionary*)toDictionary {
   return @{
@@ -19,11 +12,6 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
     @"errors" : self.errors == nil ? [NSNull null] : self.errors
   };
 }
-@end
-
-@interface TeakOperationChannelStateResult ()
-@property (strong, nonatomic, readwrite) NSString* state;
-@property (strong, nonatomic, readwrite) NSString* channel;
 @end
 
 @implementation TeakOperationChannelStateResult
@@ -37,6 +25,20 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
 }
 @end
 
+@implementation TeakOperationNotificationResult
+- (nonnull NSDictionary*)toDictionary {
+  NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
+  [ret addEntriesFromDictionary:@{
+      @"schedule_id" : self.scheduleId
+  }];
+  return ret;
+}
+@end
+
+@interface TeakOperation ()
+@property (nonatomic, copy, nullable) id (^replyParser)(NSDictionary* _Nonnull);
+@end
+
 @implementation TeakOperation
 
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint {
@@ -44,14 +46,25 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
 }
 
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload {
-  return [[TeakOperation alloc] initForEndpoint:endpoint withPayload:payload];
+  return [TeakOperation forEndpoint:endpoint withPayload:@{} replyParser:nil];
 }
 
-- (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload {
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
+  return [TeakOperation forEndpoint:endpoint withPayload:@{} replyParser:replyParser];
+}
+
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
+  return [[TeakOperation alloc] initForEndpoint:endpoint withPayload:payload replyParser:replyParser];
+}
+
+- (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser {
 
   // TODO: Put any pre-send validation here
 
   self = [self initWithTarget:self selector:@selector(performRequest:) object:@{kEndpoint : endpoint, kPayload : payload}];
+  if (self) {
+    self.replyParser = replyParser;
+  }
   return self;
 }
 
@@ -61,6 +74,7 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
   NSString* endpoint = requestParams[kEndpoint];
   NSDictionary* payload = requestParams[kPayload];
 
+  __weak typeof(self) weakSelf = self;
   dispatch_semaphore_t sema = dispatch_semaphore_create(0);
   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
     TeakRequest* request = [TeakRequest requestWithSession:session
@@ -68,10 +82,10 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
                                                withPayload:payload
                                                     method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
-                                                    if ([@"/me/channel_state" isEqualToString:endpoint]) {
-                                                      ret = parseReplyFor_channel_state(reply);
+                                                    __strong typeof(self) blockSelf = weakSelf;
+                                                    if (blockSelf.replyParser != nil) {
+                                                      ret = blockSelf.replyParser(reply);
                                                     } else {
-                                                      // TODO: Do we need to initWithDictionary and copy?
                                                       ret = reply;
                                                     }
                                                     dispatch_semaphore_signal(sema);
@@ -83,15 +97,6 @@ id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
 }
 
 @end
-
-id parseReplyFor_channel_state(NSDictionary* _Nonnull reply) {
-  TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] init];
-  result.error = ![@"ok" isEqualToString:reply[@"status"]];
-  result.state = reply[@"state"];
-  result.channel = reply[@"channel"];
-  result.errors = reply[@"errors"];
-  return result;
-}
 
 /// C interface for TeakOperation
 

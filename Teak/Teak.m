@@ -790,7 +790,14 @@ Teak* _teakSharedInstance;
 - (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel {
   // If "PlatformPush" is requested , this is iOS; so it's MobilePush
   channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
-  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state" withPayload:@{@"channel" : channel, @"state" : state}];
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state" withPayload:@{@"channel" : channel, @"state" : state} replyParser:^id _Nullable(NSDictionary * _Nonnull reply) {
+    TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] init];
+    result.error = ![@"ok" isEqualToString:reply[@"status"]];
+    result.state = reply[@"state"];
+    result.channel = reply[@"channel"];
+    result.errors = reply[@"errors"];
+    return result;
+  }];
   [self.operationQueue addOperation:op];
   return op;
 }
