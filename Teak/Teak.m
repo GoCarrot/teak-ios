@@ -792,14 +792,14 @@ Teak* _teakSharedInstance;
   channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state"
                                      withPayload:@{@"channel" : channel, @"state" : state}
-                                     replyParser:^id _Nullable(NSDictionary * _Nonnull reply) {
-    TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] init];
-    result.error = ![@"ok" isEqualToString:reply[@"status"]];
-    result.state = reply[@"state"];
-    result.channel = reply[@"channel"];
-    result.errors = reply[@"errors"];
-    return result;
-  }];
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] init];
+                                       result.error = ![@"ok" isEqualToString:reply[@"status"]];
+                                       result.state = reply[@"state"];
+                                       result.channel = reply[@"channel"];
+                                       result.errors = reply[@"errors"];
+                                       return result;
+                                     }];
   [self.operationQueue addOperation:op];
   return op;
 }
