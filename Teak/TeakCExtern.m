@@ -59,15 +59,21 @@ void TeakProcessDeepLinks(void) {
 }
 
 TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, int64_t delay) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
                                                withMessage:[NSString stringWithUTF8String:message]
                                             secondsFromNow:delay];
+#pragma clang diagnostic pop
 }
 
 TeakNotification* TeakNotificationScheduleLongDistanceWithNSArray(const char* creativeId, int64_t delay, NSArray* userIds) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
                                             secondsFromNow:delay
                                                 forUserIds:userIds];
+#pragma clang diagnostic pop
 }
 
 TeakNotification* TeakNotificationScheduleLongDistance(const char* creativeId, int64_t delay, const char* inUserIds[], int inUserIdCount) {
@@ -79,15 +85,24 @@ TeakNotification* TeakNotificationScheduleLongDistance(const char* creativeId, i
 }
 
 TeakNotification* TeakNotificationCancel(const char* scheduleId) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [TeakNotification cancelScheduledNotification:[NSString stringWithUTF8String:scheduleId]];
+#pragma clang diagnostic pop
 }
 
 TeakNotification* TeakNotificationCancelAll(void) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [TeakNotification cancelAll];
+#pragma clang diagnostic pop
 }
 
 BOOL TeakNotificationIsCompleted(TeakNotification* notif) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return notif.completed;
+#pragma clang diagnostic pop
 }
 
 const char* TeakNotificationGetTeakNotifId(TeakNotification* notif) {
@@ -95,7 +110,10 @@ const char* TeakNotificationGetTeakNotifId(TeakNotification* notif) {
 }
 
 const char* TeakNotificationGetStatus(TeakNotification* notif) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [notif.status UTF8String];
+#pragma clang diagnostic pop
 }
 
 BOOL TeakRewardIsCompleted(TeakReward* reward) {
