@@ -1,12 +1,15 @@
 #import <Foundation/Foundation.h>
 
-@interface TeakOperationChannelStateResult : NSObject
+@interface TeakOperationResult : NSObject
 @property (nonatomic, readonly) BOOL error;
-@property (strong, nonatomic, readonly) NSString* _Nonnull state;
-@property (strong, nonatomic, readonly) NSString* _Nonnull channel;
 @property (strong, nonatomic, readonly) NSDictionary* _Nullable errors;
 
 - (nonnull NSDictionary*)toDictionary;
+@end
+
+@interface TeakOperationChannelStateResult : TeakOperationResult
+@property (strong, nonatomic, readonly) NSString* _Nonnull state;
+@property (strong, nonatomic, readonly) NSString* _Nonnull channel;
 @end
 
 @interface TeakOperation : NSInvocationOperation

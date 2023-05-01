@@ -7,21 +7,33 @@ const static NSString* const kPayload = @"payload";
 
 id parseReplyFor_channel_state(NSDictionary* _Nonnull reply);
 
-@interface TeakOperationChannelStateResult ()
+@interface TeakOperationResult ()
 @property (nonatomic, readwrite) BOOL error;
+@property (strong, nonatomic, readwrite) NSDictionary* errors;
+@end
+
+@implementation TeakOperationResult
+- (nonnull NSDictionary*)toDictionary {
+  return @{
+    @"error" : self.error ? @"true" : @"false",
+    @"errors" : self.errors == nil ? [NSNull null] : self.errors
+  };
+}
+@end
+
+@interface TeakOperationChannelStateResult ()
 @property (strong, nonatomic, readwrite) NSString* state;
 @property (strong, nonatomic, readwrite) NSString* channel;
-@property (strong, nonatomic, readwrite) NSDictionary* errors;
 @end
 
 @implementation TeakOperationChannelStateResult
 - (nonnull NSDictionary*)toDictionary {
-  return @{
-    @"error" : self.error ? @"true" : @"false",
-    @"state" : self.state,
-    @"channel" : self.channel,
-    @"errors" : self.errors == nil ? [NSNull null] : self.errors
-  };
+  NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
+  [ret addEntriesFromDictionary:@{
+      @"state" : self.state,
+      @"channel" : self.channel,
+  }];
+  return ret;
 }
 @end
 
@@ -99,11 +111,17 @@ BOOL TeakOperation_isCanceled(TeakOperation* op) {
   return [op isCancelled];
 }
 
-/// C Interface for TeakOperationChannelStateResult
+/// C Interface for TeakOperationResult
 
-BOOL TeakOperationChannelStateResult_isError(TeakOperationChannelStateResult* result) {
+BOOL TeakOperationResult_isError(TeakOperationResult* result) {
   return [result error];
 }
+
+NSDictionary* TeakOperationResult_getErrors(TeakOperationResult* result) {
+  return [result errors];
+}
+
+/// C Interface for TeakOperationChannelStateResult
 
 NSString* TeakOperationChannelStateResult_getState(TeakOperationChannelStateResult* result) {
   return [result state];
@@ -111,8 +129,4 @@ NSString* TeakOperationChannelStateResult_getState(TeakOperationChannelStateResu
 
 NSString* TeakOperationChannelStateResult_getChannel(TeakOperationChannelStateResult* result) {
   return [result channel];
-}
-
-NSDictionary* TeakOperationChannelStateResult_getErrors(TeakOperationChannelStateResult* result) {
-  return [result errors];
 }
