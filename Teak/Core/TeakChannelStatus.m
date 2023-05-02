@@ -15,6 +15,7 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
 
 @interface TeakChannelStatus ()
 @property (strong, nonatomic, readwrite) NSString* state;
+@property (strong, nonatomic, readwrite) NSDictionary* _Nullable categories;
 @property (nonatomic, readwrite) BOOL deliveryFault;
 @end
 
@@ -24,12 +25,12 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
   static TeakChannelStatus* unknownStatus = nil;
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
-    unknownStatus = [[TeakChannelStatus alloc] initWithState:TeakChannelStateUnknown hasDeliveryFault:false];
+    unknownStatus = [[TeakChannelStatus alloc] initWithState:TeakChannelStateUnknown andCategories:nil hasDeliveryFault:false];
   });
   return unknownStatus;
 }
 
-- (id)initWithState:(NSString*)state hasDeliveryFault:(BOOL)deliveryFault {
+- (id)initWithState:(NSString*)state andCategories:(NSDictionary*)categories hasDeliveryFault:(BOOL)deliveryFault {
   static dispatch_once_t onceToken;
   static NSArray* TeakChannelStates = nil;
   dispatch_once(&onceToken, ^{
@@ -45,6 +46,7 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
   if (self) {
     if ([state isEqualToString:TeakChannelStateUnknown] || [TeakChannelStates containsObject:state]) {
       self.state = state;
+      self.categories = categories;
       self.deliveryFault = deliveryFault;
     } else {
       return [TeakChannelStatus unknown];
@@ -57,13 +59,15 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
   if (dictionary == nil) return [TeakChannelStatus unknown];
 
   return [[TeakChannelStatus alloc] initWithState:dictionary[@"state"]
+                                    andCategories:dictionary[@"categories"]
                                  hasDeliveryFault:[dictionary[@"delivery_fault"] boolValue]];
 }
 
 - (NSDictionary*)toDictionary {
   return @{
     @"state" : self.state,
-    @"delivery_fault" : self.deliveryFault ? @"true" : @"false"
+    @"delivery_fault" : self.deliveryFault ? @"true" : @"false",
+    @"categories" : self.categories == nil ? [NSNull null] : self.categories
   };
 }
 
