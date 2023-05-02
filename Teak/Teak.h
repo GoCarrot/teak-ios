@@ -465,13 +465,25 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 /**
  * Assign the opt-out state to a Teak Marketing Channel.
  *
- * @note You may only assign the values ``TeakChannelStateOptOut`` and ``TeakChannelStateAvailable`` to Push Channels; OptIn is not allowed.
+ * @note You may only assign the values ``TeakChannelStateOptOut`` or ``TeakChannelStateAvailable`` to channels.
  *
  * @param state     The state to assign to the channel.
  * @param channel The channel for which the opt-out state is being assigned.
  * @return A TeakOperation which contains the status and result of the call.
  */
 - (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel;
+
+/**
+ * Assign the opt-out state to a Teak Marketing Category pair.
+ *
+ * @note You may only assign the values ``TeakChannelStateOptOut`` or ``TeakChannelStateAvailable`` to categories.
+ *
+ * @param state       The state to assign to the channel.
+ * @param channel   The channel for which the opt-out state is being assigned.
+ * @param category The category
+ * @return A TeakOperation which contains the status and result of the call.
+ */
+- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel andCategory:(nonnull NSString*)category;
 
 @end
 

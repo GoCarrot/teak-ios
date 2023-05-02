@@ -239,6 +239,13 @@ TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channel
   return [[Teak sharedInstance] setState:state forChannel:channel];
 }
 
+TeakOperation* TeakSetStateForCategory(const char* stateCstr, const char* channelCstr, const char* categoryCstr) {
+  NSString* state = [NSString stringWithUTF8String:stateCstr];
+  NSString* channel = [NSString stringWithUTF8String:channelCstr];
+  NSString* category = [NSString stringWithUTF8String:categoryCstr];
+  return [[Teak sharedInstance] setState:state forChannel:channel andCategory:category];
+}
+
 NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation) {
   return [[operation result] toDictionary];
 }

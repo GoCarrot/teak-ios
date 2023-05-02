@@ -25,6 +25,16 @@ const static NSString* const kPayload = @"payload";
 }
 @end
 
+@implementation TeakOperationCategoryStateResult
+- (nonnull NSDictionary*)toDictionary {
+  NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
+  [ret addEntriesFromDictionary:@{
+    @"category" : self.category == nil ? [NSNull null] : self.category
+  }];
+  return ret;
+}
+@end
+
 @implementation TeakOperationNotificationResult
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];

@@ -12,6 +12,10 @@
 @property (strong, nonatomic) NSString* _Nonnull channel;
 @end
 
+@interface TeakOperationCategoryStateResult : TeakOperationChannelStateResult
+@property (strong, nonatomic) NSString* _Nonnull category;
+@end
+
 @interface TeakOperationNotificationResult : TeakOperationResult
 @property (strong, nonatomic) NSString* _Nonnull scheduleId;
 @end
