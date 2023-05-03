@@ -26,7 +26,7 @@
   event.emailStatus = emailStatus;
   event.pushStatus = pushStatus;
   event.smsStatus = smsStatus;
-  [TeakEvent postEvent:event];
   event.pushRegistration = pushRegistration;
+  [TeakEvent postEvent:event];
 }
 @end

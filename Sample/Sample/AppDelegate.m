@@ -97,6 +97,10 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
                                            selector:@selector(handleTeakLaunchedFromLink:)
                                                name:TeakLaunchedFromLink
                                              object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(handleTeakUserData:)
+                                               name:TeakUserData
+                                             object:nil];
 
   // Request push permissions via the Unity helper
   TeakRequestPushAuthorization(NO);
@@ -153,6 +157,11 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
 - (void)handleTeakPostLaunchSummary:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
   NSLog(@"handleTeakPostLaunchSummary: %@", userInfo);
+}
+
+- (void)handleTeakUserData:(NSNotification*)notification {
+  NSDictionary* userInfo = notification.userInfo;
+  NSLog(@"handleTeakUserData: %@", userInfo);
 }
 
 - (void)handleTeakLaunchedFromLink:(NSNotification*)notification {
