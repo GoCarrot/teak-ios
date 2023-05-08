@@ -81,7 +81,7 @@
     TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
 
     result.error = YES;
-    result.errors = @{@"parameter" : @"creativeId cannot be null or empty"};
+    result.errors = @{@"parameter" : @[@"creativeId cannot be null or empty"]};
 
     TeakOperation* op = [TeakOperation withResult:result];
     [[Teak sharedInstance].operationQueue addOperation:op];
@@ -92,7 +92,7 @@
     TeakLog_e(@"notification.schedule.error", @"delayInSeconds can not be negative, or greater than one month");
 
     result.error = YES;
-    result.errors = @{@"parameter" : @"delayInSeconds can not be negative, or greater than one month"};
+    result.errors = @{@"parameter" : @[@"delayInSeconds can not be negative, or greater than one month"]};
 
     TeakOperation* op = [TeakOperation withResult:result];
     [[Teak sharedInstance].operationQueue addOperation:op];
@@ -199,7 +199,7 @@
     TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
 
     result.error = YES;
-    result.errors = @{@"parameter" : @"creativeId cannot be null or empty"};
+    result.errors = @{@"parameter" : @[@"creativeId cannot be null or empty"]};
 
     TeakOperation* op = [TeakOperation withResult:result];
     [[Teak sharedInstance].operationQueue addOperation:op];
@@ -210,7 +210,7 @@
     TeakLog_e(@"notification.schedule.error", @"delayInSeconds can not be negative, or greater than one month");
 
     result.error = YES;
-    result.errors = @{@"parameter" : @"delayInSeconds can not be negative, or greater than one month"};
+    result.errors = @{@"parameter" : @[@"delayInSeconds can not be negative, or greater than one month"]};
 
     TeakOperation* op = [TeakOperation withResult:result];
     [[Teak sharedInstance].operationQueue addOperation:op];
@@ -221,7 +221,7 @@
     TeakLog_e(@"notification.schedule.error", @"userIds can not be null or empty");
 
     result.error = YES;
-    result.errors = @{@"parameter" : @"userIds can not be null or empty"};
+    result.errors = @{@"parameter" : @[@"userIds can not be null or empty"]};
 
     TeakOperation* op = [TeakOperation withResult:result];
     [[Teak sharedInstance].operationQueue addOperation:op];
@@ -334,7 +334,7 @@
   if (scheduleId == nil || scheduleId.length == 0) {
     TeakLog_e(@"notification.cancel.error", @"scheduleId cannot be null or empty");
     result.error = YES;
-    result.errors = @{@"parameter" : @"scheduleId cannot be null or empty"};
+    result.errors = @{@"parameter" : @["scheduleId cannot be null or empty"}];
 
     TeakOperation* op = [TeakOperation withResult:result];
     [[Teak sharedInstance].operationQueue addOperation:op];
