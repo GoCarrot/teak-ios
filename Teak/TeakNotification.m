@@ -334,7 +334,7 @@
   if (scheduleId == nil || scheduleId.length == 0) {
     TeakLog_e(@"notification.cancel.error", @"scheduleId cannot be null or empty");
     result.error = YES;
-    result.errors = @{@"parameter" : @["scheduleId cannot be null or empty"}];
+    result.errors = @{@"parameter" : @[@"scheduleId cannot be null or empty"]};
 
     TeakOperation* op = [TeakOperation withResult:result];
     [[Teak sharedInstance].operationQueue addOperation:op];
