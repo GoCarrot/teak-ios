@@ -23,6 +23,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (copy, nonatomic, readwrite) NSString* channelName;
 @property (copy, nonatomic, readwrite) NSString* rewardId;
 @property (copy, nonatomic, readwrite) NSURL* deepLink;
+@property (copy, nonatomic, readwrite) NSString* optOutCategory;
 @property (strong, nonatomic) NSDictionary* deepLinkUrlQuery;
 
 - (id)initWithUrl:(NSURL*)url andShortLink:(NSURL*)shortLink;
@@ -261,6 +262,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
     self.channelName = self.deepLinkUrlQuery[@"teak_channel_name"];
     self.rewardId = self.deepLinkUrlQuery[@"teak_reward_id"];
+    self.optOutCategory = self.deepLinkUrlQuery[@"teak_opt_out_category"];
   }
   return self;
 }
@@ -276,6 +278,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
     self.rewardId = teakNotification.teakRewardId;
     self.deepLink = self.launchUrl; // 'teakNotification.teakDeepLink', resolved by call to super
     self.deepLinkUrlQuery = TeakGetQueryParameterDictionaryFromUrl(self.deepLink);
+    self.optOutCategory = teakNotification.teakOptOutCategory;
   }
   return self;
 }
@@ -291,6 +294,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
     self.rewardId = NewIfNotOld(oldLaunchData.rewardId, newLaunchData.rewardId);
     self.channelName = NewIfNotOld(oldLaunchData.channelName, newLaunchData.channelName);
     self.deepLink = updatedDeepLink;
+    self.optOutCategory = NewIfNotOld(oldLaunchData.optOutCategory, newLaunchData.optOutCategory);
     self.deepLinkUrlQuery = TeakGetQueryParameterDictionaryFromUrl(self.deepLink);
   }
   return self;
@@ -322,6 +326,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   dictionary[@"teakRewardId"] = ValueOrNSNull(self.rewardId);
   dictionary[@"teakChannelName"] = ValueOrNSNull(self.channelName);
   dictionary[@"teakDeepLink"] = TeakLink_WillHandleDeepLink(self.launchUrl) ? self.launchUrl.absoluteString : [NSNull null];
+  dictionary[@"teakOptOutCategory"] = ValueOrNSNull(self.optOutCategory);
   return dictionary;
 }
 
@@ -334,6 +339,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   self.rewardId = updatedLaunchData.rewardId;
   self.channelName = updatedLaunchData.channelName;
   self.deepLink = updatedLaunchData.deepLink;
+  self.optOutCategory = updatedLaunchData.optOutCategory;
   self.deepLinkUrlQuery = updatedLaunchData.deepLinkUrlQuery;
 }
 

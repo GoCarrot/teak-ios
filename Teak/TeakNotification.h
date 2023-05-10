@@ -74,6 +74,11 @@
 @property (strong, nonatomic, readonly) NSString* _Nullable teakDeepLink;
 
 /**
+ * The marketing channel for the Teak notification.
+ */
+@property (strong, nonatomic, readonly) NSString* _Nullable teakOptOutCategory;
+
+/**
  * YES if this notification will be shown when the game is in the foreground.
  */
 @property (atomic, readonly) BOOL showInForeground;

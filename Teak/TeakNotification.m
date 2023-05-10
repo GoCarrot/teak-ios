@@ -14,6 +14,7 @@
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakCreativeName;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakCreativeId;
 @property (strong, nonatomic, readwrite) NSString* _Nullable teakChannelName;
+@property (strong, nonatomic, readwrite) NSString* teakOptOutCategory;
 @property (strong, nonatomic, readwrite) NSDictionary* originalJson;
 @property (atomic, readwrite) BOOL showInForeground;
 @property (atomic, readwrite) BOOL completed;
@@ -33,6 +34,7 @@
     self.teakCreativeName = NSStringOrNilFor(dictionary[@"teakCreativeName"]);
     self.teakCreativeId = NSStringOrNilFor(dictionary[@"teakCreativeId"]);
     self.teakChannelName = NSStringOrNilFor(dictionary[@"teakChannelName"]);
+    self.teakOptOutCategory = NSStringOrNilFor(dictionary[@"teakOptOutCategory"]) == nil ? @"teak" : NSStringOrNilFor(dictionary[@"teakOptOutCategory"]);
     self.originalJson = dictionary;
     self.showInForeground = TeakBoolFor(dictionary[@"teakShowInForeground"]);
     self.completed = YES;
@@ -52,6 +54,7 @@
   teakUserInfo[@"teakCreativeId"] = ValueOrNSNull(self.teakCreativeId);
   teakUserInfo[@"teakChannelName"] = ValueOrNSNull(self.teakChannelName);
   teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(self.teakDeepLink);
+  teakUserInfo[@"teakOptOutCategory"] = ValueOrNSNull(self.teakOptOutCategory);
 #undef ValueOrNSNull
 
   return teakUserInfo;

@@ -27,6 +27,7 @@
 @property (copy, nonatomic, readonly) NSString* channelName;
 @property (copy, nonatomic, readonly) NSString* rewardId;
 @property (copy, nonatomic, readonly) NSURL* deepLink;
+@property (copy, nonatomic, readonly) NSString* optOutCategory;
 
 - (NSDictionary*)sessionAttribution;
 - (void)updateDeepLink:(NSURL*)updatedDeepLink;
