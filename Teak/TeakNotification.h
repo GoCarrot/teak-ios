@@ -8,18 +8,14 @@
  */
 @interface TeakNotification : NSObject
 
-//
-
-//scheduleNotificationForCreative:toUserIds:secondsFromNow:userInfo:
-
 /**
  * Schedule a notification for this user at a time in the future.
  *
- * @param creativeId The identifier of the notification in the Teak dashboard (will create if not found).
- * @param delay            The delay in seconds from now to send the notification.
- * @param userInfo     Optional dictionary of addiontal information which can be used for templating.
+ * @param creativeId                      The identifier of the notification in the Teak dashboard (will create if not found).
+ * @param delay                                 The delay in seconds from now to send the notification.
+ * @param personalizationData Optional dictionary of addiontal information which can be used for templating.
  */
-+ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay userInfo:(nullable NSDictionary*)userInfo;
++ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData;
 
 /**
  * Schedules a push notification, to be delivered to other users, for some time in the future.
@@ -40,8 +36,11 @@
  * Cancel a previously scheduled push notification.
  *
  * @param scheduleId The schedule id of the notification to cancel.
+ * @param creativeId                       The identifier of the notification in the Teak dashboard (will create if not found).
+ * @param delay                                  The delay in seconds from now to send the notification.
+ * @param personalizationData   Optional dictionary of addiontal information which can be used for templating.
  */
-+ (nullable TeakOperation*)cancelNotificationForScheduleId:(nonnull NSString*)scheduleId;
++ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData;
 
 /**
  * The identifier for the scheduled notification.
@@ -135,24 +134,24 @@
 /**
  * Schedule a notification for this user at a time in the future.
  *
- * @deprecated Use scheduleNotificationForCreative:secondsFromNow:userInfo: instead
+ * @deprecated Use scheduleNotificationForCreative:secondsFromNow:personalizationData: instead
  *
  * @param creativeId The identifier of the notification in the Teak dashboard (will create if not found).
  * @param message    The default message to send, may be over-ridden in the dashboard.
  * @param delay      The delay in seconds from now to send the notification.
  */
-+ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId withMessage:(nonnull NSString*)message secondsFromNow:(int64_t)delay __deprecated_msg("Use scheduleNotificationForCreative:secondsFromNow:userInfo: instead");
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId withMessage:(nonnull NSString*)message secondsFromNow:(int64_t)delay __deprecated_msg("Use scheduleNotificationForCreative:secondsFromNow:personalizationData: instead");
 
 /**
  * Schedules a push notification, to be delivered to other users, for some time in the future.
  *
- * @deprecated Use scheduleNotificationForCreative:toUserIds:secondsFromNow:userInfo: instead
+ * @deprecated Use scheduleNotificationForCreative:toUserIds:secondsFromNow:personalizationData: instead
  *
  * @param creativeId The identifier of the notification in the Teak dashboard, this must already exist.
  * @param delay      The delay in seconds from now to send the notification.
  * @param userIds    A list of game-assigned user ids to deliver the notification to.
  */
-+ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds __deprecated_msg("Use scheduleNotificationForCreative:toUserIds:secondsFromNow:userInfo: instead");
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds __deprecated_msg("Use scheduleNotificationForCreative:toUserIds:secondsFromNow:personalizationData: instead");
 
 /**
  * Cancel a previously scheduled push notification.

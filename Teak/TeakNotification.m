@@ -72,7 +72,7 @@
                                     self.originalJson];
 }
 
-+ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay userInfo:(nullable NSDictionary*)userInfo {
++ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData {
   TeakLog_t(@"[TeakNotification scheduleNotificationForCreative]", @{@"creativeId" : _(creativeId), @"delay" : [NSNumber numberWithLongLong:delay]});
 
   TeakOperationNotificationResult* result = [[TeakOperationNotificationResult alloc] init];
@@ -103,7 +103,7 @@
                                      withPayload:@{
                                        @"identifier" : [creativeId copy],
                                        @"offset" : [NSNumber numberWithUnsignedLongLong:delay],
-                                       @"user_info" : userInfo == nil ? [NSNull null] : [userInfo copy]
+                                       @"personalization_data" : personalizationData == nil ? [NSNull null] : [personalizationData copy]
                                      }
                                      replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
                                        TeakOperationNotificationResult* result = [[TeakOperationNotificationResult alloc] init];

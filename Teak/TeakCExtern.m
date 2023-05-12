@@ -58,6 +58,16 @@ void TeakProcessDeepLinks(void) {
   [[Teak sharedInstance] processDeepLinks];
 }
 
+TeakOperation* TeakNotificationSchedulePersonalizationData(const char* creativeId, int64_t delay, const char* personalizationDataJson) {
+  NSError* error = nil;
+  NSData* jsonData = [[NSString stringWithUTF8String:personalizationDataJson] dataUsingEncoding:NSUTF8StringEncoding];
+  NSDictionary* personalizationData = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+
+  return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
+                                            secondsFromNow:delay
+                                       personalizationData:personalizationData];
+}
+
 TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, int64_t delay) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
