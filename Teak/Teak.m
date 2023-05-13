@@ -807,15 +807,15 @@ Teak* _teakSharedInstance;
 - (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel andCategory:(nonnull NSString*)category {
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/category_state"
                                      withPayload:@{@"channel" : channel, @"state" : state, @"category" : category}
-                                     replyParser:^id _Nullable(NSDictionary * _Nonnull reply) {
-    TeakOperationCategoryStateResult* result = [[TeakOperationCategoryStateResult alloc] init];
-    result.error = ![@"ok" isEqualToString:reply[@"status"]];
-    result.state = reply[@"state"];
-    result.channel = reply[@"channel"];
-    result.category = reply[@"category"];
-    result.errors = reply[@"errors"];
-    return result;
-  }];
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationCategoryStateResult* result = [[TeakOperationCategoryStateResult alloc] init];
+                                       result.error = ![@"ok" isEqualToString:reply[@"status"]];
+                                       result.state = reply[@"state"];
+                                       result.channel = reply[@"channel"];
+                                       result.category = reply[@"category"];
+                                       result.errors = reply[@"errors"];
+                                       return result;
+                                     }];
   [self.operationQueue addOperation:op];
   return op;
 }
