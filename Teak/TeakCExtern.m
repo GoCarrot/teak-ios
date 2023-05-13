@@ -60,8 +60,11 @@ void TeakProcessDeepLinks(void) {
 
 TeakOperation* TeakNotificationSchedulePersonalizationData(const char* creativeId, int64_t delay, const char* personalizationDataJson) {
   NSError* error = nil;
-  NSData* jsonData = [[NSString stringWithUTF8String:personalizationDataJson] dataUsingEncoding:NSUTF8StringEncoding];
-  NSDictionary* personalizationData = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+  NSDictionary* personalizationData = nil;
+  if (personalizationDataJson != nil) {
+    NSData* jsonData = [[NSString stringWithUTF8String:personalizationDataJson] dataUsingEncoding:NSUTF8StringEncoding];
+    NSDictionary* personalizationData = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+  }
 
   return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
                                             secondsFromNow:delay
