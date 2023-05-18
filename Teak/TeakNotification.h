@@ -18,31 +18,6 @@
 + (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData;
 
 /**
- * Schedules a push notification, to be delivered to other users, for some time in the future.
- *
- * @param creativeId The identifier of the notification in the Teak dashboard (will create if not found).
- * @param userIds        A list of game-assigned user ids to deliver the notification to.
- * @param delay            The delay in seconds from now to send the notification.
- * @param userInfo     Optional dictionary of addiontal information which can be used for templating.
- */
-+ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId toUserIds:(nonnull NSArray*)userIds secondsFromNow:(int64_t)delay userInfo:(nullable NSDictionary*)userInfo;
-
-/**
- * Cancel all notifications scheduled for the current player.
- */
-+ (nullable TeakOperation*)cancelAllScheduledNotifications;
-
-/**
- * Cancel a previously scheduled push notification.
- *
- * @param scheduleId The schedule id of the notification to cancel.
- * @param creativeId                       The identifier of the notification in the Teak dashboard (will create if not found).
- * @param delay                                  The delay in seconds from now to send the notification.
- * @param personalizationData   Optional dictionary of addiontal information which can be used for templating.
- */
-+ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData;
-
-/**
  * The identifier for the scheduled notification.
  *
  * Also accessable via:
@@ -65,10 +40,8 @@
  * Also accessable via:
  *
  * 	const char* TeakNotificationGetStatus(TeakNotification* notif)
- *
- * @deprecated Use TeakOperation instead
  */
-@property (strong, nonatomic, readonly) NSString* _Nullable status __deprecated_msg("Use TeakOperation instead");
+@property (strong, nonatomic, readonly) NSString* _Nullable status;
 
 /**
  * The identifier for the TeakReward attached to the notification, or nil.
@@ -126,10 +99,8 @@
  * Also accessable via:
  *
  * 	BOOL TeakNotificationIsCompleted(TeakNotification* notif)
- *
- * @deprecated Use TeakOperation instead
  */
-@property (atomic, readonly) BOOL completed __deprecated_msg("Use TeakOperation instead");
+@property (atomic, readonly) BOOL completed;
 
 /**
  * Schedule a notification for this user at a time in the future.
@@ -145,29 +116,23 @@
 /**
  * Schedules a push notification, to be delivered to other users, for some time in the future.
  *
- * @deprecated Use scheduleNotificationForCreative:toUserIds:secondsFromNow:personalizationData: instead
- *
  * @param creativeId The identifier of the notification in the Teak dashboard, this must already exist.
  * @param delay      The delay in seconds from now to send the notification.
  * @param userIds    A list of game-assigned user ids to deliver the notification to.
  */
-+ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds __deprecated_msg("Use scheduleNotificationForCreative:toUserIds:secondsFromNow:personalizationData: instead");
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay forUserIds:(nonnull NSArray*)userIds;
 
 /**
  * Cancel a previously scheduled push notification.
  *
- * @deprecated Use cancelNotificationForScheduleId: instead
- *
  * @param scheduleId The schedule id of the notification to cancel.
  */
-+ (nullable TeakNotification*)cancelScheduledNotification:(nonnull NSString*)scheduleId __deprecated_msg("Use cancelNotificationForScheduleId: instead");
++ (nullable TeakNotification*)cancelScheduledNotification:(nonnull NSString*)scheduleId;
 
 /**
  * Cancel all scheduled notifications.
- *
- * @deprecated Use cancelAllScheduledNotifications instead
  */
-+ (nullable TeakNotification*)cancelAll __deprecated_msg("Use cancelAllScheduledNotifications instead");
++ (nullable TeakNotification*)cancelAll;
 
 /// @cond hide_from_doxygen
 - (nullable TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary;
