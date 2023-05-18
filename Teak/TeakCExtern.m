@@ -58,10 +58,26 @@ void TeakProcessDeepLinks(void) {
   [[Teak sharedInstance] processDeepLinks];
 }
 
+TeakOperation* TeakNotificationSchedulePersonalizationData(const char* creativeId, int64_t delay, const char* personalizationDataJson) {
+  NSError* error = nil;
+  NSDictionary* personalizationData = nil;
+  if (personalizationDataJson != nil) {
+    NSData* jsonData = [[NSString stringWithUTF8String:personalizationDataJson] dataUsingEncoding:NSUTF8StringEncoding];
+    personalizationData = [NSJSONSerialization JSONObjectWithData:jsonData options:NSJSONReadingMutableContainers error:&error];
+  }
+
+  return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
+                                            secondsFromNow:delay
+                                       personalizationData:personalizationData];
+}
+
 TeakNotification* TeakNotificationSchedule(const char* creativeId, const char* message, int64_t delay) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [TeakNotification scheduleNotificationForCreative:[NSString stringWithUTF8String:creativeId]
                                                withMessage:[NSString stringWithUTF8String:message]
                                             secondsFromNow:delay];
+#pragma clang diagnostic pop
 }
 
 TeakNotification* TeakNotificationScheduleLongDistanceWithNSArray(const char* creativeId, int64_t delay, NSArray* userIds) {
@@ -95,7 +111,10 @@ const char* TeakNotificationGetTeakNotifId(TeakNotification* notif) {
 }
 
 const char* TeakNotificationGetStatus(TeakNotification* notif) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
   return [notif.status UTF8String];
+#pragma clang diagnostic pop
 }
 
 BOOL TeakRewardIsCompleted(TeakReward* reward) {

@@ -1,11 +1,21 @@
 #import <Foundation/Foundation.h>
 
 @class TeakReward;
+@class TeakOperation;
 
 /**
- * The structure used to represent the results of a TeakNotification operation.
+ * Schedule notifications for the current player or other players to be delivered sometime in the future.
  */
 @interface TeakNotification : NSObject
+
+/**
+ * Schedule a notification for this user at a time in the future.
+ *
+ * @param creativeId                      The identifier of the notification in the Teak dashboard (will create if not found).
+ * @param delay                                 The delay in seconds from now to send the notification.
+ * @param personalizationData Optional dictionary of addiontal information which can be used for templating.
+ */
++ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData;
 
 /**
  * The identifier for the scheduled notification.
@@ -95,11 +105,13 @@
 /**
  * Schedule a notification for this user at a time in the future.
  *
+ * @deprecated Use scheduleNotificationForCreative:secondsFromNow:personalizationData: instead
+ *
  * @param creativeId The identifier of the notification in the Teak dashboard (will create if not found).
  * @param message    The default message to send, may be over-ridden in the dashboard.
  * @param delay      The delay in seconds from now to send the notification.
  */
-+ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId withMessage:(nonnull NSString*)message secondsFromNow:(int64_t)delay;
++ (nullable TeakNotification*)scheduleNotificationForCreative:(nonnull NSString*)creativeId withMessage:(nonnull NSString*)message secondsFromNow:(int64_t)delay __deprecated_msg("Use scheduleNotificationForCreative:secondsFromNow:personalizationData: instead");
 
 /**
  * Schedules a push notification, to be delivered to other users, for some time in the future.

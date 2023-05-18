@@ -72,6 +72,62 @@
                                     self.originalJson];
 }
 
++ (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData {
+  TeakLog_t(@"[TeakNotification scheduleNotificationForCreative]", @{@"creativeId" : _(creativeId), @"delay" : [NSNumber numberWithLongLong:delay]});
+
+  TeakOperationNotificationResult* result = [[TeakOperationNotificationResult alloc] init];
+
+  if (creativeId == nil || creativeId.length == 0) {
+    TeakLog_e(@"notification.schedule.error", @"creativeId cannot be null or empty");
+
+    result.error = YES;
+    result.errors = @{@"parameter" : @[ @"creativeId cannot be null or empty" ]};
+
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  if (delay > 2630000 /* one month in seconds */ || delay < 0) {
+    TeakLog_e(@"notification.schedule.error", @"delayInSeconds can not be negative, or greater than one month");
+
+    result.error = YES;
+    result.errors = @{@"parameter" : @[ @"delayInSeconds can not be negative, or greater than one month" ]};
+
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/local_notify"
+                                     withPayload:@{
+                                       @"identifier" : [creativeId copy],
+                                       @"offset" : [NSNumber numberWithUnsignedLongLong:delay],
+                                       @"personalization_data" : personalizationData == nil ? [NSNull null] : [personalizationData copy]
+                                     }
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationNotificationResult* result = [[TeakOperationNotificationResult alloc] init];
+                                       NSString* status = reply[@"status"];
+
+                                       if ([@"ok" isEqualToString:status]) {
+                                         result.error = NO;
+
+                                         NSDictionary* event = reply[@"event"];
+                                         NSString* teakNotifId = [event[@"id"] stringValue];
+                                         result.scheduleIds = @[ teakNotifId ];
+
+                                         TeakLog_i(@"notification.scheduled", @{@"notification" : teakNotifId});
+                                       } else {
+                                         result.error = YES;
+                                         TeakLog_e(@"notification.schedule.error", @"Error scheduling notification.", @{@"response" : reply});
+                                       }
+
+                                       return result;
+                                     }];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
 + (TeakNotification*)scheduleNotificationForCreative:(NSString*)creativeId withMessage:(NSString*)message secondsFromNow:(int64_t)delay {
   TeakLog_t(@"[TeakNotification scheduleNotificationForCreative]", @{@"creativeId" : _(creativeId), @"message" : _(message), @"delay" : [NSNumber numberWithLongLong:delay]});
 

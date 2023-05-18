@@ -17,14 +17,15 @@
 @end
 
 @interface TeakOperationNotificationResult : TeakOperationResult
-@property (strong, nonatomic) NSString* _Nonnull scheduleId;
+@property (strong, nonatomic) NSArray* _Nonnull scheduleIds;
 @end
 
 @interface TeakOperation : NSInvocationOperation
 
++ (nonnull TeakOperation*)withResult:(nonnull id)result;
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint;
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload;
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull reply))replyParser;
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable (NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser;
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable(NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull reply))replyParser;
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable(NS_SWIFT_SENDABLE ^)(NSDictionary* _Nonnull))replyParser;
 
 @end
