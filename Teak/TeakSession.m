@@ -54,6 +54,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
+@property (strong, nonatomic) dispatch_block_t reportDurationBlock;
+@property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
 @end
 
 @implementation TeakSession
@@ -770,6 +772,9 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
       // Process deep links and/or rewards
       [self processAttributionAndDispatchEvents];
+      
+      // Send the server a "hey nevermind that" message
+      // TODO: Send server the "nevermind session resume"
     } else if (newValue == [TeakSession Expiring]) {
       self.endDate = [[NSDate alloc] init];
 
@@ -788,10 +793,42 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           [blockSelf.userProfile send];
         });
       }
+      
+      // Reset duraation report and set it
+      [self resetReportDurationBlock];
+      self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        [self beginBackgroundUpdateTask];
+
+        // TODO: Send request here for "if you don't hear back from me, this session ended now"
+        NSDictionary* payload = @{
+          @"session_id" : self.sessionId,
+          @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000]
+        };
+
+        [self endBackgroundUpdateTask];
+      });
+      dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), self.reportDurationBlock);
     } else if (newValue == [TeakSession Expired]) {
-      // TODO: Report Session to server, once we collect that info.
     }
   }
+}
+
+- (void)resetReportDurationBlock {
+  if (self.reportDurationBlock) {
+    dispatch_block_cancel(self.reportDurationBlock);
+    self.reportDurationBlock = nil;
+  }
+}
+
+- (void)beginBackgroundUpdateTask {
+  self.backgroundUpdateTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+    [self endBackgroundUpdateTask];
+  }];
+}
+
+- (void)endBackgroundUpdateTask {
+  [[UIApplication sharedApplication] endBackgroundTask: self.backgroundUpdateTask];
+  self.backgroundUpdateTask = UIBackgroundTaskInvalid;
 }
 
 - (void)dispatchUserDataEvent {
