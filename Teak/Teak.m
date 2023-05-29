@@ -64,6 +64,8 @@ NSDictionary* TeakVersionDict = nil;
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
+void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
+
 Teak* _teakSharedInstance;
 
 @implementation Teak
@@ -763,6 +765,7 @@ Teak* _teakSharedInstance;
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
+  TeakSendHealthCheckIfNeededSynch(userInfo);
   handler(UIBackgroundFetchResultNoData);
 }
 
@@ -894,3 +897,57 @@ Teak* _teakSharedInstance;
 }
 
 @end
+
+extern UNNotificationSettings* UNNotificationCenterSettingsSync(void);
+
+void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
+  BOOL teakHealthCheck = [userInfo[@"teakHealthCheck"] boolValue];
+  if (teakHealthCheck || userInfo[@"teakExpectedDisplay"] != nil) {
+    BOOL teakExpectedDisplay = [userInfo[@"teakExpectedDisplay"] boolValue];
+    BOOL shouldSendHealthCheck = teakHealthCheck;
+    TeakNotificationState notificationState = TeakNotificationStateUnknown;
+
+    UNNotificationSettings* notificationSettings = UNNotificationCenterSettingsSync();
+    if (notificationSettings != nil) {
+      BOOL canDisplay = (notificationSettings.authorizationStatus == UNAuthorizationStatusAuthorized);
+      if (@available(iOS 12.0, *)) {
+        canDisplay |= notificationSettings.authorizationStatus == UNAuthorizationStatusProvisional;
+      }
+
+      shouldSendHealthCheck |= (canDisplay != teakExpectedDisplay);
+    }
+
+    // Do this synchronously, and then it can be tossed in something async as needed
+    if (shouldSendHealthCheck) {
+      NSArray* _Nonnull const TeakNotificationStateName = @[
+        @"UnableToDetermine",
+        @"Enabled",
+        @"Disabled",
+        @"Provisional",
+        @"NotRequested"
+      ];
+      @try {
+        NSString* urlString = [NSString stringWithFormat:
+                                            @"https://parsnip.gocarrot.com/push_state?app_id=%@&user_id=%@&platform_id=%@&device_id=%@&expected_display=%@&status=%@",
+                                            URLEscapedString(userInfo[@"teakAppId"]),
+                                            URLEscapedString(userInfo[@"teakUserId"]),
+                                            URLEscapedString(userInfo[@"teakNotifId"]),
+                                            URLEscapedString([Teak sharedInstance].configuration.deviceConfiguration.deviceId),
+                                            URLEscapedString(userInfo[@"teakExpectedDisplay"]),
+                                            TeakNotificationStateName[notificationState]];
+
+        NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
+                                                 cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+                                             timeoutInterval:120];
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        [NSURLConnection sendSynchronousRequest:request
+                              returningResponse:nil
+                                          error:nil];
+#pragma clang diagnostic pop
+      } @finally {
+        // Ignored
+      }
+    }
+  }
+}
