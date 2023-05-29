@@ -9,6 +9,8 @@
 
 #define kStateChainPreferencesKey @"TeakPushStateChain"
 
+UNNotificationSettings* UNNotificationCenterSettingsSync(void);
+
 @interface TeakPushStateChainEntry : NSObject
 @property (strong, nonatomic) TeakState* state;
 @property (strong, nonatomic) NSDate* date;
@@ -207,40 +209,37 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 }
 
 - (TeakPushStateChainEntry*)determineCurrentPushStateBlocking {
-  __block TeakPushStateChainEntry* pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState NotDetermined]];
+  TeakPushStateChainEntry* pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState NotDetermined]];
 
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
-      switch (settings.authorizationStatus) {
-        case UNAuthorizationStatusDenied: {
-          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Denied]];
-        } break;
-        case UNAuthorizationStatusAuthorized: {
-          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]
-                                                 canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
-                                                        canShowBadge:(settings.badgeSetting == UNNotificationSettingEnabled)
-                                         canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
-        } break;
+  UNNotificationSettings* settings = UNNotificationCenterSettingsSync();
+  if (settings != nil) {
+
+    switch (settings.authorizationStatus) {
+      case UNAuthorizationStatusDenied: {
+        pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Denied]];
+      } break;
+      case UNAuthorizationStatusAuthorized: {
+        pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Authorized]
+                                               canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
+                                                      canShowBadge:(settings.badgeSetting == UNNotificationSettingEnabled)
+                                       canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
+      } break;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_12_0
-        case UNAuthorizationStatusProvisional: {
-          pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Provisional]
-                                                 canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
-                                                        canShowBadge:(settings.badgeSetting == UNNotificationSettingEnabled)
-                                         canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
-        } break;
+      case UNAuthorizationStatusProvisional: {
+        pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState Provisional]
+                                               canShowOnLockscreen:(settings.lockScreenSetting == UNNotificationSettingEnabled)
+                                                      canShowBadge:(settings.badgeSetting == UNNotificationSettingEnabled)
+                                       canShowInNotificationCenter:(settings.notificationCenterSetting == UNNotificationSettingEnabled)];
+      } break;
 #endif
+      case UNAuthorizationStatusNotDetermined: {
+        pushState = [[TeakPushStateChainEntry alloc] initWithState:[TeakPushState NotDetermined]];
+      } break;
 
-        // UNAuthorizationStatusNotDetermined
-        // UNAuthorizationStatusEphemeral
-        default: {
-        } break;
-      }
-      dispatch_semaphore_signal(sema);
-    }];
-
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+      // UNAuthorizationStatusEphemeral
+      default: {
+      } break;
+    }
   } else {
     BOOL pushEnabled = [TeakPushState applicationHasRemoteNotificationsEnabled:[UIApplication sharedApplication]];
     pushState = [[TeakPushStateChainEntry alloc] initWithState:(pushEnabled ? [TeakPushState Authorized] : [TeakPushState Denied])];
@@ -278,3 +277,20 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 }
 
 @end
+
+UNNotificationSettings* UNNotificationCenterSettingsSync(void) {
+  __block UNNotificationSettings* ret = nil;
+
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
+      ret = settings;
+      dispatch_semaphore_signal(sema);
+    }];
+
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+  }
+
+  return ret;
+}
