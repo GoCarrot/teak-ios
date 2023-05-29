@@ -762,6 +762,10 @@ Teak* _teakSharedInstance;
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
 }
 
+- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
+  handler(UIBackgroundFetchResultNoData);
+}
+
 - (void)deleteEmail {
   TeakLog_t(@"[Teak deleteEmail]", @{});
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
