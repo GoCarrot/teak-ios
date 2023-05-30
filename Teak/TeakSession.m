@@ -56,6 +56,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (nonatomic) BOOL userIdentificationSent;
 @property (strong, nonatomic) dispatch_block_t reportDurationBlock;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
+@property (strong, nonatomic) NSString* serverSessionId;
 @end
 
 @implementation TeakSession
@@ -311,6 +312,8 @@ DefineTeakState(Expired, (@[]));
                                                       blockSelf.pushStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"push"]];
                                                       blockSelf.smsStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"sms"]];
                                                     }
+
+                                                    blockSelf.serverSessionId = reply[@"session_id"];
 
                                                     [blockSelf dispatchUserDataEvent];
 
@@ -772,7 +775,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
       // Process deep links and/or rewards
       [self processAttributionAndDispatchEvents];
-      
+
       // Send the server a "hey nevermind that" message
       // TODO: Send server the "nevermind session resume"
     } else if (newValue == [TeakSession Expiring]) {
@@ -793,7 +796,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           [blockSelf.userProfile send];
         });
       }
-      
+
       // Reset duraation report and set it
       [self resetReportDurationBlock];
       self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
@@ -801,7 +804,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
         // TODO: Send request here for "if you don't hear back from me, this session ended now"
         NSDictionary* payload = @{
-          @"session_id" : self.sessionId,
+          @"session_id" : self.serverSessionId == nil ? [NSNull null] : self.serverSessionId,
           @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000]
         };
 
@@ -827,7 +830,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 }
 
 - (void)endBackgroundUpdateTask {
-  [[UIApplication sharedApplication] endBackgroundTask: self.backgroundUpdateTask];
+  [[UIApplication sharedApplication] endBackgroundTask:self.backgroundUpdateTask];
   self.backgroundUpdateTask = UIBackgroundTaskInvalid;
 }
 
