@@ -54,6 +54,10 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
+@property (strong, nonatomic) dispatch_block_t reportDurationBlock;
+@property (nonatomic) BOOL reportDurationSent;
+@property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
+@property (strong, nonatomic) NSString* serverSessionId;
 @end
 
 @implementation TeakSession
@@ -309,6 +313,8 @@ DefineTeakState(Expired, (@[]));
                                                       blockSelf.pushStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"push"]];
                                                       blockSelf.smsStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"sms"]];
                                                     }
+
+                                                    blockSelf.serverSessionId = [reply[@"session_id"] stringValue];
 
                                                     [blockSelf dispatchUserDataEvent];
 
@@ -770,6 +776,24 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
       // Process deep links and/or rewards
       [self processAttributionAndDispatchEvents];
+
+      // Send the server a "hey nevermind that" message if needed
+      if (oldValue == [TeakSession Expiring]) {
+        // Cancel any pending duration report
+        if ([self resetReportDurationBlock]) {
+          // The report duration got sent, so send a resume
+          NSDictionary* payload = @{
+            @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId)
+          };
+          
+          TeakRequest* request = [TeakRequest requestWithSession:self
+                                                     forEndpoint:@"https://parsnip.gocarrot.com/session_resume"
+                                                     withPayload:payload
+                                                          method:TeakRequest_POST
+                                                        callback:nil];
+          [request send];
+        }
+      }
     } else if (newValue == [TeakSession Expiring]) {
       self.endDate = [[NSDate alloc] init];
 
@@ -788,10 +812,60 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           [blockSelf.userProfile send];
         });
       }
+
+      // Reset duraation report and set it
+      [self resetReportDurationBlock];
+      self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        [self beginBackgroundUpdateTask];
+
+        // Send request for "if you don't hear back from me, this session ended now"
+        NSDictionary* payload = @{
+          @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId),
+          @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000]
+        };
+
+        // Oof size: large, but it does exactly what it's supposed to do
+        sleep(5);
+
+        TeakRequest* request = [TeakRequest requestWithSession:self
+                                                   forEndpoint:@"https://parsnip.gocarrot.com/session_stop"
+                                                   withPayload:payload
+                                                        method:TeakRequest_POST
+                                                      callback:nil];
+
+        // Make sure we're not canceled
+        if (self.reportDurationBlock != nil && !dispatch_block_testcancel(self.reportDurationBlock)) {
+          self.reportDurationSent = YES;
+          [request send];
+        }
+
+        [self endBackgroundUpdateTask];
+      });
+      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
     } else if (newValue == [TeakSession Expired]) {
-      // TODO: Report Session to server, once we collect that info.
     }
   }
+}
+
+- (BOOL)resetReportDurationBlock {
+  BOOL lastReportDurationSent = self.reportDurationSent;
+  if (self.reportDurationBlock) {
+    dispatch_block_cancel(self.reportDurationBlock);
+    self.reportDurationBlock = nil;
+    self.reportDurationSent = NO;
+  }
+  return lastReportDurationSent;
+}
+
+- (void)beginBackgroundUpdateTask {
+  self.backgroundUpdateTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+    [self endBackgroundUpdateTask];
+  }];
+}
+
+- (void)endBackgroundUpdateTask {
+  [[UIApplication sharedApplication] endBackgroundTask:self.backgroundUpdateTask];
+  self.backgroundUpdateTask = UIBackgroundTaskInvalid;
 }
 
 - (void)dispatchUserDataEvent {
