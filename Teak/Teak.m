@@ -927,24 +927,32 @@ void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
         @"NotRequested"
       ];
       @try {
-        NSString* urlString = [NSString stringWithFormat:
-                                            @"https://parsnip.gocarrot.com/push_state?app_id=%@&user_id=%@&platform_id=%@&device_id=%@&expected_display=%@&status=%@",
-                                            URLEscapedString(userInfo[@"teakAppId"]),
-                                            URLEscapedString(userInfo[@"teakUserId"]),
-                                            URLEscapedString(userInfo[@"teakNotifId"]),
-                                            URLEscapedString([Teak sharedInstance].configuration.deviceConfiguration.deviceId),
-                                            URLEscapedString(userInfo[@"teakExpectedDisplay"]),
-                                            TeakNotificationStateName[notificationState]];
+        NSDictionary* payload = @{
+          @"app_id" : userInfo[@"teakAppId"],
+          @"user_id" : userInfo[@"teakUserId"],
+          @"platform_id" : userInfo[@"teakNotifId"],
+          @"device_id" : [Teak sharedInstance].configuration.deviceConfiguration.deviceId,
+          @"expected_display" : userInfo[@"teakExpectedDisplay"],
+          @"status" : TeakNotificationStateName[notificationState]
+        };
+        NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/push_state"]
+                                                               cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+                                                           timeoutInterval:120];
 
-        NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
-                                                 cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
-                                             timeoutInterval:120];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        [NSURLConnection sendSynchronousRequest:request
-                              returningResponse:nil
-                                          error:nil];
-#pragma clang diagnostic pop
+        NSData* payloadData = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
+
+        [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+        [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+        [request setHTTPMethod:@"POST"];
+        [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[payloadData length]] forHTTPHeaderField:@"Content-Length"];
+        [request setHTTPBody:payloadData];
+
+        dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+        [[[Teak URLSessionWithoutDelegate] dataTaskWithRequest:request
+                                             completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+                                               dispatch_semaphore_signal(sema);
+                                             }] resume];
+        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
       } @finally {
         // Ignored
       }

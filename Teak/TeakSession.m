@@ -785,7 +785,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           NSDictionary* payload = @{
             @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId)
           };
-          
+
           TeakRequest* request = [TeakRequest requestWithSession:self
                                                      forEndpoint:@"https://parsnip.gocarrot.com/session_resume"
                                                      withPayload:payload
