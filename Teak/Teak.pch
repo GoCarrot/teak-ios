@@ -20,6 +20,7 @@ extern NSDictionary* TeakGetQueryParameterDictionaryFromUrl(NSURL* url);
 #define URLEscapedString(_inString) TeakURLEscapedString(_inString)
 #define NSStringOrNilFor(_id) TeakNSStringOrNilFor(_id)
 #define NSNullOrNil(_id) ((_id == nil) || ((id)_id == [NSNull null]))
+#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
 
 #define _(_id) (_id == nil ? [NSNull null] : _id)
 

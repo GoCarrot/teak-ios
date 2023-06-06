@@ -43,7 +43,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 /// Implementations
 
 #define NewIfNotOld(x, y) (x == nil ? y : x)
-#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
 
 @implementation TeakLaunchDataOperation
 

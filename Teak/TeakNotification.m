@@ -46,7 +46,6 @@
 - (NSDictionary*)eventUserInfo {
   NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
   teakUserInfo[@"teakNotifId"] = self.teakNotifId;
-#define ValueOrNSNull(x) (x == nil ? [NSNull null] : x)
   teakUserInfo[@"teakRewardId"] = ValueOrNSNull(self.teakRewardId);
   teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(self.teakScheduleName);
   teakUserInfo[@"teakScheduleId"] = ValueOrNSNull(self.teakScheduleId);
@@ -55,7 +54,6 @@
   teakUserInfo[@"teakChannelName"] = ValueOrNSNull(self.teakChannelName);
   teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(self.teakDeepLink);
   teakUserInfo[@"teakOptOutCategory"] = ValueOrNSNull(self.teakOptOutCategory);
-#undef ValueOrNSNull
 
   return teakUserInfo;
 }
