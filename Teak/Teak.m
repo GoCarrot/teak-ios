@@ -928,12 +928,12 @@ void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
       ];
       @try {
         NSDictionary* payload = @{
-          @"app_id" : userInfo[@"teakAppId"],
-          @"user_id" : userInfo[@"teakUserId"],
-          @"platform_id" : userInfo[@"teakNotifId"],
-          @"device_id" : [Teak sharedInstance].configuration.deviceConfiguration.deviceId,
-          @"expected_display" : userInfo[@"teakExpectedDisplay"],
-          @"status" : TeakNotificationStateName[notificationState]
+          @"app_id" : ValueOrNSNull(userInfo[@"teakAppId"]),
+          @"user_id" : ValueOrNSNull(userInfo[@"teakUserId"]),
+          @"platform_id" : ValueOrNSNull(userInfo[@"teakNotifId"]),
+          @"device_id" : ValueOrNSNull([Teak sharedInstance].configuration.deviceConfiguration.deviceId),
+          @"expected_display" : ValueOrNSNull(userInfo[@"teakExpectedDisplay"]),
+          @"status" : TeakNotificationStateName[notificationState + 1] // Becaue Unknown is -1 and Enabled is 0
         };
         NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/push_state"]
                                                                cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
