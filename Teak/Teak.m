@@ -766,7 +766,9 @@ Teak* _teakSharedInstance;
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
   TeakSendHealthCheckIfNeededSynch(userInfo);
-  handler(UIBackgroundFetchResultNoData);
+  if (handler != nil) {
+    handler(UIBackgroundFetchResultNoData);
+  }
 }
 
 - (void)deleteEmail {
@@ -867,6 +869,12 @@ Teak* _teakSharedInstance;
 // need to handle the case where it is called after a user has tapped a
 // foreground notification.
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
+  // Check for data-only push
+  if (userInfo[@"aps"][@"content-available"] && userInfo[@"teakHealthCheck"]) {
+    [self application:application didReceiveRemoteNotification:userInfo fetchCompletionHandler:nil];
+    return;
+  }
+  
   TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
   if (!notif) {
     return;
