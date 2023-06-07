@@ -9,7 +9,7 @@
 
 #define kStateChainPreferencesKey @"TeakPushStateChain"
 
-UNNotificationSettings* UNNotificationCenterSettingsSync(void);
+extern UNNotificationSettings* UNNotificationCenterSettingsSync(void);
 
 @interface TeakPushStateChainEntry : NSObject
 @property (strong, nonatomic) TeakState* state;
@@ -277,20 +277,3 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 }
 
 @end
-
-UNNotificationSettings* UNNotificationCenterSettingsSync(void) {
-  __block UNNotificationSettings* ret = nil;
-
-  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
-    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
-    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings* _Nonnull settings) {
-      ret = settings;
-      dispatch_semaphore_signal(sema);
-    }];
-
-    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-  }
-
-  return ret;
-}

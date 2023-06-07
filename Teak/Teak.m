@@ -64,7 +64,8 @@ NSDictionary* TeakVersionDict = nil;
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
-void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
+extern void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
+extern NSURLSession* TeakURLSessionWithoutDelegate(void);
 
 Teak* _teakSharedInstance;
 
@@ -75,20 +76,7 @@ Teak* _teakSharedInstance;
 }
 
 + (NSURLSession*)URLSessionWithoutDelegate {
-  static NSURLSession* session = nil;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    NSURLSessionConfiguration* sessionConfiguration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
-    sessionConfiguration.URLCache = nil;
-    sessionConfiguration.URLCredentialStorage = nil;
-    sessionConfiguration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-    sessionConfiguration.HTTPAdditionalHeaders = @{
-      @"X-Teak-DeviceType" : @"API",
-      @"X-Teak-Supports-Templates" : @"TRUE"
-    };
-    session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
-  });
-  return session;
+  return TeakURLSessionWithoutDelegate();
 }
 
 + (dispatch_queue_t _Nonnull)operationQueue {
@@ -874,7 +862,7 @@ Teak* _teakSharedInstance;
     [self application:application didReceiveRemoteNotification:userInfo fetchCompletionHandler:nil];
     return;
   }
-  
+
   TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
   if (!notif) {
     return;
@@ -905,65 +893,3 @@ Teak* _teakSharedInstance;
 }
 
 @end
-
-extern UNNotificationSettings* UNNotificationCenterSettingsSync(void);
-
-void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
-  BOOL teakHealthCheck = [userInfo[@"teakHealthCheck"] boolValue];
-  if (teakHealthCheck || userInfo[@"teakExpectedDisplay"] != nil) {
-    BOOL teakExpectedDisplay = [userInfo[@"teakExpectedDisplay"] boolValue];
-    BOOL shouldSendHealthCheck = teakHealthCheck;
-    TeakNotificationState notificationState = TeakNotificationStateUnknown;
-
-    UNNotificationSettings* notificationSettings = UNNotificationCenterSettingsSync();
-    if (notificationSettings != nil) {
-      BOOL canDisplay = (notificationSettings.authorizationStatus == UNAuthorizationStatusAuthorized);
-      if (@available(iOS 12.0, *)) {
-        canDisplay |= notificationSettings.authorizationStatus == UNAuthorizationStatusProvisional;
-      }
-
-      shouldSendHealthCheck |= (canDisplay != teakExpectedDisplay);
-    }
-
-    // Do this synchronously, and then it can be tossed in something async as needed
-    if (shouldSendHealthCheck) {
-      NSArray* _Nonnull const TeakNotificationStateName = @[
-        @"UnableToDetermine",
-        @"Enabled",
-        @"Disabled",
-        @"Provisional",
-        @"NotRequested"
-      ];
-      @try {
-        NSDictionary* payload = @{
-          @"app_id" : ValueOrNSNull(userInfo[@"teakAppId"]),
-          @"user_id" : ValueOrNSNull(userInfo[@"teakUserId"]),
-          @"platform_id" : ValueOrNSNull(userInfo[@"teakNotifId"]),
-          @"device_id" : ValueOrNSNull([Teak sharedInstance].configuration.deviceConfiguration.deviceId),
-          @"expected_display" : ValueOrNSNull(userInfo[@"teakExpectedDisplay"]),
-          @"status" : TeakNotificationStateName[notificationState + 1] // Becaue Unknown is -1 and Enabled is 0
-        };
-        NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/push_state"]
-                                                               cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
-                                                           timeoutInterval:120];
-
-        NSData* payloadData = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
-
-        [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
-        [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-        [request setHTTPMethod:@"POST"];
-        [request setValue:[NSString stringWithFormat:@"%lu", (unsigned long)[payloadData length]] forHTTPHeaderField:@"Content-Length"];
-        [request setHTTPBody:payloadData];
-
-        dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-        [[[Teak URLSessionWithoutDelegate] dataTaskWithRequest:request
-                                             completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
-                                               dispatch_semaphore_signal(sema);
-                                             }] resume];
-        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-      } @finally {
-        // Ignored
-      }
-    }
-  }
-}
