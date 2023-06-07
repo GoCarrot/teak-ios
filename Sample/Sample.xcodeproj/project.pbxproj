@@ -33,8 +33,6 @@
 		43E601C61FFEF949003A09C5 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43E601C51FFEF949003A09C5 /* AVFoundation.framework */; };
 		4B42F2E07D5AB45F9FCA756E /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7BB850291E740CCB89F8860 /* UserNotifications.framework */; };
 		5F158A8EB9F1FA3311799D7A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
-		6711692F2A2FB13500B168B0 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98801C7E6EE100B19DD5 /* AdSupport.framework */; };
-		671169302A2FB14400B168B0 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 431C98841C7E7CC100B19DD5 /* StoreKit.framework */; };
 		A628E016A31A3884318A4A8D /* TeakNotificationService.appex in Embed Teak App Extensions */ = {isa = PBXBuildFile; fileRef = 743A9A53D53CDDA017E41030 /* TeakNotificationService.appex */; };
 		E6C409BD987F3456FDED7EBE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 192F1BCFC30B896DB474AF0F /* Foundation.framework */; };
 		F947CCAE63F557F1DD54C69A /* UserNotificationsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6D34458518D7A040139D5987 /* UserNotificationsUI.framework */; };
@@ -172,8 +170,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				671169302A2FB14400B168B0 /* StoreKit.framework in Frameworks */,
-				6711692F2A2FB13500B168B0 /* AdSupport.framework in Frameworks */,
 				43B927282654458D00002C8B /* CoreServices.framework in Frameworks */,
 				4348846E2036715500EA82D0 /* SystemConfiguration.framework in Frameworks */,
 				4348846C20366C8300EA82D0 /* UIKit.framework in Frameworks */,
