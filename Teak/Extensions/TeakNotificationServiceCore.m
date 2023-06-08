@@ -6,7 +6,7 @@
 #import <sys/utsname.h>
 
 extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* request, NSDictionary* payload);
-extern void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
+extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
 
 @interface TeakNotificationServiceCore ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);

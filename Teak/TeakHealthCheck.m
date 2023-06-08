@@ -34,7 +34,7 @@ UNNotificationSettings* UNNotificationCenterSettingsSync(void) {
   return ret;
 }
 
-void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
+BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
   BOOL teakHealthCheck = [userInfo[@"teakHealthCheck"] boolValue];
   if (teakHealthCheck || userInfo[@"teakExpectedDisplay"] != nil) {
     BOOL teakExpectedDisplay = [userInfo[@"teakExpectedDisplay"] boolValue];
@@ -99,5 +99,8 @@ void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
         // Ignored
       }
     }
+
+    return shouldSendHealthCheck;
   }
+  return NO;
 }

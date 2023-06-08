@@ -64,7 +64,7 @@ NSDictionary* TeakVersionDict = nil;
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
-extern void TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
+extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
 extern NSURLSession* TeakURLSessionWithoutDelegate(void);
 
 Teak* _teakSharedInstance;
