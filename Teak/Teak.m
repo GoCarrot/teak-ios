@@ -64,6 +64,9 @@ NSDictionary* TeakVersionDict = nil;
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
+extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
+extern NSURLSession* TeakURLSessionWithoutDelegate(void);
+
 Teak* _teakSharedInstance;
 
 @implementation Teak
@@ -73,20 +76,7 @@ Teak* _teakSharedInstance;
 }
 
 + (NSURLSession*)URLSessionWithoutDelegate {
-  static NSURLSession* session = nil;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    NSURLSessionConfiguration* sessionConfiguration = [NSURLSessionConfiguration ephemeralSessionConfiguration];
-    sessionConfiguration.URLCache = nil;
-    sessionConfiguration.URLCredentialStorage = nil;
-    sessionConfiguration.requestCachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-    sessionConfiguration.HTTPAdditionalHeaders = @{
-      @"X-Teak-DeviceType" : @"API",
-      @"X-Teak-Supports-Templates" : @"TRUE"
-    };
-    session = [NSURLSession sessionWithConfiguration:sessionConfiguration];
-  });
-  return session;
+  return TeakURLSessionWithoutDelegate();
 }
 
 + (dispatch_queue_t _Nonnull)operationQueue {
@@ -762,6 +752,13 @@ Teak* _teakSharedInstance;
   completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
 }
 
+- (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
+  TeakSendHealthCheckIfNeededSynch(userInfo);
+  if (handler != nil) {
+    handler(UIBackgroundFetchResultNoData);
+  }
+}
+
 - (void)deleteEmail {
   TeakLog_t(@"[Teak deleteEmail]", @{});
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
@@ -860,6 +857,12 @@ Teak* _teakSharedInstance;
 // need to handle the case where it is called after a user has tapped a
 // foreground notification.
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo {
+  // Check for data-only push
+  if (userInfo[@"aps"][@"content-available"] && userInfo[@"teakHealthCheck"]) {
+    [self application:application didReceiveRemoteNotification:userInfo fetchCompletionHandler:nil];
+    return;
+  }
+
   TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
   if (!notif) {
     return;

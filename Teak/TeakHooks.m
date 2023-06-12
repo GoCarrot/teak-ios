@@ -156,7 +156,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     sHostContinueUserActivityIMP = (BOOL(*)(id, SEL, UIApplication*, NSUserActivity*, void (^)(NSArray* _Nullable)))class_replaceMethod(appDelegateClass, appContinueUserActivityMethod.name, method_getImplementation(ctAppContinueUserActivity), appContinueUserActivityMethod.types);
   }
 
-  // application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler
+  // application:didReceiveRemoteNotification:fetchCompletionHandler:
   {
     struct objc_method_description appDRRNFCHMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:didReceiveRemoteNotification:fetchCompletionHandler:), NO, YES);
 

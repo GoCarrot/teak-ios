@@ -6,6 +6,7 @@
 #import <sys/utsname.h>
 
 extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* request, NSDictionary* payload);
+extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
 
 @interface TeakNotificationServiceCore ()
 @property (strong, nonatomic) void (^contentHandler)(UNNotificationContent*);
@@ -32,6 +33,11 @@ extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* re
   }];
 
   NSDictionary* notification = self.bestAttemptContent.userInfo[@"aps"];
+
+  // Send off health check as needed
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    TeakSendHealthCheckIfNeededSynch(notification);
+  });
 
   // Get device model, resolution, and if they are on wifi or celular
   NSMutableArray* additionalQueryItems = [[NSMutableArray alloc] init];
