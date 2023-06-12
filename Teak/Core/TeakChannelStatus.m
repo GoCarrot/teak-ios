@@ -67,7 +67,7 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
   return @{
     @"state" : self.state,
     @"delivery_fault" : self.deliveryFault ? @"true" : @"false",
-    @"categories" : self.categories == nil ? [NSNull null] : self.categories
+    @"categories" : ValueOrNSNull(self.categories)
   };
 }
 

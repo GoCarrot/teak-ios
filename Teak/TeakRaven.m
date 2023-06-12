@@ -382,7 +382,7 @@ void TeakSignalHandler(int signal) {
     };
   } @catch (NSException* exception) {
     return @{
-      @"function" : raw == nil ? [NSNull null] : raw
+      @"function" : ValueOrNSNull(raw)
     };
   }
 }

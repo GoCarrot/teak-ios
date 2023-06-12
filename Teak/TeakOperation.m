@@ -9,7 +9,7 @@ const static NSString* const kPayload = @"payload";
 - (nonnull NSDictionary*)toDictionary {
   return @{
     @"error" : self.error ? @"true" : @"false",
-    @"errors" : self.errors == nil ? [NSNull null] : self.errors
+    @"errors" : ValueOrNSNull(self.errors)
   };
 }
 @end
@@ -18,8 +18,8 @@ const static NSString* const kPayload = @"payload";
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
   [ret addEntriesFromDictionary:@{
-    @"state" : self.state,
-    @"channel" : self.channel,
+    @"state" : ValueOrNSNull(self.state),
+    @"channel" : ValueOrNSNull(self.channel),
   }];
   return ret;
 }
@@ -29,7 +29,7 @@ const static NSString* const kPayload = @"payload";
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
   [ret addEntriesFromDictionary:@{
-    @"category" : self.category == nil ? [NSNull null] : self.category
+    @"category" : ValueOrNSNull(self.category)
   }];
   return ret;
 }

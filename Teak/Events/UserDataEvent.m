@@ -15,8 +15,8 @@
     @"emailStatus" : [self.emailStatus toDictionary],
     @"pushStatus" : [self.pushStatus toDictionary],
     @"smsStatus" : [self.smsStatus toDictionary],
-    @"additionalData" : self.additionalData ? self.additionalData : [NSNull null],
-    @"pushRegistration" : self.pushRegistration ? self.pushRegistration : [NSNull null]
+    @"additionalData" : ValueOrNSNull(self.additionalData),
+    @"pushRegistration" : ValueOrNSNull(self.pushRegistration)
   };
 }
 

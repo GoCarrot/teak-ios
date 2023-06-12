@@ -150,7 +150,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking],
     @"notificationDisplayEnabled" : self.notificationDisplayEnabled,
     @"pushRegistration" : @{
-      @"apns_push_key" : self.pushToken != nil ? self.pushToken : [NSNull null]
+      @"apns_push_key" : ValueOrNSNull(self.pushToken)
     }
   };
 }
