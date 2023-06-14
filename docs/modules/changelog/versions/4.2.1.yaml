@@ -1,0 +1,2 @@
+bug:
+  - Prevent unneeded server requests when re-identifying user (depending on provided information)
