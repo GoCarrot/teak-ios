@@ -15,6 +15,7 @@
 
 #import "ViewController.h"
 #import <Teak/Teak.h>
+#import <sys/utsname.h>
 
 extern void TeakReportTestException(void);
 extern NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation);
@@ -55,15 +56,20 @@ extern void TeakAddOperationToQueue(NSOperation* op);
   //  [[Teak sharedInstance] setStringAttribute:@"asshole_cats" forKey:@"last_slot"];
   //  [[Teak sharedInstance] incrementEventWithActionId:@"spin" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:1];
   //  [[Teak sharedInstance] incrementEventWithActionId:@"coin_sink" forObjectTypeId:@"slot" andObjectInstanceId:@"asshole_cats" count:50000];
-  [[Teak sharedInstance] openNotificationSettings];
-  return;
+//  [[Teak sharedInstance] openNotificationSettings];
 
-  TeakOperation* op = [[Teak sharedInstance] setState:TeakChannelStateAvailable forChannel:TeakChannelTypePlatformPush];
-  NSBlockOperation* whenDone = [NSBlockOperation blockOperationWithBlock:^{
-    NSLog(@"DONE: %@", TeakOperationGetResultAsDictionary(op));
-  }];
-  [whenDone addDependency:op];
-  TeakAddOperationToQueue(whenDone);
+//  TeakOperation* op = [[Teak sharedInstance] setState:TeakChannelStateAvailable forChannel:TeakChannelTypePlatformPush];
+//  NSBlockOperation* whenDone = [NSBlockOperation blockOperationWithBlock:^{
+//    NSLog(@"DONE: %@", TeakOperationGetResultAsDictionary(op));
+//  }];
+//  [whenDone addDependency:op];
+//  TeakAddOperationToQueue(whenDone);
+
+  struct utsname systemInfo;
+  uname(&systemInfo);
+  NSString* userId = [NSString stringWithFormat:@"native-%@", [[NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding] lowercaseString]];
+  [[Teak sharedInstance] identifyUser:userId withConfiguration:[TeakUserConfiguration fromDictionary:@{@"email" : [NSNull null]}]];
+
   //TeakReportTestException();
   return;
 

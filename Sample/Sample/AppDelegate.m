@@ -74,7 +74,7 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
 
   // Step 4:
   // Call identifyUser as soon as you know the user id of the current player.
-  [[Teak sharedInstance] identifyUser:userId];
+  [[Teak sharedInstance] identifyUser:userId withConfiguration:[TeakUserConfiguration fromDictionary:@{}]];
 
   // Step 5:
   // Tell Teak that you want to be notified when your game has been launched via a Push Notification.
