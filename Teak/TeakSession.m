@@ -20,6 +20,17 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
+BOOL StringsAreEqualConsideringNSNull(NSString* a, NSString* b) {
+  if (a == (NSString*)[NSNull null]) a = nil;
+  if (b ==  (NSString*)[NSNull null]) b = nil;
+
+  if (a == b) return YES;
+
+  NSString* notNilString = (a == nil ? b : a);
+  NSString* maybeNilString = (a == nil ? a : b);
+  return [notNilString isEqualToString:maybeNilString];
+}
+
 @interface TeakSession ()
 @property (strong, nonatomic, readwrite) TeakState* currentState;
 @property (strong, nonatomic) TeakState* previousState;
@@ -495,16 +506,14 @@ DefineTeakState(Expired, (@[]));
       }
 
       BOOL needsIdentifyUser = (currentSession.currentState == [TeakSession Configured]);
-#define NEEDS_UPDATE(x, str) (x == [NSNull null] || ![x isEqualToString:str])
 #define CURRENT_SESSION_STATE_IS_IDENTIFIED (currentSession.currentState == [TeakSession IdentifyingUser] || currentSession.currentState == [TeakSession UserIdentified])
-      if (NEEDS_UPDATE(currentSession.email, email) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
+      if (!StringsAreEqualConsideringNSNull(currentSession.email, email) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
-      if (NEEDS_UPDATE(currentSession.facebookId, facebookId) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
+      if (!StringsAreEqualConsideringNSNull(currentSession.facebookId, facebookId) && CURRENT_SESSION_STATE_IS_IDENTIFIED) {
         needsIdentifyUser = YES;
       }
 #undef CURRENT_SESSION_STATE_IS_IDENTIFIED
-#undef NEEDS_UPDATE
 
       currentSession.userId = userId;
       currentSession.email = email;
