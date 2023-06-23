@@ -12,6 +12,7 @@ jobs:
         default: "13.4.1"
     macos:
       xcode: << parameters.xcode-version >>
+    resource_class: macos.x86.medium.gen2
     shell: /bin/bash --login -eo pipefail
     steps:
       - run:
@@ -31,6 +32,7 @@ jobs:
         default: "13.4.1"
     macos:
       xcode: << parameters.xcode-version >>
+    resource_class: macos.x86.medium.gen2
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup
