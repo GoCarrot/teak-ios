@@ -25,7 +25,7 @@
 + (nonnull TeakOperation*)withResult:(nonnull id)result;
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint;
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload;
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable(^)(NSDictionary* _Nonnull reply))replyParser;
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable(^)(NSDictionary* _Nonnull))replyParser;
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull reply))replyParser;
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser;
 
 @end

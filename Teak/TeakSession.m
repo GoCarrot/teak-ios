@@ -27,7 +27,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 BOOL StringsAreEqualConsideringNSNull(NSString* a, NSString* b) {
   if (a == (NSString*)[NSNull null]) a = nil;
-  if (b ==  (NSString*)[NSNull null]) b = nil;
+  if (b == (NSString*)[NSNull null]) b = nil;
 
   if (a == b) return YES;
 
