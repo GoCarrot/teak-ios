@@ -7,6 +7,8 @@
 #import "TeakRequest.h"
 #import "TeakSession.h"
 
+extern NSArray* TeakNotificationAvailableCategories;
+
 @interface TeakRemoteConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* hostname;
 @property (strong, nonatomic, readwrite) NSString* sdkSentryDsn;
@@ -155,6 +157,18 @@
 
                                                     // Server-configured Info.plist parameters
                                                     [self configureDynamicParametersFor:reply[@"dynamic_parameters"]];
+
+                                                    // Categories
+                                                    NSDictionary* availableCategories = reply[@"available_categories"];
+                                                    NSMutableArray* categories = [[NSMutableArray alloc] init];
+                                                    for (NSString* key in availableCategories) {
+                                                      TeakChannelCategory* category = [[TeakChannelCategory alloc] init];
+                                                      category.id = key;
+                                                      category.name = availableCategories[key][@"name"];
+                                                      category.categoryDescription = availableCategories[key][@"description"];
+                                                      [categories addObject:category];
+                                                    }
+                                                    TeakNotificationAvailableCategories = [NSArray arrayWithArray:categories];
 
                                                     [RemoteConfigurationEvent remoteConfigurationReady:self];
                                                   }];
