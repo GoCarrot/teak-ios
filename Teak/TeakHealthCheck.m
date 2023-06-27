@@ -77,7 +77,7 @@ BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
           @"expected_display" : ValueOrNSNull(userInfo[@"teakExpectedDisplay"]),
           @"status" : TeakNotificationStateName[notificationState + 1] // Becaue Unknown is -1 and Enabled is 0
         };
-        NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://parsnip.gocarrot.com/push_state"]
+        NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://parsnip.%@/push_state", kTeakHostname]]
                                                                cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
                                                            timeoutInterval:120];
 

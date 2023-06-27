@@ -796,7 +796,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           };
 
           TeakRequest* request = [TeakRequest requestWithSession:self
-                                                     forEndpoint:@"https://parsnip.gocarrot.com/session_resume"
+                                                     forEndpoint:[NSString stringWithFormat:@"https://parsnip.%@/session_resume", kTeakHostname]
                                                      withPayload:payload
                                                           method:TeakRequest_POST
                                                         callback:nil];
@@ -837,7 +837,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         sleep(5);
 
         TeakRequest* request = [TeakRequest requestWithSession:self
-                                                   forEndpoint:@"https://parsnip.gocarrot.com/session_stop"
+                                                   forEndpoint:[NSString stringWithFormat:@"https://parsnip.%@/session_stop", kTeakHostname]
                                                    withPayload:payload
                                                         method:TeakRequest_POST
                                                       callback:nil];
