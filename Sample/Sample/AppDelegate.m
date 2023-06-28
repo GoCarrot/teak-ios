@@ -157,6 +157,9 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
 - (void)handleTeakPostLaunchSummary:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
   NSLog(@"handleTeakPostLaunchSummary: %@", userInfo);
+
+
+  NSLog(@"categories: %@", [TeakNotification categories]);
 }
 
 - (void)handleTeakUserData:(NSNotification*)notification {
