@@ -344,7 +344,7 @@ DefineTeakState(Expired, (@[]));
 
 - (void)sendHeartbeat {
   NSString* urlString = [NSString stringWithFormat:
-                                      @"https://iroko.%@/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
+                                      @"https://%@/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
                                       kTeakHostname,
                                       URLEscapedString(self.appConfiguration.appId),
                                       URLEscapedString(self.userId),
@@ -796,7 +796,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           };
 
           TeakRequest* request = [TeakRequest requestWithSession:self
-                                                     forEndpoint:[NSString stringWithFormat:@"https://parsnip.%@/session_resume", kTeakHostname]
+                                                     forEndpoint:[NSString stringWithFormat:@"https://%@/session_resume", kTeakHostname]
                                                      withPayload:payload
                                                           method:TeakRequest_POST
                                                         callback:nil];
@@ -837,7 +837,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         sleep(5);
 
         TeakRequest* request = [TeakRequest requestWithSession:self
-                                                   forEndpoint:[NSString stringWithFormat:@"https://parsnip.%@/session_stop", kTeakHostname]
+                                                   forEndpoint:[NSString stringWithFormat:@"https://%@/session_stop", kTeakHostname]
                                                    withPayload:payload
                                                         method:TeakRequest_POST
                                                       callback:nil];
