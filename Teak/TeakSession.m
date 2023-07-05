@@ -796,7 +796,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           };
 
           TeakRequest* request = [TeakRequest requestWithSession:self
-                                                     forEndpoint:[NSString stringWithFormat:@"https://%@/session_resume", kTeakHostname]
+                                                     forEndpoint:@"/session_resume"
                                                      withPayload:payload
                                                           method:TeakRequest_POST
                                                         callback:nil];
@@ -833,11 +833,8 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000]
         };
 
-        // Oof size: large, but it does exactly what it's supposed to do
-        sleep(5);
-
         TeakRequest* request = [TeakRequest requestWithSession:self
-                                                   forEndpoint:[NSString stringWithFormat:@"https://%@/session_stop", kTeakHostname]
+                                                   forEndpoint:@"/session_stop"
                                                    withPayload:payload
                                                         method:TeakRequest_POST
                                                       callback:nil];
