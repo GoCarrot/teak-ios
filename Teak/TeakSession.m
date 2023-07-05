@@ -69,6 +69,7 @@ BOOL StringsAreEqualConsideringNSNull(NSString* a, NSString* b) {
 @property (nonatomic) BOOL reportDurationSent;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
 @property (strong, nonatomic) NSString* serverSessionId;
+@property int sessionVectorClock;
 @end
 
 @implementation TeakSession
@@ -326,6 +327,7 @@ DefineTeakState(Expired, (@[]));
                                                     }
 
                                                     blockSelf.serverSessionId = [reply[@"session_id"] stringValue];
+                                                    blockSelf.sessionVectorClock = 0;
 
                                                     [blockSelf dispatchUserDataEvent];
 
@@ -374,6 +376,8 @@ DefineTeakState(Expired, (@[]));
     self.startDate = [[NSDate alloc] init];
     self.appConfiguration = configuration.appConfiguration;
     self.deviceConfiguration = configuration.deviceConfiguration;
+    self.serverSessionId = nil;
+    self.sessionVectorClock = 0;
 
     // Assign unattributed launch at init
     self.launchDataOperation = [TeakLaunchDataOperation unattributed];
@@ -791,8 +795,10 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         // Cancel any pending duration report
         if ([self resetReportDurationBlock]) {
           // The report duration got sent, so send a resume
+          self.sessionVectorClock++;
           NSDictionary* payload = @{
-            @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId)
+            @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId),
+            @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
           };
 
           TeakRequest* request = [TeakRequest requestWithSession:self
@@ -827,10 +833,13 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
         [self beginBackgroundUpdateTask];
 
+        self.sessionVectorClock++;
+
         // Send request for "if you don't hear back from me, this session ended now"
         NSDictionary* payload = @{
           @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId),
-          @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000]
+          @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000],
+          @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
         };
 
         TeakRequest* request = [TeakRequest requestWithSession:self
