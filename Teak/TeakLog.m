@@ -52,7 +52,7 @@ __attribute__((overloadable)) void TeakLog_e(NSString* eventType, NSError* error
     @"errorCode": [NSNumber numberWithLong:error.code],
     @"userInfo": error.userInfo == nil ? @{} : error.userInfo
   };
-    TeakLog_e(eventType, nil, payload);
+    TeakLog_e(eventType, [error localizedDescription], payload);
 }
 
 __attribute__((overloadable)) void TeakLog_e(NSString* eventType, NSString* message, NSDictionary* eventData) {
