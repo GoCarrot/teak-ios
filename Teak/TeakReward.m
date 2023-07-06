@@ -51,6 +51,8 @@
                                                                                                                                     error:&error];
                                                       if (error == nil) {
                                                         rewardResponse[@"reward"] = parsedReward;
+                                                      } else {
+                                                        TeakLog_e(@"reward.response.error", error);
                                                       }
                                                     }
 

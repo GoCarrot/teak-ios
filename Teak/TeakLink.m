@@ -113,7 +113,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
     NSError* error = nil;
     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:key options:0 error:&error];
     if (error != nil) {
-      TeakLog_e(@"deep_link.parse_error", @{@"error" : [error localizedDescription]});
+      TeakLog_e(@"deep_link.parse_error", error);
     } else {
       teak_try {
         teak_log_data_breadcrumb(@"Looking for matching pattern", (@{@"pattern" : key, @"deep_link" : deepLink.path}));
