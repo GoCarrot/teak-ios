@@ -624,7 +624,7 @@ KeyValueObserverSupported(TeakBatchedRequest);
 - (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)dataTask didCompleteWithError:(NSError*)error {
   NSDictionary* reply = @{};
   if (error) {
-    // TODO: Server errors don't come in here, not certain what should be handled here
+    TeakLog_e(@"request.reply.error", error);
   } else {
     teak_try {
       @synchronized(self) {
@@ -634,10 +634,6 @@ KeyValueObserverSupported(TeakBatchedRequest);
                                                                  options:kNilOptions
                                                                    error:&error];
         }
-      }
-
-      if (error) {
-        reply = @{};
       }
     }
     teak_catch_report;
