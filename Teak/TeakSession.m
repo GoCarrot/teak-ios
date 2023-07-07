@@ -220,7 +220,8 @@ DefineTeakState(Expired, (@[]));
 
     NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
       @"locale" : locale,
-      @"timezone" : timeZoneString
+      @"timezone" : timeZoneString,
+      @"timezone_id": timeZone.name
     }];
 
     // Kick off checking for push notification enabled
