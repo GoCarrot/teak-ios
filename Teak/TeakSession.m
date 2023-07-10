@@ -830,34 +830,36 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       }
 
       // Reset duraation report and set it
-      [self resetReportDurationBlock];
-      self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-        [self beginBackgroundUpdateTask];
+      if(self.serverSessionId != nil) {
+        [self resetReportDurationBlock];
+        self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+          [self beginBackgroundUpdateTask];
 
-        self.sessionVectorClock++;
+          self.sessionVectorClock++;
 
-        // Send request for "if you don't hear back from me, this session ended now"
-        NSDictionary* payload = @{
-          @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId),
-          @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000],
-          @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
-        };
+          // Send request for "if you don't hear back from me, this session ended now"
+          NSDictionary* payload = @{
+            @"session_id" : URLEscapedString(self.serverSessionId),
+            @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000],
+            @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
+          };
 
-        TeakRequest* request = [TeakRequest requestWithSession:self
-                                                   forEndpoint:@"/session_stop"
-                                                   withPayload:payload
-                                                        method:TeakRequest_POST
-                                                      callback:nil];
+          TeakRequest* request = [TeakRequest requestWithSession:self
+                                                     forEndpoint:@"/session_stop"
+                                                     withPayload:payload
+                                                          method:TeakRequest_POST
+                                                        callback:nil];
 
-        // Make sure we're not canceled
-        if (self.reportDurationBlock != nil && !dispatch_block_testcancel(self.reportDurationBlock)) {
-          self.reportDurationSent = YES;
-          [request send];
-        }
+          // Make sure we're not canceled
+          if (self.reportDurationBlock != nil && !dispatch_block_testcancel(self.reportDurationBlock)) {
+            self.reportDurationSent = YES;
+            [request send];
+          }
 
-        [self endBackgroundUpdateTask];
-      });
-      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
+          [self endBackgroundUpdateTask];
+        });
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
+      }
     } else if (newValue == [TeakSession Expired]) {
     }
   }
