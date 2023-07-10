@@ -327,7 +327,7 @@ DefineTeakState(Expired, (@[]));
                                                       blockSelf.smsStatus = [[TeakChannelStatus alloc] initWithDictionary:reply[@"opt_out_states"][@"sms"]];
                                                     }
 
-                                                    blockSelf.serverSessionId = [reply[@"session_id"] stringValue];
+                                                    blockSelf.serverSessionId = reply[@"session_id"];
                                                     blockSelf.sessionVectorClock = 0;
 
                                                     [blockSelf dispatchUserDataEvent];
