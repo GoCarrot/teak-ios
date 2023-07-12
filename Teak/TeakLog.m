@@ -49,8 +49,7 @@ extern __attribute__((overloadable)) void TeakLog_e(NSString* _Nonnull eventType
 __attribute__((overloadable)) void TeakLog_e(NSString* eventType, NSError* error) {
   NSDictionary* payload = @{
     @"errorDomain": error.domain,
-    @"errorCode": [NSNumber numberWithLong:error.code],
-    @"userInfo": error.userInfo == nil ? @{} : error.userInfo
+    @"errorCode": [NSNumber numberWithLong:error.code]
   };
     TeakLog_e(eventType, [error localizedDescription], payload);
 }
