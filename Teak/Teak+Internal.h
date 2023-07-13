@@ -15,12 +15,6 @@
 
 extern NSDictionary* _Nonnull TeakNotificationCategories;
 
-@interface TeakChannelCategory ()
-@property (strong, nonatomic, readwrite) NSString* _Nonnull id;
-@property (strong, nonatomic, readwrite) NSString* _Nonnull name;
-@property (strong, nonatomic, readwrite) NSString* _Nullable categoryDescription;
-@end
-
 @interface Teak () <UNUserNotificationCenterDelegate>
 @property (nonatomic, readwrite) BOOL enableDebugOutput;
 @property (nonatomic, readwrite) BOOL enableRemoteLogging;

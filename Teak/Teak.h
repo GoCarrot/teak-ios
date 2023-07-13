@@ -28,6 +28,15 @@ extern NSString* _Nonnull const TeakOnReward;
 extern NSString* _Nonnull const TeakForegroundNotification;
 
 /**
+ * Use this named notification to listen for the information about your app's Teak configuration.
+ *   [[NSNotificationCenter defaultCenter] addObserver:self
+ *                                            selector:@selector(handleTeakConfiguration:)
+ *                                                name:TeakConfiguration
+ *                                              object:nil];
+ */
+extern NSString* _Nonnull const TeakConfigurationData;
+
+/**
  * Use this named notification to listen for when your app receives additional data for the current user.
  * 	[[NSNotificationCenter defaultCenter] addObserver:self
  * 	                                         selector:@selector(handleTeakAdditionalData:)

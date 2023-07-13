@@ -3,23 +3,10 @@
 @class TeakReward;
 @class TeakOperation;
 
-@interface TeakChannelCategory : NSObject
-@property (strong, nonatomic, readonly) NSString* _Nonnull id;
-@property (strong, nonatomic, readonly) NSString* _Nonnull name;
-@property (strong, nonatomic, readonly) NSString* _Nullable categoryDescription;
-
-- (nonnull NSDictionary*)json;
-@end
-
 /**
  * Schedule notifications for the current player or other players to be delivered sometime in the future.
  */
 @interface TeakNotification : NSObject
-
-/**
- * A list of TeakChannelCategory, or nil if not yet available.
- */
-+ (nullable NSArray*)categories;
 
 /**
  * Schedule a notification for this user at a time in the future.

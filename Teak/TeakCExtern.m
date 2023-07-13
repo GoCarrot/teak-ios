@@ -272,7 +272,3 @@ NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation) {
 void TeakAddOperationToQueue(NSOperation* op) {
   [[Teak sharedInstance].operationQueue addOperation:op];
 }
-
-NSArray* TeakNotificationGetCategories(void) {
-  return [TeakNotification categories];
-}

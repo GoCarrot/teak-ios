@@ -5,6 +5,7 @@
 #import "TeakSession.h"
 #import "TrackEventEvent.h"
 #import "UserDataEvent.h"
+#import "RemoteConfigurationEvent.h"
 #import <Teak/Teak.h>
 
 @implementation TeakCore
@@ -36,6 +37,12 @@
         [request send];
       }];
     } break;
+
+  case RemoteConfigurationReady:
+    [[NSNotificationCenter defaultCenter] postNotificationName:TeakConfigurationData
+                                                        object:self
+                                                      userInfo:[((RemoteConfigurationEvent*)event) appFacingConfiguration]];
+    break;
 
     // Same code handles both events, but keep two events just for code intent clarity
     case PurchaseFailed:

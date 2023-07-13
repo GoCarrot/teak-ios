@@ -11,16 +11,17 @@
 @implementation UserDataEvent
 
 - (NSDictionary*)toDictionary {
+
   return @{
     @"emailStatus" : [self.emailStatus toDictionary],
     @"pushStatus" : [self.pushStatus toDictionary],
     @"smsStatus" : [self.smsStatus toDictionary],
     @"additionalData" : ValueOrNSNull(self.additionalData),
-    @"pushRegistration" : ValueOrNSNull(self.pushRegistration)
+    @"pushRegistration" : ValueOrNSNull(self.pushRegistration),
   };
 }
 
-+ (void)userDataReceived:(NSDictionary*)additionalData emailStatus:(TeakChannelStatus*)emailStatus pushStatus:(TeakChannelStatus*)pushStatus smsStatus:(TeakChannelStatus*)smsStatus pushRegistration:(NSDictionary*)pushRegistration {
++ (void)userDataReceived:(NSDictionary* _Nonnull)additionalData emailStatus:(TeakChannelStatus* _Nonnull)emailStatus pushStatus:(TeakChannelStatus* _Nonnull)pushStatus smsStatus:(TeakChannelStatus* _Nonnull)smsStatus pushRegistration:(NSDictionary* _Nonnull)pushRegistration {
   UserDataEvent* event = [[UserDataEvent alloc] initWithType:UserData];
   event.additionalData = additionalData;
   event.emailStatus = emailStatus;

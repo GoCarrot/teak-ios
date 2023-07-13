@@ -32,6 +32,7 @@
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
 NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
+NSString* const TeakConfigurationData = @"TeakConfigurationData";
 NSString* const TeakAdditionalData = @"TeakAdditionalData";
 NSString* const TeakLaunchedFromLink = @"TeakLaunchedFromLink";
 NSString* const TeakPostLaunchSummary = @"TeakPostLaunchSummary";

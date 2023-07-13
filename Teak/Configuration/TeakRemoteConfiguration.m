@@ -6,8 +6,7 @@
 #import "TeakLink.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
-
-extern NSArray* TeakNotificationAvailableCategories;
+#import "TeakChannelCategory.h"
 
 @interface TeakRemoteConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* hostname;
@@ -17,6 +16,7 @@ extern NSArray* TeakNotificationAvailableCategories;
 @property (strong, nonatomic, readwrite) NSDictionary* dynamicParameters;
 @property (nonatomic, readwrite) BOOL enhancedIntegrationChecks;
 @property (nonatomic, readwrite) int heartbeatInterval;
+@property (strong, nonatomic, readwrite) NSArray* _Nonnull channelCategories;
 @end
 
 @implementation TeakRemoteConfiguration
@@ -96,6 +96,7 @@ extern NSArray* TeakNotificationAvailableCategories;
     self.endpointConfigurations = [TeakRemoteConfiguration defaultEndpointConfiguration];
     self.dynamicParameters = @{};
     self.heartbeatInterval = 60;
+    self.channelCategories = @[];
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       __strong typeof(self) blockSelf = weakSelf;
@@ -159,16 +160,7 @@ extern NSArray* TeakNotificationAvailableCategories;
                                                     [self configureDynamicParametersFor:reply[@"dynamic_parameters"]];
 
                                                     // Categories
-                                                    NSDictionary* availableCategories = reply[@"available_categories"];
-                                                    NSMutableArray* categories = [[NSMutableArray alloc] init];
-                                                    for (NSString* key in availableCategories) {
-                                                      TeakChannelCategory* category = [[TeakChannelCategory alloc] init];
-                                                      category.id = key;
-                                                      category.name = availableCategories[key][@"name"];
-                                                      category.categoryDescription = availableCategories[key][@"description"];
-                                                      [categories addObject:category];
-                                                    }
-                                                    TeakNotificationAvailableCategories = [NSArray arrayWithArray:categories];
+                                                    self.channelCategories = [TeakChannelCategory createFromRemoteConfiguration:reply[@"available_categories"]];
 
                                                     [RemoteConfigurationEvent remoteConfigurationReady:self];
                                                   }];

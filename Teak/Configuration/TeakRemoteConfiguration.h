@@ -11,6 +11,7 @@
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull dynamicParameters;
 @property (nonatomic, readonly) BOOL enhancedIntegrationChecks;
 @property (nonatomic, readonly) int heartbeatInterval;
+@property (strong, nonatomic, readonly) NSArray* _Nonnull channelCategories;
 
 - (TeakRemoteConfiguration* _Nullable)initForSession:(TeakSession* _Nonnull)session;
 - (nonnull NSDictionary*)to_h;

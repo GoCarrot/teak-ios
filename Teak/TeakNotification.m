@@ -3,18 +3,6 @@
 #import "TeakRequest.h"
 #import "TeakSession.h"
 
-@implementation TeakChannelCategory
-
-- (nonnull NSDictionary*)json {
-  return @{
-    @"id" : ValueOrNSNull(self.id),
-    @"name" : ValueOrNSNull(self.name),
-    @"description" : ValueOrNSNull(self.categoryDescription)
-  };
-}
-
-@end
-
 @interface TeakNotification ()
 
 @property (strong, nonatomic, readwrite) NSString* teakNotifId;
@@ -33,13 +21,7 @@
 
 @end
 
-NSArray* TeakNotificationAvailableCategories = nil;
-
 @implementation TeakNotification
-
-+ (nullable NSArray*)categories {
-  return TeakNotificationAvailableCategories;
-}
 
 - (TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary {
   self = [super init];

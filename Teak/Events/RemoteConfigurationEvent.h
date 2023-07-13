@@ -5,4 +5,5 @@
 @property (strong, nonatomic, readonly) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
 
 + (void)remoteConfigurationReady:(TeakRemoteConfiguration* _Nonnull)remoteConfiguration;
+- (nonnull NSDictionary*)appFacingConfiguration;
 @end
