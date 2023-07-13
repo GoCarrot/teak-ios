@@ -208,7 +208,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user.
- * 
+ *
  * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
@@ -224,7 +224,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user.
- * 
+ *
  * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
@@ -235,7 +235,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * 	                             const char* userConfigurationJson);
  *
  * @deprecated Use identifyUser:withConfiguration: instead
- * 
+ *
  * @param userId           The string Teak should use to identify the current user.
  * @param email            The email address for the current user.
  */
@@ -243,7 +243,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
- * 
+ *
  * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
@@ -252,7 +252,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  *
  * 	extern void TeakIdentifyUser(const char* userId,
  * 	                             const char* userConfigurationJson);
- * 
+ *
  * @deprecated Use identifyUser:withConfiguration: instead
  *
  * @param userId           The string Teak should use to identify the current user.
@@ -262,7 +262,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
- * 
+ *
  * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
@@ -271,7 +271,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  *
  * 	extern void TeakIdentifyUser(const char* userId,
  * 	                             const char* userConfigurationJson);
- * 
+ *
  * @deprecated Use identifyUser:withConfiguration: instead
  *
  * @param userId           The string Teak should use to identify the current user.
@@ -282,7 +282,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 /**
  * Tell Teak how to identify the current user, with data collection opt-out.
- * 
+ *
  * This will also begin tracking and reporting of a session, and track a daily active user.
  *
  * @note This should be how you identify the user in your back-end.
