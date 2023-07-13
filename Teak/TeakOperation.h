@@ -1,9 +1,12 @@
 #import <Foundation/Foundation.h>
 
 @interface TeakOperationResult : NSObject
-@property (nonatomic) BOOL error;
-@property (strong, nonatomic) NSDictionary* _Nullable errors;
+@property (nonatomic, readonly) BOOL error;
+@property (nonatomic, strong, readonly) NSString* _Nonnull status;
+@property (strong, nonatomic, readonly) NSDictionary* _Nullable errors;
 
+- (nonnull TeakOperationResult*)initWithStatus:(nullable NSString*)status andErrors:(nullable NSDictionary*)errors;
+- (BOOL)error;
 - (nonnull NSDictionary*)toDictionary;
 @end
 

@@ -791,11 +791,9 @@ Teak* _teakSharedInstance;
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state"
                                      withPayload:@{@"channel" : channel, @"state" : state}
                                      replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
-                                       TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] init];
-                                       result.error = ![@"ok" isEqualToString:reply[@"status"]];
+                                       TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
                                        result.state = reply[@"state"];
                                        result.channel = reply[@"channel"];
-                                       result.errors = reply[@"errors"];
                                        return result;
                                      }];
   [self.operationQueue addOperation:op];
@@ -809,12 +807,10 @@ Teak* _teakSharedInstance;
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/category_state"
                                      withPayload:@{@"channel" : channel, @"state" : state, @"category" : category}
                                      replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
-                                       TeakOperationCategoryStateResult* result = [[TeakOperationCategoryStateResult alloc] init];
-                                       result.error = ![@"ok" isEqualToString:reply[@"status"]];
+                                       TeakOperationCategoryStateResult* result = [[TeakOperationCategoryStateResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
                                        result.state = reply[@"state"];
                                        result.channel = reply[@"channel"];
                                        result.category = reply[@"category"];
-                                       result.errors = reply[@"errors"];
                                        return result;
                                      }];
   [self.operationQueue addOperation:op];

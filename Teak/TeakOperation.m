@@ -5,9 +5,29 @@
 const static NSString* const kEndpoint = @"endpoint";
 const static NSString* const kPayload = @"payload";
 
+@interface TeakOperationResult ()
+@property (nonatomic, strong, readwrite) NSString* _Nonnull status;
+@property (nonatomic, strong, readwrite) NSDictionary* _Nullable errors;
+@property (nonatomic) BOOL error;
+@end
+
 @implementation TeakOperationResult
+- (nonnull TeakOperationResult*)initWithStatus:(nullable NSString*)status andErrors:(nullable NSDictionary*)errors {
+  self = [super init];
+  if(self) {
+    if(!status) {
+      status = @"error";
+    }
+    self.status = status;
+    self.error = ![@"ok" isEqualToString:status];
+    self.errors = errors;
+  }
+  return self;
+}
+
 - (nonnull NSDictionary*)toDictionary {
   return @{
+    @"status": self.status,
     @"error" : self.error ? @"true" : @"false",
     @"errors" : ValueOrNSNull(self.errors)
   };
@@ -17,10 +37,8 @@ const static NSString* const kPayload = @"payload";
 @implementation TeakOperationChannelStateResult
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
-  [ret addEntriesFromDictionary:@{
-    @"state" : ValueOrNSNull(self.state),
-    @"channel" : ValueOrNSNull(self.channel),
-  }];
+  ret[@"state"] = self.state;
+  ret[@"channel"] = self.channel;
   return ret;
 }
 @end
@@ -28,9 +46,7 @@ const static NSString* const kPayload = @"payload";
 @implementation TeakOperationCategoryStateResult
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
-  [ret addEntriesFromDictionary:@{
-    @"category" : ValueOrNSNull(self.category)
-  }];
+  ret[@"category"] = self.category;
   return ret;
 }
 @end
@@ -38,9 +54,7 @@ const static NSString* const kPayload = @"payload";
 @implementation TeakOperationNotificationResult
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
-  [ret addEntriesFromDictionary:@{
-    @"schedule_ids" : self.scheduleIds
-  }];
+  ret[@"schedule_ids"] = self.scheduleIds;
   return ret;
 }
 @end
