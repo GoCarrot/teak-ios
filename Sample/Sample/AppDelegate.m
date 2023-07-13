@@ -73,10 +73,6 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
   NSString* userId = [NSString stringWithFormat:@"native-%@", [[NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding] lowercaseString]];
 
   // Step 4:
-  // Call identifyUser as soon as you know the user id of the current player.
-  [[Teak sharedInstance] identifyUser:userId];
-
-  // Step 5:
   // Tell Teak that you want to be notified when your game has been launched via a Push Notification.
   //
   // See the bottom of this file for an example of a handler function.
@@ -101,6 +97,14 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
                                            selector:@selector(handleTeakUserData:)
                                                name:TeakUserData
                                              object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self
+                                           selector:@selector(handleTeakConfiguration:)
+                                               name:TeakConfigurationData
+                                             object:nil];
+
+  // Step 5:
+  // Call identifyUser as soon as you know the user id of the current player.
+  [[Teak sharedInstance] identifyUser:userId];
 
   // Request push permissions via the Unity helper
   TeakRequestPushAuthorization(NO);
@@ -157,9 +161,11 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
 - (void)handleTeakPostLaunchSummary:(NSNotification*)notification {
   NSDictionary* userInfo = notification.userInfo;
   NSLog(@"handleTeakPostLaunchSummary: %@", userInfo);
+}
 
-
-  NSLog(@"categories: %@", [TeakNotification categories]);
+- (void)handleTeakConfiguration:(NSNotification*)notification {
+  NSDictionary* configuration = notification.userInfo;
+  NSLog(@"handleTeakConfiguration: %@", configuration);
 }
 
 - (void)handleTeakUserData:(NSNotification*)notification {
