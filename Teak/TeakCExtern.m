@@ -149,6 +149,10 @@ void TeakSetBadgeCount(int count) {
   [[Teak sharedInstance] setApplicationBadgeNumber:count];
 }
 
+NSArray* TeakGetChannelCategories() {
+  return [[Teak sharedInstance] channelCategories];
+}
+
 void TeakSetNumericAttribute(const char* cstr_key, double value) {
   NSString* key = [NSString stringWithUTF8String:cstr_key];
   if (key != nil) {

@@ -424,6 +424,17 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (NSString* _Nullable)getAppConfiguration;
 
 /**
+ * Get the current set of channel opt out categories. This will be null if
+ * TeakConfigurationData has not yet posted.
+ *
+ * This functionality is also accessible from the C API:
+ *   extern NSArray* TeakGetChannelCategories();
+ *
+ * @return NSArray<TeakChannelCategory*> if TeakConfigurationData has posted, otherwise nil.
+ */
+- (NSArray* _Nullable)channelCategories;
+
+/**
  * Process deep links.
  *
  * Deep links will be processed the sooner of:

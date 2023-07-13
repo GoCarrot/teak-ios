@@ -626,6 +626,12 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
++ (nullable TeakSession*)currentSessionOrNil {
+  @synchronized(currentSessionMutex) {
+    return currentSession;
+  }
+}
+
 - (void)identifyUserInfoHasChanged {
   [TeakSession whenDeviceIsAwakeRun:^{
     // If identify user is in progress, wait for it to complete

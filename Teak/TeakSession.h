@@ -39,6 +39,8 @@ DeclareTeakState(UserIdentified);
 DeclareTeakState(Expiring);
 DeclareTeakState(Expired);
 
++ (nullable TeakSession*)currentSessionOrNil;
+
 + (void)registerStaticEventListeners;
 
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block;

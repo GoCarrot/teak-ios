@@ -14,6 +14,7 @@
 #import "TeakNotification.h"
 #import "TeakReward.h"
 #import "TeakVersion.h"
+#import "TeakRemoteConfiguration.h"
 
 #import "FacebookAccessTokenEvent.h"
 #import "LifecycleEvent.h"
@@ -304,6 +305,20 @@ Teak* _teakSharedInstance;
 
 - (NSString*)getAppConfiguration {
   return [self getConfiguration:@"appConfiguration"];
+}
+
+- (NSArray* _Nullable)channelCategories {
+  TeakSession* session = [TeakSession currentSessionOrNil];
+  if(session == nil) {
+    return nil;
+  }
+
+  TeakRemoteConfiguration* configuration = session.remoteConfiguration;
+  if(configuration == nil || configuration.hostname == nil) {
+    return nil;
+  }
+
+  return configuration.channelCategories;
 }
 
 - (void)reportTestException {
