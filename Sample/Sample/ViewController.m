@@ -100,12 +100,26 @@ extern void TeakAddOperationToQueue(NSOperation* op);
 }
 
 - (IBAction)scheduleNotification:(id)sender {
-  TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"test_deeplink" withMessage:@"Test notif" secondsFromNow:10];
+    NSDictionary* personalizationData = @{
+        @"test_data":@"hello there",
+        @"other_data":@"straight from the app"
+    };
+  TeakOperation* notif = [
+      TeakNotification scheduleNotificationForCreative:@"test_personalization"
+                                        secondsFromNow:5
+      personalizationData:personalizationData
+  ];
   dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-    while (notif.completed == NO) {
+    while (notif.result == nil) {
       sleep(1);
     }
-    NSLog(@"Notification scheduled: %@", notif.teakNotifId);
+
+    TeakOperationNotificationResult* result = (TeakOperationNotificationResult*)notif.result;
+    if(result.error) {
+      NSLog(@"Notification errors: %@", [result toDictionary]);
+    } else {
+      NSLog(@"Notification scheduled: %@", [result toDictionary]);
+    }
   });
 }
 
