@@ -26,11 +26,11 @@ const static NSString* const kPayload = @"payload";
 }
 
 - (nonnull NSDictionary*)toDictionary {
-  return @{
-    @"status": self.status,
-    @"error" : self.error ? @"true" : @"false",
-    @"errors" : ValueOrNSNull(self.errors)
-  };
+  NSMutableDictionary* ret = [[NSMutableDictionary alloc] init];
+  ret[@"status"] = self.status;
+  ret[@"error"] = self.error ? @"true" : @"false";
+  ret[@"errors"] = self.errors;
+  return ret;
 }
 @end
 
