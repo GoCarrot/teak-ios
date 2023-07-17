@@ -149,7 +149,7 @@ void TeakSetBadgeCount(int count) {
   [[Teak sharedInstance] setApplicationBadgeNumber:count];
 }
 
-NSArray* TeakGetChannelCategories() {
+NSArray* TeakGetChannelCategories(void) {
   return [[Teak sharedInstance] channelCategories];
 }
 
