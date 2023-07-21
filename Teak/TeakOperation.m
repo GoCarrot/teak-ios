@@ -28,7 +28,7 @@ const static NSString* const kPayload = @"payload";
 - (nonnull NSDictionary*)toDictionary {
   NSMutableDictionary* ret = [[NSMutableDictionary alloc] init];
   ret[@"status"] = self.status;
-  ret[@"error"] = self.error ? @"true" : @"false";
+  ret[@"error"] = TeakStringForBool(self.error);
   ret[@"errors"] = self.errors;
   return ret;
 }

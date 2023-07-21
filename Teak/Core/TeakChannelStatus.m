@@ -66,7 +66,7 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
 - (NSDictionary*)toDictionary {
   return @{
     @"state" : self.state,
-    @"delivery_fault" : self.deliveryFault ? @"true" : @"false",
+    @"delivery_fault" : TeakStringForBool(self.deliveryFault),
     @"categories" : ValueOrNSNull(self.categories)
   };
 }
