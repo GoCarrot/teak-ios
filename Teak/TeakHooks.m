@@ -2,6 +2,11 @@
 #import <Teak/Teak.h>
 #import <objc/runtime.h>
 
+/** Plist key that allows developers to suppress changing the UNNotificationCenter delgate
+ */
+static NSString *const kTeakSuppressChangingUNNotificationCenterDelegate =
+    @"TeakSuppressChangingUNNotificationCenterDelegate";
+
 @interface TeakAppDelegateHooks : NSObject
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
@@ -58,7 +63,9 @@ IMP __App_unregisterForRemoteNotifications = NULL;
 
 NSSet* TeakGetNotificationCategorySet(void);
 void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories);
+void __Teak_UNUserNotificationCenter_setDelegate(id self, SEL _cmd, id delegate);
 IMP __App_setNotificationCategories = NULL;
+IMP __UNUserNotificationCenter_setDelegate = NULL;
 
 extern Teak* _teakSharedInstance;
 
@@ -182,6 +189,21 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     {
       Method m = class_getInstanceMethod(unUserNotificationCenterClass, @selector(setNotificationCategories:));
       __App_setNotificationCategories = method_setImplementation(m, (IMP)__Teak_setNotificationCategories);
+    }
+
+    // setDelegate
+    NSDictionary *infoDictionary = [NSBundle mainBundle].infoDictionary;
+    id isUNNotificationCenterSetDelegateSuppressedPlistValue = infoDictionary[kTeakSuppressChangingUNNotificationCenterDelegate];
+    BOOL isUNNotificationCenterSetDelegateSuppressed = YES;
+    if ([isUNNotificationCenterSetDelegateSuppressedPlistValue isKindOfClass:[NSNumber class]]) {
+      isUNNotificationCenterSetDelegateSuppressed = [isUNNotificationCenterSetDelegateSuppressedPlistValue boolValue];
+    }
+
+    if(isUNNotificationCenterSetDelegateSuppressed) {
+      Method m = class_getInstanceMethod(unUserNotificationCenterClass, @selector(setDelegate:));
+      __UNUserNotificationCenter_setDelegate = method_setImplementation(m, (IMP)__Teak_UNUserNotificationCenter_setDelegate);
+    } else {
+      NSLog(@"[Teak] Permitting changing of UNUserNotificationCenter delegate");
     }
   }
 }
@@ -307,6 +329,16 @@ void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories) {
     NSMutableSet* categoriesWithTeakAdded = [NSMutableSet setWithSet:TeakGetNotificationCategorySet()];
     [categoriesWithTeakAdded unionSet:categories];
     ((void (*)(id, SEL, NSSet*))__App_setNotificationCategories)(self, _cmd, categoriesWithTeakAdded);
+  }
+}
+
+void __Teak_UNUserNotificationCenter_setDelegate(id self, SEL _cmd, id delegate) {
+  if(__UNUserNotificationCenter_setDelegate != nil) {
+    if(delegate == [Teak sharedInstance]) {
+      ((void(*)(id, SEL, id))__UNUserNotificationCenter_setDelegate)(self, _cmd, delegate);
+    } else {
+      NSLog(@"[Teak] Suppressed setting UNUserNotificationCenter delegate");
+    }
   }
 }
 
