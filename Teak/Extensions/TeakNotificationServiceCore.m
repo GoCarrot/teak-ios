@@ -196,7 +196,7 @@ extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
   [[self.session downloadTaskWithRequest:request
                        completionHandler:^(NSURL* temporaryFileLocation, NSURLResponse* response, NSError* error) {
                          if (error != nil) {
-                           NSLog(@"%@", error.localizedDescription);
+                           NSLog(@"Teak: %@", error.localizedDescription);
                          } else {
                            NSFileManager* fileManager = [NSFileManager defaultManager];
                            NSString* pathWithExtension = [NSString stringWithFormat:@"%@.%@", temporaryFileLocation.path, extension];
@@ -206,10 +206,10 @@ extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
                            if (error == nil) {
                              attachment = [UNNotificationAttachment attachmentWithIdentifier:@"" URL:localUrl options:nil error:&error];
                              if (error != nil) {
-                               NSLog(@"%@", error.localizedDescription);
+                               NSLog(@"Teak: %@", error.localizedDescription);
                              }
                            } else {
-                             NSLog(@"%@", error.localizedDescription);
+                             NSLog(@"Teak: %@", error.localizedDescription);
                            }
                          }
                          [self.operationQueue addOperation:attachmentOperation];

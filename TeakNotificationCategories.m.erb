@@ -13,7 +13,7 @@ __attribute__((constructor)) void teak_init_notification_categories(void) {
     NSURL* bundleUrl = [[NSBundle mainBundle] URLForResource:@"TeakResources" withExtension:@"bundle"];
     TeakResourceBundle = [NSBundle bundleWithURL:bundleUrl];
   } @catch (NSException* ignored) {
-    NSLog(@"[Teak] Resources bundle not present. Only English localization supported.");
+    NSLog(@"Teak: Resources bundle not present. Only English localization supported.");
     TeakResourceBundle = nil;
   }
 

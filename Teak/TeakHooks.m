@@ -203,7 +203,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
       Method m = class_getInstanceMethod(unUserNotificationCenterClass, @selector(setDelegate:));
       __UNUserNotificationCenter_setDelegate = method_setImplementation(m, (IMP)__Teak_UNUserNotificationCenter_setDelegate);
     } else {
-      NSLog(@"[Teak] Permitting changing of UNUserNotificationCenter delegate");
+      NSLog(@"Teak: Permitting changing of UNUserNotificationCenter delegate");
     }
   }
 }
@@ -308,7 +308,7 @@ void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
     if ([Teak sharedInstance] != nil) {
       TeakLog_e(@"application.unregisterForRemoteNotifications", @{@"stacktrace" : stacktrace});
     } else {
-      NSLog(@"[Teak] 'unregisterForRemoteNotifications' was called, this should almost never be called. Callstack: %@", stacktrace);
+      NSLog(@"Teak: 'unregisterForRemoteNotifications' was called, this should almost never be called. Callstack: %@", stacktrace);
     }
   }
 
@@ -337,7 +337,7 @@ void __Teak_UNUserNotificationCenter_setDelegate(id self, SEL _cmd, id delegate)
     if(delegate == [Teak sharedInstance]) {
       ((void(*)(id, SEL, id))__UNUserNotificationCenter_setDelegate)(self, _cmd, delegate);
     } else {
-      NSLog(@"[Teak] Suppressed setting UNUserNotificationCenter delegate");
+      NSLog(@"Teak: Suppressed setting UNUserNotificationCenter delegate");
     }
   }
 }

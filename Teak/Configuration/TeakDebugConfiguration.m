@@ -22,7 +22,7 @@
     teak_catch_report;
 
     if (self.userDefaults == nil) {
-      NSLog(@"[NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
+      NSLog(@"Teak: [NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
     } else {
       self.logLocal = [self.userDefaults boolForKey:kLogLocalPreferencesKey];
       self.logRemote = [self.userDefaults boolForKey:kLogRemotePreferencesKey];
@@ -39,7 +39,7 @@
       [self.userDefaults setBool:logLocal forKey:kLogLocalPreferencesKey];
       [self.userDefaults setBool:logRemote forKey:kLogRemotePreferencesKey];
     } @catch (NSException* exception) {
-      NSLog(@"Error occurred while writing to userDefaults. %@", exception);
+      NSLog(@"Teak: Error occurred while writing to userDefaults. %@", exception);
     }
     self.logLocal = logLocal;
     self.logRemote = logRemote;
