@@ -142,7 +142,7 @@ DefineTeakState(Expired, (@[]));
   @synchronized(self) {
     if (self.currentState == newState) {
       TeakLog_i(@"session.same_state", @{@"state" : self.currentState.name});
-      return NO;
+      return YES;
     }
 
     if (![self.currentState canTransitionToState:newState]) {
