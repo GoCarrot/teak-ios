@@ -76,3 +76,14 @@ NSDictionary* TeakGetQueryParameterDictionaryFromUrl(NSURL* url) {
   }
   return dictionary;
 }
+
+BOOL TeakStringsAreEqualConsideringNSNull(NSString* a, NSString* b) {
+  if (a == (NSString*)[NSNull null]) a = nil;
+  if (b == (NSString*)[NSNull null]) b = nil;
+
+  if (a == b) return YES;
+
+  NSString* notNilString = (a == nil ? b : a);
+  NSString* maybeNilString = (a == nil ? a : b);
+  return [notNilString isEqualToString:maybeNilString];
+}

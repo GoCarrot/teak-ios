@@ -12,6 +12,7 @@ extern NSString* TeakNSStringOrNilFor(id object);
 extern BOOL TeakBoolFor(id object);
 extern NSString* TeakHexStringFromData(NSData* data);
 extern NSDictionary* TeakGetQueryParameterDictionaryFromUrl(NSURL* url);
+extern BOOL TeakStringsAreEqualConsideringNSNull(NSString* a, NSString* b);
 
 #define kTeakHostname @"gocarrot.com"
 

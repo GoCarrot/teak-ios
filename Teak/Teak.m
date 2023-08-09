@@ -69,6 +69,12 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
 extern NSURLSession* TeakURLSessionWithoutDelegate(void);
 
+@interface Teak()
+
+@property (strong, nonatomic) NSString* lastHandledNotificationId;
+
+@end
+
 Teak* _teakSharedInstance;
 
 @implementation Teak
@@ -786,6 +792,16 @@ Teak* _teakSharedInstance;
   return NSStringOrNilFor(aps[@"teakNotifId"]) != nil;
 }
 
+- (BOOL)trackHandledNotification:(TeakNotification*)notification {
+  NSString* notificationId = notification.teakNotifId;
+  if(TeakStringsAreEqualConsideringNSNull(self.lastHandledNotificationId, notificationId)) {
+    return YES;
+  }
+
+  self.lastHandledNotificationId = notificationId;
+  return NO;
+}
+
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
        willPresentNotification:(UNNotification*)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
@@ -793,12 +809,14 @@ Teak* _teakSharedInstance;
 
   TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
   if (notif) {
+    if([self trackHandledNotification:notif]) {
+      return;
+    }
+
     // Always inform the host app that a foreground notification was received
     [self didReceiveForegroundNotification:notif];
+    completionHandler(notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
   }
-
-  // Optionally display the notification in the foreground if requested
-  completionHandler(notif && notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
@@ -842,18 +860,21 @@ Teak* _teakSharedInstance;
   // If this is a Teak notification
   TeakNotification* notif = [self teakNotificationFromUserInfo:response.notification.request.content.userInfo];
   if (notif) {
+    if([self trackHandledNotification:notif]) {
+      return;
+    }
+
     [self didLaunchFromNotification:notif inBackground:[UIApplication sharedApplication].applicationState != UIApplicationStateActive];
 
     // Integration check, if the service is not integrated, this will not be assigned
     if (response.notification.request.content.userInfo[@"teak_service_processed"] == nil) {
       TeakLog_e(@"notification.integration", @"TeakNotificationService extension is not integrated.");
     }
+    // TODO: HERE is where we report metric that a button was pressed
+
+    // Let the OS know we're done handling this.
+    completionHandler();
   }
-
-  // Let the OS know we're done handling this.
-  completionHandler();
-
-  // TODO: HERE is where we report metric that a button was pressed
 }
 
 + (BOOL)didReceiveNotificationResponse:(UNNotificationResponse*)response

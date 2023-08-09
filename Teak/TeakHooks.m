@@ -2,11 +2,6 @@
 #import <Teak/Teak.h>
 #import <objc/runtime.h>
 
-/** Plist key that allows developers to suppress changing the UNNotificationCenter delgate
- */
-static NSString *const kTeakSuppressChangingUNNotificationCenterDelegate =
-    @"TeakSuppressChangingUNNotificationCenterDelegate";
-
 @interface TeakAppDelegateHooks : NSObject
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions;
@@ -57,17 +52,134 @@ void (*sHostDRRNIMP)(id, SEL, UIApplication*, NSDictionary*) = NULL;
 BOOL(*sHostContinueUserActivityIMP)
 (id, SEL, UIApplication*, NSUserActivity*, void (^)(NSArray* _Nullable)) = NULL;
 void (*sHostDRRNFCHIMP)(id, SEL, UIApplication*, NSDictionary*, void (^)(UIBackgroundFetchResult)) = NULL;
+void (*sHostUNCWPNWCH)(id, SEL, UNUserNotificationCenter*, UNNotification*, void(^)(UNNotificationPresentationOptions)) = NULL;
+void (*sHostUNCDRNRWCH)(id, SEL, UNUserNotificationCenter*, UNNotificationResponse*, void(^)(void)) = NULL;
 
 void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd);
 IMP __App_unregisterForRemoteNotifications = NULL;
 
 NSSet* TeakGetNotificationCategorySet(void);
 void __Teak_setNotificationCategories(id self, SEL _cmd, NSSet* categories);
-void __Teak_UNUserNotificationCenter_setDelegate(id self, SEL _cmd, id delegate);
 IMP __App_setNotificationCategories = NULL;
-IMP __UNUserNotificationCenter_setDelegate = NULL;
 
 extern Teak* _teakSharedInstance;
+
+@interface TeakUNUserNotificationCenterDelegateProxy : NSObject
+
+@property(strong, nonatomic) id currentUserNotificationCenterDelegate;
+
+@end
+
+@implementation TeakUNUserNotificationCenterDelegateProxy
+
++(TeakUNUserNotificationCenterDelegateProxy*)sharedInstance {
+  static TeakUNUserNotificationCenterDelegateProxy* proxy;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    proxy = [[TeakUNUserNotificationCenterDelegateProxy alloc] init];
+  });
+  return proxy;
+}
+
+-(TeakUNUserNotificationCenterDelegateProxy*)init {
+  self = [super init];
+  if(self) {
+    @try {
+      [[UNUserNotificationCenter currentNotificationCenter] addObserver:self
+                              forKeyPath:NSStringFromSelector(@selector(delegate))
+                              options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld
+                              context:nil];
+    } @catch (NSException* exception) {
+      TeakLog_e(@"unusernotificationcenter.delegate", @"Error occurred while regiserting KVO observer.", @{@"error" : exception.reason});
+    }
+  }
+
+  return self;
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
+                       context:(void *)context {
+  if ([keyPath isEqualToString:NSStringFromSelector(@selector(delegate))]) {
+    id oldDelegate = change[NSKeyValueChangeOldKey];
+    if (oldDelegate && oldDelegate != [NSNull null]) {
+      [self unswizzleUserNotificationCenterDelegate:oldDelegate];
+    }
+    id newDelegate = change[NSKeyValueChangeNewKey];
+    if (newDelegate && newDelegate != [NSNull null]) {
+      [self swizzleUserNotificationCenterDelegate:newDelegate];
+    }
+  }
+}
+
+-(void)unswizzleUserNotificationCenterDelegate:(id)delegate {
+  // Stop if this isn't our currently swizzled delegate.
+  if(self.currentUserNotificationCenterDelegate != delegate) {
+    return;
+  }
+
+  // Stop if this is the delegate that we set.
+  if(delegate == _teakSharedInstance) {
+    return;
+  }
+
+  if(delegate == nil) {
+    return;
+  }
+
+  Protocol* unUserNotificationCenterDelegateProto = objc_getProtocol("UNUserNotificationCenterDelegate");
+  if(sHostUNCWPNWCH) {
+    struct objc_method_description uncwpnwch = protocol_getMethodDescription(unUserNotificationCenterDelegateProto, @selector(userNotificationCenter:willPresentNotification:withCompletionHandler:), NO, YES);
+
+    class_replaceMethod([delegate class], uncwpnwch.name, (IMP)sHostUNCWPNWCH, uncwpnwch.types);
+    sHostUNCWPNWCH = NULL;
+  }
+
+  if(sHostUNCDRNRWCH) {
+    struct objc_method_description uncdrnrwch = protocol_getMethodDescription(unUserNotificationCenterDelegateProto, @selector(userNotificationCenter:didReceiveNotificationResponse:withCompletionHandler:), NO, YES);
+
+    class_replaceMethod([delegate class], uncdrnrwch.name, (IMP)sHostUNCDRNRWCH, uncdrnrwch.types);
+    sHostUNCDRNRWCH = NULL;
+  }
+
+  self.currentUserNotificationCenterDelegate = nil;
+}
+
+-(void)swizzleUserNotificationCenterDelegate:(id)delegate {
+  // Stop if we already swizzeled this delegate
+  if(self.currentUserNotificationCenterDelegate == delegate) {
+    return;
+  }
+
+  // Stop if this is the delegate that we set.
+  if(delegate == _teakSharedInstance) {
+    return;
+  }
+
+  if(delegate == nil) {
+    return;
+  }
+
+  Protocol* unUserNotificationCenterDelegateProto = objc_getProtocol("UNUserNotificationCenterDelegate");
+  {
+    struct objc_method_description uncwpnwch = protocol_getMethodDescription(unUserNotificationCenterDelegateProto, @selector(userNotificationCenter:willPresentNotification:withCompletionHandler:), NO, YES);
+
+    Method ctUNCWPNWCH = class_getInstanceMethod([TeakAppDelegateHooks class], uncwpnwch.name);
+    sHostUNCWPNWCH = (void(*)(id, SEL, UNUserNotificationCenter*, UNNotification*, void(^)(UNNotificationPresentationOptions)))class_replaceMethod([delegate class], uncwpnwch.name, method_getImplementation(ctUNCWPNWCH), uncwpnwch.types);
+  }
+
+  {
+    struct objc_method_description uncdrnrwch = protocol_getMethodDescription(unUserNotificationCenterDelegateProto, @selector(userNotificationCenter:didReceiveNotificationResponse:withCompletionHandler:), NO, YES);
+
+    Method ctUNCDRNRWCH = class_getInstanceMethod([TeakAppDelegateHooks class], uncdrnrwch.name);
+    sHostUNCDRNRWCH = (void(*)(id, SEL, UNUserNotificationCenter*, UNNotificationResponse*, void(^)(void)))class_replaceMethod([delegate class], uncdrnrwch.name, method_getImplementation(ctUNCDRNRWCH), uncdrnrwch.types);
+  }
+
+  self.currentUserNotificationCenterDelegate = delegate;
+}
+
+@end
 
 void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   // Allocate and initialize Teak, if it returns nil no hooks will be installed
@@ -76,6 +188,8 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     TeakLog_e(@"sdk.init", @"initWithApplicationId:andSecret returned nil, Teak is disabled.");
     return;
   }
+
+  [TeakUNUserNotificationCenterDelegateProxy sharedInstance];
 
   // Install hooks
   Protocol* uiAppDelegateProto = objc_getProtocol("UIApplicationDelegate");
@@ -285,6 +399,25 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   return ret;
 }
 
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center didReceiveNotificationResponse:(UNNotificationResponse*)response withCompletionHandler:(void (^)(void))completionHandler {
+  BOOL teakHandled = [Teak didReceiveNotificationResponse:response withCompletionHandler:completionHandler];
+  if(sHostUNCDRNRWCH) {
+    sHostUNCDRNRWCH(self, @selector(userNotificationCenter:didReceiveNotificationResponse:withCompletionHandler:), center, response, completionHandler);
+  } else if(!teakHandled) {
+    // If the host does not provide an implementation, call the completion handler ourselves for the non-teak notification.
+    completionHandler();
+  }
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter*)center willPresentNotification:(UNNotification*)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+  BOOL teakHandled = [Teak willPresentNotification:notification withCompletionHandler:completionHandler];
+  if(sHostUNCWPNWCH) {
+    sHostUNCWPNWCH(self, @selector(userNotificationCenter:willPresentNotification:withCompletionHandler:), center, notification, completionHandler);
+  } else if(!teakHandled) {
+    // If the host does not provide an implementation, call the completion handler ourselves for the non-teak notification.
+    completionHandler(UNNotificationPresentationOptionNone);
+  }
+}
 @end
 
 void __Teak_unregisterForRemoteNotifications(id self, SEL _cmd) {
