@@ -321,6 +321,39 @@ Teak* _teakSharedInstance;
   return configuration.channelCategories;
 }
 
+- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel {
+  TeakLog_t(@"[TeakNotification setState:forChannel]", @{@"state" : _(state), @"channel" : _(channel)});
+  // If "PlatformPush" is requested , this is iOS; so it's MobilePush
+  channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state"
+                                     withPayload:@{@"channel" : channel, @"state" : state}
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+                                       result.state = reply[@"state"];
+                                       result.channel = reply[@"channel"];
+                                       return result;
+                                     }];
+  [self.operationQueue addOperation:op];
+  return op;
+}
+
+- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel andCategory:(nonnull NSString*)category {
+  TeakLog_t(@"[TeakNotification setState:forChannel:andCategory]", @{@"state" : _(state), @"channel" : _(channel), @"category" : _(category)});
+  // If "PlatformPush" is requested , this is iOS; so it's MobilePush
+  channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/category_state"
+                                     withPayload:@{@"channel" : channel, @"state" : state, @"category" : category}
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationCategoryStateResult* result = [[TeakOperationCategoryStateResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+                                       result.state = reply[@"state"];
+                                       result.channel = reply[@"channel"];
+                                       result.category = reply[@"category"];
+                                       return result;
+                                     }];
+  [self.operationQueue addOperation:op];
+  return op;
+}
+
 - (void)reportTestException {
   teak_try {
     @throw([NSException exceptionWithName:@"ReportTestException" reason:[NSString stringWithFormat:@"Version: %@", self.sdkVersion] userInfo:nil]);
@@ -798,39 +831,6 @@ Teak* _teakSharedInstance;
     return YES;
   }
   return NO;
-}
-
-- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel {
-  TeakLog_t(@"[TeakNotification setState:forChannel]", @{@"state" : _(state), @"channel" : _(channel)});
-  // If "PlatformPush" is requested , this is iOS; so it's MobilePush
-  channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
-  TeakOperation* op = [TeakOperation forEndpoint:@"/me/channel_state"
-                                     withPayload:@{@"channel" : channel, @"state" : state}
-                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
-                                       TeakOperationChannelStateResult* result = [[TeakOperationChannelStateResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
-                                       result.state = reply[@"state"];
-                                       result.channel = reply[@"channel"];
-                                       return result;
-                                     }];
-  [self.operationQueue addOperation:op];
-  return op;
-}
-
-- (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel andCategory:(nonnull NSString*)category {
-  TeakLog_t(@"[TeakNotification setState:forChannel:andCategory]", @{@"state" : _(state), @"channel" : _(channel), @"category" : _(category)});
-  // If "PlatformPush" is requested , this is iOS; so it's MobilePush
-  channel = [TeakChannelTypePlatformPush isEqualToString:channel] ? TeakChannelTypeMobilePush : channel;
-  TeakOperation* op = [TeakOperation forEndpoint:@"/me/category_state"
-                                     withPayload:@{@"channel" : channel, @"state" : state, @"category" : category}
-                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
-                                       TeakOperationCategoryStateResult* result = [[TeakOperationCategoryStateResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
-                                       result.state = reply[@"state"];
-                                       result.channel = reply[@"channel"];
-                                       result.category = reply[@"category"];
-                                       return result;
-                                     }];
-  [self.operationQueue addOperation:op];
-  return op;
 }
 
 // This method will be called whenever a taps on a notification
