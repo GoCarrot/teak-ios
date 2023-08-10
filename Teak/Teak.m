@@ -829,14 +829,13 @@ Teak* _teakSharedInstance;
 - (void)deleteEmail {
   TeakLog_t(@"[Teak deleteEmail]", @{});
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* _Nonnull session) {
-    [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-      TeakRequest* request = [TeakRequest requestWithSession:session
-                                                 forEndpoint:@"/me/email"
-                                                 withPayload:@{}
-                                                      method:TeakRequest_DELETE
-                                                    callback:nil];
-      [request send];
-    }];
+    session.email = nil;
+    TeakRequest* request = [TeakRequest requestWithSession:session
+                                               forEndpoint:@"/me/email"
+                                               withPayload:@{}
+                                                    method:TeakRequest_DELETE
+                                                  callback:nil];
+    [request send];
   }];
 }
 

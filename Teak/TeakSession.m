@@ -38,7 +38,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic) NSString* facebookAccessToken;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
-@property (strong, nonatomic, readwrite) NSString* email;
 @property (strong, nonatomic, readwrite) NSString* facebookId;
 @property (strong, nonatomic, readwrite) NSString* sessionId;
 @property (strong, nonatomic, readwrite) TeakAppConfiguration* appConfiguration;
