@@ -828,31 +828,34 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       // Reset duraation report and set it
       if(self.serverSessionId != nil) {
         [self resetReportDurationBlock];
+        __weak typeof(self) weakSelf = self;
         self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-          [self beginBackgroundUpdateTask];
-
-          self.sessionVectorClock++;
-
-          // Send request for "if you don't hear back from me, this session ended now"
-          NSDictionary* payload = @{
-            @"session_id" : URLEscapedString(self.serverSessionId),
-            @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000],
-            @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
-          };
-
-          TeakRequest* request = [TeakRequest requestWithSession:self
-                                                     forEndpoint:@"/session_stop"
-                                                     withPayload:payload
-                                                          method:TeakRequest_POST
-                                                        callback:nil];
+          __strong typeof(self) blockSelf = weakSelf;
+          [blockSelf beginBackgroundUpdateTask];
 
           // Make sure we're not canceled
-          if (self.reportDurationBlock != nil && !dispatch_block_testcancel(self.reportDurationBlock)) {
-            self.reportDurationSent = YES;
+          // In testing we encountered an issue where serverSessionId was nil here, but not nil earlier.
+          if (blockSelf.reportDurationBlock != nil && !dispatch_block_testcancel(blockSelf.reportDurationBlock) && blockSelf.serverSessionId != nil) {
+            blockSelf.reportDurationSent = YES;
+            blockSelf.sessionVectorClock++;
+
+            // Send request for "if you don't hear back from me, this session ended now"
+            NSDictionary* payload = @{
+              @"session_id" : URLEscapedString(blockSelf.serverSessionId),
+              @"session_duration_ms" : [NSNumber numberWithLong:[blockSelf.endDate timeIntervalSinceDate:blockSelf.startDate] * 1000],
+              @"session_vector_clock": [NSNumber numberWithLong:blockSelf.sessionVectorClock]
+            };
+
+            TeakRequest* request = [TeakRequest requestWithSession:blockSelf
+                                                       forEndpoint:@"/session_stop"
+                                                       withPayload:payload
+                                                            method:TeakRequest_POST
+                                                          callback:nil];
+
             [request send];
           }
 
-          [self endBackgroundUpdateTask];
+          [blockSelf endBackgroundUpdateTask];
         });
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
       }
