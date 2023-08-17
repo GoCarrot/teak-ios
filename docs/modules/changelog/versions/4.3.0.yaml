@@ -1,5 +1,5 @@
 new:
 - Added version of ``TeakRequestPushAuthorization`` that takes a callback
-- Added <<[TeakNotification scheduleNotificationForCreative:secondsFromNow:personalizationData:]>>
+- Added [TeakNotification scheduleNotificationForCreative:secondsFromNow:personalizationData:]
 breaking:
-- Deprecated <<[TeakNotification scheduleNotificationForCreative:withMessage:secondsFromNow:]>>
+- Deprecated [TeakNotification scheduleNotificationForCreative:withMessage:secondsFromNow:]
