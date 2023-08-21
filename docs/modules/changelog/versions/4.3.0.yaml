@@ -1,5 +1,15 @@
 new:
-- Added version of ``TeakRequestPushAuthorization`` that takes a callback
-- Added [TeakNotification scheduleNotificationForCreative:secondsFromNow:personalizationData:]
-breaking:
-- Deprecated [TeakNotification scheduleNotificationForCreative:withMessage:secondsFromNow:]
+- "Local notification personalization: Using `Teak.Notification.Schedule` you can now pass a dictionary of additional data which can be templated into the local notification."
+- "Session time tracking: The Teak SDK now automatically tracks the duration of game sessions and reports this data to the Teak Dashboard and any configured data syncs."
+- "Opt-Out Categories: You can now categorize push notifications and emails into different Opt-Out Categories, and provide players with an in-game communication preferences UI so that your players can manage what kinds of messaging they receive."
+- "Push Opt-Out Tracking: The Teak SDK can now detects and reports when a player has opted out of push notifications through their device settings to the Teak Dashboard for upcoming reports."
+- "Uninstall Tracking: The Teak SDK and Teak Dashboard can now detect and report when a player has uninstalled the game from their device for upcoming reports."
+enhancement:
+- "The Teak SDK now supports using custom `UNUserNotificationCenter` delegates with no additional configuration or code required."
+- "Standardized prefix on all log messages to `Teak:`"
+bug:
+- Fixed trace logging when changing channel opt out state
+- Resolved several potential race conditions that could prevent updated player contact information from being submitted to the Teak Dashboard
+- "Resolved issue when setting a player's email address back to original value after calling `[[Teak sharedInstance] deleteEmail]`"
+upgrade_note:
+- Deprecated ``[TeakNotification scheduleNotificationForCreative:withMessage:secondsFromNow:]``. Use ``[TeakNotification scheduleNotificationForCreative:secondsFromNow:personalizationData:]`` instead.
