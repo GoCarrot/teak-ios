@@ -72,6 +72,7 @@ extern NSURLSession* TeakURLSessionWithoutDelegate(void);
 @interface Teak()
 
 @property (strong, nonatomic) NSString* lastHandledNotificationId;
+@property (strong, nonatomic) NSString* lastWillPresentNotificationId;
 
 @end
 
@@ -802,6 +803,16 @@ Teak* _teakSharedInstance;
   return NO;
 }
 
+- (BOOL)trackLastWillPresentNotification:(TeakNotification*)notification {
+    NSString* notificationId = notification.teakNotifId;
+    if(TeakStringsAreEqualConsideringNSNull(self.lastWillPresentNotificationId, notificationId)) {
+        return YES;
+    }
+
+    self.lastWillPresentNotificationId = notificationId;
+    return NO;
+}
+
 - (void)userNotificationCenter:(UNUserNotificationCenter*)center
        willPresentNotification:(UNNotification*)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
@@ -809,7 +820,7 @@ Teak* _teakSharedInstance;
 
   TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
   if (notif) {
-    if([self trackHandledNotification:notif]) {
+    if([self trackLastWillPresentNotification:notif]) {
       return;
     }
 
