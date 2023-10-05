@@ -1,0 +1,2 @@
+bug:
+  - Fix tracking clicks and claiming rewards when tapping on a foreground notification.
