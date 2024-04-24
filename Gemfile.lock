@@ -292,7 +292,7 @@ GEM
     simctl (1.6.10)
       CFPropertyList
       naturally
-    sqlite3 (1.7.3)
+    sqlite3 (1.6.9)
       mini_portile2 (~> 2.8.0)
     terminal-notifier (2.0.0)
     terminal-table (3.0.2)
@@ -332,6 +332,7 @@ DEPENDENCIES
   jazzy
   plist
   rubocop
+  sqlite3 (~> 1.6.0)
   xcodeproj
   xcpretty
 
