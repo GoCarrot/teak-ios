@@ -59,14 +59,14 @@ jobs:
 
   tag_build:
     docker:
-      - image: cimg/ruby:3.1
+      - image: cimg/ruby:3.2
     steps:
       - checkout
       - teak/tag-promote
 
   deploy_versioned:
     docker:
-      - image: cimg/ruby:3.1
+      - image: cimg/ruby:3.2
     steps:
       - checkout
       - run: git fetch --tags
@@ -91,7 +91,7 @@ jobs:
 
   deploy_latest:
     docker:
-      - image: cimg/ruby:3.1
+      - image: cimg/ruby:3.2
     steps:
       - checkout
       - run: git fetch --tags
