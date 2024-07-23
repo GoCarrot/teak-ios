@@ -9,7 +9,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "13.4.1"
+        default: "14.3.1"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: macos.m1.medium.gen1
@@ -29,7 +29,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "13.4.1"
+        default: "14.3.1"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: macos.m1.medium.gen1
@@ -59,14 +59,14 @@ jobs:
 
   tag_build:
     docker:
-      - image: cimg/ruby:3.1
+      - image: cimg/ruby:3.2
     steps:
       - checkout
       - teak/tag-promote
 
   deploy_versioned:
     docker:
-      - image: cimg/ruby:3.1
+      - image: cimg/ruby:3.2
     steps:
       - checkout
       - run: git fetch --tags
@@ -91,7 +91,7 @@ jobs:
 
   deploy_latest:
     docker:
-      - image: cimg/ruby:3.1
+      - image: cimg/ruby:3.2
     steps:
       - checkout
       - run: git fetch --tags
@@ -145,11 +145,11 @@ workflows:
       - test:
           context:
             - iOS-Build
-          xcode-version: "13.4.1"
+          xcode-version: "14.3.1"
       - build:
           context:
             - iOS-Build
-          xcode-version: "13.4.1"
+          xcode-version: "14.3.1"
 
   un-tagged-build:
     jobs:
