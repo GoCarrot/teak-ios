@@ -7,7 +7,7 @@ buildtype=${BUILD_TYPE:-Release}
 prefix="clang-analyze"
 suffix="$(date +%s)"
 clangTemp="/tmp/$prefix-$suffix"
-xcodebuild -verbose -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration $buildtype BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean build | bundle exec xcpretty -r json-compilation-database -o compile_commands.json #--report junit
+xcodebuild -project Teak.xcodeproj -sdk iphoneos -target Framework -configuration $buildtype BUILD_DIR=./build OTHER_CFLAGS="-fembed-bitcode" CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$clangTemp" clean build | bundle exec xcpretty -r json-compilation-database -o compile_commands.json #--report junit
 if [ ! $? -eq 0 ]; then
   rm -fr $clangTemp
   exit $?
