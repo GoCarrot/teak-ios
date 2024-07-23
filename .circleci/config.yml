@@ -41,7 +41,9 @@ jobs:
           command: ./deployment_target_check.rb
       - run:
           name: Build Teak SDK
-          command: ./compile
+          command: |
+            bundle exec fastlane match --readonly
+            ./compile
       - run:
           name: Compute Checksums
           command: |
