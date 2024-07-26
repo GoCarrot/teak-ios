@@ -23,9 +23,15 @@
 @property (strong, nonatomic) NSArray* _Nonnull scheduleIds;
 @end
 
+@interface TeakOperationDeliveredNotificationsResult : TeakOperationResult
+- (nonnull id)initWithNotifications:(NSArray* _Nonnull) notifications;
+@property (strong, nonatomic) NSArray* _Nonnull notifications;
+@end
+
 @interface TeakOperation : NSInvocationOperation
 
 + (nonnull TeakOperation*)withResult:(nonnull id)result;
++ (nonnull TeakOperation*)withBlock:(void (^ _Nonnull)(void (^ _Nonnull)(id _Nullable)))blk;
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint;
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload;
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull reply))replyParser;

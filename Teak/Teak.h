@@ -435,6 +435,35 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (NSArray* _Nullable)channelCategories;
 
 /**
+ * Get all of the notifications delivered by Teak which are still present in the
+ * device's Notification Center.
+ *
+ * @note Only available on iOS 10+
+ * @return TeakOperation* with a TeakOperationDeliveredNotificationsResult containing an array of TeakNotifications
+ */
+- (TeakOperation* _Nonnull)getDeliveredNotifications;
+
+/**
+ * Remove the specified notifications delivered by Teak which are still present in the
+ * device's Notification Center.
+ *
+ * @note Only available on iOS 10+
+ * @return TeakOperation* with a TeakOperationDeliveredNotificationsResult containing an array of TeakNotifications
+ *  which were removed
+ */
+- (TeakOperation* _Nonnull)removeDeliveredNotifications:(NSArray<TeakNotification*>* _Nonnull)notifications;
+
+/**
+ * Remove the all notifications delivered by Teak which are still present in the
+ * device's Notification Center.
+ *
+ * @note Only available on iOS 10+
+ * @return TeakOperation* with a TeakOperationDeliveredNotificationsResult containing an array of TeakNotifications
+ *  which were removed
+ */
+- (TeakOperation* _Nonnull)removeAllDeliveredNotifications;
+
+/**
  * Process deep links.
  *
  * Deep links will be processed the sooner of:

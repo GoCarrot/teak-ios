@@ -361,6 +361,91 @@ Teak* _teakSharedInstance;
   return op;
 }
 
+- (TeakOperation* _Nonnull)getDeliveredNotifications {
+  TeakLog_t(@"[Teak getDeliveredNotifications]", @{});
+
+  if (NSClassFromString(@"UNUserNotificationCenter") == nil) {
+    TeakOperationDeliveredNotificationsResult* result = [[TeakOperationDeliveredNotificationsResult alloc] initWithNotifications:@[]];
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  TeakOperation* op = [TeakOperation withBlock:^(void (^completionHandler)(id)) {
+    [[UNUserNotificationCenter currentNotificationCenter] getDeliveredNotificationsWithCompletionHandler:^(NSArray<UNNotification *> *notifications) {
+      NSMutableArray* ret = [[NSMutableArray alloc] init];
+      for(UNNotification* notif in notifications) {
+        TeakNotification* teakNotif = [[Teak sharedInstance] teakNotificationFromUserInfo:notif.request.content.userInfo];
+        if(teakNotif != nil) {
+          [ret addObject:teakNotif];
+        }
+      }
+      TeakOperationDeliveredNotificationsResult* result = [[TeakOperationDeliveredNotificationsResult alloc] initWithNotifications:ret];
+      completionHandler(result);
+    }];
+  }];
+
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
+- (TeakOperation* _Nonnull)removeDeliveredNotifications:(NSArray<TeakNotification*>* _Nonnull)notifications {
+  TeakLog_t(@"[Teak removeDeliveredNotifications]", @{@"notifications": _(notifications)});
+
+  if (NSClassFromString(@"UNUserNotificationCenter") == nil) {
+    TeakOperationDeliveredNotificationsResult* result = [[TeakOperationDeliveredNotificationsResult alloc] initWithNotifications:@[]];
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  NSMutableArray* toDel = [[NSMutableArray alloc] init];
+  NSMutableArray* ret = [[NSMutableArray alloc] init];
+  for(TeakNotification* notif in notifications) {
+    if([notif isKindOfClass:[TeakNotification class]]) {
+      [toDel addObject:notif.teakNotifId];
+      [ret addObject: notif];
+    }
+  }
+  [[UNUserNotificationCenter currentNotificationCenter] removeDeliveredNotificationsWithIdentifiers:toDel];
+
+  TeakOperationDeliveredNotificationsResult* result = [[TeakOperationDeliveredNotificationsResult alloc] initWithNotifications:ret];
+  TeakOperation* op = [TeakOperation withResult:result];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
+- (TeakOperation* _Nonnull)removeAllDeliveredNotifications {
+  TeakLog_t(@"[Teak removeAllDeliveredNotifications]", @{});
+  if (NSClassFromString(@"UNUserNotificationCenter") == nil) {
+    TeakOperationDeliveredNotificationsResult* result = [[TeakOperationDeliveredNotificationsResult alloc] initWithNotifications:@[]];
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  TeakOperation* fetchOp = [self getDeliveredNotifications];
+
+  __weak typeof(self) weakSelf = self;
+  TeakOperation* whenDone = [TeakOperation withBlock:^(void(^completionHandler)(id)) {
+    __strong typeof(self) blockSelf = weakSelf;
+    TeakOperationDeliveredNotificationsResult* result = (TeakOperationDeliveredNotificationsResult*)fetchOp.result;
+    TeakOperation* removalOp = [blockSelf removeDeliveredNotifications:result.notifications];
+
+    NSBlockOperation* removalDone = [NSBlockOperation blockOperationWithBlock:^{
+      TeakOperationDeliveredNotificationsResult* removalResult = (TeakOperationDeliveredNotificationsResult*)removalOp.result;
+      completionHandler(removalResult);
+    }];
+
+    [removalDone addDependency:removalOp];
+    [[Teak sharedInstance].operationQueue addOperation:removalDone];
+  }];
+
+  [whenDone addDependency:fetchOp];
+  [[Teak sharedInstance].operationQueue addOperation:whenDone];
+  return whenDone;
+}
+
 - (void)reportTestException {
   teak_try {
     @throw([NSException exceptionWithName:@"ReportTestException" reason:[NSString stringWithFormat:@"Version: %@", self.sdkVersion] userInfo:nil]);

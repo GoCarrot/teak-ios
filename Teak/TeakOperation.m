@@ -59,14 +59,36 @@ const static NSString* const kPayload = @"payload";
 }
 @end
 
+@implementation TeakOperationDeliveredNotificationsResult
+- (id)initWithNotifications:(NSArray*) notifications {
+  self = [super initWithStatus:@"ok" andErrors:@{}];
+  if(self) {
+    self.notifications = notifications;
+  }
+  return self;
+}
+
+- (nonnull NSDictionary*)toDictionary {
+  NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
+  ret[@"notifications"] = self.notifications;
+  return ret;
+}
+@end
+
+
 @interface TeakOperation ()
 @property (nonatomic, copy, nullable) id (^replyParser)(NSDictionary* _Nonnull);
+@property (nonatomic, copy, nullable) void (^block)(void (^)(id));
 @end
 
 @implementation TeakOperation
 
 + (nonnull TeakOperation*)withResult:(nonnull id)result {
   return [[TeakOperation alloc] initWithResult:result];
+}
+
++ (nonnull TeakOperation*)withBlock:(void (^ _Nonnull)(void (^ _Nonnull)(id _Nullable)))blk {
+  return [[TeakOperation alloc] initWithBlock:blk];
 }
 
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint {
@@ -87,6 +109,12 @@ const static NSString* const kPayload = @"payload";
 
 - (id)initWithResult:(nonnull id)result {
   self = [self initWithTarget:self selector:@selector(returnResult:) object:result];
+  return self;
+}
+
+- (id)initWithBlock:(void (^)(void (^)(id)))blk {
+  self = [self initWithTarget:self selector:@selector(performBlock:) object:nil];
+  self.block = blk;
   return self;
 }
 
@@ -129,6 +157,17 @@ const static NSString* const kPayload = @"payload";
                                                   }];
     [request send];
   }];
+  dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+  return ret;
+}
+
+- (id)performBlock:(id)ign {
+  __block id ret = nil;
+  dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+  self.block(^(id reply) {
+    ret = reply;
+    dispatch_semaphore_signal(sema);
+  });
   dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
   return ret;
 }
