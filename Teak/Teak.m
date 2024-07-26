@@ -417,12 +417,6 @@ Teak* _teakSharedInstance;
 
 - (TeakOperation* _Nonnull)removeAllDeliveredNotifications {
   TeakLog_t(@"[Teak removeAllDeliveredNotifications]", @{});
-  if (NSClassFromString(@"UNUserNotificationCenter") == nil) {
-    TeakOperationDeliveredNotificationsResult* result = [[TeakOperationDeliveredNotificationsResult alloc] initWithNotifications:@[]];
-    TeakOperation* op = [TeakOperation withResult:result];
-    [[Teak sharedInstance].operationQueue addOperation:op];
-    return op;
-  }
 
   TeakOperation* fetchOp = [self getDeliveredNotifications];
 
