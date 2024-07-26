@@ -201,13 +201,3 @@ BOOL TeakOperationResult_isError(TeakOperationResult* result) {
 NSDictionary* TeakOperationResult_getErrors(TeakOperationResult* result) {
   return [result errors];
 }
-
-/// C Interface for TeakOperationChannelStateResult
-
-NSString* TeakOperationChannelStateResult_getState(TeakOperationChannelStateResult* result) {
-  return [result state];
-}
-
-NSString* TeakOperationChannelStateResult_getChannel(TeakOperationChannelStateResult* result) {
-  return [result channel];
-}
