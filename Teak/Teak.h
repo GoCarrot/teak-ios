@@ -132,7 +132,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 #import <UIKit/UIKit.h>
 
 /**
- * TODO!
+ * Teak.
  */
 @interface Teak : NSObject
 
