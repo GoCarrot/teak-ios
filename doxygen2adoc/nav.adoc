@@ -1,4 +1,4 @@
-* API Reference
+* iOS Native SDK Reference
 {{#each items}}
 ** xref:api:page${{id}}.adoc[{{name}}]
 {{/each}}
