@@ -11,12 +11,15 @@ JAVADOC_AUTOBRIEF      = YES
 # Stop the automatic ref generation (for the word Teak for example)
 AUTOLINK_SUPPORT       = NO
 
+# Let's say we're never case sensitive
+CASE_SENSE_NAMES = NO
+
 # Project-specific configuration
 INPUT                  = Teak/Teak.h Teak/TeakNotification.h
 FILE_PATTERNS          = *
 EXTENSION_MAPPING      = h=objc m=objc
-EXCLUDE                = 
-EXCLUDE_SYMBOLS        = 
+EXCLUDE                =
+EXCLUDE_SYMBOLS        =
 
 # ObjC Things
 ENABLE_PREPROCESSING   = YES
