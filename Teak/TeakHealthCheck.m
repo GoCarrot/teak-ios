@@ -1,4 +1,5 @@
 #import <UserNotifications/UserNotifications.h>
+#import "TeakHelpers.h"
 
 NSURLSession* TeakURLSessionWithoutDelegate(void) {
   static NSURLSession* session = nil;
@@ -70,11 +71,11 @@ BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo) {
       ];
       @try {
         NSDictionary* payload = @{
-          @"app_id" : ValueOrNSNull(userInfo[@"teakAppId"]),
-          @"user_id" : ValueOrNSNull(userInfo[@"teakUserId"]),
-          @"platform_id" : ValueOrNSNull(userInfo[@"teakNotifId"]),
-          @"device_id" : ValueOrNSNull(deviceId),
-          @"expected_display" : ValueOrNSNull(userInfo[@"teakExpectedDisplay"]),
+          @"app_id" : TeakValueOrNSNull(userInfo[@"teakAppId"]),
+          @"user_id" : TeakValueOrNSNull(userInfo[@"teakUserId"]),
+          @"platform_id" : TeakValueOrNSNull(userInfo[@"teakNotifId"]),
+          @"device_id" : TeakValueOrNSNull(deviceId),
+          @"expected_display" : TeakValueOrNSNull(userInfo[@"teakExpectedDisplay"]),
           @"status" : TeakNotificationStateName[notificationState + 1] // Becaue Unknown is -1 and Enabled is 0
         };
         NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://parsnip.%@/push_state", kTeakHostname]]

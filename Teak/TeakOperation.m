@@ -1,6 +1,7 @@
 #import "TeakOperation.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
+#import "TeakHelpers.h"
 
 const static NSString* const kEndpoint = @"endpoint";
 const static NSString* const kPayload = @"payload";

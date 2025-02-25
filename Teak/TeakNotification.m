@@ -2,6 +2,9 @@
 #import "Teak+Internal.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
+#import "TeakHelpers.h"
+
+#define _(_id) TeakValueOrNSNull(_id)
 
 @interface TeakNotification ()
 
@@ -26,15 +29,15 @@
 - (TeakNotification*)initWithDictionary:(nonnull NSDictionary*)dictionary {
   self = [super init];
   if (self) {
-    self.teakNotifId = NSStringOrNilFor(dictionary[@"teakNotifId"]);
-    self.teakRewardId = NSStringOrNilFor(dictionary[@"teakRewardIdStr"]);
-    self.teakDeepLink = NSStringOrNilFor(dictionary[@"teakDeepLink"]);
-    self.teakScheduleName = NSStringOrNilFor(dictionary[@"teakScheduleName"]);
-    self.teakScheduleId = NSStringOrNilFor(dictionary[@"teakScheduleId"]);
-    self.teakCreativeName = NSStringOrNilFor(dictionary[@"teakCreativeName"]);
-    self.teakCreativeId = NSStringOrNilFor(dictionary[@"teakCreativeId"]);
-    self.teakChannelName = NSStringOrNilFor(dictionary[@"teakChannelName"]);
-    self.teakOptOutCategory = NSStringOrNilFor(dictionary[@"teakOptOutCategory"]) == nil ? @"teak" : NSStringOrNilFor(dictionary[@"teakOptOutCategory"]);
+    self.teakNotifId = TeakNSStringOrNilFor(dictionary[@"teakNotifId"]);
+    self.teakRewardId = TeakNSStringOrNilFor(dictionary[@"teakRewardIdStr"]);
+    self.teakDeepLink = TeakNSStringOrNilFor(dictionary[@"teakDeepLink"]);
+    self.teakScheduleName = TeakNSStringOrNilFor(dictionary[@"teakScheduleName"]);
+    self.teakScheduleId = TeakNSStringOrNilFor(dictionary[@"teakScheduleId"]);
+    self.teakCreativeName = TeakNSStringOrNilFor(dictionary[@"teakCreativeName"]);
+    self.teakCreativeId = TeakNSStringOrNilFor(dictionary[@"teakCreativeId"]);
+    self.teakChannelName = TeakNSStringOrNilFor(dictionary[@"teakChannelName"]);
+    self.teakOptOutCategory = TeakNSStringOrNilFor(dictionary[@"teakOptOutCategory"]) == nil ? @"teak" : TeakNSStringOrNilFor(dictionary[@"teakOptOutCategory"]);
     self.originalJson = dictionary;
     self.showInForeground = TeakBoolFor(dictionary[@"teakShowInForeground"]);
     self.completed = YES;
@@ -46,14 +49,14 @@
 - (NSDictionary*)eventUserInfo {
   NSMutableDictionary* teakUserInfo = [[NSMutableDictionary alloc] init];
   teakUserInfo[@"teakNotifId"] = self.teakNotifId;
-  teakUserInfo[@"teakRewardId"] = ValueOrNSNull(self.teakRewardId);
-  teakUserInfo[@"teakScheduleName"] = ValueOrNSNull(self.teakScheduleName);
-  teakUserInfo[@"teakScheduleId"] = ValueOrNSNull(self.teakScheduleId);
-  teakUserInfo[@"teakCreativeName"] = ValueOrNSNull(self.teakCreativeName);
-  teakUserInfo[@"teakCreativeId"] = ValueOrNSNull(self.teakCreativeId);
-  teakUserInfo[@"teakChannelName"] = ValueOrNSNull(self.teakChannelName);
-  teakUserInfo[@"teakDeepLink"] = ValueOrNSNull(self.teakDeepLink);
-  teakUserInfo[@"teakOptOutCategory"] = ValueOrNSNull(self.teakOptOutCategory);
+  teakUserInfo[@"teakRewardId"] = TeakValueOrNSNull(self.teakRewardId);
+  teakUserInfo[@"teakScheduleName"] = TeakValueOrNSNull(self.teakScheduleName);
+  teakUserInfo[@"teakScheduleId"] = TeakValueOrNSNull(self.teakScheduleId);
+  teakUserInfo[@"teakCreativeName"] = TeakValueOrNSNull(self.teakCreativeName);
+  teakUserInfo[@"teakCreativeId"] = TeakValueOrNSNull(self.teakCreativeId);
+  teakUserInfo[@"teakChannelName"] = TeakValueOrNSNull(self.teakChannelName);
+  teakUserInfo[@"teakDeepLink"] = TeakValueOrNSNull(self.teakDeepLink);
+  teakUserInfo[@"teakOptOutCategory"] = TeakValueOrNSNull(self.teakOptOutCategory);
 
   return teakUserInfo;
 }

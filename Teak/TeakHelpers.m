@@ -1,5 +1,13 @@
 #import <Foundation/Foundation.h>
 
+BOOL TeakNSNullOrNil(id object) {
+  return ((object == nil) || object == [NSNull null]) ? TRUE : FALSE;
+}
+
+id TeakValueOrNSNull(id x) {
+  return x == nil ? [NSNull null] : x;
+}
+
 NSString* TeakNSStringOrNilFor(id object) {
   if (object == nil) return nil;
 
@@ -10,6 +18,10 @@ NSString* TeakNSStringOrNilFor(id object) {
     ret = nil;
   }
   return ret;
+}
+
+NSString* TeakStringForBool(BOOL x) {
+  return x == FALSE ? @"false" : @"true";
 }
 
 NSString* TeakURLEscapedString(NSString* inString) {
@@ -27,7 +39,7 @@ NSString* TeakURLEscapedString(NSString* inString) {
 }
 
 BOOL TeakBoolFor(id object) {
-  return NSNullOrNil(object) ? NO : [object boolValue];
+  return TeakNSNullOrNil(object) ? NO : [object boolValue];
 }
 
 NSString* TeakHexStringFromData(NSData* data) {

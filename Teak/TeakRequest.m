@@ -7,7 +7,12 @@
 #import "TeakRemoteConfiguration.h"
 #import "TeakSession.h"
 
+#import "TeakHelpers.h"
+#import "TeakKVOHelpers.h"
+
 #include <CommonCrypto/CommonHMAC.h>
+
+#define _(_id) TeakValueOrNSNull(_id)
 
 NSString* _Nonnull const TeakRequest_POST = @"POST";
 NSString* _Nonnull const TeakRequest_DELETE = @"DELETE";

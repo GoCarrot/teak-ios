@@ -1,4 +1,5 @@
 #import "UserDataEvent.h"
+#import "../TeakHelpers.h"
 
 @interface UserDataEvent ()
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull additionalData;
@@ -16,8 +17,8 @@
     @"emailStatus" : [self.emailStatus toDictionary],
     @"pushStatus" : [self.pushStatus toDictionary],
     @"smsStatus" : [self.smsStatus toDictionary],
-    @"additionalData" : ValueOrNSNull(self.additionalData),
-    @"pushRegistration" : ValueOrNSNull(self.pushRegistration),
+    @"additionalData" : TeakValueOrNSNull(self.additionalData),
+    @"pushRegistration" : TeakValueOrNSNull(self.pushRegistration),
   };
 }
 

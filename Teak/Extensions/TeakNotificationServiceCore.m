@@ -1,6 +1,7 @@
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <Teak/TeakNotificationServiceCore.h>
+#import <Teak/TeakHelpers.h>
 #import <UIKit/UIKit.h>
 
 #import <sys/utsname.h>
@@ -94,7 +95,7 @@ extern BOOL TeakSendHealthCheckIfNeededSynch(NSDictionary* userInfo);
       NSMutableDictionary* processedActions = [[NSMutableDictionary alloc] init];
       for (NSString* key in notification[@"playableActions"]) {
         // If the action is null, launch the app
-        if (NSNullOrNil(notification[@"playableActions"][key])) {
+        if (TeakNSNullOrNil(notification[@"playableActions"][key])) {
           processedActions[key] = @-1;
         } else {
           processedActions[key] = [NSNumber numberWithInteger:[orderedAttachments count] - [contentIndex intValue]];

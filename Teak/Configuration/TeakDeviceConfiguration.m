@@ -6,6 +6,8 @@
 
 #import <AdSupport/AdSupport.h>
 
+#import "../TeakHelpers.h"
+
 #define kDeviceIdKey @"TeakDeviceId"
 
 NSString* const TeakDeviceConfiguration_NotificationDisplayState_Enabled = @"true";
@@ -150,7 +152,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking],
     @"notificationDisplayEnabled" : self.notificationDisplayEnabled,
     @"pushRegistration" : @{
-      @"apns_push_key" : ValueOrNSNull(self.pushToken)
+      @"apns_push_key" : TeakValueOrNSNull(self.pushToken)
     }
   };
 }

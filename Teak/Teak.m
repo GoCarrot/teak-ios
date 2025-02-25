@@ -26,6 +26,8 @@
 
 #import "TeakMPInt.h"
 
+#import "TeakHelpers.h"
+
 #ifndef __IPHONE_12_0
 #define __IPHONE_12_0 120000
 #endif
@@ -62,6 +64,8 @@ NSDictionary* TeakWrapperSDK = nil;
 NSDictionary* TeakXcodeVersion = nil;
 
 NSDictionary* TeakVersionDict = nil;
+
+#define _(_id) TeakValueOrNSNull(_id)
 
 extern void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
@@ -534,10 +538,10 @@ Teak* _teakSharedInstance;
                         if (error) {
                           TeakLog_e(@"companion.error", @{@"dictionary" : responseDict, @"error" : error});
                           keyString = @"error";
-                          valueString = URLEscapedString([error description]);
+                          valueString = TeakURLEscapedString([error description]);
                         } else {
                           keyString = @"response";
-                          valueString = URLEscapedString([[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding]);
+                          valueString = TeakURLEscapedString([[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding]);
                         }
 
                         NSString* openUrlString = [NSString stringWithFormat:@"teak:///callback?%@=%@", keyString, valueString];
@@ -723,7 +727,7 @@ Teak* _teakSharedInstance;
 #pragma clang diagnostic pop
         }
       }
-    } else if (pushState == [TeakPushState Provisional] && iOS12OrGreater()) {
+    } else if (pushState == [TeakPushState Provisional] && [[UIDevice currentDevice].systemVersion doubleValue] >= 12.0) {
 
       // Ignore the warning about using @available. It will cause compile issues on Adobe AIR.
 #pragma clang diagnostic push
@@ -779,7 +783,7 @@ Teak* _teakSharedInstance;
 
 - (TeakNotification*)teakNotificationFromUserInfo:(NSDictionary*)userInfo {
   NSDictionary* aps = userInfo[@"aps"];
-  NSString* teakNotifId = NSStringOrNilFor(aps[@"teakNotifId"]);
+  NSString* teakNotifId = TeakNSStringOrNilFor(aps[@"teakNotifId"]);
   if (!teakNotifId) {
     TeakLog_i(@"notification.non_teak", userInfo);
     return nil;
@@ -790,7 +794,7 @@ Teak* _teakSharedInstance;
 
 + (BOOL)isTeakNotification:(UNNotification*)notification {
   NSDictionary* aps = notification.request.content.userInfo[@"aps"];
-  return NSStringOrNilFor(aps[@"teakNotifId"]) != nil;
+  return TeakNSStringOrNilFor(aps[@"teakNotifId"]) != nil;
 }
 
 - (BOOL)trackHandledNotification:(TeakNotification*)notification {

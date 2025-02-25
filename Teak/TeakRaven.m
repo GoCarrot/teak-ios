@@ -8,6 +8,8 @@
 #include <execinfo.h>
 #include <sys/sysctl.h>
 
+#import "TeakHelpers.h"
+
 NSString* const SentryProtocolVersion = @"7";
 NSString* const TeakSentryVersion = @"1.1.0";
 NSString* const TeakSentryClient = @"teak-ios/1.1.0";
@@ -382,7 +384,7 @@ void TeakSignalHandler(int signal) {
     };
   } @catch (NSException* exception) {
     return @{
-      @"function" : ValueOrNSNull(raw)
+      @"function" : TeakValueOrNSNull(raw)
     };
   }
 }

@@ -1,6 +1,8 @@
 #ifndef TeakKVOHelpers_h
 #define TeakKVOHelpers_h
 
+#define TeakUnusedKVOValues TeakUnused(oldValue); TeakUnused(newValue);
+
 #define KeyValueObserverSupported(_thisClass)                                                                                                                                            \
   NSMutableDictionary* kvoRegDictionaryForClassName##_thisClass(NSString* className) {                                                                                                   \
     static NSMutableDictionary* dict;                                                                                                                                                    \

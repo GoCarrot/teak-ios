@@ -1,4 +1,5 @@
 #import "TeakChannelStatus.h"
+#import "../TeakHelpers.h"
 
 NSString* _Nonnull const TeakChannelStateOptOut = @"opt_out";
 NSString* _Nonnull const TeakChannelStateAvailable = @"available";
@@ -67,7 +68,7 @@ NSString* _Nonnull const TeakChannelTypeUnknown = @"unknown";
   return @{
     @"state" : self.state,
     @"delivery_fault" : TeakStringForBool(self.deliveryFault),
-    @"categories" : ValueOrNSNull(self.categories)
+    @"categories" : TeakValueOrNSNull(self.categories)
   };
 }
 
