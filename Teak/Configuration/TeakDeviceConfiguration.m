@@ -6,7 +6,7 @@
 
 #import <AdSupport/AdSupport.h>
 
-#import "../TeakHelpers.h"
+#import "TeakHelpers.h"
 
 #define kDeviceIdKey @"TeakDeviceId"
 

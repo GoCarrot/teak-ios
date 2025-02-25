@@ -1,6 +1,6 @@
 #import "TeakLaunchData.h"
 #import "Teak+Internal.h"
-#import "../TeakHelpers.h"
+#import "TeakHelpers.h"
 
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 

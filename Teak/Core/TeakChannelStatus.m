@@ -1,5 +1,5 @@
 #import "TeakChannelStatus.h"
-#import "../TeakHelpers.h"
+#import "TeakHelpers.h"
 
 NSString* _Nonnull const TeakChannelStateOptOut = @"opt_out";
 NSString* _Nonnull const TeakChannelStateAvailable = @"available";

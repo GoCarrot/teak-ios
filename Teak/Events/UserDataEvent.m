@@ -1,5 +1,5 @@
 #import "UserDataEvent.h"
-#import "../TeakHelpers.h"
+#import "TeakHelpers.h"
 
 @interface UserDataEvent ()
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull additionalData;

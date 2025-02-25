@@ -1,7 +1,7 @@
 #import "SKPaymentObserver.h"
 #import "PurchaseEvent.h"
 #import "Teak+Internal.h"
-#import "../TeakHelpers.h"
+#import "TeakHelpers.h"
 
 #define _(_id) TeakValueOrNSNull(_id)
 
