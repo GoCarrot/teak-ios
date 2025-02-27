@@ -8,8 +8,8 @@ buildtype=${BUILD_TYPE:-Release}
 
 build() {
   BASE_DIRECTORY="$(pwd)/TeakFramework"
-  SIMULATOR_PATH="${BASE_DIRECTORY}/simulator"
-  IOS_PATH="${BASE_DIRECTORY}/ios"
+  SIMULATOR_PATH="${BASE_DIRECTORY}/simulator.xcarchive"
+  IOS_PATH="${BASE_DIRECTORY}/ios.xcarchive"
 
   rm -fr "${BASE_DIRECTORY}"
   mkdir -p "${BASE_DIRECTORY}"
@@ -17,31 +17,33 @@ build() {
   xcodebuild \
     -project Teak.xcodeproj \
     -sdk iphonesimulator \
-    -target Framework \
+    -scheme Framework \
     -destination="generic/platform=iOS Simulator" \
     -configuration $buildtype \
-    BUILD_DIR="${SIMULATOR_PATH}" \
+    -archivePath "${SIMULATOR_PATH}" \
     SKIP_INSTALL=NO \
     BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
     clean \
-    build
+    archive
 
   xcodebuild \
     -project Teak.xcodeproj \
     -sdk iphoneos \
-    -target Framework \
+    -scheme Framework \
     -destination="generic/platform=iOS" \
     -configuration $buildtype \
-    BUILD_DIR="${IOS_PATH}" \
+    -archivePath "${IOS_PATH}" \
     SKIP_INSTALL=NO \
     BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
     clean \
-    build
+    archive
 
   xcodebuild \
     -create-xcframework \
-    -framework ${SIMULATOR_PATH}/${buildtype}-iphonesimulator/Teak.framework \
-    -framework ${IOS_PATH}/${buildtype}-iphoneos/Teak.framework \
+    -framework ${SIMULATOR_PATH}/Products/Library/Frameworks/Teak.framework \
+    -debug-symbols ${SIMULATOR_PATH}/dSYMS/Teak.framework.dSYM \
+    -framework ${IOS_PATH}/Products/Library/Frameworks/Teak.framework \
+    -debug-symbols ${IOS_PATH}/dSYMS/Teak.framework.dSYM \
     -output "${BASE_DIRECTORY}/Teak.xcframework"
 }
 

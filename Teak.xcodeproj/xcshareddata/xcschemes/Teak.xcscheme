@@ -28,8 +28,8 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "431C980A1C7E62B200B19DD5"
-               BuildableName = "Framework"
+               BlueprintIdentifier = "FAA142B62D70E057009C3996"
+               BuildableName = "Framework.framework"
                BlueprintName = "Framework"
                ReferencedContainer = "container:Teak.xcodeproj">
             </BuildableReference>
