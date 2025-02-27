@@ -20,6 +20,20 @@
                ReferencedContainer = "container:Teak.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "431C980A1C7E62B200B19DD5"
+               BuildableName = "Framework"
+               BlueprintName = "Framework"
+               ReferencedContainer = "container:Teak.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
