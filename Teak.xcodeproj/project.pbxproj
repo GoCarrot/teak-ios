@@ -377,7 +377,6 @@
 		438372761D3442EA00B01F44 /* TeakSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakSession.m; sourceTree = "<group>"; };
 		438372791D34443D00B01F44 /* TeakState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakState.h; sourceTree = "<group>"; };
 		4383727A1D34443D00B01F44 /* TeakState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakState.m; sourceTree = "<group>"; };
-		4383727D1D34477B00B01F44 /* Teak.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Teak.pch; sourceTree = "<group>"; };
 		4383727E1D34696500B01F44 /* TeakRemoteConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRemoteConfiguration.h; sourceTree = "<group>"; };
 		4383727F1D34696500B01F44 /* TeakRemoteConfiguration.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRemoteConfiguration.m; sourceTree = "<group>"; };
 		438372821D3481A000B01F44 /* TeakKVOHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakKVOHelpers.h; sourceTree = "<group>"; };
@@ -521,7 +520,6 @@
 				43CEF65B1E4137C20065E4E5 /* TeakLink.m */,
 				FAA4DCFA1DC32AD100374B93 /* TeakReward.h */,
 				FAA4DCFB1DC32AD100374B93 /* TeakReward.m */,
-				4383727D1D34477B00B01F44 /* Teak.pch */,
 				431C97FD1C7E609800B19DD5 /* Teak.h */,
 				431C97FF1C7E609800B19DD5 /* Teak.m */,
 				431C981A1C7E679900B19DD5 /* Teak+Internal.h */,
