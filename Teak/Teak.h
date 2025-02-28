@@ -203,6 +203,45 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 + (void)initForApplicationId:(nonnull NSString*)appId withClass:(nonnull Class)appDelegateClass andApiKey:(nonnull NSString*)apiKey;
 
 /**
+ * Set up Teak in a single function call in SwiftUI projects
+ *
+ * This function *must* be called from no other place than main.swift
+ * before app's main() is called. Ex:
+ *
+ *  import Teak
+ *
+ *  Teak.initSwiftUI(forApplicationId: "your_app_id", andApiKey: "your_api_key")
+ *  YourApp.main()
+ *
+ * Be sure to remove the @main attribute from your app.
+ *
+ * @param appId            Teak Application Id
+ * @param apiKey           Your Teak API key.
+ */
++ (void)initSwiftUIForApplicationId:(nonnull NSString*)appId andApiKey:(nonnull NSString*)apiKey;
+
+/**
+ * Request push notification permissions using the OS permissions dialog
+ *
+ * @param callback The callback will be executed after the player has granted or denied push
+ *                 notifications. The first parameter indicates if permissions were granted or
+ *                 not, the second indicates any OS errors which occured in the process.
+ */
++ (void)requestNotificationPermissions:(nullable void (^)(BOOL, NSError* _Nullable))callback;
+
+/**
+ * Tell Teak how to identify the current player, with additional data.
+ *
+ * This will also begin tracking and reporting of a session, and track a daily active user.
+ *
+ * @note This should be how you identify the user in your back-end.
+ *
+ * @param playerId              The string Teak should use to identify the current user.
+ * @param playerConfiguration   Additional configuration for the current user.
+ */
++ (void)login:(nonnull NSString*)playerId withConfiguration:(nonnull TeakUserConfiguration*)playerConfiguration;
+
+/**
  * Teak singleton.
  */
 + (nullable Teak*)sharedInstance;

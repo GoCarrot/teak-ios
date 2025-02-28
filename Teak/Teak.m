@@ -105,6 +105,61 @@ Teak* _teakSharedInstance;
   Teak_Plant(appDelegateClass, [appId copy], [apiKey copy]);
 }
 
++ (void)initSwiftUIForApplicationId:(nonnull NSString*)appId andApiKey:(nonnull NSString*)apiKey;
+{
+  Teak_Plant(objc_getClass("SwiftUI.AppDelegate"), [appId copy], [apiKey copy]);
+}
+
++ (void)login:(nonnull NSString*)playerId withConfiguration:(nonnull TeakUserConfiguration*)playerConfiguration;
+{
+  [_teakSharedInstance identifyUser:playerId withConfiguration:playerConfiguration];
+}
+
++ (void)requestNotificationPermissions:(nullable void (^)(BOOL, NSError* _Nullable))callback {
+    UIApplication* application = [UIApplication sharedApplication];
+
+  // The following code registers for push notifications in both an iOS 8 and iOS 9+ friendly way
+  if (NSClassFromString(@"UNUserNotificationCenter") != nil) {
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge;
+    [center requestAuthorizationWithOptions:authOptions
+                          completionHandler:^(BOOL granted, NSError* _Nullable error) {
+                            if (granted) {
+                              dispatch_async(dispatch_get_main_queue(), ^{
+                                [application registerForRemoteNotifications];
+                              });
+                            }
+
+                            if (callback != nil) {
+                              callback(granted, error);
+                            }
+                          }];
+    return;
+  } else if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    UIUserNotificationSettings* settings = [UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeAlert | UIUserNotificationTypeBadge | UIUserNotificationTypeSound) categories:nil];
+    [application registerUserNotificationSettings:settings];
+#pragma clang diagnostic pop
+    if (callback != nil) {
+      callback(NO, [NSError errorWithDomain:@"teak" code:0 userInfo:@{@"description" : @"Deprecated version of iOS, callbacks not supported for this function."}]);
+    }
+    return;
+  } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    UIRemoteNotificationType myTypes = UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeSound;
+    [application registerForRemoteNotificationTypes:myTypes];
+#pragma clang diagnostic pop
+    if (callback != nil) {
+      callback(NO, [NSError errorWithDomain:@"teak" code:0 userInfo:@{@"description" : @"Deprecated version of iOS, callbacks not supported for this function."}]);
+    }
+    return;
+  }
+
+  // Should never get here
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
