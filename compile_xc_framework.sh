@@ -5,9 +5,10 @@ set -o pipefail
 set -x
 
 buildtype=${BUILD_TYPE:-Release}
+BASE_DIRECTORY="$(pwd)/TeakFramework"
 
 build() {
-  BASE_DIRECTORY="$(pwd)/TeakFramework"
+
   SIMULATOR_PATH="${BASE_DIRECTORY}/simulator.xcarchive"
   IOS_PATH="${BASE_DIRECTORY}/ios.xcarchive"
 
@@ -47,4 +48,9 @@ build() {
     -output "${BASE_DIRECTORY}/Teak.xcframework"
 }
 
+move_to_repo() {
+  cp -r "${BASE_DIRECTORY}/Teak.xcframework" "../teak-ios-framework"
+}
+
 build
+move_to_repo
