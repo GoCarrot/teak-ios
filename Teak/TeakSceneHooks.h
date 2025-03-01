@@ -1,6 +1,7 @@
 #import <objc/runtime.h>
 #import <UIKit/UIScene.h>
 
+API_AVAILABLE(ios(13))
 @interface TeakSceneHooks : NSObject
 
 - (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions;
@@ -9,7 +10,6 @@
 
 - (void)sceneWillResignActive:(UIScene *)scene;
 - (void)sceneDidBecomeActive:(UIScene *)scene;
-- (void)scene:(UIScene *)scene openURLContexts:(NSSet<UIOpenURLContext *> *)URLContexts;
 
 +(void)swizzleInto:(Class)klass;
 @end

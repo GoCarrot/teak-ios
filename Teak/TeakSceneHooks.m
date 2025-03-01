@@ -1,6 +1,8 @@
 #import <objc/runtime.h>
 #import <UIKit/UIScene.h>
 #import "TeakSceneHooks.h"
+#import <Teak/Teak.h>
+#import "Teak+Internal.h"
 
 // @interface TeakSceneHooks : NSObject
 
@@ -18,30 +20,37 @@
 @implementation TeakSceneHooks
 
 static SEL sceneDBA = NULL;
+API_AVAILABLE(ios(13.0))
 static void (*sHostSceneDBA)(id, SEL, UIScene*) = NULL;
 
 static SEL sceneWRA = NULL;
+API_AVAILABLE(ios(13.0))
 static void (*sHostSceneWRA)(id, SEL, UIScene*) = NULL;
 
 static SEL sceneOpenURLContexts = NULL;
+API_AVAILABLE(ios(13.0))
+API_AVAILABLE(ios(13.0))
 static void (*sHostSceneOpenURLContexts)(id, SEL, UIScene*, NSSet<UIOpenURLContext *>*) = NULL;
 
 static SEL sceneWCTS = NULL;
+API_AVAILABLE(ios(13.0))
 static void (*sHostSceneWCTS)(id, SEL, UIScene*, UISceneSession*, UISceneConnectionOptions*) = NULL;
 
 static SEL sceneCUA = NULL;
+API_AVAILABLE(ios(13.0))
 static void (*sHostSceneCUA)(id, SEL, UIScene*, NSUserActivity*) = NULL;
 
 static Protocol* uiSceneDelegateProto = NULL;
 
 static void* swizzleMethod(Class klass, SEL sel) {
-  if (class_respondsToSelector(klass, sel)) {
-    struct objc_method_description desc = protocol_getMethodDescription(uiSceneDelegateProto, sel, NO, YES);
-    Method m = class_getInstanceMethod([TeakSceneHooks class], desc.name);
-    return class_replaceMethod(klass, desc.name, method_getImplementation(m), desc.types);
-  } else {
-    return NULL;
+  if(@available(iOS 13, *)) {
+    if (class_respondsToSelector(klass, sel)) {
+      struct objc_method_description desc = protocol_getMethodDescription(uiSceneDelegateProto, sel, NO, YES);
+      Method m = class_getInstanceMethod([TeakSceneHooks class], desc.name);
+      return class_replaceMethod(klass, desc.name, method_getImplementation(m), desc.types);
+    }
   }
+  return NULL;
 }
 
 +(void)swizzleInto:(Class)klass {
@@ -68,6 +77,15 @@ static void* swizzleMethod(Class klass, SEL sel) {
   if(sHostSceneWCTS) {
     sHostSceneWCTS(self, sceneWCTS, scene, session, connectionOptions);
   }
+  NSUserActivity* activity = connectionOptions.userActivities.allObjects.firstObject;
+  if(activity) {
+    [[Teak sharedInstance] application:[UIApplication sharedApplication] continueUserActivity:activity restorationHandler:^(NSArray* _arr){}];
+  }
+
+  UIOpenURLContext* context = connectionOptions.URLContexts.allObjects.firstObject;
+  if(context) {
+    [[Teak sharedInstance] application:[UIApplication sharedApplication] openURL:context.URL sourceApplication:context.options.sourceApplication annotation:context.options.annotation];
+  }
 }
 
 - (void)scene:(UIScene *)scene continueUserActivity:(NSUserActivity *)userActivity;
@@ -75,10 +93,14 @@ static void* swizzleMethod(Class klass, SEL sel) {
   if(sHostSceneCUA) {
     sHostSceneCUA(self, sceneCUA, scene, userActivity);
   }
+  [[Teak sharedInstance] application:[UIApplication sharedApplication] continueUserActivity:userActivity restorationHandler:^(NSArray* _arr){}];
 }
 
 - (void)scene:(UIScene *)scene openURLContexts:(NSSet<UIOpenURLContext *> *)URLContexts;
 {
+  UIOpenURLContext* context = URLContexts.allObjects.firstObject;
+  [[Teak sharedInstance] application:[UIApplication sharedApplication] openURL:context.URL sourceApplication:context.options.sourceApplication annotation:context.options.annotation];
+
   if(sHostSceneOpenURLContexts) {
     sHostSceneOpenURLContexts(self, sceneOpenURLContexts, scene, URLContexts);
   }
@@ -89,6 +111,7 @@ static void* swizzleMethod(Class klass, SEL sel) {
   if(sHostSceneWRA) {
     sHostSceneWRA(self, sceneWRA, scene);
   }
+  [[Teak sharedInstance] applicationWillResignActive:[UIApplication sharedApplication]];
 }
 
 - (void)sceneDidBecomeActive:(UIScene *)scene;
@@ -96,6 +119,7 @@ static void* swizzleMethod(Class klass, SEL sel) {
   if(sHostSceneDBA) {
     sHostSceneDBA(self, sceneDBA, scene);
   }
+  [[Teak sharedInstance] applicationDidBecomeActive:[UIApplication sharedApplication]];
 }
 
 @end

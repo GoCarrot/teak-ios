@@ -1,7 +1,6 @@
 #import "Teak+Internal.h"
 #import <Teak/Teak.h>
 #import <objc/runtime.h>
-#import <UIKit/UIScene.h>
 #import "TeakSceneHooks.h"
 
 @interface TeakAppDelegateHooks : NSObject
@@ -220,22 +219,14 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     sHostAppOpenURLOptionsIMP = (BOOL(*)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*))class_replaceMethod(appDelegateClass, desc.name, method_getImplementation(m), desc.types);
   }
 
-  // if (class_respondsToSelector(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:))) {
-  //   TeakLog_i(@"sdk.init", @"Found application:configurationForConnectingSceneSession:options:");
-  //   [[NSNotificationCenter defaultCenter] addObserver:[TeakSceneObserver sharedInstance] selector:@selector(sceneWillConnect:) name:@"UISceneWillConnectNotification" object:nil];
-
-    // struct objc_method_description configurationForConnectingSceneSession = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:configurationForConnectingSceneSession:options:), NO, YES);
-
-    // Method ctConfigurationForConnectingSession = class_getInstanceMethod([TeakAppDelegateHooks class], configurationForConnectingSceneSession.name);
-    // sHostConfigurationForConnectingSceneSession = (UISceneConfiguration*(*)(id, SEL, UIApplication*, UISceneSession*, UISceneConnectionOptions*))class_replaceMethod(appDelegateClass, configurationForConnectingSceneSession.name, method_getImplementation(ctConfigurationForConnectingSession), configurationForConnectingSceneSession.types);
-  // } else {
-  //   TeakLog_i(@"sdk.init", @"Did not find application:configurationForConnectingSceneSession:options:");
+  if(@available(iOS 13, *))
+  {
     Class swiftUIDelegate = objc_getClass("SwiftUI.AppSceneDelegate");
     if(swiftUIDelegate) {
       TeakLog_i(@"sdk.init", @"Found SwiftUI.AppSceneDelegate, installing hooks");
       [TeakSceneHooks swizzleInto:swiftUIDelegate];
     }
-  // }
+  }
 
   // applicationDidBecomeActive:
   {
