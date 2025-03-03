@@ -129,8 +129,8 @@ build() {
   msg "Generating XCFramework"
   if [ $buildtype = "Release" ]; then
     xcodebuild \
-      -create-xcframework \
       ${quiet} \
+      -create-xcframework \
       -framework ${SIMULATOR_PATH}/Products/Library/Frameworks/Teak.framework \
       -debug-symbols ${SIMULATOR_PATH}/dSYMs/Teak.framework.dSYM \
       -framework ${IOS_PATH}/Products/Library/Frameworks/Teak.framework \
