@@ -190,12 +190,21 @@ build() {
   fi
 }
 
+zip_framework() {
+  msg "Creating zip of XCFramework"
+  (cd "${BASE_DIRECTORY}"; zip -y -r Teak.xcframework.zip Teak.xcframework/)
+  (cd "${BASE_DIRECTORY}"; zip -y -r TeakExtension.xcframework.zip TeakExtension.xcframework/)
+}
+
 move_to_repo() {
   msg "Moving built XCFramework to ${script_dir}/teak-ios-framework"
   cp -r "${BASE_DIRECTORY}/Teak.xcframework" "../teak-ios-framework"
   cp -r "${BASE_DIRECTORY}/TeakExtension.xcframework" "../teak-ios-framework"
+  cp -r "${BASE_DIRECTORY}/Teak.xcframework.zip" "../teak-ios-framework"
+  cp -r "${BASE_DIRECTORY}/TeakExtension.xcframework.zip" "../teak-ios-framework"
 }
 
 import_notification_categories
 build
+zip_framework
 move_to_repo
