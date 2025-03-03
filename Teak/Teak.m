@@ -165,6 +165,16 @@ Teak* _teakSharedInstance;
   [TeakLink registerRoute:route name:name description:description block:block];
 }
 
++ (void)setNumberProperty:(NSString* _Nonnull)key value:(double)value;
+{
+  [[self sharedInstance] setNumericAttribute:value forKey:key];
+}
+
++ (void)setStringProperty:(NSString* _Nonnull)key value:(NSString* _Nonnull)value;
+{
+  [[self sharedInstance] setStringAttribute:value forKey:key];
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"

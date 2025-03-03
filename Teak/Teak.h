@@ -252,6 +252,22 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 + (void)registerDeepLinkRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block;
 
 /**
+ * Track a numeric player profile attribute.
+ *
+ * @param key   The name of the numeric attribute.
+ * @param value The numeric value to assign.
+ */
++ (void)setNumberProperty:(NSString* _Nonnull)key value:(double)value;
+
+/**
+ * Track a string player profile attribute.
+ *
+ * @param key   The name of the string attribute.
+ * @param value The string value to assign.
+ */
++ (void)setStringProperty:(NSString* _Nonnull)key value:(NSString* _Nonnull)value;
+
+/**
  * Teak singleton.
  */
 + (nullable Teak*)sharedInstance;
