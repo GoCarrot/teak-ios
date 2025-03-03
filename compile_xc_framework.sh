@@ -84,6 +84,11 @@ fi
 
 BASE_DIRECTORY="${script_dir}/TeakFramework"
 
+import_notification_categories() {
+  msg "Importing notification categories"
+  ./import_notification_categories notification_categories.csv
+}
+
 build() {
   SIMULATOR_PATH="${BASE_DIRECTORY}/simulator.xcarchive"
   IOS_PATH="${BASE_DIRECTORY}/ios.xcarchive"
@@ -99,7 +104,7 @@ build() {
     -project Teak.xcodeproj \
     -sdk iphonesimulator \
     -scheme Framework \
-    -destination="generic/platform=iOS Simulator" \
+    -destination "generic/platform=iOS Simulator" \
     -configuration $buildtype \
     -archivePath "${SIMULATOR_PATH}" \
     SKIP_INSTALL=NO \
@@ -113,7 +118,7 @@ build() {
     -project Teak.xcodeproj \
     -sdk iphoneos \
     -scheme Framework \
-    -destination="generic/platform=iOS" \
+    -destination "generic/platform=iOS" \
     -configuration $buildtype \
     -archivePath "${IOS_PATH}" \
     SKIP_INSTALL=NO \
@@ -146,5 +151,6 @@ move_to_repo() {
   # cp -r "${BASE_DIRECTORY}/Teak.xcframework" "../teak-ios-framework"
 }
 
+import_notification_categories
 build
 move_to_repo
