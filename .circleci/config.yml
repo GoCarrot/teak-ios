@@ -41,7 +41,7 @@ jobs:
           command: ./deployment_target_check.rb
       - run:
           name: Build Teak SDK
-          command: ./compile
+          command: ./compile_xc_framework
       - run:
           name: Compute Checksums
           command: |
