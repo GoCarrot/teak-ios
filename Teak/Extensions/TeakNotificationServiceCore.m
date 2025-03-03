@@ -1,7 +1,7 @@
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <Teak/TeakNotificationServiceCore.h>
-#import <Teak/TeakHelpers.h>
+#import "TeakHelpers.h"
 #import <UIKit/UIKit.h>
 
 #import <sys/utsname.h>

@@ -91,7 +91,9 @@ import_notification_categories() {
 
 build() {
   SIMULATOR_PATH="${BASE_DIRECTORY}/simulator.xcarchive"
+  EXT_SIM_PATH="${BASE_DIRECTORY}/extension-simulator.xcarchive"
   IOS_PATH="${BASE_DIRECTORY}/ios.xcarchive"
+  EXT_IOS_PATH="${BASE_DIRECTORY}/extension-ios.xcarchive"
 
   msg "Building Teak.xcframework for ${buildtype}"
   msg "Cleaning previous build at ${BASE_DIRECTORY}"
@@ -112,6 +114,19 @@ build() {
     clean \
     archive
 
+  xcodebuild \
+    ${quiet} \
+    -project Teak.xcodeproj \
+    -sdk iphonesimulator \
+    -scheme ExtensionFramework \
+    -destination "generic/platform=iOS Simulator" \
+    -configuration $buildtype \
+    -archivePath "${EXT_SIM_PATH}" \
+    SKIP_INSTALL=NO \
+    BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
+    clean \
+    archive
+
   msg "Building for iOS Device"
   xcodebuild \
     ${quiet} \
@@ -121,6 +136,19 @@ build() {
     -destination "generic/platform=iOS" \
     -configuration $buildtype \
     -archivePath "${IOS_PATH}" \
+    SKIP_INSTALL=NO \
+    BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
+    clean \
+    archive
+
+  xcodebuild \
+    ${quiet} \
+    -project Teak.xcodeproj \
+    -sdk iphoneos \
+    -scheme ExtensionFramework \
+    -destination "generic/platform=iOS" \
+    -configuration $buildtype \
+    -archivePath "${EXT_IOS_PATH}" \
     SKIP_INSTALL=NO \
     BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
     clean \
@@ -136,6 +164,15 @@ build() {
       -framework ${IOS_PATH}/Products/Library/Frameworks/Teak.framework \
       -debug-symbols ${IOS_PATH}/dSYMs/Teak.framework.dSYM \
       -output "${BASE_DIRECTORY}/Teak.xcframework"
+
+    xcodebuild \
+      ${quiet} \
+      -create-xcframework \
+      -framework ${EXT_SIM_PATH}/Products/Library/Frameworks/TeakExtension.framework \
+      -debug-symbols ${EXT_SIM_PATH}/dSYMs/TeakExtension.framework.dSYM \
+      -framework ${EXT_IOS_PATH}/Products/Library/Frameworks/TeakExtension.framework \
+      -debug-symbols ${EXT_IOS_PATH}/dSYMs/TeakExtension.framework.dSYM \
+      -output "${BASE_DIRECTORY}/TeakExtension.xcframework"
   else
     xcodebuild \
       ${quiet} \
@@ -143,12 +180,20 @@ build() {
       -framework ${SIMULATOR_PATH}/Products/Library/Frameworks/Teak.framework \
       -framework ${IOS_PATH}/Products/Library/Frameworks/Teak.framework \
       -output "${BASE_DIRECTORY}/Teak.xcframework"
+
+    xcodebuild \
+      ${quiet} \
+      -create-xcframework \
+      -framework ${EXT_SIM_PATH}/Products/Library/Frameworks/TeakExtension.framework \
+      -framework ${EXT_IOS_PATH}/Products/Library/Frameworks/TeakExtension.framework \
+      -output "${BASE_DIRECTORY}/TeakExtension.xcframework"
   fi
 }
 
 move_to_repo() {
   msg "Moving built XCFramework to ${script_dir}/teak-ios-framework"
-  # cp -r "${BASE_DIRECTORY}/Teak.xcframework" "../teak-ios-framework"
+  cp -r "${BASE_DIRECTORY}/Teak.xcframework" "../teak-ios-framework"
+  cp -r "${BASE_DIRECTORY}/TeakExtension.xcframework" "../teak-ios-framework"
 }
 
 import_notification_categories
