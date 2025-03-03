@@ -242,6 +242,16 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 + (void)login:(nonnull NSString*)playerId withConfiguration:(nonnull TeakUserConfiguration*)playerConfiguration;
 
 /**
+ * Register a deep link route that notifications, emails, or Universal Links can route to.
+ *
+ * @param route The route for this deep link.
+ * @param name The name of this deep link, used in the Teak dashboard.
+ * @param description A description for what this deep link does, used in the Teak dashboard.
+ * @param block A block execute when this deep link is invoked via a notification, email or web link.
+ */
++ (void)registerDeepLinkRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block;
+
+/**
  * Teak singleton.
  */
 + (nullable Teak*)sharedInstance;

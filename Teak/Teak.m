@@ -160,6 +160,11 @@ Teak* _teakSharedInstance;
   // Should never get here
 }
 
++ (void)registerDeepLinkRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block;
+{
+  [TeakLink registerRoute:route name:name description:description block:block];
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
