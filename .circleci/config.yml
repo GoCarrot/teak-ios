@@ -49,14 +49,10 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - build/Release-iphoneos/Teak.framework.zip
-            - build/Release-iphoneos/TeakResources.bundle.zip
-            - TeakExtensions/TeakNotificationContent/Info.plist
-            - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
-            - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
-            - TeakExtensions.zip
-            - Teak.framework.zip.sha512
-
+            - TeakFramework/Teak.xcframework.zip
+            - TeakFramework/Teak.xcframework.zip.sha512
+            - TeakFramework/TeakExtension.xcframework.zip
+            - TeakFramework/TeakExtension.xcframework.zip.sha512
   tag_build:
     docker:
       - image: cimg/ruby:3.1
