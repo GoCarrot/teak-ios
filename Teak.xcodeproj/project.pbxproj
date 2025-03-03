@@ -133,6 +133,7 @@
 		67BDC2252992F599004DC7DB /* TeakOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 67BDC2232992F599004DC7DB /* TeakOperation.m */; };
 		67FBB69B2937FFCE00854807 /* TeakChannelStatus.h in Headers */ = {isa = PBXBuildFile; fileRef = 67FBB6992937FFCE00854807 /* TeakChannelStatus.h */; };
 		67FBB69C2937FFCE00854807 /* TeakChannelStatus.m in Sources */ = {isa = PBXBuildFile; fileRef = 67FBB69A2937FFCE00854807 /* TeakChannelStatus.m */; };
+		FA34DA4B2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA34DA4A2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy */; };
 		FA82D7BA2D6E3F80004BE81A /* TeakHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */; };
 		FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; };
 		FA8B793B2D72562A00179852 /* TeakSceneHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = FA8B79392D72562A00179852 /* TeakSceneHooks.m */; };
@@ -421,6 +422,7 @@
 		67BDC2232992F599004DC7DB /* TeakOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakOperation.m; sourceTree = "<group>"; };
 		67FBB6992937FFCE00854807 /* TeakChannelStatus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakChannelStatus.h; sourceTree = "<group>"; };
 		67FBB69A2937FFCE00854807 /* TeakChannelStatus.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakChannelStatus.m; sourceTree = "<group>"; };
+		FA34DA4A2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakHelpers.h; sourceTree = "<group>"; };
 		FA8B79382D72562A00179852 /* TeakSceneHooks.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakSceneHooks.h; sourceTree = "<group>"; };
 		FA8B79392D72562A00179852 /* TeakSceneHooks.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakSceneHooks.m; sourceTree = "<group>"; };
@@ -513,6 +515,7 @@
 		431C97FC1C7E609800B19DD5 /* Teak */ = {
 			isa = PBXGroup;
 			children = (
+				FA34DA4A2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy */,
 				FA8B79382D72562A00179852 /* TeakSceneHooks.h */,
 				FA8B79392D72562A00179852 /* TeakSceneHooks.m */,
 				FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */,
@@ -947,6 +950,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA34DA4B2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
