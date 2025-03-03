@@ -439,10 +439,6 @@
 		FAFEC6F72A607508005E6AD2 /* TeakChannelCategory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakChannelCategory.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		FAA142B82D70E057009C3996 /* Framework */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Framework; sourceTree = "<group>"; };
-/* End PBXFileSystemSynchronizedRootGroup section */
-
 /* Begin PBXFrameworksBuildPhase section */
 		430E64641FB62EEE008DE15B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -496,7 +492,6 @@
 			children = (
 				431C97FC1C7E609800B19DD5 /* Teak */,
 				430E64681FB62EEE008DE15B /* TeakResources */,
-				FAA142B82D70E057009C3996 /* Framework */,
 				FAA143152D70E127009C3996 /* Frameworks */,
 				431C97FB1C7E609800B19DD5 /* Products */,
 			);
@@ -884,9 +879,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				FAA142B82D70E057009C3996 /* Framework */,
 			);
 			name = Framework;
 			packageProductDependencies = (
