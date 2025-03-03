@@ -42,10 +42,6 @@ jobs:
       - run:
           name: Build Teak SDK
           command: ./compile_xc_framework
-      - run:
-          name: Compute Checksums
-          command: |
-            shasum -a 512 build/Release-iphoneos/Teak.framework.zip > Teak.framework.zip.sha512
       - persist_to_workspace:
           root: .
           paths:
