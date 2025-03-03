@@ -196,15 +196,24 @@ zip_framework() {
   (cd "${BASE_DIRECTORY}"; zip -y -r TeakExtension.xcframework.zip TeakExtension.xcframework/)
 }
 
+compute_checksums() {
+  msg "Computing checksums of zipped frameworks"
+  shasum -a 512 "${BASE_DIRECTORY}/Teak.xcframework.zip" > "${BASE_DIRECTORY}/Teak.xcframework.zip.sha512"
+  shasum -a 512 "${BASE_DIRECTORY}/TeakExtension.xcframework.zip" > "${BASE_DIRECTORY}/TeakExtension.xcframework.zip.sha512"
+}
+
 move_to_repo() {
   msg "Moving built XCFramework to ${script_dir}/teak-ios-framework"
   cp -r "${BASE_DIRECTORY}/Teak.xcframework" "../teak-ios-framework"
   cp -r "${BASE_DIRECTORY}/TeakExtension.xcframework" "../teak-ios-framework"
   cp -r "${BASE_DIRECTORY}/Teak.xcframework.zip" "../teak-ios-framework"
   cp -r "${BASE_DIRECTORY}/TeakExtension.xcframework.zip" "../teak-ios-framework"
+  cp -r "${BASE_DIRECTORY}/Teak.xcframework.zip.sha512" "../teak-ios-framework"
+  cp -r "${BASE_DIRECTORY}/TeakExtension.xcframework.zip.sha512" "../teak-ios-framework"
 }
 
 import_notification_categories
 build
 zip_framework
+compute_checksums
 move_to_repo
