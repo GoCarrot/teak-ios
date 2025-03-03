@@ -871,6 +871,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = FAA142BC2D70E057009C3996 /* Build configuration list for PBXNativeTarget "Framework" */;
 			buildPhases = (
+				FA34DA4C2D75FE0B00D1C1C5 /* Define Version */,
 				FAA142B22D70E057009C3996 /* Headers */,
 				FAA142B32D70E057009C3996 /* Sources */,
 				FAA142B42D70E057009C3996 /* Frameworks */,
@@ -976,6 +977,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
+			shellScript = "git=$(sh /etc/profile; which git)\nversion=$(\"$git\" describe --tags)\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
+		};
+		FA34DA4C2D75FE0B00D1C1C5 /* Define Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Define Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/TeakVersion.h",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
 			shellScript = "git=$(sh /etc/profile; which git)\nversion=$(\"$git\" describe --tags)\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
