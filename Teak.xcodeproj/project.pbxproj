@@ -3,24 +3,8 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 54;
 	objects = {
-
-/* Begin PBXAggregateTarget section */
-		431C980A1C7E62B200B19DD5 /* Framework */ = {
-			isa = PBXAggregateTarget;
-			buildConfigurationList = 431C980B1C7E62B200B19DD5 /* Build configuration list for PBXAggregateTarget "Framework" */;
-			buildPhases = (
-				431C98101C7E631600B19DD5 /* Build Framework */,
-			);
-			dependencies = (
-				430E64791FB631C7008DE15B /* PBXTargetDependency */,
-				431C980F1C7E62F400B19DD5 /* PBXTargetDependency */,
-			);
-			name = Framework;
-			productName = Framework;
-		};
-/* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
 		4301A94C233AD13F001DBF60 /* AdditionalDataEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 4301A94A233AD13F001DBF60 /* AdditionalDataEvent.h */; };
@@ -149,28 +133,162 @@
 		67BDC2252992F599004DC7DB /* TeakOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 67BDC2232992F599004DC7DB /* TeakOperation.m */; };
 		67FBB69B2937FFCE00854807 /* TeakChannelStatus.h in Headers */ = {isa = PBXBuildFile; fileRef = 67FBB6992937FFCE00854807 /* TeakChannelStatus.h */; };
 		67FBB69C2937FFCE00854807 /* TeakChannelStatus.m in Sources */ = {isa = PBXBuildFile; fileRef = 67FBB69A2937FFCE00854807 /* TeakChannelStatus.m */; };
+		FA34DA4B2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA34DA4A2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy */; };
+		FA34DA5A2D76014900D1C1C5 /* TeakNotificationServiceCore.m in Sources */ = {isa = PBXBuildFile; fileRef = 43E601BB1FFEF879003A09C5 /* TeakNotificationServiceCore.m */; };
+		FA34DA5B2D76014900D1C1C5 /* TeakNotificationViewControllerCore.m in Sources */ = {isa = PBXBuildFile; fileRef = 43E601BD1FFEF879003A09C5 /* TeakNotificationViewControllerCore.m */; };
+		FA34DA5C2D76015000D1C1C5 /* TeakHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 438372831D35889800B01F44 /* TeakHelpers.m */; };
+		FA34DA5D2D76015500D1C1C5 /* TeakHealthCheck.m in Sources */ = {isa = PBXBuildFile; fileRef = 671169312A30FD8800B168B0 /* TeakHealthCheck.m */; };
+		FA34DA5E2D76015B00D1C1C5 /* UIImage+animatedGIF.m in Sources */ = {isa = PBXBuildFile; fileRef = 43DCD107200595B7009B6514 /* UIImage+animatedGIF.m */; };
+		FA34DA5F2D76016000D1C1C5 /* TeakHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */; };
+		FA34DA602D76016B00D1C1C5 /* TeakNotificationServiceCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 43E601BA1FFEF879003A09C5 /* TeakNotificationServiceCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FA34DA612D76016B00D1C1C5 /* TeakNotificationViewControllerCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 43E601BC1FFEF879003A09C5 /* TeakNotificationViewControllerCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FA34DA632D76017700D1C1C5 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA34DA622D76017700D1C1C5 /* UserNotifications.framework */; };
+		FA34DA652D76017D00D1C1C5 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA34DA642D76017D00D1C1C5 /* ImageIO.framework */; };
+		FA34DA672D76018300D1C1C5 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA34DA662D76018300D1C1C5 /* CoreGraphics.framework */; };
+		FA34DA692D76020600D1C1C5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA34DA682D76020600D1C1C5 /* PrivacyInfo.xcprivacy */; };
+		FA34DAD22D760EA700D1C1C5 /* TeakExtension.h in Headers */ = {isa = PBXBuildFile; fileRef = FA34DAD12D760EA700D1C1C5 /* TeakExtension.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FA82D7BA2D6E3F80004BE81A /* TeakHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */; };
+		FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; };
+		FA8B793B2D72562A00179852 /* TeakSceneHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = FA8B79392D72562A00179852 /* TeakSceneHooks.m */; };
+		FA8B793C2D72562A00179852 /* TeakSceneHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = FA8B79392D72562A00179852 /* TeakSceneHooks.m */; };
+		FA8B793D2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; };
+		FAA142BF2D70E0B5009C3996 /* TeakLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 43CEF65A1E4137C20065E4E5 /* TeakLink.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FAA142C02D70E0B5009C3996 /* Teak.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C97FD1C7E609800B19DD5 /* Teak.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FAA142C12D70E0B5009C3996 /* TeakNotification.h in Headers */ = {isa = PBXBuildFile; fileRef = 432EDF071CC02CE3007E9C5C /* TeakNotification.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FAA142C22D70E0B5009C3996 /* TeakUserConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 431FAB0826C477E2005954CE /* TeakUserConfiguration.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FAA142C32D70E0B5009C3996 /* TeakOperation.h in Headers */ = {isa = PBXBuildFile; fileRef = 67BDC2222992F599004DC7DB /* TeakOperation.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FAA142C42D70E0F5009C3996 /* bn_mp_radix_smap.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30D22403B7A001A3A8A /* bn_mp_radix_smap.c */; };
+		FAA142C52D70E0F5009C3996 /* bn_mp_div_2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30B22403B50001A3A8A /* bn_mp_div_2d.c */; };
+		FAA142C62D70E0F5009C3996 /* bn_reverse.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30922403B3C001A3A8A /* bn_reverse.c */; };
+		FAA142C72D70E0F5009C3996 /* bn_mp_div_d.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30522403B16001A3A8A /* bn_mp_div_d.c */; };
+		FAA142C82D70E0F5009C3996 /* bn_mp_init_copy.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30622403B17001A3A8A /* bn_mp_init_copy.c */; };
+		FAA142C92D70E0F5009C3996 /* bn_mp_toradix.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30322403A90001A3A8A /* bn_mp_toradix.c */; };
+		FAA142CA2D70E0F5009C3996 /* bncore.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A30122403262001A3A8A /* bncore.c */; };
+		FAA142CB2D70E0F5009C3996 /* bn_mp_exch.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F822403202001A3A8A /* bn_mp_exch.c */; };
+		FAA142CC2D70E0F5009C3996 /* bn_mp_karatsuba_sqr.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2FA22403203001A3A8A /* bn_mp_karatsuba_sqr.c */; };
+		FAA142CD2D70E0F5009C3996 /* bn_mp_mul_d.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F922403203001A3A8A /* bn_mp_mul_d.c */; };
+		FAA142CE2D70E0F5009C3996 /* bn_mp_sub.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F722403202001A3A8A /* bn_mp_sub.c */; };
+		FAA142CF2D70E0F5009C3996 /* bn_mp_cmp_mag.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F0224031D2001A3A8A /* bn_mp_cmp_mag.c */; };
+		FAA142D02D70E0F5009C3996 /* bn_mp_init_multi.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F2224031D3001A3A8A /* bn_mp_init_multi.c */; };
+		FAA142D12D70E0F5009C3996 /* bn_mp_mul_2.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2EF224031D2001A3A8A /* bn_mp_mul_2.c */; };
+		FAA142D22D70E0F5009C3996 /* bn_mp_rshd.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2F1224031D3001A3A8A /* bn_mp_rshd.c */; };
+		FAA142D32D70E0F5009C3996 /* bn_mp_div_3.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2EB22403193001A3A8A /* bn_mp_div_3.c */; };
+		FAA142D42D70E0F5009C3996 /* bn_mp_init_size.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2E922403191001A3A8A /* bn_mp_init_size.c */; };
+		FAA142D52D70E0F5009C3996 /* bn_mp_mod_2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2EA22403192001A3A8A /* bn_mp_mod_2d.c */; };
+		FAA142D62D70E0F5009C3996 /* bn_s_mp_add.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2E62240316F001A3A8A /* bn_s_mp_add.c */; };
+		FAA142D72D70E0F5009C3996 /* bn_s_mp_sub.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2E52240316F001A3A8A /* bn_s_mp_sub.c */; };
+		FAA142D82D70E0F5009C3996 /* bn_mp_clear_multi.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2E222403131001A3A8A /* bn_mp_clear_multi.c */; };
+		FAA142D92D70E0F5009C3996 /* bn_mp_clear.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2E122403130001A3A8A /* bn_mp_clear.c */; };
+		FAA142DA2D70E0F5009C3996 /* bn_mp_add.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2DD2240310E001A3A8A /* bn_mp_add.c */; };
+		FAA142DB2D70E0F5009C3996 /* bn_mp_div_2.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2DE2240310E001A3A8A /* bn_mp_div_2.c */; };
+		FAA142DC2D70E0F5009C3996 /* bn_mp_grow.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2D5224030EF001A3A8A /* bn_mp_grow.c */; };
+		FAA142DD2D70E0F5009C3996 /* bn_mp_lshd.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2D6224030F0001A3A8A /* bn_mp_lshd.c */; };
+		FAA142DE2D70E0F5009C3996 /* bn_mp_toom_sqr.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2D8224030F0001A3A8A /* bn_mp_toom_sqr.c */; };
+		FAA142DF2D70E0F5009C3996 /* bn_s_mp_sqr.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2D7224030F0001A3A8A /* bn_s_mp_sqr.c */; };
+		FAA142E02D70E0F5009C3996 /* bn_mp_zero.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2D322402E27001A3A8A /* bn_mp_zero.c */; };
+		FAA142E12D70E0F5009C3996 /* bn_mp_copy.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2D122402E18001A3A8A /* bn_mp_copy.c */; };
+		FAA142E22D70E0F5009C3996 /* bn_fast_s_mp_sqr.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2CC22402DFB001A3A8A /* bn_fast_s_mp_sqr.c */; };
+		FAA142E32D70E0F5009C3996 /* bn_mp_clamp.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2CD22402DFB001A3A8A /* bn_mp_clamp.c */; };
+		FAA142E42D70E0F5009C3996 /* bn_mp_mul_2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2CB22402DFA001A3A8A /* bn_mp_mul_2d.c */; };
+		FAA142E52D70E0F5009C3996 /* bn_mp_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2BD22402D24001A3A8A /* bn_mp_init.c */; };
+		FAA142E62D70E0F5009C3996 /* bn_mp_set_long_long.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2BA22402D24001A3A8A /* bn_mp_set_long_long.c */; };
+		FAA142E72D70E0F5009C3996 /* bn_mp_sqr.c in Sources */ = {isa = PBXBuildFile; fileRef = 4347A2BB22402D24001A3A8A /* bn_mp_sqr.c */; };
+		FAA142E82D70E0F5009C3996 /* isProductionProvisioningProfile.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C28C4E1CFE7EFA00F20404 /* isProductionProvisioningProfile.m */; };
+		FAA142E92D70E0F5009C3996 /* amIBeingDebugged.m in Sources */ = {isa = PBXBuildFile; fileRef = 432FB0EB1D29BEAE009136F1 /* amIBeingDebugged.m */; };
+		FAA142EA2D70E0F5009C3996 /* TeakCore.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815C61FA299F8005303F1 /* TeakCore.m */; };
+		FAA142EB2D70E0F5009C3996 /* TeakUserProfile.m in Sources */ = {isa = PBXBuildFile; fileRef = 4311B882206AC8CB00E542E3 /* TeakUserProfile.m */; };
+		FAA142EC2D70E0F5009C3996 /* TeakLaunchData.m in Sources */ = {isa = PBXBuildFile; fileRef = 43B503B626E96B8A006B5339 /* TeakLaunchData.m */; };
+		FAA142ED2D70E0F5009C3996 /* TeakChannelStatus.m in Sources */ = {isa = PBXBuildFile; fileRef = 67FBB69A2937FFCE00854807 /* TeakChannelStatus.m */; };
+		FAA142EE2D70E0F5009C3996 /* PushRegistrationEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815BD1FA27799005303F1 /* PushRegistrationEvent.m */; };
+		FAA142EF2D70E0F5009C3996 /* UserIdEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815C11FA2909F005303F1 /* UserIdEvent.m */; };
+		FAA142F02D70E0F5009C3996 /* TrackEventEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815CA1FA29A6E005303F1 /* TrackEventEvent.m */; };
+		FAA142F12D70E0F5009C3996 /* PurchaseEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 4348617A1FA3B5D800E0DA12 /* PurchaseEvent.m */; };
+		FAA142F22D70E0F5009C3996 /* LifecycleEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 434861841FA3C08A00E0DA12 /* LifecycleEvent.m */; };
+		FAA142F32D70E0F5009C3996 /* FacebookAccessTokenEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 434862471FA7CB0800E0DA12 /* FacebookAccessTokenEvent.m */; };
+		FAA142F42D70E0F5009C3996 /* RemoteConfigurationEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 437C7932204A00F3006BD4B9 /* RemoteConfigurationEvent.m */; };
+		FAA142F52D70E0F5009C3996 /* AdditionalDataEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 4301A94B233AD13F001DBF60 /* AdditionalDataEvent.m */; };
+		FAA142F62D70E0F5009C3996 /* LogoutEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 43A00445242403F60034DB68 /* LogoutEvent.m */; };
+		FAA142F72D70E0F5009C3996 /* UserDataEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 43EB2D1627FF87330048A1A6 /* UserDataEvent.m */; };
+		FAA142F82D70E0F5009C3996 /* TeakDebugConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4383726A1D3419D000B01F44 /* TeakDebugConfiguration.m */; };
+		FAA142F92D70E0F5009C3996 /* TeakAppConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4383726E1D34239900B01F44 /* TeakAppConfiguration.m */; };
+		FAA142FA2D70E0F5009C3996 /* TeakDeviceConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 438372721D34285A00B01F44 /* TeakDeviceConfiguration.m */; };
+		FAA142FB2D70E0F5009C3996 /* TeakRemoteConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4383727F1D34696500B01F44 /* TeakRemoteConfiguration.m */; };
+		FAA142FC2D70E0F5009C3996 /* TeakConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 434861761FA2C5E000E0DA12 /* TeakConfiguration.m */; };
+		FAA142FD2D70E0F5009C3996 /* TeakDataCollectionConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 4388FB0820D85D5000D1B6FF /* TeakDataCollectionConfiguration.m */; };
+		FAA142FE2D70E0F5009C3996 /* TeakEvent.m in Sources */ = {isa = PBXBuildFile; fileRef = 439815B81FA2651B005303F1 /* TeakEvent.m */; };
+		FAA142FF2D70E0F5009C3996 /* TeakLink.m in Sources */ = {isa = PBXBuildFile; fileRef = 43CEF65B1E4137C20065E4E5 /* TeakLink.m */; };
+		FAA143002D70E0F5009C3996 /* TeakReward.m in Sources */ = {isa = PBXBuildFile; fileRef = FAA4DCFB1DC32AD100374B93 /* TeakReward.m */; };
+		FAA143012D70E0F5009C3996 /* Teak.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C97FF1C7E609800B19DD5 /* Teak.m */; };
+		FAA143022D70E0F5009C3996 /* TeakHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C981B1C7E679900B19DD5 /* TeakHooks.m */; };
+		FAA143032D70E0F5009C3996 /* TeakRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = 431C981D1C7E679900B19DD5 /* TeakRequest.m */; };
+		FAA143042D70E0F5009C3996 /* TeakNotification.m in Sources */ = {isa = PBXBuildFile; fileRef = 432EDF081CC02CE3007E9C5C /* TeakNotification.m */; };
+		FAA143052D70E0F5009C3996 /* TeakCExtern.m in Sources */ = {isa = PBXBuildFile; fileRef = 43C735C01CC1AA2700484B67 /* TeakCExtern.m */; };
+		FAA143062D70E0F5009C3996 /* TeakChannelCategory.m in Sources */ = {isa = PBXBuildFile; fileRef = FAFEC6F62A607508005E6AD2 /* TeakChannelCategory.m */; };
+		FAA143072D70E0F5009C3996 /* TeakRaven.m in Sources */ = {isa = PBXBuildFile; fileRef = 4361E49E1D27529700672694 /* TeakRaven.m */; };
+		FAA143082D70E0F5009C3996 /* TeakSession.m in Sources */ = {isa = PBXBuildFile; fileRef = 438372761D3442EA00B01F44 /* TeakSession.m */; };
+		FAA143092D70E0F5009C3996 /* TeakState.m in Sources */ = {isa = PBXBuildFile; fileRef = 4383727A1D34443D00B01F44 /* TeakState.m */; };
+		FAA1430A2D70E0F5009C3996 /* TeakHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = 438372831D35889800B01F44 /* TeakHelpers.m */; };
+		FAA1430B2D70E0F5009C3996 /* TeakLog.m in Sources */ = {isa = PBXBuildFile; fileRef = 43F7CFF71EF0957E00361256 /* TeakLog.m */; };
+		FAA1430C2D70E0F5009C3996 /* TeakNotificationCategories.m in Sources */ = {isa = PBXBuildFile; fileRef = 430E64531FB62468008DE15B /* TeakNotificationCategories.m */; };
+		FAA1430D2D70E0F5009C3996 /* TeakPushState.m in Sources */ = {isa = PBXBuildFile; fileRef = 4306C02520F7DD8500216F18 /* TeakPushState.m */; };
+		FAA1430E2D70E0F5009C3996 /* TeakMPInt.m in Sources */ = {isa = PBXBuildFile; fileRef = 4347A31D22405506001A3A8A /* TeakMPInt.m */; };
+		FAA1430F2D70E0F5009C3996 /* TeakIntegrationChecker.m in Sources */ = {isa = PBXBuildFile; fileRef = 43A8ACF8244A41F3003B1C3C /* TeakIntegrationChecker.m */; };
+		FAA143102D70E0F5009C3996 /* TeakWaitForDeepLink.m in Sources */ = {isa = PBXBuildFile; fileRef = 4355CE932672890100889B0B /* TeakWaitForDeepLink.m */; };
+		FAA143112D70E0F5009C3996 /* TeakUserConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = 431FAB0926C477E2005954CE /* TeakUserConfiguration.m */; };
+		FAA143122D70E0F5009C3996 /* TeakOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 67BDC2232992F599004DC7DB /* TeakOperation.m */; };
+		FAA143132D70E0F5009C3996 /* TeakHealthCheck.m in Sources */ = {isa = PBXBuildFile; fileRef = 671169312A30FD8800B168B0 /* TeakHealthCheck.m */; };
+		FAA143142D70E102009C3996 /* SKPaymentObserver.m in Sources */ = {isa = PBXBuildFile; fileRef = 4348617F1FA3B97B00E0DA12 /* SKPaymentObserver.m */; };
+		FAA143172D70E127009C3996 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAA143162D70E127009C3996 /* UserNotifications.framework */; };
+		FAA143192D70E130009C3996 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAA143182D70E130009C3996 /* UIKit.framework */; };
+		FAA1431B2D70E13C009C3996 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAA1431A2D70E13C009C3996 /* SystemConfiguration.framework */; };
+		FAA1431D2D70E16D009C3996 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAA1431C2D70E16D009C3996 /* AdSupport.framework */; };
+		FAA1431F2D70E17F009C3996 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAA1431E2D70E17F009C3996 /* CoreServices.framework */; };
+		FAA143212D70E185009C3996 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAA143202D70E185009C3996 /* StoreKit.framework */; };
+		FAA143222D70E21D009C3996 /* SKPaymentObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = 4348617E1FA3B97B00E0DA12 /* SKPaymentObserver.h */; };
+		FAA143232D70E21D009C3996 /* tommath_class.h in Headers */ = {isa = PBXBuildFile; fileRef = 4347A2BE22402D24001A3A8A /* tommath_class.h */; };
+		FAA143242D70E21D009C3996 /* tommath_private.h in Headers */ = {isa = PBXBuildFile; fileRef = 4347A2B722402D23001A3A8A /* tommath_private.h */; };
+		FAA143252D70E21D009C3996 /* tommath_superclass.h in Headers */ = {isa = PBXBuildFile; fileRef = 4347A2BC22402D24001A3A8A /* tommath_superclass.h */; };
+		FAA143262D70E21D009C3996 /* tommath.h in Headers */ = {isa = PBXBuildFile; fileRef = 4347A2B822402D23001A3A8A /* tommath.h */; };
+		FAA143272D70E21D009C3996 /* TeakCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 439815C51FA299F8005303F1 /* TeakCore.h */; };
+		FAA143282D70E21D009C3996 /* TeakUserProfile.h in Headers */ = {isa = PBXBuildFile; fileRef = 4311B881206AC8CB00E542E3 /* TeakUserProfile.h */; };
+		FAA143292D70E21D009C3996 /* TeakLaunchData.h in Headers */ = {isa = PBXBuildFile; fileRef = 43B503B526E96B8A006B5339 /* TeakLaunchData.h */; };
+		FAA1432A2D70E21D009C3996 /* TeakChannelStatus.h in Headers */ = {isa = PBXBuildFile; fileRef = 67FBB6992937FFCE00854807 /* TeakChannelStatus.h */; };
+		FAA1432B2D70E21D009C3996 /* PushRegistrationEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 439815BC1FA27799005303F1 /* PushRegistrationEvent.h */; };
+		FAA1432C2D70E21D009C3996 /* UserIdEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 439815C01FA2909F005303F1 /* UserIdEvent.h */; };
+		FAA1432D2D70E21D009C3996 /* TrackEventEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 439815C91FA29A6E005303F1 /* TrackEventEvent.h */; };
+		FAA1432E2D70E21D009C3996 /* PurchaseEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434861791FA3B5D800E0DA12 /* PurchaseEvent.h */; };
+		FAA1432F2D70E21D009C3996 /* LifecycleEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434861831FA3C08A00E0DA12 /* LifecycleEvent.h */; };
+		FAA143302D70E21D009C3996 /* FacebookAccessTokenEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 434862461FA7CB0800E0DA12 /* FacebookAccessTokenEvent.h */; };
+		FAA143312D70E21D009C3996 /* RemoteConfigurationEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 437C7931204A00F3006BD4B9 /* RemoteConfigurationEvent.h */; };
+		FAA143322D70E21D009C3996 /* AdditionalDataEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 4301A94A233AD13F001DBF60 /* AdditionalDataEvent.h */; };
+		FAA143332D70E21D009C3996 /* LogoutEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 43A00444242403F60034DB68 /* LogoutEvent.h */; };
+		FAA143342D70E21D009C3996 /* UserDataEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 43EB2D1527FF87330048A1A6 /* UserDataEvent.h */; };
+		FAA143352D70E21D009C3996 /* TeakDebugConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372691D3419D000B01F44 /* TeakDebugConfiguration.h */; };
+		FAA143362D70E21D009C3996 /* TeakAppConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 4383726D1D34239900B01F44 /* TeakAppConfiguration.h */; };
+		FAA143372D70E21D009C3996 /* TeakDeviceConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372711D34285A00B01F44 /* TeakDeviceConfiguration.h */; };
+		FAA143382D70E21D009C3996 /* TeakRemoteConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 4383727E1D34696500B01F44 /* TeakRemoteConfiguration.h */; };
+		FAA143392D70E21D009C3996 /* TeakConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 434861751FA2C5E000E0DA12 /* TeakConfiguration.h */; };
+		FAA1433A2D70E21D009C3996 /* TeakDataCollectionConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = 4388FB0720D85D5000D1B6FF /* TeakDataCollectionConfiguration.h */; };
+		FAA1433B2D70E21D009C3996 /* TeakEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 439815B71FA2651A005303F1 /* TeakEvent.h */; };
+		FAA1433C2D70E21D009C3996 /* TeakReward.h in Headers */ = {isa = PBXBuildFile; fileRef = FAA4DCFA1DC32AD100374B93 /* TeakReward.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		FAA1433D2D70E21D009C3996 /* Teak+Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C981A1C7E679900B19DD5 /* Teak+Internal.h */; };
+		FAA1433E2D70E21D009C3996 /* TeakRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C981C1C7E679900B19DD5 /* TeakRequest.h */; };
+		FAA1433F2D70E21D009C3996 /* TeakChannelCategory.h in Headers */ = {isa = PBXBuildFile; fileRef = FAFEC6F72A607508005E6AD2 /* TeakChannelCategory.h */; };
+		FAA143402D70E21D009C3996 /* TeakRaven.h in Headers */ = {isa = PBXBuildFile; fileRef = 4361E49D1D27529700672694 /* TeakRaven.h */; };
+		FAA143412D70E21D009C3996 /* TeakSession.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372751D3442EA00B01F44 /* TeakSession.h */; };
+		FAA143422D70E21D009C3996 /* TeakState.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372791D34443D00B01F44 /* TeakState.h */; };
+		FAA143432D70E21D009C3996 /* TeakKVOHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = 438372821D3481A000B01F44 /* TeakKVOHelpers.h */; };
+		FAA143442D70E21D009C3996 /* TeakLog.h in Headers */ = {isa = PBXBuildFile; fileRef = 43F7CFF61EF0957E00361256 /* TeakLog.h */; };
+		FAA143452D70E21D009C3996 /* TeakRequest+Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 4311B885206AD16C00E542E3 /* TeakRequest+Internal.h */; };
+		FAA143462D70E21D009C3996 /* TeakPushState.h in Headers */ = {isa = PBXBuildFile; fileRef = 4306C02420F7DD8500216F18 /* TeakPushState.h */; };
+		FAA143472D70E21D009C3996 /* TeakMPInt.h in Headers */ = {isa = PBXBuildFile; fileRef = 4347A31C22405506001A3A8A /* TeakMPInt.h */; };
+		FAA143482D70E21D009C3996 /* TeakIntegrationChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = 43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */; };
+		FAA143492D70E21D009C3996 /* TeakWaitForDeepLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 4355CE922672890100889B0B /* TeakWaitForDeepLink.h */; };
 		FAA4DCFC1DC32AD100374B93 /* TeakReward.h in Headers */ = {isa = PBXBuildFile; fileRef = FAA4DCFA1DC32AD100374B93 /* TeakReward.h */; };
 		FAA4DCFD1DC32AD100374B93 /* TeakReward.m in Sources */ = {isa = PBXBuildFile; fileRef = FAA4DCFB1DC32AD100374B93 /* TeakReward.m */; };
 		FAFEC6F82A607508005E6AD2 /* TeakChannelCategory.m in Sources */ = {isa = PBXBuildFile; fileRef = FAFEC6F62A607508005E6AD2 /* TeakChannelCategory.m */; };
 		FAFEC6F92A607508005E6AD2 /* TeakChannelCategory.h in Headers */ = {isa = PBXBuildFile; fileRef = FAFEC6F72A607508005E6AD2 /* TeakChannelCategory.h */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		430E64781FB631C7008DE15B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 431C97F21C7E609800B19DD5 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 430E64661FB62EEE008DE15B;
-			remoteInfo = TeakResources;
-		};
-		431C980E1C7E62F400B19DD5 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 431C97F21C7E609800B19DD5 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 431C97F91C7E609800B19DD5;
-			remoteInfo = Teak;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		431C97F81C7E609800B19DD5 /* CopyFiles */ = {
@@ -277,7 +395,6 @@
 		438372761D3442EA00B01F44 /* TeakSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakSession.m; sourceTree = "<group>"; };
 		438372791D34443D00B01F44 /* TeakState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakState.h; sourceTree = "<group>"; };
 		4383727A1D34443D00B01F44 /* TeakState.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakState.m; sourceTree = "<group>"; };
-		4383727D1D34477B00B01F44 /* Teak.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Teak.pch; sourceTree = "<group>"; };
 		4383727E1D34696500B01F44 /* TeakRemoteConfiguration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakRemoteConfiguration.h; sourceTree = "<group>"; };
 		4383727F1D34696500B01F44 /* TeakRemoteConfiguration.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakRemoteConfiguration.m; sourceTree = "<group>"; };
 		438372821D3481A000B01F44 /* TeakKVOHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakKVOHelpers.h; sourceTree = "<group>"; };
@@ -318,6 +435,23 @@
 		67BDC2232992F599004DC7DB /* TeakOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakOperation.m; sourceTree = "<group>"; };
 		67FBB6992937FFCE00854807 /* TeakChannelStatus.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakChannelStatus.h; sourceTree = "<group>"; };
 		67FBB69A2937FFCE00854807 /* TeakChannelStatus.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakChannelStatus.m; sourceTree = "<group>"; };
+		FA34DA4A2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		FA34DA522D7600CC00D1C1C5 /* TeakExtension.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TeakExtension.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA34DA622D76017700D1C1C5 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		FA34DA642D76017D00D1C1C5 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
+		FA34DA662D76018300D1C1C5 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		FA34DA682D76020600D1C1C5 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		FA34DAD12D760EA700D1C1C5 /* TeakExtension.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakExtension.h; sourceTree = "<group>"; };
+		FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakHelpers.h; sourceTree = "<group>"; };
+		FA8B79382D72562A00179852 /* TeakSceneHooks.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TeakSceneHooks.h; sourceTree = "<group>"; };
+		FA8B79392D72562A00179852 /* TeakSceneHooks.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TeakSceneHooks.m; sourceTree = "<group>"; };
+		FAA142B72D70E057009C3996 /* Teak.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Teak.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		FAA143162D70E127009C3996 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/UserNotifications.framework; sourceTree = DEVELOPER_DIR; };
+		FAA143182D70E130009C3996 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		FAA1431A2D70E13C009C3996 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/SystemConfiguration.framework; sourceTree = DEVELOPER_DIR; };
+		FAA1431C2D70E16D009C3996 /* AdSupport.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AdSupport.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/AdSupport.framework; sourceTree = DEVELOPER_DIR; };
+		FAA1431E2D70E17F009C3996 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/CoreServices.framework; sourceTree = DEVELOPER_DIR; };
+		FAA143202D70E185009C3996 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/StoreKit.framework; sourceTree = DEVELOPER_DIR; };
 		FAA4DCFA1DC32AD100374B93 /* TeakReward.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TeakReward.h; sourceTree = "<group>"; };
 		FAA4DCFB1DC32AD100374B93 /* TeakReward.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakReward.m; sourceTree = "<group>"; };
 		FAFEC6F62A607508005E6AD2 /* TeakChannelCategory.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TeakChannelCategory.m; sourceTree = "<group>"; };
@@ -336,6 +470,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA34DA4F2D7600CC00D1C1C5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA34DA672D76018300D1C1C5 /* CoreGraphics.framework in Frameworks */,
+				FA34DA652D76017D00D1C1C5 /* ImageIO.framework in Frameworks */,
+				FA34DA632D76017700D1C1C5 /* UserNotifications.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAA142B42D70E057009C3996 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAA143212D70E185009C3996 /* StoreKit.framework in Frameworks */,
+				FAA1431F2D70E17F009C3996 /* CoreServices.framework in Frameworks */,
+				FAA1431D2D70E16D009C3996 /* AdSupport.framework in Frameworks */,
+				FAA1431B2D70E13C009C3996 /* SystemConfiguration.framework in Frameworks */,
+				FAA143192D70E130009C3996 /* UIKit.framework in Frameworks */,
+				FAA143172D70E127009C3996 /* UserNotifications.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -364,6 +521,7 @@
 			children = (
 				431C97FC1C7E609800B19DD5 /* Teak */,
 				430E64681FB62EEE008DE15B /* TeakResources */,
+				FAA143152D70E127009C3996 /* Frameworks */,
 				431C97FB1C7E609800B19DD5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -373,6 +531,8 @@
 			children = (
 				431C97FA1C7E609800B19DD5 /* libTeak.a */,
 				430E64671FB62EEE008DE15B /* TeakResources.bundle */,
+				FAA142B72D70E057009C3996 /* Teak.framework */,
+				FA34DA522D7600CC00D1C1C5 /* TeakExtension.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -380,6 +540,10 @@
 		431C97FC1C7E609800B19DD5 /* Teak */ = {
 			isa = PBXGroup;
 			children = (
+				FA34DA4A2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy */,
+				FA8B79382D72562A00179852 /* TeakSceneHooks.h */,
+				FA8B79392D72562A00179852 /* TeakSceneHooks.m */,
+				FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */,
 				43E601B91FFEF80B003A09C5 /* Extensions */,
 				4348617D1FA3B90500E0DA12 /* Store */,
 				434861741FA2C51B00E0DA12 /* 3rdParty */,
@@ -392,7 +556,6 @@
 				43CEF65B1E4137C20065E4E5 /* TeakLink.m */,
 				FAA4DCFA1DC32AD100374B93 /* TeakReward.h */,
 				FAA4DCFB1DC32AD100374B93 /* TeakReward.m */,
-				4383727D1D34477B00B01F44 /* Teak.pch */,
 				431C97FD1C7E609800B19DD5 /* Teak.h */,
 				431C97FF1C7E609800B19DD5 /* Teak.m */,
 				431C981A1C7E679900B19DD5 /* Teak+Internal.h */,
@@ -564,12 +727,30 @@
 		43E601B91FFEF80B003A09C5 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				FA34DAD12D760EA700D1C1C5 /* TeakExtension.h */,
+				FA34DA682D76020600D1C1C5 /* PrivacyInfo.xcprivacy */,
 				43E601BA1FFEF879003A09C5 /* TeakNotificationServiceCore.h */,
 				43E601BB1FFEF879003A09C5 /* TeakNotificationServiceCore.m */,
 				43E601BC1FFEF879003A09C5 /* TeakNotificationViewControllerCore.h */,
 				43E601BD1FFEF879003A09C5 /* TeakNotificationViewControllerCore.m */,
 			);
 			path = Extensions;
+			sourceTree = "<group>";
+		};
+		FAA143152D70E127009C3996 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FA34DA662D76018300D1C1C5 /* CoreGraphics.framework */,
+				FA34DA642D76017D00D1C1C5 /* ImageIO.framework */,
+				FA34DA622D76017700D1C1C5 /* UserNotifications.framework */,
+				FAA143202D70E185009C3996 /* StoreKit.framework */,
+				FAA1431E2D70E17F009C3996 /* CoreServices.framework */,
+				FAA1431C2D70E16D009C3996 /* AdSupport.framework */,
+				FAA1431A2D70E13C009C3996 /* SystemConfiguration.framework */,
+				FAA143182D70E130009C3996 /* UIKit.framework */,
+				FAA143162D70E127009C3996 /* UserNotifications.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -604,6 +785,7 @@
 				437C7933204A00F3006BD4B9 /* RemoteConfigurationEvent.h in Headers */,
 				439815BE1FA27799005303F1 /* PushRegistrationEvent.h in Headers */,
 				4383726B1D3419D000B01F44 /* TeakDebugConfiguration.h in Headers */,
+				FA8B793D2D72562A00179852 /* TeakSceneHooks.h in Headers */,
 				43E601C01FFEF879003A09C5 /* TeakNotificationViewControllerCore.h in Headers */,
 				43E601BE1FFEF879003A09C5 /* TeakNotificationServiceCore.h in Headers */,
 				432EDF091CC02CE3007E9C5C /* TeakNotification.h in Headers */,
@@ -616,6 +798,7 @@
 				438372771D3442EA00B01F44 /* TeakSession.h in Headers */,
 				4347A2C922402D57001A3A8A /* tommath_private.h in Headers */,
 				4347A2C822402D57001A3A8A /* tommath_class.h in Headers */,
+				FA82D7BA2D6E3F80004BE81A /* TeakHelpers.h in Headers */,
 				4355CE942672890100889B0B /* TeakWaitForDeepLink.h in Headers */,
 				43A00446242403F60034DB68 /* LogoutEvent.h in Headers */,
 				4348617B1FA3B5D800E0DA12 /* PurchaseEvent.h in Headers */,
@@ -623,6 +806,70 @@
 				438372731D34285A00B01F44 /* TeakDeviceConfiguration.h in Headers */,
 				4347A2CA22402D57001A3A8A /* tommath_superclass.h in Headers */,
 				FAFEC6F92A607508005E6AD2 /* TeakChannelCategory.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA34DA4D2D7600CC00D1C1C5 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA34DA612D76016B00D1C1C5 /* TeakNotificationViewControllerCore.h in Headers */,
+				FA34DAD22D760EA700D1C1C5 /* TeakExtension.h in Headers */,
+				FA34DA602D76016B00D1C1C5 /* TeakNotificationServiceCore.h in Headers */,
+				FA34DA5F2D76016000D1C1C5 /* TeakHelpers.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAA142B22D70E057009C3996 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAA1433C2D70E21D009C3996 /* TeakReward.h in Headers */,
+				FAA142BF2D70E0B5009C3996 /* TeakLink.h in Headers */,
+				FAA142C02D70E0B5009C3996 /* Teak.h in Headers */,
+				FAA142C12D70E0B5009C3996 /* TeakNotification.h in Headers */,
+				FAA142C22D70E0B5009C3996 /* TeakUserConfiguration.h in Headers */,
+				FAA142C32D70E0B5009C3996 /* TeakOperation.h in Headers */,
+				FAA143222D70E21D009C3996 /* SKPaymentObserver.h in Headers */,
+				FAA143232D70E21D009C3996 /* tommath_class.h in Headers */,
+				FAA143242D70E21D009C3996 /* tommath_private.h in Headers */,
+				FAA143252D70E21D009C3996 /* tommath_superclass.h in Headers */,
+				FAA143262D70E21D009C3996 /* tommath.h in Headers */,
+				FAA143272D70E21D009C3996 /* TeakCore.h in Headers */,
+				FAA143282D70E21D009C3996 /* TeakUserProfile.h in Headers */,
+				FAA143292D70E21D009C3996 /* TeakLaunchData.h in Headers */,
+				FAA1432A2D70E21D009C3996 /* TeakChannelStatus.h in Headers */,
+				FAA1432B2D70E21D009C3996 /* PushRegistrationEvent.h in Headers */,
+				FAA1432C2D70E21D009C3996 /* UserIdEvent.h in Headers */,
+				FAA1432D2D70E21D009C3996 /* TrackEventEvent.h in Headers */,
+				FAA1432E2D70E21D009C3996 /* PurchaseEvent.h in Headers */,
+				FAA1432F2D70E21D009C3996 /* LifecycleEvent.h in Headers */,
+				FAA143302D70E21D009C3996 /* FacebookAccessTokenEvent.h in Headers */,
+				FAA143312D70E21D009C3996 /* RemoteConfigurationEvent.h in Headers */,
+				FAA143322D70E21D009C3996 /* AdditionalDataEvent.h in Headers */,
+				FAA143332D70E21D009C3996 /* LogoutEvent.h in Headers */,
+				FAA143342D70E21D009C3996 /* UserDataEvent.h in Headers */,
+				FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */,
+				FAA143352D70E21D009C3996 /* TeakDebugConfiguration.h in Headers */,
+				FAA143362D70E21D009C3996 /* TeakAppConfiguration.h in Headers */,
+				FAA143372D70E21D009C3996 /* TeakDeviceConfiguration.h in Headers */,
+				FAA143382D70E21D009C3996 /* TeakRemoteConfiguration.h in Headers */,
+				FAA143392D70E21D009C3996 /* TeakConfiguration.h in Headers */,
+				FAA1433A2D70E21D009C3996 /* TeakDataCollectionConfiguration.h in Headers */,
+				FAA1433B2D70E21D009C3996 /* TeakEvent.h in Headers */,
+				FAA1433D2D70E21D009C3996 /* Teak+Internal.h in Headers */,
+				FAA1433E2D70E21D009C3996 /* TeakRequest.h in Headers */,
+				FAA1433F2D70E21D009C3996 /* TeakChannelCategory.h in Headers */,
+				FAA143402D70E21D009C3996 /* TeakRaven.h in Headers */,
+				FAA143412D70E21D009C3996 /* TeakSession.h in Headers */,
+				FAA143422D70E21D009C3996 /* TeakState.h in Headers */,
+				FAA143432D70E21D009C3996 /* TeakKVOHelpers.h in Headers */,
+				FAA143442D70E21D009C3996 /* TeakLog.h in Headers */,
+				FAA143452D70E21D009C3996 /* TeakRequest+Internal.h in Headers */,
+				FAA143462D70E21D009C3996 /* TeakPushState.h in Headers */,
+				FAA143472D70E21D009C3996 /* TeakMPInt.h in Headers */,
+				FAA143482D70E21D009C3996 /* TeakIntegrationChecker.h in Headers */,
+				FAA143492D70E21D009C3996 /* TeakWaitForDeepLink.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -666,13 +913,55 @@
 			productReference = 431C97FA1C7E609800B19DD5 /* libTeak.a */;
 			productType = "com.apple.product-type.library.static";
 		};
+		FA34DA512D7600CC00D1C1C5 /* ExtensionFramework */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA34DA592D7600CC00D1C1C5 /* Build configuration list for PBXNativeTarget "ExtensionFramework" */;
+			buildPhases = (
+				FA34DA4D2D7600CC00D1C1C5 /* Headers */,
+				FA34DA4E2D7600CC00D1C1C5 /* Sources */,
+				FA34DA4F2D7600CC00D1C1C5 /* Frameworks */,
+				FA34DA502D7600CC00D1C1C5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ExtensionFramework;
+			packageProductDependencies = (
+			);
+			productName = ExtensionFramework;
+			productReference = FA34DA522D7600CC00D1C1C5 /* TeakExtension.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		FAA142B62D70E057009C3996 /* Framework */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FAA142BC2D70E057009C3996 /* Build configuration list for PBXNativeTarget "Framework" */;
+			buildPhases = (
+				FA34DA4C2D75FE0B00D1C1C5 /* Define Version */,
+				FAA142B22D70E057009C3996 /* Headers */,
+				FAA142B32D70E057009C3996 /* Sources */,
+				FAA142B42D70E057009C3996 /* Frameworks */,
+				FAA142B52D70E057009C3996 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Framework;
+			packageProductDependencies = (
+			);
+			productName = Framework;
+			productReference = FAA142B72D70E057009C3996 /* Teak.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		431C97F21C7E609800B19DD5 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1250;
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1620;
 				ORGANIZATIONNAME = "GoCarrot Inc.";
 				TargetAttributes = {
 					430E64661FB62EEE008DE15B = {
@@ -683,8 +972,15 @@
 					431C97F91C7E609800B19DD5 = {
 						CreatedOnToolsVersion = 7.2.1;
 					};
-					431C980A1C7E62B200B19DD5 = {
-						CreatedOnToolsVersion = 7.2.1;
+					FA34DA512D7600CC00D1C1C5 = {
+						CreatedOnToolsVersion = 16.2;
+						DevelopmentTeam = 7FLZTACJ82;
+						ProvisioningStyle = Automatic;
+					};
+					FAA142B62D70E057009C3996 = {
+						CreatedOnToolsVersion = 16.2;
+						DevelopmentTeam = 7FLZTACJ82;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -702,8 +998,9 @@
 			projectRoot = "";
 			targets = (
 				431C97F91C7E609800B19DD5 /* Teak */,
-				431C980A1C7E62B200B19DD5 /* Framework */,
 				430E64661FB62EEE008DE15B /* TeakResources */,
+				FAA142B62D70E057009C3996 /* Framework */,
+				FA34DA512D7600CC00D1C1C5 /* ExtensionFramework */,
 			);
 		};
 /* End PBXProject section */
@@ -714,6 +1011,22 @@
 			buildActionMask = 2147483647;
 			files = (
 				430E647B1FB63249008DE15B /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA34DA502D7600CC00D1C1C5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA34DA692D76020600D1C1C5 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAA142B52D70E057009C3996 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA34DA4B2D75FD9400D1C1C5 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -734,20 +1047,6 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nmkdir -p \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.framework/Versions/A/Headers\"\n\n# Link the \"Current\" version to \"A\"\n/bin/ln -sfh A \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.framework/Versions/Current\"\n/bin/ln -sfh Versions/Current/Headers \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.framework/Headers\"\n/bin/ln -sfh \"Versions/Current/${PRODUCT_NAME}\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.framework/${PRODUCT_NAME}\"\n\n# The -a ensures that the headers maintain the source modification date so that we don't constantly\n# cause propagating rebuilds of files that import these headers.\n/bin/cp -a \"${TARGET_BUILD_DIR}/${PUBLIC_HEADERS_FOLDER_PATH}/\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.framework/Versions/A/Headers\"\n";
 		};
-		431C98101C7E631600B19DD5 /* Build Framework */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "Build Framework";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\nset +u\n# Avoid recursively calling this script.\nif [[ $SF_MASTER_SCRIPT_RUNNING ]]\nthen\nexit 0\nfi\nset -u\nexport SF_MASTER_SCRIPT_RUNNING=1\n\nSF_TARGET_NAME=${PROJECT_NAME}\nSF_EXECUTABLE_PATH=\"lib${SF_TARGET_NAME}.a\"\nSF_WRAPPER_NAME=\"${SF_TARGET_NAME}.framework\"\n\n# The following conditionals come from\n# https://github.com/kstenerud/iOS-Universal-Framework\n\nif [[ \"$SDK_NAME\" =~ ([A-Za-z]+) ]]\nthen\nSF_SDK_PLATFORM=${BASH_REMATCH[1]}\nelse\necho \"Could not find platform name from SDK_NAME: $SDK_NAME\"\nexit 1\nfi\n\nif [[ \"$SDK_NAME\" =~ ([0-9]+.*$) ]]\nthen\nSF_SDK_VERSION=${BASH_REMATCH[1]}\nelse\necho \"Could not find sdk version from SDK_NAME: $SDK_NAME\"\nexit 1\nfi\n\nif [[ \"$SF_SDK_PLATFORM\" = \"iphoneos\" ]]\nthen\nSF_OTHER_PLATFORM=iphonesimulator\nelse\nSF_OTHER_PLATFORM=iphoneos\nfi\n\nif [[ \"$BUILT_PRODUCTS_DIR\" =~ (.*)$SF_SDK_PLATFORM$ ]]\nthen\nSF_OTHER_BUILT_PRODUCTS_DIR=\"${BASH_REMATCH[1]}${SF_OTHER_PLATFORM}\"\nelse\necho \"Could not find platform name from build products directory: $BUILT_PRODUCTS_DIR\"\nexit 1\nfi\n\n# Build the other platform.\n# REMOVED 7/19/2021, Nobody uses the simulator.\n# xcrun xcodebuild -project \"${PROJECT_FILE_PATH}\" -target \"${TARGET_NAME}\" -configuration \"${CONFIGURATION}\" -sdk ${SF_OTHER_PLATFORM}${SF_SDK_VERSION} BUILD_DIR=\"${BUILD_DIR}\" OBJROOT=\"$OBJROOT/DependentBuilds\" BUILD_ROOT=\"${BUILD_ROOT}\" SYMROOT=\"${SYMROOT}\" $ACTION\n\n# Smash the two static libraries into one fat binary and store it in the .framework\n# REMOVED 7/19/2021, Copy the file now that we only have the iphoneos target\n# xcrun lipo -create \"${BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" -output \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\nif [[ \"$SF_SDK_PLATFORM\" = \"iphoneos\" ]]\nthen\ncp \"${BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\nelse\ncp \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_EXECUTABLE_PATH}\" \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\nfi\n\n# Copy the binary to the other architecture folder to have a complete framework in both.\n# REMOVED 7/19/2021, No longer needed\n#cp -a \"${BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\" \"${SF_OTHER_BUILT_PRODUCTS_DIR}/${SF_WRAPPER_NAME}/Versions/A/${SF_TARGET_NAME}\"\n";
-		};
 		439AFA731CD81EC10024BCAA /* Define Version */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -761,6 +1060,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
+			shellScript = "git=$(sh /etc/profile; which git)\nversion=$(\"$git\" describe --tags)\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
+		};
+		FA34DA4C2D75FE0B00D1C1C5 /* Define Version */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Define Version";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/TeakVersion.h",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
 			shellScript = "git=$(sh /etc/profile; which git)\nversion=$(\"$git\" describe --tags)\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -779,6 +1097,7 @@
 			files = (
 				4347A2FE22403203001A3A8A /* bn_mp_karatsuba_sqr.c in Sources */,
 				43A8ACFA244A41F3003B1C3C /* TeakIntegrationChecker.m in Sources */,
+				FA8B793C2D72562A00179852 /* TeakSceneHooks.m in Sources */,
 				431C98211C7E679900B19DD5 /* TeakRequest.m in Sources */,
 				4347A2FB22403203001A3A8A /* bn_mp_sub.c in Sources */,
 				439815C31FA2909F005303F1 /* UserIdEvent.m in Sources */,
@@ -864,20 +1183,108 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FA34DA4E2D7600CC00D1C1C5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA34DA5E2D76015B00D1C1C5 /* UIImage+animatedGIF.m in Sources */,
+				FA34DA5D2D76015500D1C1C5 /* TeakHealthCheck.m in Sources */,
+				FA34DA5C2D76015000D1C1C5 /* TeakHelpers.m in Sources */,
+				FA34DA5A2D76014900D1C1C5 /* TeakNotificationServiceCore.m in Sources */,
+				FA34DA5B2D76014900D1C1C5 /* TeakNotificationViewControllerCore.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAA142B32D70E057009C3996 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FAA143142D70E102009C3996 /* SKPaymentObserver.m in Sources */,
+				FAA142C42D70E0F5009C3996 /* bn_mp_radix_smap.c in Sources */,
+				FAA142C52D70E0F5009C3996 /* bn_mp_div_2d.c in Sources */,
+				FAA142C62D70E0F5009C3996 /* bn_reverse.c in Sources */,
+				FAA142C72D70E0F5009C3996 /* bn_mp_div_d.c in Sources */,
+				FAA142C82D70E0F5009C3996 /* bn_mp_init_copy.c in Sources */,
+				FAA142C92D70E0F5009C3996 /* bn_mp_toradix.c in Sources */,
+				FAA142CA2D70E0F5009C3996 /* bncore.c in Sources */,
+				FAA142CB2D70E0F5009C3996 /* bn_mp_exch.c in Sources */,
+				FAA142CC2D70E0F5009C3996 /* bn_mp_karatsuba_sqr.c in Sources */,
+				FAA142CD2D70E0F5009C3996 /* bn_mp_mul_d.c in Sources */,
+				FAA142CE2D70E0F5009C3996 /* bn_mp_sub.c in Sources */,
+				FAA142CF2D70E0F5009C3996 /* bn_mp_cmp_mag.c in Sources */,
+				FAA142D02D70E0F5009C3996 /* bn_mp_init_multi.c in Sources */,
+				FAA142D12D70E0F5009C3996 /* bn_mp_mul_2.c in Sources */,
+				FAA142D22D70E0F5009C3996 /* bn_mp_rshd.c in Sources */,
+				FAA142D32D70E0F5009C3996 /* bn_mp_div_3.c in Sources */,
+				FAA142D42D70E0F5009C3996 /* bn_mp_init_size.c in Sources */,
+				FAA142D52D70E0F5009C3996 /* bn_mp_mod_2d.c in Sources */,
+				FAA142D62D70E0F5009C3996 /* bn_s_mp_add.c in Sources */,
+				FAA142D72D70E0F5009C3996 /* bn_s_mp_sub.c in Sources */,
+				FAA142D82D70E0F5009C3996 /* bn_mp_clear_multi.c in Sources */,
+				FAA142D92D70E0F5009C3996 /* bn_mp_clear.c in Sources */,
+				FAA142DA2D70E0F5009C3996 /* bn_mp_add.c in Sources */,
+				FAA142DB2D70E0F5009C3996 /* bn_mp_div_2.c in Sources */,
+				FAA142DC2D70E0F5009C3996 /* bn_mp_grow.c in Sources */,
+				FAA142DD2D70E0F5009C3996 /* bn_mp_lshd.c in Sources */,
+				FAA142DE2D70E0F5009C3996 /* bn_mp_toom_sqr.c in Sources */,
+				FAA142DF2D70E0F5009C3996 /* bn_s_mp_sqr.c in Sources */,
+				FAA142E02D70E0F5009C3996 /* bn_mp_zero.c in Sources */,
+				FAA142E12D70E0F5009C3996 /* bn_mp_copy.c in Sources */,
+				FAA142E22D70E0F5009C3996 /* bn_fast_s_mp_sqr.c in Sources */,
+				FAA142E32D70E0F5009C3996 /* bn_mp_clamp.c in Sources */,
+				FAA142E42D70E0F5009C3996 /* bn_mp_mul_2d.c in Sources */,
+				FAA142E52D70E0F5009C3996 /* bn_mp_init.c in Sources */,
+				FAA142E62D70E0F5009C3996 /* bn_mp_set_long_long.c in Sources */,
+				FAA142E72D70E0F5009C3996 /* bn_mp_sqr.c in Sources */,
+				FAA142E82D70E0F5009C3996 /* isProductionProvisioningProfile.m in Sources */,
+				FAA142E92D70E0F5009C3996 /* amIBeingDebugged.m in Sources */,
+				FAA142EA2D70E0F5009C3996 /* TeakCore.m in Sources */,
+				FAA142EB2D70E0F5009C3996 /* TeakUserProfile.m in Sources */,
+				FAA142EC2D70E0F5009C3996 /* TeakLaunchData.m in Sources */,
+				FAA142ED2D70E0F5009C3996 /* TeakChannelStatus.m in Sources */,
+				FAA142EE2D70E0F5009C3996 /* PushRegistrationEvent.m in Sources */,
+				FAA142EF2D70E0F5009C3996 /* UserIdEvent.m in Sources */,
+				FAA142F02D70E0F5009C3996 /* TrackEventEvent.m in Sources */,
+				FAA142F12D70E0F5009C3996 /* PurchaseEvent.m in Sources */,
+				FAA142F22D70E0F5009C3996 /* LifecycleEvent.m in Sources */,
+				FAA142F32D70E0F5009C3996 /* FacebookAccessTokenEvent.m in Sources */,
+				FAA142F42D70E0F5009C3996 /* RemoteConfigurationEvent.m in Sources */,
+				FAA142F52D70E0F5009C3996 /* AdditionalDataEvent.m in Sources */,
+				FAA142F62D70E0F5009C3996 /* LogoutEvent.m in Sources */,
+				FAA142F72D70E0F5009C3996 /* UserDataEvent.m in Sources */,
+				FAA142F82D70E0F5009C3996 /* TeakDebugConfiguration.m in Sources */,
+				FAA142F92D70E0F5009C3996 /* TeakAppConfiguration.m in Sources */,
+				FAA142FA2D70E0F5009C3996 /* TeakDeviceConfiguration.m in Sources */,
+				FAA142FB2D70E0F5009C3996 /* TeakRemoteConfiguration.m in Sources */,
+				FAA142FC2D70E0F5009C3996 /* TeakConfiguration.m in Sources */,
+				FAA142FD2D70E0F5009C3996 /* TeakDataCollectionConfiguration.m in Sources */,
+				FAA142FE2D70E0F5009C3996 /* TeakEvent.m in Sources */,
+				FAA142FF2D70E0F5009C3996 /* TeakLink.m in Sources */,
+				FAA143002D70E0F5009C3996 /* TeakReward.m in Sources */,
+				FAA143012D70E0F5009C3996 /* Teak.m in Sources */,
+				FAA143022D70E0F5009C3996 /* TeakHooks.m in Sources */,
+				FAA143032D70E0F5009C3996 /* TeakRequest.m in Sources */,
+				FAA143042D70E0F5009C3996 /* TeakNotification.m in Sources */,
+				FAA143052D70E0F5009C3996 /* TeakCExtern.m in Sources */,
+				FAA143062D70E0F5009C3996 /* TeakChannelCategory.m in Sources */,
+				FA8B793B2D72562A00179852 /* TeakSceneHooks.m in Sources */,
+				FAA143072D70E0F5009C3996 /* TeakRaven.m in Sources */,
+				FAA143082D70E0F5009C3996 /* TeakSession.m in Sources */,
+				FAA143092D70E0F5009C3996 /* TeakState.m in Sources */,
+				FAA1430A2D70E0F5009C3996 /* TeakHelpers.m in Sources */,
+				FAA1430B2D70E0F5009C3996 /* TeakLog.m in Sources */,
+				FAA1430C2D70E0F5009C3996 /* TeakNotificationCategories.m in Sources */,
+				FAA1430D2D70E0F5009C3996 /* TeakPushState.m in Sources */,
+				FAA1430E2D70E0F5009C3996 /* TeakMPInt.m in Sources */,
+				FAA1430F2D70E0F5009C3996 /* TeakIntegrationChecker.m in Sources */,
+				FAA143102D70E0F5009C3996 /* TeakWaitForDeepLink.m in Sources */,
+				FAA143112D70E0F5009C3996 /* TeakUserConfiguration.m in Sources */,
+				FAA143122D70E0F5009C3996 /* TeakOperation.m in Sources */,
+				FAA143132D70E0F5009C3996 /* TeakHealthCheck.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		430E64791FB631C7008DE15B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 430E64661FB62EEE008DE15B /* TeakResources */;
-			targetProxy = 430E64781FB631C7008DE15B /* PBXContainerItemProxy */;
-		};
-		431C980F1C7E62F400B19DD5 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 431C97F91C7E609800B19DD5 /* Teak */;
-			targetProxy = 431C980E1C7E62F400B19DD5 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		430E647D1FB63249008DE15B /* Localizable.strings */ = {
@@ -1053,8 +1460,7 @@
 					"$(PROJECT_DIR)/Sample",
 					"$(PROJECT_DIR)",
 				);
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = Teak/Teak.pch;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-fembed-bitcode-marker";
@@ -1076,8 +1482,7 @@
 					"$(PROJECT_DIR)/Sample",
 					"$(PROJECT_DIR)",
 				);
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = Teak/Teak.pch;
+				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-fembed-bitcode";
@@ -1089,17 +1494,219 @@
 			};
 			name = Release;
 		};
-		431C980C1C7E62B200B19DD5 /* Debug */ = {
+		FA34DA562D7600CC00D1C1C5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 GoCarrot Inc. All rights reserved.";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.TeakExtension;
+				PRODUCT_NAME = TeakExtension;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+				XROS_DEPLOYMENT_TARGET = 2.2;
 			};
 			name = Debug;
 		};
-		431C980D1C7E62B200B19DD5 /* Release */ = {
+		FA34DA572D7600CC00D1C1C5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 GoCarrot Inc. All rights reserved.";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.TeakExtension;
+				PRODUCT_NAME = TeakExtension;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+				XROS_DEPLOYMENT_TARGET = 2.2;
+			};
+			name = Release;
+		};
+		FAA142BD2D70E057009C3996 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 GoCarrot Inc. All rights reserved.";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.Teak;
+				PRODUCT_NAME = Teak;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		FAA142BE2D70E057009C3996 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 GoCarrot Inc. All rights reserved.";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = io.teak.Teak;
+				PRODUCT_NAME = Teak;
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
 			};
 			name = Release;
 		};
@@ -1133,11 +1740,20 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		431C980B1C7E62B200B19DD5 /* Build configuration list for PBXAggregateTarget "Framework" */ = {
+		FA34DA592D7600CC00D1C1C5 /* Build configuration list for PBXNativeTarget "ExtensionFramework" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				431C980C1C7E62B200B19DD5 /* Debug */,
-				431C980D1C7E62B200B19DD5 /* Release */,
+				FA34DA562D7600CC00D1C1C5 /* Debug */,
+				FA34DA572D7600CC00D1C1C5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FAA142BC2D70E057009C3996 /* Build configuration list for PBXNativeTarget "Framework" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FAA142BD2D70E057009C3996 /* Debug */,
+				FAA142BE2D70E057009C3996 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

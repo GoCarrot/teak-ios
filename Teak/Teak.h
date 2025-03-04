@@ -132,12 +132,13 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 
 #ifdef __OBJC__
 
+#import <UserNotifications/UserNotifications.h>
+
 #import <Teak/TeakLink.h>
 #import <Teak/TeakNotification.h>
-#import <Teak/TeakNotificationServiceCore.h>
-#import <Teak/TeakNotificationViewControllerCore.h>
 #import <Teak/TeakOperation.h>
 #import <Teak/TeakUserConfiguration.h>
+#import <Teak/TeakReward.h>
 #import <UIKit/UIKit.h>
 
 /**
@@ -200,6 +201,71 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * @param apiKey           Your Teak API key.
  */
 + (void)initForApplicationId:(nonnull NSString*)appId withClass:(nonnull Class)appDelegateClass andApiKey:(nonnull NSString*)apiKey;
+
+/**
+ * Set up Teak in a single function call in SwiftUI projects
+ *
+ * This function *must* be called from no other place than main.swift
+ * before app's main() is called. Ex:
+ *
+ *  import Teak
+ *
+ *  Teak.initSwiftUI(forApplicationId: "your_app_id", andApiKey: "your_api_key")
+ *  YourApp.main()
+ *
+ * Be sure to remove the @main attribute from your app.
+ *
+ * @param appId            Teak Application Id
+ * @param apiKey           Your Teak API key.
+ */
++ (void)initSwiftUIForApplicationId:(nonnull NSString*)appId andApiKey:(nonnull NSString*)apiKey;
+
+/**
+ * Request push notification permissions using the OS permissions dialog
+ *
+ * @param callback The callback will be executed after the player has granted or denied push
+ *                 notifications. The first parameter indicates if permissions were granted or
+ *                 not, the second indicates any OS errors which occured in the process.
+ */
++ (void)requestNotificationPermissions:(nullable void (^)(BOOL, NSError* _Nullable))callback;
+
+/**
+ * Tell Teak how to identify the current player, with additional data.
+ *
+ * This will also begin tracking and reporting of a session, and track a daily active user.
+ *
+ * @note This should be how you identify the user in your back-end.
+ *
+ * @param playerId              The string Teak should use to identify the current user.
+ * @param playerConfiguration   Additional configuration for the current user.
+ */
++ (void)login:(nonnull NSString*)playerId withConfiguration:(nonnull TeakUserConfiguration*)playerConfiguration;
+
+/**
+ * Register a deep link route that notifications, emails, or Universal Links can route to.
+ *
+ * @param route The route for this deep link.
+ * @param name The name of this deep link, used in the Teak dashboard.
+ * @param description A description for what this deep link does, used in the Teak dashboard.
+ * @param block A block execute when this deep link is invoked via a notification, email or web link.
+ */
++ (void)registerDeepLinkRoute:(nonnull NSString*)route name:(nonnull NSString*)name description:(nonnull NSString*)description block:(nonnull TeakLinkBlock)block;
+
+/**
+ * Track a numeric player profile attribute.
+ *
+ * @param key   The name of the numeric attribute.
+ * @param value The numeric value to assign.
+ */
++ (void)setNumberProperty:(NSString* _Nonnull)key value:(double)value;
+
+/**
+ * Track a string player profile attribute.
+ *
+ * @param key   The name of the string attribute.
+ * @param value The string value to assign.
+ */
++ (void)setStringProperty:(NSString* _Nonnull)key value:(NSString* _Nonnull)value;
 
 /**
  * Teak singleton.

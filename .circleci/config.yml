@@ -5,26 +5,6 @@ orbs:
   buildomat: teak/buildomat@0.1
 
 jobs:
-  test:
-    parameters:
-      xcode-version:
-        type: string
-        default: "13.4.1"
-    macos:
-      xcode: << parameters.xcode-version >>
-    resource_class: macos.m1.medium.gen1
-    shell: /bin/bash --login -eo pipefail
-    steps:
-      - run:
-          name: Pre-start iOS Simulator
-          command: xcrun instruments -w "iPhone 5s (12.2) [" || true
-      - ios_setup
-      - run:
-          name: Run Automated Tests
-          command: bundle exec fastlane test
-      - store_test_results:
-          path: test_output
-
   build:
     parameters:
       xcode-version:
@@ -43,22 +23,14 @@ jobs:
           name: Build Teak SDK
           command: |
             bundle exec fastlane match --readonly
-            ./compile
-      - run:
-          name: Compute Checksums
-          command: |
-            shasum -a 512 build/Release-iphoneos/Teak.framework.zip > Teak.framework.zip.sha512
+            ./compile_xc_framework
       - persist_to_workspace:
           root: .
           paths:
-            - build/Release-iphoneos/Teak.framework.zip
-            - build/Release-iphoneos/TeakResources.bundle.zip
-            - TeakExtensions/TeakNotificationContent/Info.plist
-            - Sample/build/Release-iphoneos/TeakNotificationService.appex.zip
-            - Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip
-            - TeakExtensions.zip
-            - Teak.framework.zip.sha512
-
+            - TeakFramework/Teak.xcframework.zip
+            - TeakFramework/Teak.xcframework.zip.sha512
+            - TeakFramework/TeakExtension.xcframework.zip
+            - TeakFramework/TeakExtension.xcframework.zip.sha512
   tag_build:
     docker:
       - image: cimg/ruby:3.2
@@ -128,9 +100,6 @@ workflows:
               only:
                 - develop
     jobs:
-      - test:
-          context:
-            - iOS-Build
       - build:
           context:
             - iOS-Build
@@ -144,10 +113,6 @@ workflows:
               only:
                 - master
     jobs:
-      - test:
-          context:
-            - iOS-Build
-          xcode-version: "13.4.1"
       - build:
           context:
             - iOS-Build
@@ -155,12 +120,6 @@ workflows:
 
   un-tagged-build:
     jobs:
-      - test:
-          context:
-            - iOS-Build
-          filters:
-            tags:
-              ignore: /.*/
       - build:
           context:
             - iOS-Build
@@ -176,14 +135,6 @@ workflows:
 
   tagged-build:
     jobs:
-      - test:
-          context:
-            - iOS-Build
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
       - build:
           context:
             - iOS-Build

@@ -1,6 +1,6 @@
 #import "Teak+Internal.h"
 #import <Teak/TeakNotification.h>
-#import <Teak/TeakReward.h>
+#import "TeakReward.h"
 
 void TeakSetDebugOutputEnabled(int enabled) {
   [Teak sharedInstance].enableDebugOutput = (enabled > 0);

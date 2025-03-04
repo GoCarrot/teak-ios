@@ -12,6 +12,8 @@
 #import "TeakUserProfile.h"
 #import "UserDataEvent.h"
 #import "UserIdEvent.h"
+#import "TeakHelpers.h"
+#import "TeakKVOHelpers.h"
 
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
@@ -339,11 +341,11 @@ DefineTeakState(Expired, (@[]));
   NSString* urlString = [NSString stringWithFormat:
                                       @"https://%@/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
                                       kTeakHostname,
-                                      URLEscapedString(self.appConfiguration.appId),
-                                      URLEscapedString(self.userId),
-                                      URLEscapedString([Teak sharedInstance].sdkVersion),
-                                      URLEscapedString(self.deviceConfiguration.platformString),
-                                      URLEscapedString(self.appConfiguration.appVersion),
+                                      TeakURLEscapedString(self.appConfiguration.appId),
+                                      TeakURLEscapedString(self.userId),
+                                      TeakURLEscapedString([Teak sharedInstance].sdkVersion),
+                                      TeakURLEscapedString(self.deviceConfiguration.platformString),
+                                      TeakURLEscapedString(self.appConfiguration.appVersion),
                                       self.countryCode == nil ? @"" : [NSString stringWithFormat:@"&country_code=%@", self.countryCode],
                                       arc4random()];
 
@@ -423,7 +425,7 @@ DefineTeakState(Expired, (@[]));
     case FacebookAccessToken: {
       id oldValue = self.facebookAccessToken;
       id newValue = ((FacebookAccessTokenEvent*)event).accessToken;
-      if (oldValue != newValue && (NSNullOrNil(oldValue) || ![newValue isEqualToString:oldValue])) {
+      if (oldValue != newValue && (TeakNSNullOrNil(oldValue) || ![newValue isEqualToString:oldValue])) {
         self.facebookAccessToken = newValue;
         [self identifyUserInfoHasChanged];
       }
@@ -794,7 +796,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           // The report duration got sent, so send a resume
           self.sessionVectorClock++;
           NSDictionary* payload = @{
-            @"session_id" : self.serverSessionId == nil ? @"null" : URLEscapedString(self.serverSessionId),
+            @"session_id" : self.serverSessionId == nil ? @"null" : TeakURLEscapedString(self.serverSessionId),
             @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
           };
 
@@ -841,7 +843,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
             // Send request for "if you don't hear back from me, this session ended now"
             NSDictionary* payload = @{
-              @"session_id" : URLEscapedString(blockSelf.serverSessionId),
+              @"session_id" : TeakURLEscapedString(blockSelf.serverSessionId),
               @"session_duration_ms" : [NSNumber numberWithLong:[blockSelf.endDate timeIntervalSinceDate:blockSelf.startDate] * 1000],
               @"session_vector_clock": [NSNumber numberWithLong:blockSelf.sessionVectorClock]
             };

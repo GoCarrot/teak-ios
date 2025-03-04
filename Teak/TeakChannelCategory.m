@@ -1,4 +1,5 @@
 #import "TeakChannelCategory.h"
+#import "TeakHelpers.h"
 
 @interface TeakChannelCategory ()
 @property (strong, nonatomic, readwrite) NSString* _Nonnull id;
@@ -9,7 +10,7 @@
 @implementation TeakChannelCategory
 
 + (nonnull NSArray*)createFromRemoteConfiguration:(nullable NSDictionary*)availableCategories {
-  if(NSNullOrNil(availableCategories)) {
+  if(TeakNSNullOrNil(availableCategories)) {
     return @[];
   }
 

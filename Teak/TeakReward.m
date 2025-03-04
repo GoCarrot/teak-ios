@@ -2,6 +2,7 @@
 #import "Teak+Internal.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
+#import "TeakHelpers.h"
 
 @interface TeakReward ()
 

@@ -1,5 +1,6 @@
 #import <AVKit/AVKit.h>
 #import <Teak/TeakNotificationViewControllerCore.h>
+#import "TeakHelpers.h"
 #import <UserNotifications/UserNotifications.h>
 #import <UserNotificationsUI/UserNotificationsUI.h>
 
@@ -249,7 +250,7 @@ extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* re
     [self.view addSubview:self.notificationContentView];
 
     ///// Button
-    if (iOS12OrGreater()) {
+    if ([[UIDevice currentDevice].systemVersion doubleValue] >= 12.0) {
       UIButton* defaultButton = [[UIButton alloc] init];
       [defaultButton setFrame:self.view.frame];
       [defaultButton setBackgroundColor:[UIColor clearColor]];
@@ -266,7 +267,7 @@ extern void TeakAssignPayloadToRequest(NSString* method, NSMutableURLRequest* re
 
 - (void)didReceiveNotificationResponse:(UNNotificationResponse*)response
                      completionHandler:(void (^)(UNNotificationContentExtensionResponseOption))completionHandler {
-  int attachmentIndex = NSNullOrNil(self.actions[response.actionIdentifier]) ? -1 : [self.actions[response.actionIdentifier] intValue];
+  int attachmentIndex = TeakNSNullOrNil(self.actions[response.actionIdentifier]) ? -1 : [self.actions[response.actionIdentifier] intValue];
   [self handleNotificationResponseForAction:attachmentIndex
                           completionHandler:^{
                             completionHandler(UNNotificationContentExtensionResponseOptionDismissAndForwardAction);

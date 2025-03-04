@@ -1,6 +1,6 @@
 #import <Foundation/Foundation.h>
 
-#import "3rdParty/libtommath/tommath.h"
+#import "tommath.h"
 
 @interface TeakMPInt : NSObject
 @property (readonly, nonatomic) mp_int mp_int;

@@ -1,6 +1,7 @@
 #import "Teak+Internal.h"
 #import <Teak/Teak.h>
 #import <objc/runtime.h>
+#import "TeakSceneHooks.h"
 
 @interface TeakAppDelegateHooks : NSObject
 
@@ -216,6 +217,15 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     struct objc_method_description desc = protocol_getMethodDescription(uiAppDelegateProto, @selector(application:openURL:options:), NO, YES);
     Method m = class_getInstanceMethod([TeakAppDelegateHooks class], desc.name);
     sHostAppOpenURLOptionsIMP = (BOOL(*)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*))class_replaceMethod(appDelegateClass, desc.name, method_getImplementation(m), desc.types);
+  }
+
+  if(@available(iOS 13, *))
+  {
+    Class swiftUIDelegate = objc_getClass("SwiftUI.AppSceneDelegate");
+    if(swiftUIDelegate) {
+      TeakLog_i(@"sdk.init", @"Found SwiftUI.AppSceneDelegate, installing hooks");
+      [TeakSceneHooks swizzleInto:swiftUIDelegate];
+    }
   }
 
   // applicationDidBecomeActive:

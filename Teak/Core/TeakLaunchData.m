@@ -1,5 +1,6 @@
 #import "TeakLaunchData.h"
 #import "Teak+Internal.h"
+#import "TeakHelpers.h"
 
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
@@ -219,7 +220,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
   NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
 
   if (self.launchUrl != nil) {
-    dictionary[@"launch_link"] = ValueOrNSNull(self.launchUrl.absoluteString);
+    dictionary[@"launch_link"] = TeakValueOrNSNull(self.launchUrl.absoluteString);
   }
 
   return dictionary;
@@ -227,7 +228,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 - (NSDictionary*)to_h {
   NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
-  dictionary[@"launch_link"] = ValueOrNSNull(self.launchUrl.absoluteString);
+  dictionary[@"launch_link"] = TeakValueOrNSNull(self.launchUrl.absoluteString);
   return dictionary;
 }
 
@@ -318,14 +319,14 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 - (NSDictionary*)to_h {
   NSMutableDictionary* dictionary = (NSMutableDictionary*)[super to_h];
-  dictionary[@"teakScheduleName"] = ValueOrNSNull(self.scheduleName);
-  dictionary[@"teakScheduleId"] = ValueOrNSNull(self.scheduleId);
-  dictionary[@"teakCreativeName"] = ValueOrNSNull(self.creativeName);
-  dictionary[@"teakCreativeId"] = ValueOrNSNull(self.creativeId);
-  dictionary[@"teakRewardId"] = ValueOrNSNull(self.rewardId);
-  dictionary[@"teakChannelName"] = ValueOrNSNull(self.channelName);
+  dictionary[@"teakScheduleName"] = TeakValueOrNSNull(self.scheduleName);
+  dictionary[@"teakScheduleId"] = TeakValueOrNSNull(self.scheduleId);
+  dictionary[@"teakCreativeName"] = TeakValueOrNSNull(self.creativeName);
+  dictionary[@"teakCreativeId"] = TeakValueOrNSNull(self.creativeId);
+  dictionary[@"teakRewardId"] = TeakValueOrNSNull(self.rewardId);
+  dictionary[@"teakChannelName"] = TeakValueOrNSNull(self.channelName);
   dictionary[@"teakDeepLink"] = TeakLink_WillHandleDeepLink(self.launchUrl) ? self.launchUrl.absoluteString : [NSNull null];
-  dictionary[@"teakOptOutCategory"] = ValueOrNSNull(self.optOutCategory);
+  dictionary[@"teakOptOutCategory"] = TeakValueOrNSNull(self.optOutCategory);
   return dictionary;
 }
 
@@ -378,7 +379,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 - (NSDictionary*)to_h {
   NSMutableDictionary* dictionary = (NSMutableDictionary*)[super to_h];
-  dictionary[@"teakNotifId"] = ValueOrNSNull(self.sourceSendId);
+  dictionary[@"teakNotifId"] = TeakValueOrNSNull(self.sourceSendId);
   return dictionary;
 }
 

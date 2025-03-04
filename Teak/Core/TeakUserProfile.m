@@ -1,6 +1,7 @@
 #import "TeakUserProfile.h"
 #import "Teak+Internal.h"
 #import "TeakSession.h"
+#import "TeakHelpers.h"
 
 @interface TeakUserProfile ()
 @property (strong, nonatomic) NSMutableDictionary* stringAttributes;

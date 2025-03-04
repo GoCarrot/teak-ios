@@ -7,6 +7,7 @@
 #import "TeakRequest.h"
 #import "TeakSession.h"
 #import "TeakChannelCategory.h"
+#import "TeakHelpers.h"
 
 @interface TeakRemoteConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* hostname;
