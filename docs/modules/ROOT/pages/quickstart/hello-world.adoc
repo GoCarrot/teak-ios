@@ -108,4 +108,4 @@ But, there's still more to setup:
 * [ ] Set up Local Notifications
 // (Schedule certain notifications in your game's code.)
 
-Proceed to xref:teak-ios-features.adoc[**Features**] for additional steps.
+Proceed to xref:working-with-teak.adoc[**Features**] for additional steps.

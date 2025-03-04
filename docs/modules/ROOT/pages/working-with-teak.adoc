@@ -1,102 +1,216 @@
-= Working with Teak on iOS
+= Teak Features
 
-The Teak SDK is exposed both via Objective-C as well as with a C interface.
+== Login
 
-== Identify User
-This tells Teak how the user should be referenced in the Teak system.
+Teak's functionality depends on knowing when a user plays and on what device they play.
 
-All Teak events will be delayed until ``identifyUser`` is called.
-
-doxygen2adoc:identifyUser:withConfiguration:[]
+At every game launch, send the player's ID to Teak using <<login:withConfiguration:>>
 
 .Example
-[source,objc]
+[source,swift]
 ----
-[[Teak sharedInstance] identifyUser:@"someuserid"];
-----
-
-IMPORTANT: This should be the same way that you identify the user in your system, so that when you export data from Teak, it will be easy for you to associate with your own data.
-
-== User Attributes
-
-Teak allows you to add a limited number of attributes to users. A maximum of 16 string and 16 numeric attributes can be used.
-
-You can set a numeric attribute using ``<<setNumericAttribute:forKey:>>``.
-
-.Setting a numeric attribute from C
-[source,c]
-----
-void TeakSetNumericAttribute(const char* cstr_key, double value)
+// ...
+let playerConfiguration = TeakUserConfiguration()
+Teak.login(YOUR_PLAYER_ID, with:playerConfiguration)
 ----
 
-You can set a string attribute using ``<<setStringAttribute:forKey:>>``.
+Make sure that your player ID is a unique ID for the player in your game.
 
-.Setting a string attribute from C
-[source,c]
+[TIP]
+.What Player ID should you use?
+====
+Your game probably has a user ID to store progress, coin balances, and other useful data. Use that ID with Teak too.
+
+* [x] It should uniquely identify the current player.
+* [x] Ideally the same ID that is used in your game's backend.
+* [x] Send it as early as possible in the game's lifecycle.
+
+Having a consistent ID between your game makes customer support easier, and makes life easier for your analytics team.
+====
+
+=== Player Configuration
+
+Additional data, such as a player's email address and Facebook ID, can be passed to Teak by setting the appropriate fields on the `TeakUserConfiguration` object passed to xref:<<login:withConfiguration:>>
+
+If you need to update any of this additional data during a game session, call `Teak.login()` with an appropriately configured `TeakUserConfiguration` object. `Teak.login()` will never clear or remove information about a player, and fields that are not set on the `TeakUserConfiguration` object will be ignored.
+
+.Providing Additional Data Example
+[source,swift]
 ----
-void TeakSetStringAttribute(const char* cstr_key, const char* cstr_value)
+// ....
+let playerConfiguration = TeakUserConfiguration()
+playerConfiguration.email = "YOUR_PLAYER_EMAIL"
+playerConfiguration.facebookId = "YOUR_PLAYER_FACEBOOK_ID"
+Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
 ----
+
+== Rewards
+
+Whenever your game should grant a reward to a player Teak will let you know by posting a notification to the default notification center with the name `Notification.Name(TeakOnReward)`
+
+Teak does not provide any in-game UI to inform a player if they received a reward or not. You should
+add a an observor for the `Notification.Name(TeakOnReward)` notification which detects if the reward was granted or
+denied, and informs the player what happened.
+
+This callback will be concurrent with the xref:server-api::page$rewards/endpoint.adoc[Teak Reward Endpoint, window=_blank] server to server call.
+
+.Example Reward Listener
+[source,swift]
+----
+NotificationCenter.default.addObserver(forName: Notification.Name(TeakOnReward), object: nil, queue: nil, using:{notification in
+    let rewardStatus = notification.userInfo!["status"] as! String
+    switch rewardStatus {
+    case "grant_reward":
+        let reward = notification.userInfo!["reward"]! as! Dictionary<String, NSNumber>
+        print("Reward Granted! \(reward)")
+    case "already_clicked":
+        print("You already claimed this reward!")
+    case "expired":
+        print("The reward has expired")
+    case "too_many_clicks":
+        print("Too many other players already claimed this reward")
+    case "exceed_max_clicks_for_day":
+        print("You've already claimed too many rewards today")
+    case "not_for_you":
+        print("This reward is restricted to a different player")
+    case "invalid_post":
+        print("The reward id was not recognized"
+    default:
+        print("Unknown status")
+    }
+})
+----
+
+// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+== Request Notification Permissions
+
+To use push notifications you are required to ask the player if you can send them notifications. Do that with the <<registerForNotificaitons:>> call.
+
+.Permissions Example
+[source,swift]
+----
+// ...
+Teak.requestNotificationPermissions({accepted, error in
+    print("User accepted notifications: \(accepted)");
+})
+----
+
+You can still make this call even if the player cannot be prompted for permissions again. In that case the callback will be called with the current notification state.
+
+== Player Properties
+
+xref:ROOT:user-guide:page$player-properties.adoc[Player Properties, window=_blank] are strings or numbers associated with each player of your game in Teak. Player Properties have several uses, including:
+
+* Targeting players for a send by using the player properties xref:ROOT:user-guide:page$audiences.adoc#_player_properties[Audience rule, window=_blank]
+* Personalizing push notification content using xref:ROOT:user-guide:page$custom-tags.adoc[custom tags, window=_blank]
+* Personalizing email content using custom tags
+* Personalizing deep links from Links, push notifications, and emails to take players to a meaningful location in your game
+
+You do not need to register the property in the Teak Dashboard prior to sending
+them from your game, however you will need to register them in the Teak Dashboard
+before using them in targeting. Only Player Properties set to permit client updates can be updated through the SDK. Player Properties set to permit server updates may only be updated
+through the xref:server-api::other/v2_player_properties.adoc[Server API, window=_blank].
+
+=== Number Property
+To set a number property, use::
+
+<<setNumberProperty:value:>>
 
 .Example
-[source,objc]
+[source,swift]
 ----
-[[Teak sharedInstance] setStringAttribute:@"unicorn_slots"
-                                   forKey:@"last_played_slot"];
-
-[[Teak sharedInstance] setNumericAttribute:@123456
-                                    forKey:@"last_bet_amount"];
+Teak.setNumberProperty("bankroll", value: newCoinBalance)
 ----
 
-== Notifications
+Number Player Properties can store values between -999999999999999999999999999.999999999 and 999999999999999999999999999.999999999.
 
-=== Scheduling a Notification
+=== String Property
 
-You can schedule a notification to be delivered for the current player by using ``<<scheduleNotificationForCreative:withMessage:secondsFromNow:>>``
+To set a string property, use::
 
-.Scheduling a notification from C
-[source,c]
+<<setStringProperty:value:>>
+
+.Example
+[source,swift]
 ----
-TeakNotification* TeakNotificationSchedule(const char* creativeId,
-                                           const char* message,
-                                           int64_t delay)
-----
-
-You can schedule a notification do be delivered to other players--a long-distance notification--by using ``<<scheduleNotificationForCreative:secondsFromNow:forUserIds:>>``.
-
-.Scheduling a long-distance notification from C
-[source,c]
-----
-TeakNotification* TeakNotificationScheduleLongDistance(const char* creativeId,
-                                                       int64_t delay,
-                                                       const char* inUserIds[],
-                                                       int inUserIdCount)
+Teak.setStringProperty("last_slot", value: "amazing_slot_name");
 ----
 
-.Scheduling a long-distance notification from C using an NSArray
-[source,c]
+String Player Properties can store up to 16,384 unicode characters (including emoji).
+
+== Deep Links
+
+Deep Links are a way to link to specific screens in your game that will open when the game is launched from a notification or Universal Link.
+
+These are useful for promoting new content or linking directly to sale content in the game.
+
+TIP: For the marketing team to use Deep Links, they will have to xref:ROOT:user-guide:page$notifications.adoc#_link_destination["add the URL to their notifications", window=_blank] in the dashboard. So, keep a master list of active deep links that can be shared with your team, so everyone knows what is available for use.
+
+Deep Linking with Teak is based on routes, which act like URLs. Route patterns may include named parameters, allowing you to pass in additional data.
+
+Add routes using::
+
+<<registerDeepLinkRoute:name:description:block:>>
+
+IMPORTANT: You need to register your deep link routes before you call `Teak.login()`.
+
+.Example
+[source,swift]
 ----
-TeakNotification* TeakNotificationScheduleLongDistanceWithNSArray(const char* creativeId,
-                                                                  int64_t delay,
-                                                                  NSArray* userIds)
+Teak.registerDeepLinkRoute("/store/:sku", name: "Store", description: "Open the store to the given SKU", block: {params in
+    print("Taking the player to \(params["sku"]!)")
+})
 ----
 
+=== How Routes Work
 
-=== Canceling a Scheduled Notification
+Routes work like URLs where parts of the path can be a variable. In the example
+above, the route is `/store/:sku`. Variables in the path are designated with `:`.
+So, in the route `/store/:sku` there is a variable named `sku`.
 
-To cancel a notification that you've scheduled from the client use ``<<cancelScheduledNotification:>>``.
+This means that if the deep link used to launch the app was `/store/io.teak.test.dollar`
+was used to open the app, it would call the function and assign the value `io.teak.test.dollar`
+to the key `sku` in the dictionary that is passed in.
 
-.Canceling a scheduled notification from C
-[source,c]
+This dictionary will also contain any URL query parameters. For example:
+
+    /store/io.teak.test.dollar?campaign=email
+
+In this link, the value `io.teak.test.dollar` would be assigned to the key `sku`,
+and the value `email` would be assigned to the key `campaign`.
+
+// The route system that Teak uses is very flexible, let's look at a slightly more complicated example.
+
+// What if we wanted to make a deep link which opened the game to a specific slot machine.
+
+=== When Are Deep Links Executed
+
+Deep links are passed to an application as part of the launch. The Teak SDK holds
+onto the deep link information and waits until your app has finished launching,
+and initializing. Deep links will be processed when your game calls `Teak.login()`.
+
+=== Using Deep Links
+
+A Deep Link route may be added to any notification or email in the xref:ROOT:user-guide:page$notifications.adoc#_link_destination["Advanced", window=_blank] section when setting up a Message or Link. We recommend documenting what routes are implemented and how to use them, with examples, for your marketing team to add to notifications, emails, and links.
+
+== Session Attribution[[_post_launch_summary]]
+
+Each time your game launches Teak will post a notification with all of the attribution data it has for the launch, if available, to the default notification center with the name `Notification.Name(TeakPostLaunchSummary)`
+
+This callback will be called after your game calls <<login:with:>>, and is primarily intended to assist in reporting session attribution to other analytics systems.
+
+.Example PostLaunchSummary Listener
+[source,swift]
 ----
-TeakNotification* TeakNotificationCancel(const char* scheduleId)
-----
-
-=== Cancel All Client-Scheduled Notifications
-
-Using ``<<cancelAll>>`` will cancel all of the notifications which were scheduled from client-side code.
-
-.Canceling all scheduled notifications from C
-[source,c]
-----
-TeakNotification* TeakNotificationCancelAll()
+NotificationCenter.default.addObserver(forName: Notification.Name(TeakPostLaunchSummary), object: nil, queue: nil, using:{notification in
+    let channelName = notification.userInfo!["teakChannelName"] as! Optional<String>
+    if(channelName == nil) {
+        print("Launch not attributed to a Teak source")
+        return
+    }
+    print("Launch attributed to \(channelName!)")
+    print("Launch came from a click on \(notification.userInfo!["teakCreativeName"] as! String)")
+    print("Launch was \(notification.userInfo!["teakRewardId"] as! NSObject == NSNull() ? "not" : "") rewarded")
+})
 ----
