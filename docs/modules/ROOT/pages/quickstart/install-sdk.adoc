@@ -1,13 +1,31 @@
 = Install the Teak SDK
 :page-pagination:
 
-It's time to install the Teak SDK,
+It's time to configure your project for push notifications and install the Teak SDK.
+
+== Adding Required Capabilities
+
+With your Xcode Project open, Select *your app target -> Signing & Capabilities*
+
+Click *+ Capability* and add *Push Notifications*
+
+image::quickstart/add-push-cap.png[]
+
+Click *+ Capabiity* again and add *Background Modes*. Then check *Remote notifications*
+
+image::quickstart/remote-cap.png[]
+
+Click *+ Capbility* again and add *Associated Domains*
+
+Add *applinks:<ShortLink Domain from the Teak Dashboard>* as an associated domain
+
+image::quickstart/domain-cap.png[]
 
 == Add the Teak SDK to a SwiftUI Application
 
 The Teak SDK can be added as a Swift Package or through https://cocoapods.org/[CocoaPods]. We recommend using the Swift Package Manager if you are not already using CocoaPods.
 
-=== Swift Package Manager
+=== Adding the SDK and Rich Push Extensions
 
 1. With your Xcode Project open, Select *Your Project -> Package Dependencies -> + button*
 +
@@ -22,22 +40,6 @@ image::quickstart/swift-package-config.png[]
 1. Add the *Teak* and *TeakExtension* libraries to *your Application* Target and click *Add Package*
 +
 image::quickstart/swift-package-selection.png[]
-
-1. Select *your app target -> Signing & Capabilities*
-+
-Click *+ Capability* and add *Push Notifications*
-+
-image::quickstart/add-push-cap.png[]
-+
-Click *+ Capabiity* again and add *Background Modes*. Then check *Remote notifications*
-+
-image::quickstart/remote-cap.png[]
-+
-Click *+ Capbility* again and add *Associated Domains*
-+
-Add *applinks:<ShortLink Domain from the Teak Dashboard>* as an associated domain
-+
-image::quickstart/domain-cap.png[]
 
 include::ios::page$quickstart/partials/add-service-extension.adoc[]
 
@@ -58,6 +60,8 @@ image::quickstart/link-service-library.png[]
 1. Select *Teak Extension* and click *Add*
 +
 image::quickstart/add-teak-extension.png[]
+
+=== Initializing Teak
 
 1. Update your main 'APP_NAME'App.swift file and add the Teak initialization code.
 +
