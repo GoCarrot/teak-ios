@@ -41,8 +41,12 @@ BOOL isProductionProvisioningProfile(NSString* profilePath) {
   UA_LTRACE((void)(@"Profile path: %@"), profilePath);
 
   if (err) {
+#if TARGET_IPHONE_SIMULATOR
+    return NO;
+#else
     UA_LERR(@"No mobile provision profile found or the profile could not be read. Defaulting to production mode.");
     return YES;
+#endif
   }
 
   NSDictionary* plistDict = nil;
