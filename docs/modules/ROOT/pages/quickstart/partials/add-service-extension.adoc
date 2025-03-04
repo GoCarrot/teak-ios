@@ -1,0 +1,31 @@
+1. Click the *+* button to add a new target.
++
+image::quickstart/add-target-button.png[]
+
+1. Select *Notification Service Extension* then *Next*
++
+image::quickstart/notification-service-extension.png[]
+
+1. Enter the product name as *TeakNotificationService* and click *Finish*
++
+Do not active the scheme on the dialog that is shown after clicking Finish.
++
+Press *Don't Activate* on the Activate scheme prompt.
++
+image::quickstart/add-service-extension.png[]
+
+1. Open the *NotificationService* file and replace its contents with
++
+.Notification Service
+[source,swift]
+----
+import TeakExtension
+
+class NotificationService: TeakNotificationServiceCore {
+    override func serviceExtensionTimeWillExpire() {
+        super.serviceExtensionTimeWillExpire()
+    }
+}
+----
++
+image::quickstart/notification-service-code.png[]

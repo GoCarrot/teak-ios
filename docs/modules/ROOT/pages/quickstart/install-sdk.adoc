@@ -1,0 +1,133 @@
+= Install the Teak SDK
+:page-pagination:
+
+It's time to install the Teak SDK,
+
+== Add the Teak SDK to a SwiftUI Application
+
+The Teak SDK can be added as a Swift Package or through https://cocoapods.org/[CocoaPods]. We recommend using the Swift Package Manager if you are not already using CocoaPods.
+
+=== Swift Package Manager
+
+1. With your Xcode Project open, Select *Your Project -> Package Dependencies -> + button*
++
+image::quickstart/add-swift-package.png[]
+
+1. Enter Package URL: https://github.com/GoCarrot/teak-ios-framework
++
+Make sure *Dependency Rule* is set to *Up to Next Major Version*
++
+image::quickstart/swift-package-config.png[]
+
+1. Add the *Teak* and *TeakExtension* libraries to *your Application* Target and click *Add Package*
++
+image::quickstart/swift-package-selection.png[]
+
+1. Select *your app target -> Signing & Capabilities*
++
+Click *+ Capability* and add *Push Notifications*
++
+image::quickstart/add-push-cap.png[]
++
+Click *+ Capabiity* again and add *Background Modes*. Then check *Remote notifications*
++
+image::quickstart/remote-cap.png[]
++
+Click *+ Capbility* again and add *Associated Domains*
++
+Add *applinks:<ShortLink Domain from the Teak Dashboard>* as an associated domain
++
+image::quickstart/domain-cap.png[]
+
+include::ios::page$quickstart/partials/add-service-extension.adoc[]
+
+1. Select the *TeakNotificationService* target -> *Build Phases* -> *Link Binary With Libraries* -> *+*
++
+image::quickstart/link-service-library.png[]
+
+1. Select *Teak Extension* and click *Add*
++
+image::quickstart/add-teak-extension.png[]
+
+include::ios::page$quickstart/partials/add-content-extension.adoc[]
+
+1. Select the *TeakContentExtension* target -> *Build Phases* -> *Link Binary With Libraries* -> *+*
++
+image::quickstart/link-service-library.png[]
+
+1. Select *Teak Extension* and click *Add*
++
+image::quickstart/add-teak-extension.png[]
+
+1. Update your main 'APP_NAME'App.swift file and add the Teak initialization code.
++
+Replace YOUR_TEAK_APP_ID and YOUR_TEAK_API_KEY with your Teak App ID and Teak API Key.
++
+.Example Init
+[source,swift]
+----
+import SwiftUI
+import Teak
+
+@main
+struct TeakSwiftUIDemoApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    init() {
+        Teak.initSwiftUI(forApplicationId: "YOUR_TEAK_APP_ID", andApiKey: "YOUR_TEAK_API_KEY")
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+
+class AppDelegate : NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        Teak.requestNotificationPermissions({ accepted, error in
+            print("Player accepted notifications: \(accepted)")
+        })
+
+        Teak.login("YOUR_PLAYER_ID", with: TeakUserConfiguration())
+
+        return true
+    }
+}
+----
++
+[NOTE]
+.This is Example Code
+====
+The above example code will request notificaton permissions immediately on application launch, and tell Teak that the player is "YOUR_PLAYER_ID". This should not be used in production. Instead, call `Teak.requestNotificationPermissions()` at a time where it makes sense to ask the player if you can send them push notifications, and call `Teak.login()` with a real player id.
+====
++
+[TIP]
+.What Player ID should you use?
+====
+Your game probably has a player ID to store progress, coin balances, and other useful data. Use that ID with Teak too.
+
+* [x] It should uniquely identify the current player.
+* [x] Ideally the same ID that is used in your game's backend.
+* [x] Send it as early as possible in the game's lifecycle.
+
+Having a consistent ID between your game makes customer support easier, and makes life easier for your analytics team.
+====
+
+=== Build Your Game
+
+At this point, Teak is ready to to be tested on device or in the simulator.
+
+* Build your game and get it running on a device or in the simulator.
+* Approve the system prompt asking for push notification permissions.
+
+=== See Your Active User
+
+* Open the https://app.teak.io/login[Teak Dashboard] and navigate to your game.
+** If the Teak integration is working and `login` is being called, you will see yourself in the **active user** chart on the dashboard.
+
+.The lone tester, playing the game.
+image::unity::start/activeuser.png[]
+
+If you've got an active user showing here, you are ready to test notification sends.

@@ -1,0 +1,19 @@
+= Getting started with Teak on iOS
+:page-pagination:
+
+Welcome to the getting started guide for Teak in a native iOS Application.
+
+In this guide, we will walk you through the process of setting up Teak in your iOS game. By the end of this guide you will be able to send a Push notification to your iOS device or simulator.
+
+NOTE: If you are building your game with Unity, use our xref:unity::index.adoc[Unity SDK].
+
+NOTE: Teak only supports single window applications or SwiftUI applications. Please mailto:team@teak.io[Contact Support] if you are using https://developer.apple.com/documentation/uikit/scenes[Scenes] with Storyboards.
+
+== Requirements
+
+* [x] An https://developer.apple.com/[Apple Developer, window=_blank] account with administrator permissions.
+* [x] A Mac with https://developer.apple.com/xcode/[XCode, window=_blank] installed.
+
+With that out of the way, let's get started.
+
+First, we'll set up your Teak dahsboard.

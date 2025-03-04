@@ -1,0 +1,86 @@
+1. Click the *+* button to add a new target.
++
+image::quickstart/add-target-button.png[]
+
+1. Select *Notification Content Extension* then *Next*
++
+image::quickstart/notification-content-extension.png[]
+
+1. Enter the product name as *TeakContentExtension* and click *Finish*
++
+Do not active the scheme on the dialog that is shown after clicking Finish.
++
+Press *Don't Activate* on the Activate scheme prompt.
++
+image::quickstart/add-content-extension.png[]
+
+1. Open the *NotificationViewController* file and replace its contents with
++
+.Notification View Controller
+[source,swift]
+----
+import TeakExtension
+
+class NotificationViewController: TeakNotificationViewControllerCore {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+    }
+}
+----
++
+image::quickstart/notification-extension-code.png[]
+
+1. Open the *Info* file with an External Editor
++
+image::quickstart/info-external-editor.png[]
++
+Replace its contents with
++
+.Content Extension Info.plist
+[source,plist]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionAttributes</key>
+        <dict>
+            <key>UNNotificationExtensionCategory</key>
+            <array>
+                <string>TeakNotificationContent</string>
+                <string>TeakNotificationPlayNow</string>
+                <string>TeakNotificationClaimForFree</string>
+                <string>TeakNotificationBox123</string>
+                <string>TeakNotificationGetNow</string>
+                <string>TeakNotificationBuyNow</string>
+                <string>TeakNotificationInteractiveStop</string>
+                <string>TeakNotificationLaughingEmoji</string>
+                <string>TeakNotificationThumbsUpEmoji</string>
+                <string>TeakNotificationPartyEmoji</string>
+                <string>TeakNotificationSlotEmoji</string>
+                <string>TeakNotification123</string>
+                <string>TeakNotificationFreeGiftEmoji</string>
+                <string>TeakNotificationYes</string>
+                <string>TeakNotificationYesNo</string>
+                <string>TeakNotificationAccept</string>
+                <string>TeakNotificationOkay</string>
+                <string>TeakNotificationYesPlease</string>
+                <string>TeakNotificationClaimFreeBonus</string>
+            </array>
+            <key>UNNotificationExtensionDefaultContentHidden</key>
+            <false/>
+            <key>UNNotificationExtensionInitialContentSizeRatio</key>
+            <real>0.01</real>
+            <key>UNNotificationExtensionUserInteractionEnabled</key>
+            <true/>
+        </dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.usernotifications.content-extension</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>$(PRODUCT_MODULE_NAME).NotificationViewController</string>
+    </dict>
+</dict>
+</plist>
+----

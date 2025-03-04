@@ -1,4 +1,10 @@
-** xref:ios::page$integration.adoc[iOS Native SDK]
+** xref:ios::page$integration.adoc[iOS SDK]
+**** xref:ios::page$quickstart/index.adoc[Getting Started in IOS]
+**** xref:ios::page$quickstart/new-game.adoc[Initial Setup]
+**** xref:ios::page$quick-start/apple-apns.adoc[iOS Push Credentials]
+**** xref:ios::page$quick-start/install-sdk.adoc[Install the Teak SDK]
+**** xref:ios::page$quickstart/hello-world.adoc[Sending Your First Notification]
+
 *** xref:ios::page$integration.adoc[Integration]
 *** xref:ios::page$working-with-teak.adoc[Working With Teak]
 *** xref:ios::page$ios-notification-sounds.adoc[Notification Sounds]
