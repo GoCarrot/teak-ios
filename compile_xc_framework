@@ -155,39 +155,24 @@ build() {
     archive
 
   msg "Generating XCFramework"
-  if [ $buildtype = "Release" ]; then
-    xcodebuild \
-      ${quiet} \
-      -create-xcframework \
-      -framework ${SIMULATOR_PATH}/Products/Library/Frameworks/Teak.framework \
-      -debug-symbols ${SIMULATOR_PATH}/dSYMs/Teak.framework.dSYM \
-      -framework ${IOS_PATH}/Products/Library/Frameworks/Teak.framework \
-      -debug-symbols ${IOS_PATH}/dSYMs/Teak.framework.dSYM \
-      -output "${BASE_DIRECTORY}/Teak.xcframework"
+  xcodebuild \
+    ${quiet} \
+    -create-xcframework \
+    -framework ${SIMULATOR_PATH}/Products/Library/Frameworks/Teak.framework \
+    -debug-symbols ${SIMULATOR_PATH}/dSYMs/Teak.framework.dSYM \
+    -framework ${IOS_PATH}/Products/Library/Frameworks/Teak.framework \
+    -debug-symbols ${IOS_PATH}/dSYMs/Teak.framework.dSYM \
+    -output "${BASE_DIRECTORY}/Teak.xcframework"
 
-    xcodebuild \
-      ${quiet} \
-      -create-xcframework \
-      -framework ${EXT_SIM_PATH}/Products/Library/Frameworks/TeakExtension.framework \
-      -debug-symbols ${EXT_SIM_PATH}/dSYMs/TeakExtension.framework.dSYM \
-      -framework ${EXT_IOS_PATH}/Products/Library/Frameworks/TeakExtension.framework \
-      -debug-symbols ${EXT_IOS_PATH}/dSYMs/TeakExtension.framework.dSYM \
-      -output "${BASE_DIRECTORY}/TeakExtension.xcframework"
-  else
-    xcodebuild \
-      ${quiet} \
-      -create-xcframework \
-      -framework ${SIMULATOR_PATH}/Products/Library/Frameworks/Teak.framework \
-      -framework ${IOS_PATH}/Products/Library/Frameworks/Teak.framework \
-      -output "${BASE_DIRECTORY}/Teak.xcframework"
+  xcodebuild \
+    ${quiet} \
+    -create-xcframework \
+    -framework ${EXT_SIM_PATH}/Products/Library/Frameworks/TeakExtension.framework \
+    -debug-symbols ${EXT_SIM_PATH}/dSYMs/TeakExtension.framework.dSYM \
+    -framework ${EXT_IOS_PATH}/Products/Library/Frameworks/TeakExtension.framework \
+    -debug-symbols ${EXT_IOS_PATH}/dSYMs/TeakExtension.framework.dSYM \
+    -output "${BASE_DIRECTORY}/TeakExtension.xcframework"
 
-    xcodebuild \
-      ${quiet} \
-      -create-xcframework \
-      -framework ${EXT_SIM_PATH}/Products/Library/Frameworks/TeakExtension.framework \
-      -framework ${EXT_IOS_PATH}/Products/Library/Frameworks/TeakExtension.framework \
-      -output "${BASE_DIRECTORY}/TeakExtension.xcframework"
-  fi
 }
 
 zip_framework() {
