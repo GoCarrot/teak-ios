@@ -59,10 +59,11 @@ This callback will be concurrent with the xref:server-api::page$rewards/endpoint
 ----
 NotificationCenter.default.addObserver(forName: Notification.Name(TeakOnReward), object: nil, queue: nil, using:{notification in
     let rewardStatus = notification.userInfo!["status"] as! String
+    let rewardId = notification.userInfo!["teakRewardId"] as! String
     switch rewardStatus {
     case "grant_reward":
         let reward = notification.userInfo!["reward"]! as! Dictionary<String, NSNumber>
-        print("Reward Granted! \(reward)")
+        print("Reward with id \(rewardId) Granted! \(reward)")
     case "already_clicked":
         print("You already claimed this reward!")
     case "expired":
