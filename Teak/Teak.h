@@ -139,6 +139,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 #import <Teak/TeakOperation.h>
 #import <Teak/TeakUserConfiguration.h>
 #import <Teak/TeakReward.h>
+#import <Teak/TeakSceneHooks.h>
 #import <UIKit/UIKit.h>
 
 /**
