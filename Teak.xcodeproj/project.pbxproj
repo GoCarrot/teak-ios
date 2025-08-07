@@ -148,7 +148,7 @@
 		FA34DA692D76020600D1C1C5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FA34DA682D76020600D1C1C5 /* PrivacyInfo.xcprivacy */; };
 		FA34DAD22D760EA700D1C1C5 /* TeakExtension.h in Headers */ = {isa = PBXBuildFile; fileRef = FA34DAD12D760EA700D1C1C5 /* TeakExtension.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FA82D7BA2D6E3F80004BE81A /* TeakHelpers.h in Headers */ = {isa = PBXBuildFile; fileRef = FA82D7B92D6E3F80004BE81A /* TeakHelpers.h */; };
-		FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; };
+		FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FA8B793B2D72562A00179852 /* TeakSceneHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = FA8B79392D72562A00179852 /* TeakSceneHooks.m */; };
 		FA8B793C2D72562A00179852 /* TeakSceneHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = FA8B79392D72562A00179852 /* TeakSceneHooks.m */; };
 		FA8B793D2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; };
@@ -825,6 +825,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FAA1433C2D70E21D009C3996 /* TeakReward.h in Headers */,
+				FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */,
 				FAA142BF2D70E0B5009C3996 /* TeakLink.h in Headers */,
 				FAA142C02D70E0B5009C3996 /* Teak.h in Headers */,
 				FAA142C12D70E0B5009C3996 /* TeakNotification.h in Headers */,
@@ -849,7 +850,6 @@
 				FAA143322D70E21D009C3996 /* AdditionalDataEvent.h in Headers */,
 				FAA143332D70E21D009C3996 /* LogoutEvent.h in Headers */,
 				FAA143342D70E21D009C3996 /* UserDataEvent.h in Headers */,
-				FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */,
 				FAA143352D70E21D009C3996 /* TeakDebugConfiguration.h in Headers */,
 				FAA143362D70E21D009C3996 /* TeakAppConfiguration.h in Headers */,
 				FAA143372D70E21D009C3996 /* TeakDeviceConfiguration.h in Headers */,
