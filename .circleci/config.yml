@@ -12,7 +12,7 @@ jobs:
         default: "13.4.1"
     macos:
       xcode: << parameters.xcode-version >>
-    resource_class: macos.m1.medium.gen1
+    resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup
