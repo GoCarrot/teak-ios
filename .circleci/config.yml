@@ -33,14 +33,14 @@ jobs:
             - TeakFramework/TeakExtension.xcframework.zip.sha512
   tag_build:
     docker:
-      - image: cimg/ruby:3.2
+      - image: cimg/ruby:3.3
     steps:
       - checkout
       - teak/tag-promote
 
   deploy_versioned:
     docker:
-      - image: cimg/ruby:3.2
+      - image: cimg/ruby:3.3
     steps:
       - checkout
       - run: git fetch --tags
@@ -65,7 +65,7 @@ jobs:
 
   deploy_latest:
     docker:
-      - image: cimg/ruby:3.2
+      - image: cimg/ruby:3.3
     steps:
       - checkout
       - run: git fetch --tags
