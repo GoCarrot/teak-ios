@@ -187,7 +187,9 @@ commands:
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Ensure correct Ruby is available
-          command: rbenv install $(cat .ruby-version)
+          command: |
+            brew upgrade ruby-build
+            rbenv install $(cat .ruby-version)
       - run:
           name: Ruby Gems
           command: |
