@@ -19,9 +19,6 @@ jobs:
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
-      - run:
-          name: Ensure correct Ruby is available
-          command: rbenv install
       - ios_setup
       - run:
           name: Ensure IPHONEOS_DEPLOYMENT_TARGET is 9.0
@@ -188,6 +185,9 @@ commands:
       - checkout
       - restore_cache:
           key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+      - run:
+          name: Ensure correct Ruby is available
+          command: rbenv install $(cat .ruby-version)
       - run:
           name: Ruby Gems
           command: |
