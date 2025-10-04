@@ -93,8 +93,6 @@ jobs:
             aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak.framework.zip.sha512 --acl public-read
 
 workflows:
-  version: 2
-
   nightly:
     triggers:
       - schedule:
