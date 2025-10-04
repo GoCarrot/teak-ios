@@ -19,6 +19,9 @@ jobs:
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
+      - run:
+          name: Ensure correct Ruby is available
+          command: rbenv install
       - ios_setup
       - run:
           name: Ensure IPHONEOS_DEPLOYMENT_TARGET is 9.0
