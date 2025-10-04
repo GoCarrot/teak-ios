@@ -1,5 +1,9 @@
 version: 2.1
 
+references:
+  RUBY_IMAGE: &RUBY_IMAGE
+    cimg/ruby:3.2
+
 orbs:
   teak: teak/sdk-utils@1
   buildomat: teak/buildomat@0.1
@@ -33,14 +37,14 @@ jobs:
             - TeakFramework/TeakExtension.xcframework.zip.sha512
   tag_build:
     docker:
-      - image: cimg/ruby:3.2
+      - image: *RUBY_IMAGE
     steps:
       - checkout
       - teak/tag-promote
 
   deploy_versioned:
     docker:
-      - image: cimg/ruby:3.2
+      - image: *RUBY_IMAGE
     steps:
       - checkout
       - run: git fetch --tags
@@ -65,7 +69,7 @@ jobs:
 
   deploy_latest:
     docker:
-      - image: cimg/ruby:3.2
+      - image: *RUBY_IMAGE
     steps:
       - checkout
       - run: git fetch --tags
