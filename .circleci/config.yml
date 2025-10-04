@@ -2,7 +2,7 @@ version: 2.1
 
 references:
   RUBY_IMAGE: &RUBY_IMAGE
-    cimg/ruby:3.2
+    cimg/ruby:3.3.9
 
 orbs:
   teak: teak/sdk-utils@1
