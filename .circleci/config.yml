@@ -182,7 +182,7 @@ commands:
     steps:
       - checkout
       - restore_cache:
-          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Ruby Gems
           command: |
@@ -194,7 +194,7 @@ commands:
             - vendor/bundle
             - Sample/vendor/bundle
             - ~/.rvm
-          key: v1-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
