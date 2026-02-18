@@ -2,4 +2,6 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-find . -type f -name "*.[hm]" | xargs clang-format -style=file -i
+find ./Teak ./Sample ./Automated/Automated ./Automated/AutomatedTests ./Automated/AutomatedUITests \
+  -path './Teak/3rdParty' -prune -o \
+  -type f -name '*.[hm]' -print0 | xargs -0 clang-format -style=file -i
