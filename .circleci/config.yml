@@ -5,14 +5,30 @@ orbs:
   buildomat: teak/buildomat@0.1
 
 jobs:
+  test:
+    parameters:
+      xcode-version:
+        type: string
+        default: "14.3.1"
+    macos:
+      xcode: << parameters.xcode-version >>
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios_setup
+      - run:
+          name: Run Tests
+          command: bundle exec fastlane test
+      - store_test_results:
+          path: test_output/automated
   build:
     parameters:
       xcode-version:
         type: string
-        default: "13.4.1"
+        default: "14.3.1"
     macos:
       xcode: << parameters.xcode-version >>
-    resource_class: macos.m1.medium.gen1
+    resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
       - ios_setup
@@ -98,9 +114,14 @@ workflows:
               only:
                 - develop
     jobs:
+      - test:
+          context:
+            - iOS-Build
       - build:
           context:
             - iOS-Build
+          requires:
+            - test
 
   nightly-latest:
     triggers:
@@ -111,16 +132,28 @@ workflows:
               only:
                 - master
     jobs:
+      - test:
+          context:
+            - iOS-Build
       - build:
           context:
             - iOS-Build
-          xcode-version: "13.4.1"
+          requires:
+            - test
 
   un-tagged-build:
     jobs:
+      - test:
+          context:
+            - iOS-Build
+          filters:
+            tags:
+              ignore: /.*/
       - build:
           context:
             - iOS-Build
+          requires:
+            - test
           filters:
             tags:
               ignore: /.*/
@@ -133,9 +166,19 @@ workflows:
 
   tagged-build:
     jobs:
+      - test:
+          context:
+            - iOS-Build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
       - build:
           context:
             - iOS-Build
+          requires:
+            - test
           filters:
             branches:
               ignore: /.*/
