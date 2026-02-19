@@ -116,6 +116,47 @@
   [defaults removePersistentDomainForName:@"TestDefaults_remoteYes"];
 }
 
+#pragma mark - Info.plist override survives server response
+
+- (void)testLogLocalSurvivesServerResponseSettingNo {
+  NSUserDefaults* defaults = [[NSUserDefaults alloc] initWithSuiteName:@"TestDefaults_serverStomp"];
+  [defaults setBool:NO forKey:@"TeakLogLocal"];
+  [defaults setBool:NO forKey:@"TeakLogRemote"];
+
+  NSDictionary* infoDictionary = @{@"TeakForceDebugOutput" : @YES};
+
+  TeakDebugConfiguration* config = [[TeakDebugConfiguration alloc] initWithUserDefaults:defaults
+                                                                         infoDictionary:infoDictionary];
+
+  XCTAssertTrue(config.logLocal, @"logLocal should be YES from Info.plist override");
+
+  // Simulate server response with verbose_logging=NO (TeakSession.m:282-284)
+  [config setLogLocal:NO logRemote:NO];
+
+  XCTAssertTrue(config.logLocal, @"logLocal should remain YES — Info.plist override is authoritative");
+  XCTAssertFalse(config.logRemote, @"logRemote should follow server response");
+
+  [defaults removePersistentDomainForName:@"TestDefaults_serverStomp"];
+}
+
+- (void)testLogLocalServerResponseCanEnableWithoutInfoPlist {
+  NSUserDefaults* defaults = [[NSUserDefaults alloc] initWithSuiteName:@"TestDefaults_serverEnable"];
+  [defaults setBool:NO forKey:@"TeakLogLocal"];
+  [defaults setBool:NO forKey:@"TeakLogRemote"];
+
+  TeakDebugConfiguration* config = [[TeakDebugConfiguration alloc] initWithUserDefaults:defaults
+                                                                         infoDictionary:@{}];
+
+  XCTAssertFalse(config.logLocal, @"logLocal should be NO initially");
+
+  // Simulate server response with verbose_logging=YES
+  [config setLogLocal:YES logRemote:NO];
+
+  XCTAssertTrue(config.logLocal, @"logLocal should be YES from server response when no Info.plist override");
+
+  [defaults removePersistentDomainForName:@"TestDefaults_serverEnable"];
+}
+
 #pragma mark - setLogLocal:logRemote: persists to injected defaults
 
 - (void)testSetLogLocalLogRemotePersistsToDefaults {

@@ -9,6 +9,7 @@
 @property (nonatomic, readwrite) BOOL logLocal;
 @property (nonatomic, readwrite) BOOL logRemote;
 
+@property (nonatomic) BOOL forceDebugOutput;
 @property (strong, nonatomic) NSUserDefaults* userDefaults;
 @end
 
@@ -36,10 +37,12 @@
       self.logRemote = [self.userDefaults boolForKey:kLogRemotePreferencesKey];
     }
 
-    // OR in Info.plist TeakForceDebugOutput key (local logging only)
+    // Store and apply Info.plist TeakForceDebugOutput (local logging only).
+    // This flag is authoritative — it survives server responses that call setLogLocal:logRemote:.
     if ([infoDictionary objectForKey:kTeakForceDebugOutput] != nil) {
-      self.logLocal |= [[infoDictionary objectForKey:kTeakForceDebugOutput] boolValue];
+      self.forceDebugOutput = [[infoDictionary objectForKey:kTeakForceDebugOutput] boolValue];
     }
+    self.logLocal |= self.forceDebugOutput;
   }
   return self;
 }
@@ -54,7 +57,7 @@
     } @catch (NSException* exception) {
       NSLog(@"Teak: Error occurred while writing to userDefaults. %@", exception);
     }
-    self.logLocal = logLocal;
+    self.logLocal = logLocal | self.forceDebugOutput;
     self.logRemote = logRemote;
   }
 }
