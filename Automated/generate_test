@@ -1,0 +1,79 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Generate a new XCTest file and add it to the Automated Xcode project.
+#
+# Usage:
+#   ./generate_test ClassName
+#
+# Example:
+#   ./generate_test NotificationSettings
+#   -> Creates AutomatedTests/NotificationSettingsTests.m
+#   -> Adds it to the AutomatedTests target in Automated.xcodeproj
+
+require 'xcodeproj'
+require 'fileutils'
+
+PROJ_PATH = File.expand_path('Automated.xcodeproj', __dir__)
+TESTS_DIR = File.expand_path('AutomatedTests', __dir__)
+
+abort "Usage: #{File.basename($PROGRAM_NAME)} ClassName" if ARGV.empty?
+
+class_name = ARGV[0].delete_suffix('Tests')
+test_class = "#{class_name}Tests"
+filename = "#{test_class}.m"
+file_path = File.join(TESTS_DIR, filename)
+
+if File.exist?(file_path)
+  puts "#{filename} already exists, skipping file creation"
+else
+  # --- Generate test file ---
+
+  template = <<~OBJC
+    #import <XCTest/XCTest.h>
+
+    #import <Teak/Teak.h>
+
+    @import OCHamcrest;
+    @import OCMockito;
+
+    @interface #{test_class} : XCTestCase
+    @end
+
+    @implementation #{test_class}
+
+    - (void)testExample {
+      XCTAssertTrue(YES, @"Replace me with a real test");
+    }
+
+    @end
+  OBJC
+
+  File.write(file_path, template)
+  puts "Created #{file_path}"
+end
+
+# --- Add to Xcode project ---
+
+project = Xcodeproj::Project.open(PROJ_PATH)
+
+# Find the AutomatedTests group and target
+tests_group = project.main_group.find_subpath('AutomatedTests', false)
+abort 'Error: Could not find AutomatedTests group in project' unless tests_group
+
+tests_target = project.targets.find { |t| t.name == 'AutomatedTests' }
+abort 'Error: Could not find AutomatedTests target in project' unless tests_target
+
+# Check if already in project
+existing = tests_group.files.find { |f| f.path == filename }
+if existing
+  puts "#{filename} already in project, nothing to do"
+  exit 0
+end
+
+# Add file reference and build file
+file_ref = tests_group.new_file(filename)
+tests_target.source_build_phase.add_file_reference(file_ref)
+
+project.save
+puts "Added #{filename} to AutomatedTests target in #{File.basename(PROJ_PATH)}"
