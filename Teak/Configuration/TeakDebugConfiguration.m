@@ -3,6 +3,7 @@
 
 #define kLogLocalPreferencesKey @"TeakLogLocal"
 #define kLogRemotePreferencesKey @"TeakLogRemote"
+#define kTeakForceDebugOutput @"TeakForceDebugOutput"
 
 @interface TeakDebugConfiguration ()
 @property (nonatomic, readwrite) BOOL logLocal;
@@ -14,18 +15,30 @@
 @implementation TeakDebugConfiguration
 
 - (id)init {
+  NSUserDefaults* defaults = nil;
+  teak_try {
+    defaults = [NSUserDefaults standardUserDefaults];
+  }
+  teak_catch_report;
+
+  return [self initWithUserDefaults:defaults infoDictionary:[[NSBundle mainBundle] infoDictionary]];
+}
+
+- (id)initWithUserDefaults:(NSUserDefaults*)userDefaults infoDictionary:(NSDictionary*)infoDictionary {
   self = [super init];
   if (self) {
-    teak_try {
-      self.userDefaults = [NSUserDefaults standardUserDefaults];
-    }
-    teak_catch_report;
+    self.userDefaults = userDefaults;
 
     if (self.userDefaults == nil) {
       NSLog(@"Teak: [NSUserDefaults standardUserDefaults] returned nil. Some debug functionality is disabled.");
     } else {
       self.logLocal = [self.userDefaults boolForKey:kLogLocalPreferencesKey];
       self.logRemote = [self.userDefaults boolForKey:kLogRemotePreferencesKey];
+    }
+
+    // OR in Info.plist TeakForceDebugOutput key (local logging only)
+    if ([infoDictionary objectForKey:kTeakForceDebugOutput] != nil) {
+      self.logLocal |= [[infoDictionary objectForKey:kTeakForceDebugOutput] boolValue];
     }
   }
   return self;
