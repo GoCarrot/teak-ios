@@ -304,7 +304,9 @@ Teak* _teakSharedInstance;
 
 - (BOOL)canOpenNotificationSettings {
   if (@available(iOS 15.4, *)) {
-    return YES;
+    NSInvocationOperation* op = [self.pushState currentPushState];
+    [op waitUntilFinished];
+    return op.result != [TeakPushState NotDetermined];
   } else {
     return NO;
   }
