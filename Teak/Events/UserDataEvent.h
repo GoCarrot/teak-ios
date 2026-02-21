@@ -7,8 +7,9 @@
 @property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull pushStatus;
 @property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull smsStatus;
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull pushRegistration;
+@property (strong, nonatomic, readonly) NSString* _Nonnull deviceId;
 
 - (NSDictionary* _Nonnull)toDictionary;
 
-+ (void)userDataReceived:(NSDictionary* _Nonnull)additionalData emailStatus:(TeakChannelStatus* _Nonnull)emailStatus pushStatus:(TeakChannelStatus* _Nonnull)pushStatus smsStatus:(TeakChannelStatus* _Nonnull)smsStatus pushRegistration:(NSDictionary* _Nonnull)pushRegistration;
++ (void)userDataReceived:(NSDictionary* _Nonnull)additionalData emailStatus:(TeakChannelStatus* _Nonnull)emailStatus pushStatus:(TeakChannelStatus* _Nonnull)pushStatus smsStatus:(TeakChannelStatus* _Nonnull)smsStatus pushRegistration:(NSDictionary* _Nonnull)pushRegistration deviceId:(NSString* _Nonnull)deviceId;
 @end

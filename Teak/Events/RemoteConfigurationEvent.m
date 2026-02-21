@@ -3,13 +3,15 @@
 
 @interface RemoteConfigurationEvent ()
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
+@property (strong, nonatomic, readwrite) NSString* _Nonnull deviceId;
 @end
 
 @implementation RemoteConfigurationEvent
 
-+ (void)remoteConfigurationReady:(TeakRemoteConfiguration* _Nonnull)remoteConfiguration {
++ (void)remoteConfigurationReady:(TeakRemoteConfiguration* _Nonnull)remoteConfiguration deviceId:(NSString* _Nonnull)deviceId {
   RemoteConfigurationEvent* event = [[RemoteConfigurationEvent alloc] initWithType:RemoteConfigurationReady];
   event.remoteConfiguration = remoteConfiguration;
+  event.deviceId = deviceId;
   [TeakEvent postEvent:event];
 }
 
@@ -19,7 +21,8 @@
     [serializedCategories addObject:[category toDictionary]];
   }
   return @{
-    @"channelCategories": serializedCategories
+    @"channelCategories": serializedCategories,
+    @"deviceId": self.deviceId
   };
 }
 @end
