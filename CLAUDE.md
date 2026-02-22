@@ -106,6 +106,17 @@ Artifacts deployed to `s3://teak-build-artifacts/ios/` with SHA512 checksums.
 
 Current version lives in the `VERSION` file (currently 4.3.2). The `release` script creates a git tag from this file.
 
+## Branches
+
+We follow git-flow (mostly). Currently the following branches are active.
+
+- 4.3-stable: Ongoing development work for the 4.3.x SDK series
+- develop: Ongoing development work for the next major SDK update (4.4 or 5)
+
+Currently main/master is unused. Requires architectural discussion.
+
+When creating bugfix or feature branches, use the base branch for the release the work will be included in.
+
 ## Commit Message Format
 
 Every commit must include a full human-Claude interaction log. Placeholders
