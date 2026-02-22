@@ -11,18 +11,6 @@
 @property (strong, nonatomic) TeakPushState* _Nonnull pushState;
 @end
 
-// Helper to create completed NSInvocationOperations with a known result
-@interface TeakStateReturner : NSObject
-@property (strong, nonatomic) id stateToReturn;
-- (id)returnState;
-@end
-
-@implementation TeakStateReturner
-- (id)returnState {
-  return self.stateToReturn;
-}
-@end
-
 @interface NotificationSettingsTests : XCTestCase
 @end
 
@@ -30,20 +18,13 @@
 
 #pragma mark - Helpers
 
-- (NSInvocationOperation*)completedOperationReturning:(TeakState*)state {
-  TeakStateReturner* returner = [TeakStateReturner new];
-  returner.stateToReturn = state;
-  NSInvocationOperation* op = [[NSInvocationOperation alloc] initWithTarget:returner
-                                                                   selector:@selector(returnState)
-                                                                     object:nil];
-  [op start];
-  return op;
-}
-
+// [[Teak alloc] init] bypasses initWithApplicationId:andSecret: and creates a
+// bare instance with nil properties. This is safe for unit testing because we
+// only set the properties under test. Production code must use [Teak sharedInstance].
 - (Teak*)teakWithMockedPushState:(TeakState*)state {
   Teak* teak = [[Teak alloc] init];
   TeakPushState* mockPushState = mock([TeakPushState class]);
-  [given([mockPushState currentPushState]) willReturn:[self completedOperationReturning:state]];
+  [given([mockPushState cachedPushState]) willReturn:state];
   teak.pushState = mockPushState;
   return teak;
 }
