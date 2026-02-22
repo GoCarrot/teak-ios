@@ -62,6 +62,10 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent-$(git describe --tags --always).appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions-$(git describe --tags --always).zip --acl public-read
             aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip.sha512 s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).xcframework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip s3://teak-build-artifacts/ios/TeakExtension-$(git describe --tags --always).xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip.sha512 s3://teak-build-artifacts/ios/TeakExtension-$(git describe --tags --always).xcframework.zip.sha512 --acl public-read
 
   deploy_latest:
     docker:
@@ -87,6 +91,10 @@ jobs:
             aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent.appex.zip --acl public-read
             aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions.zip --acl public-read
             aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak.framework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip s3://teak-build-artifacts/ios/Teak.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip.sha512 s3://teak-build-artifacts/ios/Teak.xcframework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip s3://teak-build-artifacts/ios/TeakExtension.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip.sha512 s3://teak-build-artifacts/ios/TeakExtension.xcframework.zip.sha512 --acl public-read
 
 workflows:
   version: 2
