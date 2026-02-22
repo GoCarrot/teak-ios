@@ -1,6 +1,6 @@
 #import <XCTest/XCTest.h>
 
-#import "../../Teak/TeakLog.h"
+#import "TeakLog.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;

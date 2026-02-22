@@ -1,6 +1,6 @@
 #import <XCTest/XCTest.h>
 
-#import "../../Teak/TeakPushState.h"
+#import "TeakPushState.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
