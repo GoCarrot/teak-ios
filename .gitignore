@@ -27,3 +27,6 @@ fastlane/report.xml
 _doxygen
 node_modules
 TeakFramework/
+
+# Generated at build time by "Define Version" build phase (git describe --tags)
+Teak/TeakVersion.h

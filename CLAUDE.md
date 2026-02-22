@@ -104,7 +104,21 @@ Artifacts deployed to `s3://teak-build-artifacts/ios/` with SHA512 checksums.
 
 ## Version Management
 
-Current version lives in the `VERSION` file (currently 4.3.2). The `release` script creates a git tag from this file.
+Git tags are the single source of truth for versioning. There are no version-bearing files to keep in sync.
+
+- **Build-time**: Xcode "Define Version" build phases run `git describe --tags` and write `Teak/TeakVersion.h` to `$(DERIVED_FILE_DIR)`. This header defines `TEAK_SDK_VERSION` used in API payloads.
+- **CI artifact naming**: CircleCI deploy jobs use `git describe --tags` for S3 artifact paths.
+- **Tagging**: The `teak/tag-promote` CI orb parses the HEAD commit message for "Promote to: X.Y.Z" and creates + pushes a git tag.
+
+### Release Flow
+
+```
+# Optionally create docs/modules/changelog/versions/X.Y.Z.yaml with release notes
+git commit -m "Promote to: X.Y.Z"
+git push
+# CI: orb detects commit message → tags → tagged-build workflow → deploy to S3
+# Then separately: update teak-ios-framework with new xcframeworks + tag
+```
 
 ## Branches
 
