@@ -83,4 +83,28 @@
   assertThat(dict[@"deviceId"], is(deviceId));
 }
 
+- (void)testToDictionaryWithNilDeviceIdProducesNSNull {
+  TeakChannelStatus* emailStatus = mock([TeakChannelStatus class]);
+  [given([emailStatus toDictionary]) willReturn:@{@"state" : @"unknown"}];
+  TeakChannelStatus* pushStatus = mock([TeakChannelStatus class]);
+  [given([pushStatus toDictionary]) willReturn:@{@"state" : @"unknown"}];
+  TeakChannelStatus* smsStatus = mock([TeakChannelStatus class]);
+  [given([smsStatus toDictionary]) willReturn:@{@"state" : @"unknown"}];
+
+  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
+  [given([deviceConfig deviceId]) willReturn:nil];
+
+  UserDataEvent* event = [[UserDataEvent alloc] initWithType:UserData];
+  [event setValue:@{} forKey:@"additionalData"];
+  [event setValue:emailStatus forKey:@"emailStatus"];
+  [event setValue:pushStatus forKey:@"pushStatus"];
+  [event setValue:smsStatus forKey:@"smsStatus"];
+  [event setValue:(NSDictionary*)[NSNull null] forKey:@"pushRegistration"];
+  [event setValue:deviceConfig forKey:@"deviceConfiguration"];
+
+  NSDictionary* dict = [event toDictionary];
+
+  assertThat(dict[@"deviceId"], is([NSNull null]));
+}
+
 @end

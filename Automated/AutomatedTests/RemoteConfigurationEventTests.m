@@ -53,4 +53,20 @@
   assertThat(categories[0], is(expectedCategoryDict));
 }
 
+- (void)testAppFacingConfigurationWithNilDeviceIdProducesNSNull {
+  TeakRemoteConfiguration* remoteConfig = mock([TeakRemoteConfiguration class]);
+  [given([remoteConfig channelCategories]) willReturn:@[]];
+
+  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
+  [given([deviceConfig deviceId]) willReturn:nil];
+
+  RemoteConfigurationEvent* event = [[RemoteConfigurationEvent alloc] initWithType:RemoteConfigurationReady];
+  [event setValue:remoteConfig forKey:@"remoteConfiguration"];
+  [event setValue:deviceConfig forKey:@"deviceConfiguration"];
+
+  NSDictionary* config = [event appFacingConfiguration];
+
+  assertThat(config[@"deviceId"], is([NSNull null]));
+}
+
 @end
