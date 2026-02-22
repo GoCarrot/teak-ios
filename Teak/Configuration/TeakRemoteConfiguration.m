@@ -163,7 +163,7 @@
                                                     // Categories
                                                     self.channelCategories = [TeakChannelCategory createFromRemoteConfiguration:reply[@"available_categories"]];
 
-                                                    [RemoteConfigurationEvent remoteConfigurationReady:self];
+                                                    [RemoteConfigurationEvent remoteConfigurationReady:self deviceConfiguration:session.deviceConfiguration];
                                                   }];
     [request send];
   }];

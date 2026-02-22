@@ -901,7 +901,8 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
                         emailStatus:self.emailStatus
                          pushStatus:self.pushStatus
                           smsStatus:self.smsStatus
-                   pushRegistration:pushRegistration];
+                   pushRegistration:pushRegistration
+                deviceConfiguration:self.deviceConfiguration];
   }
 }
 
