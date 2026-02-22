@@ -1,6 +1,6 @@
 #import <XCTest/XCTest.h>
 
-#import "../../Teak/Configuration/TeakDebugConfiguration.h"
+#import "TeakDebugConfiguration.h"
 
 @interface DebugConfigurationTests : XCTestCase
 @end

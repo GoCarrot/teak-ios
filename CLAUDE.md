@@ -31,7 +31,7 @@ bundle exec Automated/generate_test ClassName   # generates AutomatedTests/Class
 The generator creates a boilerplate XCTest file with OCMockito/OCHamcrest imports and adds the file reference and build phase entry to the Xcode project. It's idempotent — safe to re-run on existing files.
 
 **Header imports in tests:**
-- SDK source headers via relative paths: `#import "../../Teak/TeakPushState.h"`
+- SDK source headers via bare name: `#import "TeakPushState.h"` (HEADER_SEARCH_PATHS covers all SDK subdirectories)
 - Framework public headers: `#import <Teak/Teak.h>`
 - To access internal properties, re-declare them in a class extension in the test file rather than importing `Teak+Internal.h` (which pulls in headers not on the test target's search path)
 
