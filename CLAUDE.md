@@ -38,7 +38,7 @@ The generator creates a boilerplate XCTest file with OCMockito/OCHamcrest import
 **Test patterns:**
 - `DebugConfigurationTests.m` — dependency injection with real objects (preferred when possible)
 - `LogTests.m` — OCMockito mocking with `mock()`, `given()`, `stubProperty()`, `assertThat()`
-- `NotificationSettingsTests.m` — mocking with NSInvocationOperation for async-pattern methods
+- `NotificationSettingsTests.m` — bare Teak instance with mocked dependencies, internal property re-declaration
 
 **Format code:**
 ```bash
