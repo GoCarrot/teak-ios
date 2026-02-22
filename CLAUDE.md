@@ -75,7 +75,7 @@ npm run build   # runs: doxygen && doxygen2adoc
 - `Sample/` — Reference app with notification service/content extensions
 - `Automated/` — Test workspace (unit tests use OCMockito, UI tests)
 - `TeakFramework/` — Pre-built xcframeworks (Teak.xcframework, TeakExtension.xcframework)
-- `TeakExtensions/` — Scripts and sources for integrating notification extensions into customer apps (`add_teak_extensions.rb`)
+- `TeakExtensions/` — Source files for notification service and content extensions
 
 ### Key Patterns
 
