@@ -32,14 +32,15 @@
   assertThat(config[@"channelCategories"], is(notNilValue()));
 }
 
-- (void)testAppFacingConfigurationPreservesChannelCategories {
-  NSString* deviceId = @"device-xyz";
+- (void)testAppFacingConfigurationSerializesChannelCategories {
+  TeakChannelCategory* category = [[TeakChannelCategory alloc] initWithId:@"promo" name:@"Promotions" andDescription:@"Deals and offers"];
+  NSDictionary* expectedCategoryDict = [category toDictionary];
 
   TeakRemoteConfiguration* remoteConfig = mock([TeakRemoteConfiguration class]);
-  [given([remoteConfig channelCategories]) willReturn:@[]];
+  [given([remoteConfig channelCategories]) willReturn:@[category]];
 
   TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
-  [given([deviceConfig deviceId]) willReturn:deviceId];
+  [given([deviceConfig deviceId]) willReturn:@"device-xyz"];
 
   RemoteConfigurationEvent* event = [[RemoteConfigurationEvent alloc] initWithType:RemoteConfigurationReady];
   [event setValue:remoteConfig forKey:@"remoteConfiguration"];
@@ -47,8 +48,9 @@
 
   NSDictionary* config = [event appFacingConfiguration];
 
-  assertThat(config[@"channelCategories"], instanceOf([NSArray class]));
-  assertThat(config[@"deviceId"], is(deviceId));
+  NSArray* categories = config[@"channelCategories"];
+  assertThat(categories, hasCountOf(1));
+  assertThat(categories[0], is(expectedCategoryDict));
 }
 
 @end
