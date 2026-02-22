@@ -1,7 +1,8 @@
 #import <XCTest/XCTest.h>
 
-#import "../../Teak/Events/UserDataEvent.h"
-#import "../../Teak/Core/TeakChannelStatus.h"
+#import "UserDataEvent.h"
+#import "TeakChannelStatus.h"
+#import "TeakDeviceConfiguration.h"
 
 @import OCHamcrest;
 @import OCMockito;
@@ -21,6 +22,9 @@
   TeakChannelStatus* smsStatus = mock([TeakChannelStatus class]);
   [given([smsStatus toDictionary]) willReturn:@{@"state" : @"unknown"}];
 
+  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
+  [given([deviceConfig deviceId]) willReturn:expectedDeviceId];
+
   NSDictionary* additionalData = @{};
   NSDictionary* pushRegistration = (NSDictionary*)[NSNull null];
 
@@ -30,7 +34,7 @@
   [event setValue:pushStatus forKey:@"pushStatus"];
   [event setValue:smsStatus forKey:@"smsStatus"];
   [event setValue:pushRegistration forKey:@"pushRegistration"];
-  [event setValue:expectedDeviceId forKey:@"deviceId"];
+  [event setValue:deviceConfig forKey:@"deviceConfiguration"];
 
   NSDictionary* dict = [event toDictionary];
 
@@ -55,6 +59,9 @@
   NSDictionary* smsDict = @{@"state" : @"unknown"};
   [given([smsStatus toDictionary]) willReturn:smsDict];
 
+  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
+  [given([deviceConfig deviceId]) willReturn:deviceId];
+
   NSDictionary* additionalData = @{@"key" : @"value"};
   NSDictionary* pushRegistration = @{@"apns" : @"token123"};
 
@@ -64,7 +71,7 @@
   [event setValue:pushStatus forKey:@"pushStatus"];
   [event setValue:smsStatus forKey:@"smsStatus"];
   [event setValue:pushRegistration forKey:@"pushRegistration"];
-  [event setValue:deviceId forKey:@"deviceId"];
+  [event setValue:deviceConfig forKey:@"deviceConfiguration"];
 
   NSDictionary* dict = [event toDictionary];
 

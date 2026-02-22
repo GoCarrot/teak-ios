@@ -1,17 +1,19 @@
 #import "RemoteConfigurationEvent.h"
 #import "TeakChannelCategory.h"
+#import "TeakDeviceConfiguration.h"
+#import "TeakHelpers.h"
 
 @interface RemoteConfigurationEvent ()
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* _Nonnull remoteConfiguration;
-@property (strong, nonatomic, readwrite) NSString* _Nonnull deviceId;
+@property (strong, nonatomic, readwrite) TeakDeviceConfiguration* _Nonnull deviceConfiguration;
 @end
 
 @implementation RemoteConfigurationEvent
 
-+ (void)remoteConfigurationReady:(TeakRemoteConfiguration* _Nonnull)remoteConfiguration deviceId:(NSString* _Nonnull)deviceId {
++ (void)remoteConfigurationReady:(TeakRemoteConfiguration* _Nonnull)remoteConfiguration deviceConfiguration:(TeakDeviceConfiguration* _Nonnull)deviceConfiguration {
   RemoteConfigurationEvent* event = [[RemoteConfigurationEvent alloc] initWithType:RemoteConfigurationReady];
   event.remoteConfiguration = remoteConfiguration;
-  event.deviceId = deviceId;
+  event.deviceConfiguration = deviceConfiguration;
   [TeakEvent postEvent:event];
 }
 
@@ -22,7 +24,7 @@
   }
   return @{
     @"channelCategories": serializedCategories,
-    @"deviceId": self.deviceId
+    @"deviceId": TeakValueOrNSNull(self.deviceConfiguration.deviceId)
   };
 }
 @end

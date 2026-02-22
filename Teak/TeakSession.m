@@ -902,7 +902,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
                          pushStatus:self.pushStatus
                           smsStatus:self.smsStatus
                    pushRegistration:pushRegistration
-                           deviceId:self.deviceConfiguration.deviceId];
+                deviceConfiguration:self.deviceConfiguration];
   }
 }
 

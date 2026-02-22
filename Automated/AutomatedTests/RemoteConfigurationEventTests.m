@@ -1,8 +1,9 @@
 #import <XCTest/XCTest.h>
 
-#import "../../Teak/Events/RemoteConfigurationEvent.h"
-#import "../../Teak/Configuration/TeakRemoteConfiguration.h"
-#import "../../Teak/TeakChannelCategory.h"
+#import "RemoteConfigurationEvent.h"
+#import "TeakDeviceConfiguration.h"
+#import "TeakRemoteConfiguration.h"
+#import "TeakChannelCategory.h"
 
 @import OCHamcrest;
 @import OCMockito;
@@ -18,9 +19,12 @@
   TeakRemoteConfiguration* remoteConfig = mock([TeakRemoteConfiguration class]);
   [given([remoteConfig channelCategories]) willReturn:@[]];
 
+  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
+  [given([deviceConfig deviceId]) willReturn:expectedDeviceId];
+
   RemoteConfigurationEvent* event = [[RemoteConfigurationEvent alloc] initWithType:RemoteConfigurationReady];
   [event setValue:remoteConfig forKey:@"remoteConfiguration"];
-  [event setValue:expectedDeviceId forKey:@"deviceId"];
+  [event setValue:deviceConfig forKey:@"deviceConfiguration"];
 
   NSDictionary* config = [event appFacingConfiguration];
 
@@ -34,9 +38,12 @@
   TeakRemoteConfiguration* remoteConfig = mock([TeakRemoteConfiguration class]);
   [given([remoteConfig channelCategories]) willReturn:@[]];
 
+  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
+  [given([deviceConfig deviceId]) willReturn:deviceId];
+
   RemoteConfigurationEvent* event = [[RemoteConfigurationEvent alloc] initWithType:RemoteConfigurationReady];
   [event setValue:remoteConfig forKey:@"remoteConfiguration"];
-  [event setValue:deviceId forKey:@"deviceId"];
+  [event setValue:deviceConfig forKey:@"deviceConfiguration"];
 
   NSDictionary* config = [event appFacingConfiguration];
 
