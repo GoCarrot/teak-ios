@@ -173,4 +173,4 @@ When you start work, create a new branch with the appropriate prefix (`fix/`, `f
 
 When you work, prefer to make small single purpose commits. Particularly when addressing PR feedback, use separate commits for each piece of feedback that isn't clearly connected to other feedback. If you're unsure, present your commit plan and ask for feedback.
 
-When you're done with your work, push the branch and open a PR if one is not already open. Do not merge without human approval. After opening the PR or pushing, use a Task agent to request a review of the PR with `/review <PR Number>`. Consider the feedback -- if any is an obvious improvement address it, if any requires a decision and you're uncertain, present the decision with options and pros/cons.
+When you're done with your work, push the branch and open a PR if one is not already open. Do not merge without human approval. After opening the PR or pushing, use a Task agent to request a review of the PR with **exactly** `/review <PR Number>`. Consider the feedback -- if any is an obvious improvement address it, if any requires a decision and you're uncertain, present the decision with options and pros/cons.
