@@ -175,6 +175,10 @@ DefineTeakState(Denied, (@[ @"Authorized" ]));
 }
 
 - (TeakState*)invocationOperationPushState {
+  return [self cachedPushState];
+}
+
+- (TeakState*)cachedPushState {
   TeakPushStateChainEntry* lastEntry = [self.stateChain lastObject];
   return lastEntry == nil ? [TeakPushState NotDetermined] : lastEntry.state;
 }

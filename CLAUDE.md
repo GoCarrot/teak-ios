@@ -20,6 +20,29 @@ bundle exec fastlane test
 ```
 Runs from the repo root. Uses the `Automated/Automated.xcworkspace` with `scan`. Results output to `test_output/automated/results.xml` (JUnit format).
 
+### Adding Tests
+
+Tests live in `Automated/AutomatedTests/` and use XCTest with OCMockito (~> 5.0) and OCHamcrest for mocking/assertions.
+
+**To add a new test file:**
+```bash
+bundle exec Automated/generate_test ClassName   # generates AutomatedTests/ClassNameTests.m and adds to Xcode project
+```
+The generator creates a boilerplate XCTest file with OCMockito/OCHamcrest imports and adds the file reference and build phase entry to the Xcode project. It's idempotent — safe to re-run on existing files.
+
+**Header imports in tests:**
+- SDK source headers via relative paths: `#import "../../Teak/TeakPushState.h"`
+- Framework public headers: `#import <Teak/Teak.h>`
+- To access internal properties, re-declare them in a class extension in the test file rather than importing `Teak+Internal.h` (which pulls in headers not on the test target's search path)
+
+**Creating Teak instances for testing:**
+`[[Teak alloc] init]` bypasses `initWithApplicationId:andSecret:` and creates a bare instance with nil properties. This is safe for unit testing where you set only the properties under test. Production code must always use `[Teak sharedInstance]`.
+
+**Test patterns:**
+- `DebugConfigurationTests.m` — dependency injection with real objects (preferred when possible)
+- `LogTests.m` — OCMockito mocking with `mock()`, `given()`, `stubProperty()`, `assertThat()`
+- `NotificationSettingsTests.m` — bare Teak instance with mocked dependencies, internal property re-declaration
+
 **Format code:**
 ```bash
 ./format-code
