@@ -18,9 +18,7 @@
 
 #pragma mark - Helpers
 
-// [[Teak alloc] init] bypasses initWithApplicationId:andSecret: and creates a
-// bare instance with nil properties. This is safe for unit testing because we
-// only set the properties under test. Production code must use [Teak sharedInstance].
+// See CLAUDE.md "Creating Teak instances for testing" for why bare init is safe here.
 - (Teak*)teakWithMockedPushState:(TeakState*)state {
   Teak* teak = [[Teak alloc] init];
   TeakPushState* mockPushState = mock([TeakPushState class]);

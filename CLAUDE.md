@@ -35,6 +35,9 @@ The generator creates a boilerplate XCTest file with OCMockito/OCHamcrest import
 - Framework public headers: `#import <Teak/Teak.h>`
 - To access internal properties, re-declare them in a class extension in the test file rather than importing `Teak+Internal.h` (which pulls in headers not on the test target's search path)
 
+**Creating Teak instances for testing:**
+`[[Teak alloc] init]` bypasses `initWithApplicationId:andSecret:` and creates a bare instance with nil properties. This is safe for unit testing where you set only the properties under test. Production code must always use `[Teak sharedInstance]`.
+
 **Test patterns:**
 - `DebugConfigurationTests.m` — dependency injection with real objects (preferred when possible)
 - `LogTests.m` — OCMockito mocking with `mock()`, `given()`, `stubProperty()`, `assertThat()`
