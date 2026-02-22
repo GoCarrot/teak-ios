@@ -43,7 +43,7 @@ else
     @implementation #{test_class}
 
     - (void)testExample {
-      XCTAssertTrue(YES, @"Replace me with a real test");
+      XCTFail(@"Replace me with a real test");
     }
 
     @end
