@@ -892,11 +892,17 @@ Teak* _teakSharedInstance;
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
   TeakUnused(center);
 
-  TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
+  NSDictionary* userInfo = notification.request.content.userInfo;
+  TeakLog_t(@"notification.foreground.payload", userInfo);
+
+  TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
   if (notif) {
     if([self trackLastWillPresentNotification:notif]) {
+      TeakLog_t(@"notification.foreground.duplicate", @{@"teakNotifId" : _(notif.teakNotifId)});
       return;
     }
+
+    TeakLog_t(@"notification.foreground.display", @{@"teakNotifId" : _(notif.teakNotifId), @"showInForeground" : @(notif.showInForeground)});
 
     // Always inform the host app that a foreground notification was received
     [self didReceiveForegroundNotification:notif];
