@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   teak: teak/sdk-utils@1
   buildomat: teak/buildomat@0.1
+  aws-cli: circleci/aws-cli@5
 
 jobs:
   test:
@@ -58,24 +59,18 @@ jobs:
     steps:
       - checkout
       - run: git fetch --tags
-      - run:
-          name: Install AWS CLI
-          command: |
-            sudo apt-get update
-            sudo apt-get -y -qq install awscli
+      - aws-cli/install
       - attach_workspace:
           at: workspace/
       - buildomat/aws-oidc-assume
       - run:
           name: Upload SDK to S3
           command: |
-            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip --acl public-read
-            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-$(git describe --tags --always).bundle.zip --acl public-read
-            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info-$(git describe --tags --always).plist --acl public-read
-            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService-$(git describe --tags --always).appex.zip --acl public-read
-            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent-$(git describe --tags --always).appex.zip --acl public-read
-            aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions-$(git describe --tags --always).zip --acl public-read
-            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak-$(git describe --tags --always).framework.zip.sha512 --acl public-read
+            VERSION=$(git describe --tags --always)
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip s3://teak-build-artifacts/ios/Teak-${VERSION}.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip.sha512 s3://teak-build-artifacts/ios/Teak-${VERSION}.xcframework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip s3://teak-build-artifacts/ios/TeakExtension-${VERSION}.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip.sha512 s3://teak-build-artifacts/ios/TeakExtension-${VERSION}.xcframework.zip.sha512 --acl public-read
 
   deploy_latest:
     docker:
@@ -83,24 +78,17 @@ jobs:
     steps:
       - checkout
       - run: git fetch --tags
-      - run:
-          name: Install AWS CLI
-          command: |
-            sudo apt-get update
-            sudo apt-get -y -qq install awscli
+      - aws-cli/install
       - attach_workspace:
           at: workspace/
       - buildomat/aws-oidc-assume
       - run:
           name: Upload SDK to S3
           command: |
-            aws s3 cp workspace/build/Release-iphoneos/Teak.framework.zip s3://teak-build-artifacts/ios/Teak.framework.zip --acl public-read
-            aws s3 cp workspace/build/Release-iphoneos/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
-            aws s3 cp workspace/TeakExtensions/TeakNotificationContent/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
-            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationService.appex.zip s3://teak-build-artifacts/ios/TeakNotificationService.appex.zip --acl public-read
-            aws s3 cp workspace/Sample/build/Release-iphoneos/TeakNotificationContent.appex.zip s3://teak-build-artifacts/ios/TeakNotificationContent.appex.zip --acl public-read
-            aws s3 cp workspace/TeakExtensions.zip s3://teak-build-artifacts/ios/TeakExtensions.zip --acl public-read
-            aws s3 cp workspace/Teak.framework.zip.sha512 s3://teak-build-artifacts/ios/Teak.framework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip s3://teak-build-artifacts/ios/Teak.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip.sha512 s3://teak-build-artifacts/ios/Teak.xcframework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip s3://teak-build-artifacts/ios/TeakExtension.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip.sha512 s3://teak-build-artifacts/ios/TeakExtension.xcframework.zip.sha512 --acl public-read
 
 workflows:
   version: 2
