@@ -123,8 +123,6 @@ workflows:
       - build:
           context:
             - iOS-Build
-          requires:
-            - test
 
   nightly-latest:
     triggers:
@@ -141,8 +139,6 @@ workflows:
       - build:
           context:
             - iOS-Build
-          requires:
-            - test
 
   un-tagged-build:
     jobs:
@@ -155,13 +151,12 @@ workflows:
       - build:
           context:
             - iOS-Build
-          requires:
-            - test
           filters:
             tags:
               ignore: /.*/
       - tag_build:
           requires:
+            - test
             - build
           filters:
             tags:
@@ -180,8 +175,6 @@ workflows:
       - build:
           context:
             - iOS-Build
-          requires:
-            - test
           filters:
             branches:
               ignore: /.*/
@@ -191,6 +184,7 @@ workflows:
           context:
             - AWS-OIDC-Role
           requires:
+            - test
             - build
           filters:
             branches:
@@ -200,6 +194,7 @@ workflows:
       - hold:
           type: approval
           requires:
+            - test
             - build
           filters:
             branches:
