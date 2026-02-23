@@ -840,8 +840,8 @@ Teak* _teakSharedInstance;
 
 // This should be called when a notification was received with the app in the
 // foreground.
-- (void)didReceiveForegroundNotification:(TeakNotification*)notif {
-  TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(notif.teakNotifId)});
+- (void)didReceiveForegroundNotification:(TeakNotification*)notif withUserInfo:(NSDictionary*)userInfo {
+  TeakLog_i(@"notification.foreground", userInfo);
 
   // Notify any listeners that a foreground notification has been received.
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
@@ -893,19 +893,14 @@ Teak* _teakSharedInstance;
   TeakUnused(center);
 
   NSDictionary* userInfo = notification.request.content.userInfo;
-  TeakLog_t(@"notification.foreground.payload", userInfo);
-
   TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
   if (notif) {
     if([self trackLastWillPresentNotification:notif]) {
-      TeakLog_t(@"notification.foreground.duplicate", @{@"teakNotifId" : _(notif.teakNotifId)});
       return;
     }
 
-    TeakLog_t(@"notification.foreground.display", @{@"teakNotifId" : _(notif.teakNotifId), @"showInForeground" : @(notif.showInForeground)});
-
     // Always inform the host app that a foreground notification was received
-    [self didReceiveForegroundNotification:notif];
+    [self didReceiveForegroundNotification:notif withUserInfo:userInfo];
     completionHandler(notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
   }
 }
@@ -1003,7 +998,7 @@ Teak* _teakSharedInstance;
   if (application.applicationState == UIApplicationStateInactive) {
     [self didLaunchFromNotification:notif inBackground:true];
   } else if (application.applicationState == UIApplicationStateActive) {
-    [self didReceiveForegroundNotification:notif];
+    [self didReceiveForegroundNotification:notif withUserInfo:userInfo];
   }
 }
 
