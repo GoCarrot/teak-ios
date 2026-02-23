@@ -10,9 +10,9 @@ Teak iOS SDK — an Objective-C framework providing push notifications, deep lin
 
 **Build the framework:**
 ```bash
-./compile
+./compile_xc_framework
 ```
-This runs xcodebuild for the `Framework` target (Release, iphoneos), runs clang static analysis, builds the Sample app extensions via fastlane, and zips artifacts.
+Builds Teak.xcframework and TeakExtension.xcframework (simulator + device archives), zips them with SHA-512 checksums, and copies to `../teak-ios-framework`. Pass `-d` for a debug build.
 
 **Run tests:**
 ```bash
