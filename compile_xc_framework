@@ -200,6 +200,9 @@ build_resources() {
     -target TeakResources \
     -configuration $buildtype \
     BUILD_DIR="${script_dir}/build" \
+    CODE_SIGN_IDENTITY="" \
+    CODE_SIGNING_REQUIRED=NO \
+    CODE_SIGNING_ALLOWED=NO \
     clean \
     build
 
