@@ -120,7 +120,7 @@ git push
 # Then separately: update teak-ios-framework with new xcframeworks + tag
 ```
 
-**Version numbers are immutable.** Once a promote commit is pushed and CI tags it, that version is permanently consumed. Tags cannot be moved or reused. When promoting, always check `git tag --list` (or recent commit history) to determine the next available version number.
+**Version numbers are immutable.** Once a promote commit is pushed and CI tags it, that version is permanently consumed. Tags cannot be moved or reused. When promoting, always check recent commit messages (e.g., `git log --oneline`) to determine the next available version number. Tags are created remotely by CI, so `git tag --list` requires a fetch first and is less reliable than checking the log.
 
 ## Branches
 
