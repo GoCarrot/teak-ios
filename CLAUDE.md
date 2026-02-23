@@ -120,6 +120,8 @@ git push
 # Then separately: update teak-ios-framework with new xcframeworks + tag
 ```
 
+**Version numbers are immutable.** Once a promote commit is pushed and CI tags it, that version is permanently consumed. Tags cannot be moved or reused. When promoting, always check `git tag --list` (or recent commit history) to determine the next available version number.
+
 ## Branches
 
 We follow git-flow (mostly). Currently the following branches are active.
@@ -162,15 +164,3 @@ Technical description of changes made
 🤖 Generated with Claude Code
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
-
-## How We Work
-
-If given a GitHub project, identify an issue that you can work on independently. Prefer to work on the smallest, most tightly-scoped issue.
-
-If given a GitHub issue (or when choosing one from a project), read the full issue and all comments. If there's anything that you're unclear on or points that require decisions, **ask**. For decisions, present possible options with pros and cons.
-
-When you start work, create a new branch with the appropriate prefix (`fix/`, `feat/`, `maint/`) and a short descriptive name.
-
-When you work, prefer to make small single purpose commits. Particularly when addressing PR feedback, use separate commits for each piece of feedback that isn't clearly connected to other feedback. If you're unsure, present your commit plan and ask for feedback.
-
-When you're done with your work, push the branch and open a PR if one is not already open. Do not merge without human approval. After opening the PR or pushing, use a Task agent to request a review of the PR with **exactly** `/review <PR Number>`. Consider the feedback -- if any is an obvious improvement address it, if any requires a decision and you're uncertain, present the decision with options and pros/cons.
