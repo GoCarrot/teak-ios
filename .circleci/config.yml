@@ -220,6 +220,9 @@ commands:
     description: "iOS Common Setup"
     steps:
       - checkout
+      - run:
+          name: Fetch Tags
+          command: git fetch --tags
       - restore_cache:
           key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
