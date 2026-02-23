@@ -95,6 +95,8 @@ build() {
   IOS_PATH="${BASE_DIRECTORY}/ios.xcarchive"
   EXT_IOS_PATH="${BASE_DIRECTORY}/extension-ios.xcarchive"
 
+  TEAK_GIT_VERSION=$(git describe --tags)
+  msg "SDK version: ${TEAK_GIT_VERSION}"
   msg "Building Teak.xcframework for ${buildtype}"
   msg "Cleaning previous build at ${BASE_DIRECTORY}"
   rm -fr "${BASE_DIRECTORY}"
@@ -111,6 +113,7 @@ build() {
     -archivePath "${SIMULATOR_PATH}" \
     SKIP_INSTALL=NO \
     BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
+    TEAK_GIT_VERSION="${TEAK_GIT_VERSION}" \
     clean \
     archive
 
@@ -138,6 +141,7 @@ build() {
     -archivePath "${IOS_PATH}" \
     SKIP_INSTALL=NO \
     BUILD_LIBRARIES_FOR_DISTRIBUTION=YES \
+    TEAK_GIT_VERSION="${TEAK_GIT_VERSION}" \
     clean \
     archive
 

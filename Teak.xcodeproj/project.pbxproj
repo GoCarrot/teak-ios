@@ -1079,7 +1079,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "git=$(sh /etc/profile; which git)\nversion=$(\"$git\" describe --tags)\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
+			shellScript = "if [ -n \"$TEAK_GIT_VERSION\" ]; then\n  version=\"$TEAK_GIT_VERSION\"\nelse\n  git=$(sh /etc/profile; which git)\n  version=$(\"$git\" describe --tags)\nfi\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
