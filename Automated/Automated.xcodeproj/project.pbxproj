@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		0F9BB099DE5CFEDF8A8B30F9 /* Pods_AutomatedUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDCD65E1A5663F5B9041146E /* Pods_AutomatedUITests.framework */; };
+		24E918A8B1343E0E4D8092AE /* Teak.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 5C9225DEADC25983AF315554 /* Teak.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		2CC95EAD6283AE3D2A4AB872 /* Teak.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C9225DEADC25983AF315554 /* Teak.framework */; };
+		42ECB723361A815F90E2CC99 /* Teak.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C9225DEADC25983AF315554 /* Teak.framework */; };
 		433392912654423400B10DE4 /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 433392902654423400B10DE4 /* CoreServices.framework */; };
 		4358FF8422541E540068A4FD /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF8322541E540068A4FD /* AppDelegate.m */; };
 		4358FF8722541E540068A4FD /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF8622541E540068A4FD /* ViewController.m */; };
@@ -17,9 +20,6 @@
 		4358FF9222541E550068A4FD /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF9122541E550068A4FD /* main.m */; };
 		4358FF9C22541E550068A4FD /* AutomatedTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FF9B22541E550068A4FD /* AutomatedTests.m */; };
 		4358FFA722541E550068A4FD /* AutomatedUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 4358FFA622541E550068A4FD /* AutomatedUITests.m */; };
-		4358FFBF2255328F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
-		4358FFC0225532970068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
-		4358FFC12255329F0068A4FD /* libTeak.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4358FFBB225420510068A4FD /* libTeak.a */; };
 		43B4617522A1E10F004AC636 /* LogTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 43B4617422A1E10F004AC636 /* LogTests.m */; };
 		43B4618322A1EB05004AC636 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4617F22A1EB05004AC636 /* StoreKit.framework */; };
 		43B4618522A1EB0D004AC636 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618422A1EB0D004AC636 /* SystemConfiguration.framework */; };
@@ -28,7 +28,14 @@
 		43B4618F22A1EB54004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
 		43B4619922A20FDC004AC636 /* AdSupport.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4618E22A1EB54004AC636 /* AdSupport.framework */; };
 		43B4619D22A20FE4004AC636 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 43B4617F22A1EB05004AC636 /* StoreKit.framework */; };
+		6CCAAEB7E63F06EEC9B8512E /* RemoteConfigurationEventTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */; };
+		7FEB52BB31B7C9926174546D /* NotificationSettingsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 7520CCFA85F3D201187FC76C /* NotificationSettingsTests.m */; };
+		97323CF5B3B2B4A49C9C8B78 /* UserDataEventTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A2BD9B7EEAF70309185B446 /* UserDataEventTests.m */; };
+
+		B731D0BCE8646D60DCD428A5 /* Teak.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C9225DEADC25983AF315554 /* Teak.framework */; };
 		BF20EAD8B0CC8F23483B6FF0 /* Pods_AutomatedTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */; };
+		C4FC8AA560BCA9293B0508AA /* DebugConfigurationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 90808DE4E189C0B1BDF95023 /* DebugConfigurationTests.m */; };
+		F4B9E6A620B8C3BC50CCB7CE /* libPods-Automated.a in Frameworks */ = {isa = PBXBuildFile; fileRef = EB6801CB2EE90121E8092CE8 /* libPods-Automated.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,13 +53,6 @@
 			remoteGlobalIDString = 4358FF7E22541E540068A4FD;
 			remoteInfo = Automated;
 		};
-		4358FFBA225420510068A4FD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 4358FFB4225420510068A4FD /* Teak.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 431C97FA1C7E609800B19DD5;
-			remoteInfo = Teak;
-		};
 		4358FFBC225420510068A4FD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4358FFB4225420510068A4FD /* Teak.xcodeproj */;
@@ -60,7 +60,28 @@
 			remoteGlobalIDString = 430E64671FB62EEE008DE15B;
 			remoteInfo = TeakResources;
 		};
+		643FBC9931479CCA3BC9BC75 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4358FFB4225420510068A4FD /* Teak.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = FAA142B72D70E057009C3996;
+			remoteInfo = Framework;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		482331DFE6F4F6987371DA20 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				24E918A8B1343E0E4D8092AE /* Teak.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0D7BD679E00A2C57BE7AA5E3 /* Pods-AutomatedUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedUITests.release.xcconfig"; path = "Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests.release.xcconfig"; sourceTree = "<group>"; };
@@ -95,7 +116,11 @@
 		43B4619222A1EBDF004AC636 /* OCMockito.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = OCMockito.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		58899BE40E40447A87FDF2D8 /* Pods-AutomatedTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedTests.release.xcconfig"; path = "Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests.release.xcconfig"; sourceTree = "<group>"; };
 		58C2AA35CD060472CAC08059 /* Pods-Automated.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Automated.debug.xcconfig"; path = "Target Support Files/Pods-Automated/Pods-Automated.debug.xcconfig"; sourceTree = "<group>"; };
+		6A2BD9B7EEAF70309185B446 /* UserDataEventTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = UserDataEventTests.m; sourceTree = "<group>"; };
 		6B7A960ECDD5D5D7E3CB6A8E /* Pods-AutomatedUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedUITests.debug.xcconfig"; path = "Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests.debug.xcconfig"; sourceTree = "<group>"; };
+		7520CCFA85F3D201187FC76C /* NotificationSettingsTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = NotificationSettingsTests.m; sourceTree = "<group>"; };
+		90808DE4E189C0B1BDF95023 /* DebugConfigurationTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = DebugConfigurationTests.m; sourceTree = "<group>"; };
+		9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = RemoteConfigurationEventTests.m; sourceTree = "<group>"; };
 		C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AutomatedTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB6801CB2EE90121E8092CE8 /* libPods-Automated.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Automated.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EDCD65E1A5663F5B9041146E /* Pods_AutomatedUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AutomatedUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -112,7 +137,8 @@
 				43B4618722A1EB19004AC636 /* UserNotifications.framework in Frameworks */,
 				43B4618522A1EB0D004AC636 /* SystemConfiguration.framework in Frameworks */,
 				43B4618322A1EB05004AC636 /* StoreKit.framework in Frameworks */,
-				4358FFC12255329F0068A4FD /* libTeak.a in Frameworks */,
+				F4B9E6A620B8C3BC50CCB7CE /* libPods-Automated.a in Frameworks */,
+				2CC95EAD6283AE3D2A4AB872 /* Teak.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -122,8 +148,8 @@
 			files = (
 				43B4619D22A20FE4004AC636 /* StoreKit.framework in Frameworks */,
 				43B4619922A20FDC004AC636 /* AdSupport.framework in Frameworks */,
-				4358FFBF2255328F0068A4FD /* libTeak.a in Frameworks */,
 				BF20EAD8B0CC8F23483B6FF0 /* Pods_AutomatedTests.framework in Frameworks */,
+				42ECB723361A815F90E2CC99 /* Teak.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,8 +157,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4358FFC0225532970068A4FD /* libTeak.a in Frameworks */,
 				0F9BB099DE5CFEDF8A8B30F9 /* Pods_AutomatedUITests.framework in Frameworks */,
+				B731D0BCE8646D60DCD428A5 /* Teak.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,6 +223,10 @@
 				4358FF9B22541E550068A4FD /* AutomatedTests.m */,
 				4358FF9D22541E550068A4FD /* Info.plist */,
 				43B4617422A1E10F004AC636 /* LogTests.m */,
+				90808DE4E189C0B1BDF95023 /* DebugConfigurationTests.m */,
+				7520CCFA85F3D201187FC76C /* NotificationSettingsTests.m */,
+				6A2BD9B7EEAF70309185B446 /* UserDataEventTests.m */,
+				9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -213,8 +243,8 @@
 		4358FFB5225420510068A4FD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4358FFBB225420510068A4FD /* libTeak.a */,
 				4358FFBD225420510068A4FD /* TeakResources.bundle */,
+				5C9225DEADC25983AF315554 /* Teak.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -249,6 +279,7 @@
 				4358FF7B22541E540068A4FD /* Sources */,
 				4358FF7C22541E540068A4FD /* Frameworks */,
 				4358FF7D22541E540068A4FD /* Resources */,
+				482331DFE6F4F6987371DA20 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -348,18 +379,18 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		4358FFBB225420510068A4FD /* libTeak.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libTeak.a;
-			remoteRef = 4358FFBA225420510068A4FD /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		4358FFBD225420510068A4FD /* TeakResources.bundle */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.cfbundle;
 			path = TeakResources.bundle;
 			remoteRef = 4358FFBC225420510068A4FD /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		5C9225DEADC25983AF315554 /* Teak.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = Teak.framework;
+			remoteRef = 643FBC9931479CCA3BC9BC75 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -511,6 +542,10 @@
 			files = (
 				43B4617522A1E10F004AC636 /* LogTests.m in Sources */,
 				4358FF9C22541E550068A4FD /* AutomatedTests.m in Sources */,
+				C4FC8AA560BCA9293B0508AA /* DebugConfigurationTests.m in Sources */,
+				7FEB52BB31B7C9926174546D /* NotificationSettingsTests.m in Sources */,
+				97323CF5B3B2B4A49C9C8B78 /* UserDataEventTests.m in Sources */,
+				6CCAAEB7E63F06EEC9B8512E /* RemoteConfigurationEventTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -608,7 +643,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -661,7 +696,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -712,6 +747,15 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../Teak",
+					"$(SRCROOT)/../Teak/Core",
+					"$(SRCROOT)/../Teak/Events",
+					"$(SRCROOT)/../Teak/Configuration",
+					"$(SRCROOT)/../Teak/Extensions",
+					"$(SRCROOT)/../Teak/3rdParty",
+					"$(SRCROOT)/../Teak/Store",
+				);
 				INFOPLIST_FILE = AutomatedTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -732,6 +776,15 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 7FLZTACJ82;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/../Teak",
+					"$(SRCROOT)/../Teak/Core",
+					"$(SRCROOT)/../Teak/Events",
+					"$(SRCROOT)/../Teak/Configuration",
+					"$(SRCROOT)/../Teak/Extensions",
+					"$(SRCROOT)/../Teak/3rdParty",
+					"$(SRCROOT)/../Teak/Store",
+				);
 				INFOPLIST_FILE = AutomatedTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

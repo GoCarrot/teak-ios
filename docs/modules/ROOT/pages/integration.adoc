@@ -2,8 +2,8 @@
 
 The latest version of the Teak iOS SDK is always available at:
 
-* http://sdks.teakcdn.com/ios/Teak.framework.zip
-* http://sdks.teakcdn.com/ios/TeakResources.bundle.zip
+* http://sdks.teakcdn.com/ios/Teak.xcframework.zip
+* http://sdks.teakcdn.com/ios/TeakExtension.xcframework.zip
 
 == Dependencies
 

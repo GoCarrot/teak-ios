@@ -304,7 +304,7 @@ Teak* _teakSharedInstance;
 
 - (BOOL)canOpenNotificationSettings {
   if (@available(iOS 15.4, *)) {
-    return YES;
+    return [self.pushState cachedPushState] != [TeakPushState NotDetermined];
   } else {
     return NO;
   }
@@ -919,8 +919,8 @@ Teak* _teakSharedInstance;
 
 // This should be called when a notification was received with the app in the
 // foreground.
-- (void)didReceiveForegroundNotification:(TeakNotification*)notif {
-  TeakLog_i(@"notification.foreground", @{@"teakNotifId" : _(notif.teakNotifId)});
+- (void)didReceiveForegroundNotification:(TeakNotification*)notif withUserInfo:(NSDictionary*)userInfo {
+  TeakLog_i(@"notification.foreground", userInfo);
 
   // Notify any listeners that a foreground notification has been received.
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
@@ -971,14 +971,15 @@ Teak* _teakSharedInstance;
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
   TeakUnused(center);
 
-  TeakNotification* notif = [self teakNotificationFromUserInfo:notification.request.content.userInfo];
+  NSDictionary* userInfo = notification.request.content.userInfo;
+  TeakNotification* notif = [self teakNotificationFromUserInfo:userInfo];
   if (notif) {
     if([self trackLastWillPresentNotification:notif]) {
       return;
     }
 
     // Always inform the host app that a foreground notification was received
-    [self didReceiveForegroundNotification:notif];
+    [self didReceiveForegroundNotification:notif withUserInfo:userInfo];
     completionHandler(notif.showInForeground ? UNNotificationPresentationOptionAlert : UNNotificationPresentationOptionNone);
   }
 }
@@ -1076,7 +1077,7 @@ Teak* _teakSharedInstance;
   if (application.applicationState == UIApplicationStateInactive) {
     [self didLaunchFromNotification:notif inBackground:true];
   } else if (application.applicationState == UIApplicationStateActive) {
-    [self didReceiveForegroundNotification:notif];
+    [self didReceiveForegroundNotification:notif withUserInfo:userInfo];
   }
 }
 

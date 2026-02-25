@@ -1,0 +1,7 @@
+new:
+  - "TeakForceDebugOutput Info.plist key: Set to YES to force-enable debug logging on production builds without a server-side change."
+enhancement:
+  - "ConfigurationData and UserData event payloads now include deviceId, making the device's persistent identifier available to cross-platform wrappers."
+  - "canOpenNotificationSettings now returns NO when notification permissions have not yet been requested, preventing navigation to an empty settings screen."
+bug:
+  - "Info.plist debug logging override can no longer be stomped by a server response disabling verbose logging."

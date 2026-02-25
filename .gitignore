@@ -14,12 +14,6 @@ xcuserdata/
 Sample/fastlane/README.md
 Sample/fastlane/report.xml
 
-compile_commands.json
-oclint.result
-oclint_result.html
-
-TeakExtensions.zip
-
 test_output/
 fastlane/README.md
 fastlane/report.xml
@@ -27,3 +21,6 @@ fastlane/report.xml
 _doxygen
 node_modules
 TeakFramework/
+
+# Generated at build time by "Define Version" build phase (git describe --tags)
+Teak/TeakVersion.h

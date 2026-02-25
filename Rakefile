@@ -25,8 +25,7 @@ task :docs do
     --theme jony \
     --author Teak.io, Inc. \
     --author_url https://teak.io \
-    --module-version `cat VERSION` \
-    --readme VERSION \
+    --module-version `git describe --tags` \
     --build-tool-arguments --objc,Teak/Teak.h,--,-x,objective-c,-isysroot,$(xcrun --show-sdk-path),-I,$(pwd) \
     --module Teak \
     --output docs/appledoc/objc_output"
