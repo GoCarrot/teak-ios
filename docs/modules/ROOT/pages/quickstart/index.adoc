@@ -13,8 +13,8 @@ NOTE: Teak only supports single window applications or SwiftUI applications. Ple
 
 * [x] An https://developer.apple.com/[Apple Developer, window=_blank] account with administrator permissions.
 * [x] A Mac with https://developer.apple.com/xcode/[XCode, window=_blank] installed.
-* [x] iOS 11.0 or newer
-* [x] Xcode 12 or newer
+* [x] iOS {min-ios} or newer
+* [x] Xcode {min-xcode} or newer
 
 With that out of the way, let's get started.
 
