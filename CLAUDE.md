@@ -97,7 +97,7 @@ Platform minimum: iOS 11.0. Required frameworks include AdSupport, StoreKit, Use
 
 CircleCI 2.1 with workflows:
 - **un-tagged-build**: test → build → auto-tag (on every non-tag commit)
-- **tagged-build**: test → build → deploy to S3 (versioned), then hold for latest deploy
+- **tagged-build**: test → build → deploy to S3 (versioned) + update teak-ios-framework repo, then hold for latest S3 deploy + CocoaPods trunk publish
 - **nightly**: scheduled on `develop` and `master`
 
 Artifacts deployed to `s3://teak-build-artifacts/ios/` with SHA512 checksums.
@@ -116,8 +116,11 @@ Git tags are the single source of truth for versioning. There are no version-bea
 # Optionally create docs/modules/changelog/versions/X.Y.Z.yaml with release notes
 git commit -m "Promote to: X.Y.Z"
 git push
-# CI: orb detects commit message → tags → tagged-build workflow → deploy to S3
-# Then separately: update teak-ios-framework with new xcframeworks + tag
+# CI: orb detects commit message → tags → tagged-build workflow
+# deploy_versioned: uploads to S3 + updates teak-ios-framework repo (commit, tag, push)
+# hold: manual approval gate
+# deploy_latest: uploads "latest" to S3
+# publish_pod: pod trunk push to CocoaPods registry
 ```
 
 **Version numbers are immutable.** Once a promote commit is pushed and CI tags it, that version is permanently consumed. Tags cannot be moved or reused. When promoting, always check recent commit messages (e.g., `git log --oneline`) to determine the next available version number. Tags are created remotely by CI, so `git tag --list` requires a fetch first and is less reliable than checking the log.
