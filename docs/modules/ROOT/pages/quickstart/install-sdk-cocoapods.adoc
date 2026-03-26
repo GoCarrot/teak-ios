@@ -25,7 +25,7 @@ In your Podfile add
 target 'TeakNotificationService' do
   use_frameworks!
 
-  pod 'Teak/Extension', '~> 4.3'
+  pod 'Teak/Extension'
 end
 ```
 +
@@ -41,7 +41,7 @@ In your Podfile add
 target 'TeakNotificationContent' do
   use_frameworks!
 
-  pod 'Teak/Extension', '~> 4.3'
+  pod 'Teak/Extension'
 end
 ```
 +
