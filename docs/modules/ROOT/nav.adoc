@@ -2,6 +2,9 @@
 ** xref:ios::page$quickstart/new-game.adoc[Initial Setup]
 ** xref:ios::page$quickstart/apple-apns.adoc[iOS Push Credentials]
 ** xref:ios::page$quickstart/install-sdk.adoc[Install the Teak SDK]
+*** xref:ios::page$quickstart/install-sdk-swiftpm.adoc[Swift Package Manager]
+*** xref:ios::page$quickstart/install-sdk-cocoapods.adoc[CocoaPods]
+** xref:ios::page$quickstart/add-teak-code.adoc[Add Required Code]
 ** xref:ios::page$quickstart/hello-world.adoc[Sending Your First Notification]
 
 
