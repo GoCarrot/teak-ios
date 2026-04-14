@@ -583,7 +583,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * @param pushToken  The push-to-update token data (from Activity.pushTokenUpdates).
  * @return A TeakOperation which contains the status and result of the call.
  */
-+ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken API_AVAILABLE(ios(16.1));
++ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken;
 
 @end
 

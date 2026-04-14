@@ -197,31 +197,22 @@ Teak* _teakSharedInstance;
     return op;
   }
 
-  if (@available(iOS 16.1, *)) {
-    TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activities"
-                                       withPayload:@{
-                                         @"live_activity_id" : [activityId copy],
-                                         @"token" : [tokenString copy]
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activities"
+                                     withPayload:@{
+                                       @"live_activity_id" : [activityId copy],
+                                       @"token" : [tokenString copy]
+                                     }
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationResult* result = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+
+                                       if (!result.error) {
+                                         TeakLog_i(@"live_activity.token.forwarded", @{@"activityId" : activityId});
+                                       } else {
+                                         TeakLog_e(@"live_activity.token.error", @"Error forwarding live activity token.", @{@"response" : reply});
                                        }
-                                       replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
-                                         TeakOperationResult* result = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
 
-                                         if (!result.error) {
-                                           TeakLog_i(@"live_activity.token.forwarded", @{@"activityId" : activityId});
-                                         } else {
-                                           TeakLog_e(@"live_activity.token.error", @"Error forwarding live activity token.", @{@"response" : reply});
-                                         }
-
-                                         return result;
-                                       }];
-    [[Teak sharedInstance].operationQueue addOperation:op];
-    return op;
-  }
-
-  // Below iOS 16.1 — no-op, return an error result
-  TeakLog_t(@"live_activity.token.unavailable", @"Live Activities require iOS 16.1 or later");
-  result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"os" : @[ @"Live Activities require iOS 16.1 or later" ]}];
-  TeakOperation* op = [TeakOperation withResult:result];
+                                       return result;
+                                     }];
   [[Teak sharedInstance].operationQueue addOperation:op];
   return op;
 }
