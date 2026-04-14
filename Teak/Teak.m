@@ -175,6 +175,57 @@ Teak* _teakSharedInstance;
   [[self sharedInstance] setStringAttribute:value forKey:key];
 }
 
++ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken {
+  TeakLog_t(@"[Teak startedLiveActivity]", @{@"activityId" : _(activityId)});
+
+  TeakOperationResult* result = nil;
+
+  if (activityId == nil || activityId.length == 0) {
+    TeakLog_e(@"live_activity.token.error", @"activityId cannot be null or empty");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
+  }
+
+  NSString* tokenString = TeakHexStringFromData(pushToken);
+  if (!result && (pushToken == nil || tokenString == nil)) {
+    TeakLog_e(@"live_activity.token.error", @"pushToken cannot be null or empty");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"token" : @[ @"pushToken cannot be null or empty" ]}];
+  }
+
+  if (result) {
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  if (@available(iOS 16.1, *)) {
+    TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activities"
+                                       withPayload:@{
+                                         @"live_activity_id" : [activityId copy],
+                                         @"token" : [tokenString copy]
+                                       }
+                                       replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                         TeakOperationResult* result = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+
+                                         if (!result.error) {
+                                           TeakLog_i(@"live_activity.token.forwarded", @{@"activityId" : activityId});
+                                         } else {
+                                           TeakLog_e(@"live_activity.token.error", @"Error forwarding live activity token.", @{@"response" : reply});
+                                         }
+
+                                         return result;
+                                       }];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  // Below iOS 16.1 — no-op, return an error result
+  TeakLog_t(@"live_activity.token.unavailable", @"Live Activities require iOS 16.1 or later");
+  result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"os" : @[ @"Live Activities require iOS 16.1 or later" ]}];
+  TeakOperation* op = [TeakOperation withResult:result];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"

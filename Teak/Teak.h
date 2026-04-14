@@ -572,6 +572,19 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  */
 - (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel andCategory:(nonnull NSString*)category;
 
+/**
+ * Report a live activity push-to-update token to Teak.
+ *
+ * Call this when a live activity starts and receives its push token, and again if the token
+ * changes during the activity's lifetime. The SDK forwards the token to the Teak backend so
+ * that server-driven live activity updates can be delivered via APNs.
+ *
+ * @param activityId The identifier for the live activity instance (from Activity.id).
+ * @param pushToken  The push-to-update token data (from Activity.pushTokenUpdates).
+ * @return A TeakOperation which contains the status and result of the call.
+ */
++ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken API_AVAILABLE(ios(16.1));
+
 @end
 
 #endif /* __OBJC__ */
