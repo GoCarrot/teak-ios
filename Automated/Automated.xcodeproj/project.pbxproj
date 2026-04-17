@@ -32,6 +32,7 @@
 		6CCAAEB7E63F06EEC9B8512E /* RemoteConfigurationEventTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */; };
 		7FEB52BB31B7C9926174546D /* NotificationSettingsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 7520CCFA85F3D201187FC76C /* NotificationSettingsTests.m */; };
 		97323CF5B3B2B4A49C9C8B78 /* UserDataEventTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A2BD9B7EEAF70309185B446 /* UserDataEventTests.m */; };
+		97EDAA942157436DCC939EC2 /* LiveActivityUpdateCancellationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = E3C947C03B892266BFC39FBA /* LiveActivityUpdateCancellationTests.m */; };
 		B731D0BCE8646D60DCD428A5 /* Teak.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C9225DEADC25983AF315554 /* Teak.framework */; };
 		BF20EAD8B0CC8F23483B6FF0 /* Pods_AutomatedTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */; };
 		C4FC8AA560BCA9293B0508AA /* DebugConfigurationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 90808DE4E189C0B1BDF95023 /* DebugConfigurationTests.m */; };
@@ -125,6 +126,7 @@
 		9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = RemoteConfigurationEventTests.m; sourceTree = "<group>"; };
 		AB391C763C6BB4A6052F1D21 /* LiveActivityTokenForwardingTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = LiveActivityTokenForwardingTests.m; sourceTree = "<group>"; };
 		C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AutomatedTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		E3C947C03B892266BFC39FBA /* LiveActivityUpdateCancellationTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = LiveActivityUpdateCancellationTests.m; sourceTree = "<group>"; };
 		EB6801CB2EE90121E8092CE8 /* libPods-Automated.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Automated.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EDCD65E1A5663F5B9041146E /* Pods_AutomatedUITests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AutomatedUITests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -232,6 +234,7 @@
 				9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */,
 				AB391C763C6BB4A6052F1D21 /* LiveActivityTokenForwardingTests.m */,
 				741732706353CEBB41D0AE37 /* LiveActivityUpdateSchedulingTests.m */,
+				E3C947C03B892266BFC39FBA /* LiveActivityUpdateCancellationTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -553,6 +556,7 @@
 				6CCAAEB7E63F06EEC9B8512E /* RemoteConfigurationEventTests.m in Sources */,
 				F05085BD353FDBF2763B09C7 /* LiveActivityTokenForwardingTests.m in Sources */,
 				55AAEB0EF3B9E90616642C8E /* LiveActivityUpdateSchedulingTests.m in Sources */,
+				97EDAA942157436DCC939EC2 /* LiveActivityUpdateCancellationTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
