@@ -211,15 +211,15 @@ Teak* _teakSharedInstance;
                                        @"system_activity_id" : [systemActivityId copy]
                                      }
                                      replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
-                                       TeakOperationResult* result = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+                                       TeakOperationResult* parsedResult = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
 
-                                       if (!result.error) {
+                                       if (!parsedResult.error) {
                                          TeakLog_i(@"live_activity.token.forwarded", @{@"activityId" : activityId, @"systemActivityId" : systemActivityId});
                                        } else {
                                          TeakLog_e(@"live_activity.token.error", @"Error forwarding live activity token.", @{@"response" : reply});
                                        }
 
-                                       return result;
+                                       return parsedResult;
                                      }];
   [[Teak sharedInstance].operationQueue addOperation:op];
   return op;
