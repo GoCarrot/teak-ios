@@ -23,6 +23,10 @@
 @property (strong, nonatomic) NSArray* _Nonnull scheduleIds;
 @end
 
+@interface TeakOperationLiveActivityCancelResult : TeakOperationResult
+@property (nonatomic) NSInteger canceled;
+@end
+
 @interface TeakOperation : NSInvocationOperation
 
 + (nonnull TeakOperation*)withResult:(nonnull id)result;

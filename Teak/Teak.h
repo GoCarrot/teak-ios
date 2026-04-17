@@ -620,6 +620,24 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
                                           customData:(nonnull NSDictionary*)customData
                                           systemData:(nullable NSDictionary*)systemData;
 
+/**
+ * Cancel all pending scheduled updates for a live activity.
+ *
+ * Scopes to the current user's updates for ``activityId``; updates scheduled for other
+ * users or other activity kinds are unaffected.
+ *
+ * @note Live Activities require iOS 16.1 or later. This is an Objective-C method with no
+ *       ``API_AVAILABLE`` guard; callers in Swift/ActivityKit code are responsible for
+ *       enforcing the availability check before invoking it.
+ *
+ * @param activityId A stable, game-chosen constant string naming the *kind* of live
+ *                   activity whose pending updates should be canceled.
+ * @return A TeakOperation whose result (on success) is a
+ *         ``TeakOperationLiveActivityCancelResult`` carrying the number of updates
+ *         canceled by the server.
+ */
++ (nonnull TeakOperation*)cancelLiveActivityUpdates:(nonnull NSString*)activityId;
+
 @end
 
 #endif /* __OBJC__ */

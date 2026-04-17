@@ -313,6 +313,40 @@ Teak* _teakSharedInstance;
   return op;
 }
 
+// Live Activities require iOS 16.1+; the caller (Swift/ActivityKit) is responsible for
+// gating invocation on platform availability rather than duplicating the check here.
++ (nonnull TeakOperation*)cancelLiveActivityUpdates:(nonnull NSString*)activityId {
+  TeakLog_t(@"[Teak cancelLiveActivityUpdates]", @{@"activityId" : _(activityId)});
+
+  if (activityId == nil || activityId.length == 0) {
+    TeakLog_e(@"live_activity.cancel.error", @"activityId cannot be null or empty");
+    TeakOperationResult* result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/cancel_all_live_activity_updates"
+                                     withPayload:@{
+                                       @"live_activity_id" : [activityId copy]
+                                     }
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationLiveActivityCancelResult* parsedResult =
+                                           [[TeakOperationLiveActivityCancelResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+
+                                       if (!parsedResult.error) {
+                                         parsedResult.canceled = [reply[@"canceled"] integerValue];
+                                         TeakLog_i(@"live_activity.cancel.canceled", @{@"activityId" : activityId, @"canceled" : @(parsedResult.canceled)});
+                                       } else {
+                                         TeakLog_e(@"live_activity.cancel.error", @"Error canceling live activity updates.", @{@"response" : reply});
+                                       }
+
+                                       return parsedResult;
+                                     }];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
