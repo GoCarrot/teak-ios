@@ -572,6 +572,25 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  */
 - (nonnull TeakOperation*)setState:(nonnull NSString*)state forChannel:(nonnull NSString*)channel andCategory:(nonnull NSString*)category;
 
+/**
+ * Report a live activity push-to-update token to Teak.
+ *
+ * Call this when a live activity starts and receives its push-to-update token, and again
+ * whenever the token rotates during the activity's lifetime. The SDK forwards the token and
+ * the OS-level system activity identifier to the Teak backend so that server-driven live
+ * activity updates can be delivered via APNs.
+ *
+ * @note Live Activities require iOS 16.1 or later. This is an Objective-C method with no
+ *       ``API_AVAILABLE`` guard; callers in Swift/ActivityKit code are responsible for
+ *       enforcing the availability check before invoking it.
+ *
+ * @param activityId       The game-supplied identifier for the live activity instance.
+ * @param pushToken        The push-to-update token data from ``Activity.pushTokenUpdates``.
+ * @param systemActivityId The OS-level system activity identifier from ``Activity.id``.
+ * @return A TeakOperation which contains the status and result of the call.
+ */
++ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId;
+
 @end
 
 #endif /* __OBJC__ */
