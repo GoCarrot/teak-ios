@@ -175,6 +175,54 @@ Teak* _teakSharedInstance;
   [[self sharedInstance] setStringAttribute:value forKey:key];
 }
 
++ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId {
+  TeakLog_t(@"[Teak startedLiveActivity]", @{@"activityId" : _(activityId), @"systemActivityId" : _(systemActivityId)});
+
+  TeakOperationResult* result = nil;
+
+  if (activityId == nil || activityId.length == 0) {
+    TeakLog_e(@"live_activity.token.error", @"activityId cannot be null or empty");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
+  }
+
+  NSString* tokenString = TeakHexStringFromData(pushToken);
+  if (!result && (pushToken == nil || tokenString == nil)) {
+    TeakLog_e(@"live_activity.token.error", @"pushToken cannot be null or empty");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"token" : @[ @"pushToken cannot be null or empty" ]}];
+  }
+
+  if (!result && (systemActivityId == nil || systemActivityId.length == 0)) {
+    TeakLog_e(@"live_activity.token.error", @"systemActivityId cannot be null or empty");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"systemActivityId" : @[ @"systemActivityId cannot be null or empty" ]}];
+  }
+
+  if (result) {
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activities"
+                                     withPayload:@{
+                                       @"live_activity_id" : [activityId copy],
+                                       @"token" : [tokenString copy],
+                                       @"system_activity_id" : [systemActivityId copy]
+                                     }
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationResult* parsedResult = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+
+                                       if (!parsedResult.error) {
+                                         TeakLog_i(@"live_activity.token.forwarded", @{@"activityId" : activityId, @"systemActivityId" : systemActivityId});
+                                       } else {
+                                         TeakLog_e(@"live_activity.token.error", @"Error forwarding live activity token.", @{@"response" : reply});
+                                       }
+
+                                       return parsedResult;
+                                     }];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
