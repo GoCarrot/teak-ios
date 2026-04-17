@@ -175,8 +175,6 @@ Teak* _teakSharedInstance;
   [[self sharedInstance] setStringAttribute:value forKey:key];
 }
 
-// Live Activities require iOS 16.1+; the caller (Swift/ActivityKit) is responsible for
-// gating invocation on platform availability rather than duplicating the check here.
 + (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId {
   TeakLog_t(@"[Teak startedLiveActivity]", @{@"activityId" : _(activityId), @"systemActivityId" : _(systemActivityId)});
 
