@@ -128,6 +128,20 @@
   XCTAssertNotNil(result.errors[@"customData"]);
 }
 
+- (void)testEmptyCustomDataIsAllowed {
+  // Server-side only requires custom_data be non-nil; an empty content-state dict is a valid
+  // (if unusual) payload. Asserting explicitly so a future "tighten validation" change
+  // doesn't silently break callers that rely on this.
+  TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
+                                              sendTime:[self sampleSendTime]
+                                            customData:@{}
+                                            systemData:[self sampleSystemData]];
+
+  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  XCTAssertEqualObjects(payload[@"custom_data"], @"{}",
+                        @"empty customData should serialize to \"{}\", not short-circuit to an error");
+}
+
 - (void)testNonSerializableCustomDataReturnsErrorOperation {
   // NSDate is not a valid JSON leaf; NSJSONSerialization will reject it.
   NSDictionary* badData = @{@"when" : [NSDate date]};
