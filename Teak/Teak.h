@@ -590,6 +590,36 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  */
 + (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId;
 
+/**
+ * Schedule a single update to be delivered to a live activity at a future time.
+ *
+ * The game calls this between ``+startedLiveActivity:withToken:systemActivityId:`` and the
+ * activity ending. The scheduled update's ``customData`` is delivered as APNs
+ * ``content-state``; ``systemData`` carries Apple system fields (``event``, ``stale-date``,
+ * ``dismissal-date``). Server-side, ``send_time`` is rejected if it falls outside a 10-hour
+ * window from the live activity's creation; idempotency applies as it does for other
+ * Teak-scheduled sends.
+ *
+ * @note Live Activities require iOS 16.1 or later. This is an Objective-C method with no
+ *       ``API_AVAILABLE`` guard; callers in Swift/ActivityKit code are responsible for
+ *       enforcing the availability check before invoking it.
+ *
+ * @param activityId A stable, game-chosen constant string naming the *kind* of live
+ *                   activity (for example, ``@"chest_timer"``) — the same value that was
+ *                   passed to ``+startedLiveActivity:withToken:systemActivityId:``.
+ * @param sendTime   Absolute delivery time for the update.
+ * @param customData Game-defined content-state payload. Must contain only JSON-serializable
+ *                   values (strings, numbers, arrays, dictionaries, NSNull). Any date fields
+ *                   must be pre-encoded by the caller per Apple's content-state conventions.
+ * @param systemData Optional dictionary of Apple system fields. Must contain only
+ *                   JSON-serializable values when supplied.
+ * @return A TeakOperation which contains the status and result of the call.
+ */
++ (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
+                                            sendTime:(nonnull NSDate*)sendTime
+                                          customData:(nonnull NSDictionary*)customData
+                                          systemData:(nullable NSDictionary*)systemData;
+
 @end
 
 #endif /* __OBJC__ */

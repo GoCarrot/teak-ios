@@ -223,6 +223,96 @@ Teak* _teakSharedInstance;
   return op;
 }
 
+// Live Activities require iOS 16.1+; the caller (Swift/ActivityKit) is responsible for
+// gating invocation on platform availability rather than duplicating the check here.
++ (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
+                                            sendTime:(nonnull NSDate*)sendTime
+                                          customData:(nonnull NSDictionary*)customData
+                                          systemData:(nullable NSDictionary*)systemData {
+  TeakLog_t(@"[Teak scheduleLiveActivityUpdate]", @{@"activityId" : _(activityId), @"sendTime" : _(sendTime)});
+
+  TeakOperationResult* result = nil;
+
+  if (activityId == nil || activityId.length == 0) {
+    TeakLog_e(@"live_activity.schedule.error", @"activityId cannot be null or empty");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
+  }
+
+  if (!result && sendTime == nil) {
+    TeakLog_e(@"live_activity.schedule.error", @"sendTime cannot be null");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"sendTime" : @[ @"sendTime cannot be null" ]}];
+  }
+
+  if (!result && customData == nil) {
+    TeakLog_e(@"live_activity.schedule.error", @"customData cannot be null");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"customData" : @[ @"customData cannot be null" ]}];
+  }
+
+  NSString* customDataJson = nil;
+  if (!result) {
+    if (![NSJSONSerialization isValidJSONObject:customData]) {
+      TeakLog_e(@"live_activity.schedule.error", @"customData must contain only JSON-serializable values");
+      result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"customData" : @[ @"customData must contain only JSON-serializable values" ]}];
+    } else {
+      NSError* jsonError = nil;
+      NSData* jsonData = [NSJSONSerialization dataWithJSONObject:customData options:0 error:&jsonError];
+      if (jsonData == nil) {
+        TeakLog_e(@"live_activity.schedule.error", @"customData JSON serialization failed", @{@"error" : _(jsonError.localizedDescription)});
+        result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"customData" : @[ @"customData must contain only JSON-serializable values" ]}];
+      } else {
+        customDataJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+      }
+    }
+  }
+
+  NSString* systemDataJson = nil;
+  if (!result && systemData != nil) {
+    if (![NSJSONSerialization isValidJSONObject:systemData]) {
+      TeakLog_e(@"live_activity.schedule.error", @"systemData must contain only JSON-serializable values");
+      result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"systemData" : @[ @"systemData must contain only JSON-serializable values" ]}];
+    } else {
+      NSError* jsonError = nil;
+      NSData* jsonData = [NSJSONSerialization dataWithJSONObject:systemData options:0 error:&jsonError];
+      if (jsonData == nil) {
+        TeakLog_e(@"live_activity.schedule.error", @"systemData JSON serialization failed", @{@"error" : _(jsonError.localizedDescription)});
+        result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"systemData" : @[ @"systemData must contain only JSON-serializable values" ]}];
+      } else {
+        systemDataJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+      }
+    }
+  }
+
+  if (result) {
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  NSNumber* sendTimeEpoch = [NSNumber numberWithLongLong:(long long)[sendTime timeIntervalSince1970]];
+  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
+    @"live_activity_id" : [activityId copy],
+    @"send_time" : sendTimeEpoch,
+    @"custom_data" : [customDataJson copy]
+  }];
+  payload[@"system_data"] = systemDataJson != nil ? [systemDataJson copy] : [NSNull null];
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activity_updates"
+                                     withPayload:payload
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationResult* parsedResult = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+
+                                       if (!parsedResult.error) {
+                                         TeakLog_i(@"live_activity.schedule.scheduled", @{@"activityId" : activityId, @"response" : reply});
+                                       } else {
+                                         TeakLog_e(@"live_activity.schedule.error", @"Error scheduling live activity update.", @{@"response" : reply});
+                                       }
+
+                                       return parsedResult;
+                                     }];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
