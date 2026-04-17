@@ -580,9 +580,12 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * the OS-level system activity identifier to the Teak backend so that server-driven live
  * activity updates can be delivered via APNs.
  *
- * @param activityId       The game-supplied identifier for the live activity instance.
+ * @param activityId       A stable, game-chosen constant string naming the *kind* of live
+ *                         activity (for example, ``@"chest_timer"``). All instances of the
+ *                         same kind of activity should use the same value; Teak uses it as
+ *                         the schedule key for analytics and server-driven updates.
  * @param pushToken        The push-to-update token data from ``Activity.pushTokenUpdates``.
- * @param systemActivityId The OS-level system activity identifier from ``Activity.id``.
+ * @param systemActivityId The OS-level per-instance activity identifier, from ``Activity.id``.
  * @return A TeakOperation which contains the status and result of the call.
  */
 + (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId;
