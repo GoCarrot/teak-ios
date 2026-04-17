@@ -223,6 +223,26 @@ Teak* _teakSharedInstance;
   return op;
 }
 
+// Serialize `dict` to a JSON string for the live activity schedule payload.
+// On failure, populates `*outResult` with an error TeakOperationResult keyed by `fieldName`
+// and returns nil. Caller is responsible for having already ensured `dict` is non-nil.
+static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull dict, NSString* _Nonnull fieldName, TeakOperationResult* _Nullable* _Nonnull outResult) {
+  NSString* errorMessage = [NSString stringWithFormat:@"%@ must contain only JSON-serializable values", fieldName];
+  if (![NSJSONSerialization isValidJSONObject:dict]) {
+    TeakLog_e(@"live_activity.schedule.error", errorMessage);
+    *outResult = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{fieldName : @[ errorMessage ]}];
+    return nil;
+  }
+  NSError* jsonError = nil;
+  NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dict options:0 error:&jsonError];
+  if (jsonData == nil) {
+    TeakLog_e(@"live_activity.schedule.error", errorMessage, @{@"error" : _(jsonError.localizedDescription)});
+    *outResult = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{fieldName : @[ errorMessage ]}];
+    return nil;
+  }
+  return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+}
+
 // Live Activities require iOS 16.1+; the caller (Swift/ActivityKit) is responsible for
 // gating invocation on platform availability rather than duplicating the check here.
 + (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
@@ -250,36 +270,12 @@ Teak* _teakSharedInstance;
 
   NSString* customDataJson = nil;
   if (!result) {
-    if (![NSJSONSerialization isValidJSONObject:customData]) {
-      TeakLog_e(@"live_activity.schedule.error", @"customData must contain only JSON-serializable values");
-      result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"customData" : @[ @"customData must contain only JSON-serializable values" ]}];
-    } else {
-      NSError* jsonError = nil;
-      NSData* jsonData = [NSJSONSerialization dataWithJSONObject:customData options:0 error:&jsonError];
-      if (jsonData == nil) {
-        TeakLog_e(@"live_activity.schedule.error", @"customData JSON serialization failed", @{@"error" : _(jsonError.localizedDescription)});
-        result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"customData" : @[ @"customData must contain only JSON-serializable values" ]}];
-      } else {
-        customDataJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-      }
-    }
+    customDataJson = LiveActivitySerializeJSONField(customData, @"customData", &result);
   }
 
   NSString* systemDataJson = nil;
   if (!result && systemData != nil) {
-    if (![NSJSONSerialization isValidJSONObject:systemData]) {
-      TeakLog_e(@"live_activity.schedule.error", @"systemData must contain only JSON-serializable values");
-      result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"systemData" : @[ @"systemData must contain only JSON-serializable values" ]}];
-    } else {
-      NSError* jsonError = nil;
-      NSData* jsonData = [NSJSONSerialization dataWithJSONObject:systemData options:0 error:&jsonError];
-      if (jsonData == nil) {
-        TeakLog_e(@"live_activity.schedule.error", @"systemData JSON serialization failed", @{@"error" : _(jsonError.localizedDescription)});
-        result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"systemData" : @[ @"systemData must contain only JSON-serializable values" ]}];
-      } else {
-        systemDataJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-      }
-    }
+    systemDataJson = LiveActivitySerializeJSONField(systemData, @"systemData", &result);
   }
 
   if (result) {
@@ -288,6 +284,7 @@ Teak* _teakSharedInstance;
     return op;
   }
 
+  // Server expects integer unix epoch seconds; sub-second precision is deliberately dropped.
   NSNumber* sendTimeEpoch = [NSNumber numberWithLongLong:(long long)[sendTime timeIntervalSince1970]];
   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
     @"live_activity_id" : [activityId copy],
