@@ -47,6 +47,4 @@
 
 @interface TeakLiveActivityLaunchData : TeakAttributedLaunchData
 @property (copy, nonatomic, readonly) NSString* systemActivityId;
-
-- (NSDictionary*)sessionAttribution;
 @end

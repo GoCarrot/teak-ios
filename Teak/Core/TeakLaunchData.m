@@ -89,6 +89,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 }
 
 + (TeakLaunchDataOperation*)fromLiveActivityTap:(NSString*)systemActivityId {
+  TeakLog_i(@"live_activity.attribution.received", @{@"systemActivityId" : systemActivityId});
   TeakLiveActivityLaunchData* launchData = [[TeakLiveActivityLaunchData alloc] initWithSystemActivityId:systemActivityId];
   return [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
 }

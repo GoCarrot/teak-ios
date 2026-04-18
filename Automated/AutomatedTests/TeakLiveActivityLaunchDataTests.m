@@ -119,6 +119,10 @@ static NSString* const kSystemActivityId = @"D3CBB9AF-7292-4FD9-B22D-DEAC3D033BD
   XCTAssertNil([TeakLaunchDataOperation fromUserActivity:activity]);
 }
 
+- (void)testFromUserActivityReturnsNilForNilUserActivity {
+  XCTAssertNil([TeakLaunchDataOperation fromUserActivity:nil]);
+}
+
 - (void)testFromUserActivityHandlesBrowsingWeb {
   NSUserActivity* activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
   activity.webpageURL = [NSURL URLWithString:@"https://example.com/foo"];
