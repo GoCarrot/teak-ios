@@ -597,9 +597,6 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * ``Activity<Attributes>.pushToStartTokenUpdates`` — typically at launch and again
  * whenever the OS emits a rotated token.
  *
- * Safe to call on any iOS version. Push-to-start tokens are an iOS 17.2+ feature,
- * so in practice this is only invoked on iOS 17.2 and newer.
- *
  * @param token The push-to-start token data from ``Activity.pushToStartTokenUpdates``.
  */
 + (void)registerPushToStartToken:(nonnull NSData*)token;
