@@ -591,15 +591,14 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 + (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId;
 
 /**
- * Report the live activity push-to-start token for this device.
+ * Report a live activity push-to-start token to Teak.
  *
- * Call this once at launch, after observing ``Activity<Attributes>.pushToStartTokenUpdates``, and
- * whenever the OS rotates the token. The token is per-device and applies to all push-to-start
- * activities for this app; Teak stores it on the device configuration and forwards it with the
- * next session identify request.
+ * Call this from any location where your app observes
+ * ``Activity<Attributes>.pushToStartTokenUpdates`` — typically at launch and again
+ * whenever the OS emits a rotated token.
  *
- * Safe to call on any iOS version. In practice callers will only invoke this on iOS 17.2+,
- * since the OS does not produce a push-to-start token on older versions.
+ * Safe to call on any iOS version. Push-to-start tokens are an iOS 17.2+ feature,
+ * so in practice this is only invoked on iOS 17.2 and newer.
  *
  * @param token The push-to-start token data from ``Activity.pushToStartTokenUpdates``.
  */
