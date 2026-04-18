@@ -41,6 +41,18 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 - (id)initWithUrl:(NSURL*)url andShortLink:(NSURL*)shortLink;
 @end
 
+@interface TeakLiveActivityLaunchData ()
+@property (copy, nonatomic, readwrite) NSString* systemActivityId;
+
+- (id)initWithSystemActivityId:(NSString*)systemActivityId;
+@end
+
+// Activity-resumption detection constants. These match the string values ActivityKit
+// (iOS 16.2+) and WidgetKit use when iOS delivers a Live Activity tap. Declared as
+// literals so the SDK doesn't have to link those frameworks on its iOS 11 deployment target.
+static NSString* const kTeakNSUserActivityTypeLiveActivity = @"NSUserActivityTypeLiveActivity";
+static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKeyActivityID";
+
 /// Implementations
 
 #define NewIfNotOld(x, y) (x == nil ? y : x)
@@ -74,6 +86,28 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url {
   TeakLaunchData* launchData = [TeakLaunchDataOperation launchDataFromUrl:url withShortlink:nil];
   return [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
+}
+
++ (TeakLaunchDataOperation*)fromLiveActivityTap:(NSString*)systemActivityId {
+  TeakLiveActivityLaunchData* launchData = [[TeakLiveActivityLaunchData alloc] initWithSystemActivityId:systemActivityId];
+  return [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
+}
+
++ (TeakLaunchDataOperation*)fromUserActivity:(NSUserActivity*)userActivity {
+  if (userActivity == nil) return nil;
+
+  if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
+    return [TeakLaunchDataOperation fromUniversalLink:userActivity.webpageURL];
+  }
+
+  if ([userActivity.activityType isEqualToString:kTeakNSUserActivityTypeLiveActivity]) {
+    NSString* systemActivityId = userActivity.userInfo[kTeakWGWidgetUserInfoKeyActivityID];
+    if ([systemActivityId isKindOfClass:[NSString class]] && systemActivityId.length > 0) {
+      return [TeakLaunchDataOperation fromLiveActivityTap:systemActivityId];
+    }
+  }
+
+  return nil;
 }
 
 + (TeakLaunchDataOperation*)unattributed {
@@ -404,6 +438,34 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
     // Nothing right now
   }
   return self;
+}
+
+@end
+
+@implementation TeakLiveActivityLaunchData
+
+- (id)initWithSystemActivityId:(NSString*)systemActivityId {
+  self = [super initWithUrl:nil andShortLink:nil];
+  if (self) {
+    self.systemActivityId = systemActivityId;
+  }
+  return self;
+}
+
+- (NSDictionary*)sessionAttribution {
+  NSMutableDictionary* dictionary = (NSMutableDictionary*)[super sessionAttribution];
+  dictionary[@"teak_live_activity_id"] = TeakValueOrNSNull(self.systemActivityId);
+  return dictionary;
+}
+
+- (NSDictionary*)to_h {
+  // Live Activity taps carry no schedule/creative/reward/channel/deep-link metadata,
+  // so skip the attributed-chain fields (which would all be NSNull here) and emit
+  // just the base launch_link plus our system-activity identifier.
+  NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
+  dictionary[@"launch_link"] = TeakValueOrNSNull(self.launchUrl.absoluteString);
+  dictionary[@"teakSystemActivityId"] = TeakValueOrNSNull(self.systemActivityId);
+  return dictionary;
 }
 
 @end
