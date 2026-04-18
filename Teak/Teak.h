@@ -598,8 +598,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * activities for this app; Teak stores it on the device configuration and forwards it with the
  * next session identify request.
  *
- * Safe to call on any iOS version: on versions below iOS 17.2 the OS never produces a
- * push-to-start token, so this method simply won't be invoked.
+ * Safe to call on any iOS version. In practice callers will only invoke this on iOS 17.2+,
+ * since the OS does not produce a push-to-start token on older versions.
  *
  * @param token The push-to-start token data from ``Activity.pushToStartTokenUpdates``.
  */

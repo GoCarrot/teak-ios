@@ -176,9 +176,14 @@ Teak* _teakSharedInstance;
 }
 
 + (void)registerPushToStartToken:(nonnull NSData*)token {
+  if (token == nil) {
+    TeakLog_e(@"live_activity.push_to_start.error", @"token cannot be nil");
+    return;
+  }
+
   NSString* tokenString = TeakHexStringFromData(token);
   if (tokenString == nil) {
-    TeakLog_e(@"live_activity.push_to_start.error", @"token cannot be null or empty");
+    TeakLog_e(@"live_activity.push_to_start.error", @"token cannot be empty");
     return;
   }
 

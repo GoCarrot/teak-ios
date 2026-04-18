@@ -189,6 +189,9 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
       if (self.pushToken != nil) self.pushToken = nil;
     } break;
     case LiveActivityPushToStartRegistered: {
+      // No symmetric "unregister" case: push-to-start tokens are per-device and persistent.
+      // The OS rotates the token in place via Activity.pushToStartTokenUpdates; it doesn't
+      // revoke one the way push permission revocation nils out pushToken.
       NSString* token = ((PushRegistrationEvent*)event).token;
       // Check before assignment so KVO isn't triggered unless it should be
       if (self.liveActivityPushToStartToken == nil || ![self.liveActivityPushToStartToken isEqualToString:token]) {
