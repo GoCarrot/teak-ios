@@ -246,10 +246,10 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
 // Live Activities require iOS 16.1+; the caller (Swift/ActivityKit) is responsible for
 // gating invocation on platform availability rather than duplicating the check here.
 + (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
-                                            sendTime:(nonnull NSDate*)sendTime
+                                              offset:(NSTimeInterval)offset
                                           customData:(nonnull NSDictionary*)customData
                                           systemData:(nullable NSDictionary*)systemData {
-  TeakLog_t(@"[Teak scheduleLiveActivityUpdate]", @{@"activityId" : _(activityId), @"sendTime" : _(sendTime)});
+  TeakLog_t(@"[Teak scheduleLiveActivityUpdate]", @{@"activityId" : _(activityId), @"offset" : @(offset)});
 
   TeakOperationResult* result = nil;
 
@@ -258,9 +258,9 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
     result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
   }
 
-  if (!result && sendTime == nil) {
-    TeakLog_e(@"live_activity.schedule.error", @"sendTime cannot be null");
-    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"sendTime" : @[ @"sendTime cannot be null" ]}];
+  if (!result && offset <= 0) {
+    TeakLog_e(@"live_activity.schedule.error", @"offset must be positive");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"offset" : @[ @"offset must be positive" ]}];
   }
 
   if (!result && customData == nil) {
@@ -284,11 +284,11 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
     return op;
   }
 
-  // Server expects integer unix epoch seconds; sub-second precision is deliberately dropped.
-  NSNumber* sendTimeEpoch = [NSNumber numberWithLongLong:(long long)[sendTime timeIntervalSince1970]];
+  // Server expects integer seconds; sub-second precision is deliberately truncated.
+  NSNumber* offsetSeconds = @((long long)offset);
   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
     @"live_activity_id" : [activityId copy],
-    @"send_time" : sendTimeEpoch,
+    @"offset_seconds" : offsetSeconds,
     @"custom_data" : [customDataJson copy]
   }];
   payload[@"system_data"] = systemDataJson != nil ? [systemDataJson copy] : [NSNull null];
