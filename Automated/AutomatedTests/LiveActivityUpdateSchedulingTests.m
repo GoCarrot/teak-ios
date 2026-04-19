@@ -18,9 +18,9 @@
 
 #pragma mark - Helpers
 
-- (NSDate*)sampleSendTime {
-  // Fixed unix epoch so assertions can pin the wire value.
-  return [NSDate dateWithTimeIntervalSince1970:1760000000];
+- (NSTimeInterval)sampleOffset {
+  // 1 hour — well inside the 10-hour server horizon, far from the ≤ 0 validation edge.
+  return 3600;
 }
 
 - (NSDictionary*)sampleCustomData {
@@ -48,7 +48,7 @@
 
 - (TeakOperation*)validOperation {
   return [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                 sendTime:[self sampleSendTime]
+                                   offset:[self sampleOffset]
                                customData:[self sampleCustomData]
                                systemData:[self sampleSystemData]];
 }
@@ -59,7 +59,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnonnull"
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:nil
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:[self sampleCustomData]
                                             systemData:[self sampleSystemData]];
 #pragma clang diagnostic pop
@@ -75,7 +75,7 @@
 
 - (void)testEmptyActivityIdReturnsErrorOperation {
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@""
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:[self sampleCustomData]
                                             systemData:[self sampleSystemData]];
 
@@ -88,16 +88,13 @@
   XCTAssertNotNil(result.errors[@"activityId"]);
 }
 
-#pragma mark - Input validation: sendTime
+#pragma mark - Input validation: offset
 
-- (void)testNilSendTimeReturnsErrorOperation {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnonnull"
+- (void)testZeroOffsetReturnsErrorOperation {
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                              sendTime:nil
+                                                offset:0
                                             customData:[self sampleCustomData]
                                             systemData:[self sampleSystemData]];
-#pragma clang diagnostic pop
 
   XCTAssertNotNil(op);
 
@@ -105,7 +102,22 @@
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
-  XCTAssertNotNil(result.errors[@"sendTime"]);
+  XCTAssertNotNil(result.errors[@"offset"]);
+}
+
+- (void)testNegativeOffsetReturnsErrorOperation {
+  TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
+                                                offset:-60
+                                            customData:[self sampleCustomData]
+                                            systemData:[self sampleSystemData]];
+
+  XCTAssertNotNil(op);
+
+  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  XCTAssertNotNil(result);
+  XCTAssertTrue(result.error);
+  XCTAssertEqualObjects(result.status, @"error");
+  XCTAssertNotNil(result.errors[@"offset"]);
 }
 
 #pragma mark - Input validation: customData
@@ -114,7 +126,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnonnull"
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:nil
                                             systemData:[self sampleSystemData]];
 #pragma clang diagnostic pop
@@ -133,7 +145,7 @@
   // (if unusual) payload. Asserting explicitly so a future "tighten validation" change
   // doesn't silently break callers that rely on this.
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:@{}
                                             systemData:[self sampleSystemData]];
 
@@ -146,7 +158,7 @@
   // NSDate is not a valid JSON leaf; NSJSONSerialization will reject it.
   NSDictionary* badData = @{@"when" : [NSDate date]};
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:badData
                                             systemData:[self sampleSystemData]];
 
@@ -163,7 +175,7 @@
 
 - (void)testNilSystemDataIsAllowed {
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:[self sampleCustomData]
                                             systemData:nil];
 
@@ -176,7 +188,7 @@
 - (void)testNonSerializableSystemDataReturnsErrorOperation {
   NSDictionary* badData = @{@"when" : [NSDate date]};
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:[self sampleCustomData]
                                             systemData:badData];
 
@@ -205,12 +217,23 @@
   XCTAssertEqualObjects(payload[@"live_activity_id"], @"chest_timer");
 }
 
-- (void)testRequestPayloadContainsSendTimeAsUnixEpoch {
+- (void)testRequestPayloadContainsOffsetSecondsAsInteger {
   TeakOperation* op = [self validOperation];
 
   NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
-  XCTAssertEqualObjects(payload[@"send_time"], @1760000000,
-                        @"send_time should be a unix-epoch NSNumber");
+  XCTAssertEqualObjects(payload[@"offset_seconds"], @3600,
+                        @"offset_seconds should be an integer NSNumber (truncated from NSTimeInterval)");
+}
+
+- (void)testFractionalOffsetIsTruncatedToInteger {
+  TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
+                                                offset:7.9
+                                            customData:[self sampleCustomData]
+                                            systemData:[self sampleSystemData]];
+
+  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  XCTAssertEqualObjects(payload[@"offset_seconds"], @7,
+                        @"offset_seconds should truncate (not round) sub-second precision");
 }
 
 - (void)testRequestPayloadContainsCustomDataAsJSONString {
@@ -240,7 +263,7 @@
 
 - (void)testNilSystemDataIsAbsentOrNullInPayload {
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                              sendTime:[self sampleSendTime]
+                                                offset:[self sampleOffset]
                                             customData:[self sampleCustomData]
                                             systemData:nil];
 
@@ -266,12 +289,12 @@
 - (void)testReplyParserReturnsErrorForErrorStatus {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* reply = @{@"status" : @"error", @"errors" : @{@"send_time" : @[ @"outside window" ]}};
+  NSDictionary* reply = @{@"status" : @"error", @"errors" : @{@"offset_seconds" : @[ @"outside window" ]}};
   TeakOperationResult* result = op.replyParser(reply);
 
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
-  XCTAssertNotNil(result.errors[@"send_time"]);
+  XCTAssertNotNil(result.errors[@"offset_seconds"]);
 }
 
 - (void)testReplyParserReturnsErrorForInvalidDevice {
