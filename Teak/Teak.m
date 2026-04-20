@@ -239,6 +239,121 @@ Teak* _teakSharedInstance;
   return op;
 }
 
+// Serialize `dict` to a JSON string for the live activity schedule payload.
+// On failure, populates `*outResult` with an error TeakOperationResult keyed by `fieldName`
+// and returns nil. Caller is responsible for having already ensured `dict` is non-nil.
+static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull dict, NSString* _Nonnull fieldName, TeakOperationResult* _Nullable* _Nonnull outResult) {
+  NSString* errorMessage = [NSString stringWithFormat:@"%@ must contain only JSON-serializable values", fieldName];
+  if (![NSJSONSerialization isValidJSONObject:dict]) {
+    TeakLog_e(@"live_activity.schedule.error", errorMessage);
+    *outResult = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{fieldName : @[ errorMessage ]}];
+    return nil;
+  }
+  NSError* jsonError = nil;
+  NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dict options:0 error:&jsonError];
+  if (jsonData == nil) {
+    TeakLog_e(@"live_activity.schedule.error", errorMessage, @{@"error" : _(jsonError.localizedDescription)});
+    *outResult = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{fieldName : @[ errorMessage ]}];
+    return nil;
+  }
+  return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+}
+
++ (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
+                                              offset:(int64_t)offset
+                                          customData:(nonnull NSDictionary*)customData
+                                          systemData:(nullable NSDictionary*)systemData {
+  TeakLog_t(@"[Teak scheduleLiveActivityUpdate]", @{@"activityId" : _(activityId), @"offset" : @(offset)});
+
+  TeakOperationResult* result = nil;
+
+  if (activityId == nil || activityId.length == 0) {
+    TeakLog_e(@"live_activity.schedule.error", @"activityId cannot be null or empty");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
+  }
+
+  if (!result && offset < 0) {
+    TeakLog_e(@"live_activity.schedule.error", @"offset cannot be negative");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"offset" : @[ @"offset cannot be negative" ]}];
+  }
+
+  if (!result && customData == nil) {
+    TeakLog_e(@"live_activity.schedule.error", @"customData cannot be null");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"customData" : @[ @"customData cannot be null" ]}];
+  }
+
+  NSString* customDataJson = nil;
+  if (!result) {
+    customDataJson = LiveActivitySerializeJSONField(customData, @"customData", &result);
+  }
+
+  NSString* systemDataJson = nil;
+  if (!result && systemData != nil) {
+    systemDataJson = LiveActivitySerializeJSONField(systemData, @"systemData", &result);
+  }
+
+  if (result) {
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
+    @"live_activity_id" : [activityId copy],
+    @"offset_seconds" : @(offset),
+    @"custom_data" : [customDataJson copy]
+  }];
+  payload[@"system_data"] = systemDataJson != nil ? [systemDataJson copy] : [NSNull null];
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activity_updates"
+                                     withPayload:payload
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationResult* parsedResult = [[TeakOperationResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+
+                                       if (!parsedResult.error) {
+                                         TeakLog_i(@"live_activity.schedule.scheduled", @{@"activityId" : activityId, @"response" : reply});
+                                       } else {
+                                         TeakLog_e(@"live_activity.schedule.error", @"Error scheduling live activity update.", @{@"response" : reply});
+                                       }
+
+                                       return parsedResult;
+                                     }];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
++ (nonnull TeakOperation*)cancelLiveActivityUpdates:(nonnull NSString*)activityId {
+  TeakLog_t(@"[Teak cancelLiveActivityUpdates]", @{@"activityId" : _(activityId)});
+
+  if (activityId == nil || activityId.length == 0) {
+    TeakLog_e(@"live_activity.cancel.error", @"activityId cannot be null or empty");
+    TeakOperationResult* result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
+    TeakOperation* op = [TeakOperation withResult:result];
+    [[Teak sharedInstance].operationQueue addOperation:op];
+    return op;
+  }
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/cancel_all_live_activity_updates"
+                                     withPayload:@{
+                                       @"live_activity_id" : [activityId copy]
+                                     }
+                                     replyParser:^id _Nullable(NSDictionary* _Nonnull reply) {
+                                       TeakOperationLiveActivityCancelResult* parsedResult =
+                                           [[TeakOperationLiveActivityCancelResult alloc] initWithStatus:reply[@"status"] andErrors:reply[@"errors"]];
+
+                                       if (!parsedResult.error) {
+                                         parsedResult.canceled = [reply[@"canceled"] integerValue];
+                                         TeakLog_i(@"live_activity.cancel.canceled", @{@"activityId" : activityId, @"canceled" : @(parsedResult.canceled)});
+                                       } else {
+                                         TeakLog_e(@"live_activity.cancel.error", @"Error canceling live activity updates.", @{@"response" : reply});
+                                       }
+
+                                       return parsedResult;
+                                     }];
+  [[Teak sharedInstance].operationQueue addOperation:op];
+  return op;
+}
+
 - (void)identifyUser:(NSString*)userIdentifier {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"

@@ -591,6 +591,46 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 + (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId;
 
 /**
+ * Schedule a single update to be delivered to a live activity at a future time.
+ *
+ * The game calls this between ``+startedLiveActivity:withToken:systemActivityId:`` and the
+ * activity ending. The scheduled update's ``customData`` is delivered as APNs
+ * ``content-state``; ``systemData`` carries Apple system fields (``event``, ``stale-date``,
+ * ``dismissal-date``).
+ *
+ * @param activityId A stable, game-chosen constant string naming the *kind* of live
+ *                   activity (for example, ``@"chest_timer"``) — the same value that was
+ *                   passed to ``+startedLiveActivity:withToken:systemActivityId:``.
+ * @param offset     Delay from server-now, in seconds, at which the update should be
+ *                   delivered. The server resolves the absolute delivery time from its own
+ *                   clock, so device clock skew does not affect delivery.
+ * @param customData Game-defined content-state payload. Must contain only JSON-serializable
+ *                   values (strings, numbers, arrays, dictionaries, NSNull). Any date fields
+ *                   must be pre-encoded by the caller per Apple's content-state conventions.
+ * @param systemData Optional dictionary of Apple system fields. Must contain only
+ *                   JSON-serializable values when supplied.
+ * @return A TeakOperation which contains the status and result of the call.
+ */
++ (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
+                                              offset:(int64_t)offset
+                                          customData:(nonnull NSDictionary*)customData
+                                          systemData:(nullable NSDictionary*)systemData;
+
+/**
+ * Cancel all pending scheduled updates for a live activity.
+ *
+ * Scopes to the current user's updates for ``activityId``; updates scheduled for other
+ * users or other activity kinds are unaffected.
+ *
+ * @param activityId A stable, game-chosen constant string naming the *kind* of live
+ *                   activity whose pending updates should be canceled.
+ * @return A TeakOperation whose result (on success) is a
+ *         ``TeakOperationLiveActivityCancelResult`` carrying the number of updates
+ *         canceled by the server.
+ */
++ (nonnull TeakOperation*)cancelLiveActivityUpdates:(nonnull NSString*)activityId;
+
+/**
  * Report a live activity push-to-start token to Teak.
  *
  * Call this from any location where your app observes
