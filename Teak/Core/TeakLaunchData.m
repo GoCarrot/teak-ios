@@ -286,7 +286,11 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 - (id)initWithAttributedLaunchData:(TeakAttributedLaunchData*)oldLaunchData andUpdatedDeepLink:(NSURL*)updatedDeepLink {
   self = [super initWithUrl:oldLaunchData.launchUrl];
   if (self) {
-    TeakAttributedLaunchData* newLaunchData = [[TeakAttributedLaunchData alloc] initWithUrl:updatedDeepLink];
+    // Use initWithUrl:andShortLink: so newLaunchData's teak_* fields get parsed
+    // from the enriched URL — the parent's initWithUrl: doesn't touch them,
+    // which would leave NewIfNotOld(old, nil) returning old in every slot and
+    // defeat the purpose of the enrichment merge.
+    TeakAttributedLaunchData* newLaunchData = [[TeakAttributedLaunchData alloc] initWithUrl:updatedDeepLink andShortLink:nil];
     self.scheduleName = NewIfNotOld(oldLaunchData.scheduleName, newLaunchData.scheduleName);
     self.scheduleId = NewIfNotOld(oldLaunchData.scheduleId, newLaunchData.scheduleId);
     self.creativeName = NewIfNotOld(oldLaunchData.creativeName, newLaunchData.creativeName);
