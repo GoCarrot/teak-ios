@@ -1,15 +1,15 @@
-#import "TeakOperationTestCase.h"
+#import "TeakOperationTestDriver.h"
 
-@implementation TeakOperationTestCase
+@implementation TeakOperationTestDriver
 
-- (TeakOperationResult*)runOperationAndGetResult:(TeakOperation*)op {
+- (TeakOperationResult*)runSync:(TeakOperation*)op {
   NSOperationQueue* queue = [[NSOperationQueue alloc] init];
   [queue addOperation:op];
   [queue waitUntilAllOperationsAreFinished];
   return (TeakOperationResult*)[op result];
 }
 
-- (NSDictionary*)requestParamsFromOperation:(TeakOperation*)op {
+- (NSDictionary*)requestParamsFor:(TeakOperation*)op {
   NSInvocation* inv = op.invocation;
   __unsafe_unretained NSDictionary* requestParams;
   [inv getArgument:&requestParams atIndex:2];

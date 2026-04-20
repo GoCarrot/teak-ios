@@ -1,13 +1,21 @@
-#import "TeakOperationTestCase.h"
+#import <XCTest/XCTest.h>
+
+#import "TeakOperationTestDriver.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
 
-@interface LiveActivityUpdateSchedulingTests : TeakOperationTestCase
+@interface LiveActivityUpdateSchedulingTests : XCTestCase
+@property (nonatomic) TeakOperationTestDriver* driver;
 @end
 
 @implementation LiveActivityUpdateSchedulingTests
+
+- (void)setUp {
+  [super setUp];
+  self.driver = [[TeakOperationTestDriver alloc] init];
+}
 
 #pragma mark - Helpers
 
@@ -44,7 +52,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -59,7 +67,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -76,7 +84,7 @@
                                             customData:[self sampleCustomData]
                                             systemData:[self sampleSystemData]];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"offset_seconds"], @0,
                         @"offset 0 should build a real request with offset_seconds=0");
 }
@@ -89,7 +97,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -109,7 +117,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -125,7 +133,7 @@
                                             customData:@{}
                                             systemData:[self sampleSystemData]];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"custom_data"], @"{}",
                         @"empty customData should serialize to \"{}\", not short-circuit to an error");
 }
@@ -140,7 +148,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -157,7 +165,7 @@
 
   XCTAssertNotNil(op);
   // nil systemData should build a real request operation (not an error short-circuit).
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertNotNil(payload, @"nil systemData should produce a real request operation");
 }
 
@@ -170,7 +178,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -182,21 +190,21 @@
 - (void)testRequestUsesCorrectEndpoint {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* requestParams = [self requestParamsFromOperation:op];
+  NSDictionary* requestParams = [self.driver requestParamsFor:op];
   XCTAssertEqualObjects(requestParams[@"endpoint"], @"/me/live_activity_updates");
 }
 
 - (void)testRequestPayloadContainsActivityId {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"live_activity_id"], @"chest_timer");
 }
 
 - (void)testRequestPayloadContainsOffsetSeconds {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"offset_seconds"], @3600,
                         @"offset_seconds should be an integer NSNumber");
 }
@@ -204,7 +212,7 @@
 - (void)testRequestPayloadContainsCustomDataAsJSONString {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   id customData = payload[@"custom_data"];
   XCTAssertTrue([customData isKindOfClass:[NSString class]],
                 @"custom_data must be sent as a JSON string, not an NSDictionary");
@@ -217,7 +225,7 @@
 - (void)testRequestPayloadContainsSystemDataAsJSONString {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   id systemData = payload[@"system_data"];
   XCTAssertTrue([systemData isKindOfClass:[NSString class]]);
 
@@ -232,7 +240,7 @@
                                             customData:[self sampleCustomData]
                                             systemData:nil];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   id systemData = payload[@"system_data"];
   // Either absent or NSNull is acceptable — both map to nil server-side.
   XCTAssertTrue(systemData == nil || systemData == [NSNull null],

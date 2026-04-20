@@ -1,13 +1,21 @@
-#import "TeakOperationTestCase.h"
+#import <XCTest/XCTest.h>
+
+#import "TeakOperationTestDriver.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
 
-@interface LiveActivityTokenForwardingTests : TeakOperationTestCase
+@interface LiveActivityTokenForwardingTests : XCTestCase
+@property (nonatomic) TeakOperationTestDriver* driver;
 @end
 
 @implementation LiveActivityTokenForwardingTests
+
+- (void)setUp {
+  [super setUp];
+  self.driver = [[TeakOperationTestDriver alloc] init];
+}
 
 #pragma mark - Helpers
 
@@ -34,7 +42,7 @@
 
   XCTAssertNotNil(op, @"Should return an operation even for nil activityId");
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error, @"Result should be an error");
   XCTAssertEqualObjects(result.status, @"error");
@@ -48,7 +56,7 @@
 
   XCTAssertNotNil(op, @"Should return an operation even for empty activityId");
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error, @"Result should be an error");
   XCTAssertEqualObjects(result.status, @"error");
@@ -67,7 +75,7 @@
 
   XCTAssertNotNil(op, @"Should return an operation even for nil token");
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error, @"Result should be an error");
   XCTAssertEqualObjects(result.status, @"error");
@@ -81,7 +89,7 @@
 
   XCTAssertNotNil(op, @"Should return an operation even for empty token");
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error, @"Result should be an error");
   XCTAssertEqualObjects(result.status, @"error");
@@ -100,7 +108,7 @@
 
   XCTAssertNotNil(op, @"Should return an operation even for nil systemActivityId");
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error, @"Result should be an error");
   XCTAssertEqualObjects(result.status, @"error");
@@ -114,7 +122,7 @@
 
   XCTAssertNotNil(op, @"Should return an operation even for empty systemActivityId");
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error, @"Result should be an error");
   XCTAssertEqualObjects(result.status, @"error");
@@ -126,14 +134,14 @@
 - (void)testRequestUsesCorrectEndpoint {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* requestParams = [self requestParamsFromOperation:op];
+  NSDictionary* requestParams = [self.driver requestParamsFor:op];
   XCTAssertEqualObjects(requestParams[@"endpoint"], @"/me/live_activities");
 }
 
 - (void)testRequestPayloadContainsActivityId {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"live_activity_id"], @"my-activity",
                         @"Payload should contain the activity ID as live_activity_id");
 }
@@ -141,7 +149,7 @@
 - (void)testRequestPayloadContainsHexEncodedToken {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"token"], @"deadbeefcafe0123",
                         @"Payload should contain the token as a lowercase hex string");
 }
@@ -149,7 +157,7 @@
 - (void)testRequestPayloadContainsSystemActivityId {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"system_activity_id"], @"system-activity-uuid",
                         @"Payload should contain the systemActivityId as system_activity_id");
 }

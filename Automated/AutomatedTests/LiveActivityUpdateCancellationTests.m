@@ -1,13 +1,21 @@
-#import "TeakOperationTestCase.h"
+#import <XCTest/XCTest.h>
+
+#import "TeakOperationTestDriver.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
 
-@interface LiveActivityUpdateCancellationTests : TeakOperationTestCase
+@interface LiveActivityUpdateCancellationTests : XCTestCase
+@property (nonatomic) TeakOperationTestDriver* driver;
 @end
 
 @implementation LiveActivityUpdateCancellationTests
+
+- (void)setUp {
+  [super setUp];
+  self.driver = [[TeakOperationTestDriver alloc] init];
+}
 
 #pragma mark - Helpers
 
@@ -25,7 +33,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -37,7 +45,7 @@
 
   XCTAssertNotNil(op);
 
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
+  TeakOperationResult* result = [self.driver runSync:op];
   XCTAssertNotNil(result);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
@@ -49,14 +57,14 @@
 - (void)testRequestUsesCorrectEndpoint {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* requestParams = [self requestParamsFromOperation:op];
+  NSDictionary* requestParams = [self.driver requestParamsFor:op];
   XCTAssertEqualObjects(requestParams[@"endpoint"], @"/me/cancel_all_live_activity_updates");
 }
 
 - (void)testRequestPayloadContainsActivityId {
   TeakOperation* op = [self validOperation];
 
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertEqualObjects(payload[@"live_activity_id"], @"chest_timer");
 }
 
