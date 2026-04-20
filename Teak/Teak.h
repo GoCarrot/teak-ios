@@ -612,7 +612,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * @return A TeakOperation which contains the status and result of the call.
  */
 + (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
-                                              offset:(NSTimeInterval)offset
+                                              offset:(int64_t)offset
                                           customData:(nonnull NSDictionary*)customData
                                           systemData:(nullable NSDictionary*)systemData;
 

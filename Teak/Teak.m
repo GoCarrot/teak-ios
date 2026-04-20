@@ -244,7 +244,7 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
 }
 
 + (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
-                                              offset:(NSTimeInterval)offset
+                                              offset:(int64_t)offset
                                           customData:(nonnull NSDictionary*)customData
                                           systemData:(nullable NSDictionary*)systemData {
   TeakLog_t(@"[Teak scheduleLiveActivityUpdate]", @{@"activityId" : _(activityId), @"offset" : @(offset)});
@@ -256,9 +256,9 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
     result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"activityId" : @[ @"activityId cannot be null or empty" ]}];
   }
 
-  if (!result && offset <= 0) {
-    TeakLog_e(@"live_activity.schedule.error", @"offset must be positive");
-    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"offset" : @[ @"offset must be positive" ]}];
+  if (!result && offset < 0) {
+    TeakLog_e(@"live_activity.schedule.error", @"offset cannot be negative");
+    result = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"offset" : @[ @"offset cannot be negative" ]}];
   }
 
   if (!result && customData == nil) {
@@ -282,11 +282,9 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
     return op;
   }
 
-  // Server expects integer seconds; sub-second precision is deliberately truncated.
-  NSNumber* offsetSeconds = @((long long)offset);
   NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
     @"live_activity_id" : [activityId copy],
-    @"offset_seconds" : offsetSeconds,
+    @"offset_seconds" : @(offset),
     @"custom_data" : [customDataJson copy]
   }];
   payload[@"system_data"] = systemDataJson != nil ? [systemDataJson copy] : [NSNull null];

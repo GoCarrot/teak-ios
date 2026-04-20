@@ -18,8 +18,8 @@
 
 #pragma mark - Helpers
 
-- (NSTimeInterval)sampleOffset {
-  // 1 hour — well inside the 10-hour server horizon, far from the ≤ 0 validation edge.
+- (int64_t)sampleOffset {
+  // 1 hour — well inside the 10-hour server horizon, comfortably above 0.
   return 3600;
 }
 
@@ -90,19 +90,17 @@
 
 #pragma mark - Input validation: offset
 
-- (void)testZeroOffsetReturnsErrorOperation {
+- (void)testZeroOffsetIsAllowed {
+  // Matches TeakNotification's delay validation (allows 0; rejects only negative).
+  // The server authoritatively enforces the > 0 and ≤ 10h bounds.
   TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
                                                 offset:0
                                             customData:[self sampleCustomData]
                                             systemData:[self sampleSystemData]];
 
-  XCTAssertNotNil(op);
-
-  TeakOperationResult* result = [self runOperationAndGetResult:op];
-  XCTAssertNotNil(result);
-  XCTAssertTrue(result.error);
-  XCTAssertEqualObjects(result.status, @"error");
-  XCTAssertNotNil(result.errors[@"offset"]);
+  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
+  XCTAssertEqualObjects(payload[@"offset_seconds"], @0,
+                        @"offset 0 should build a real request with offset_seconds=0");
 }
 
 - (void)testNegativeOffsetReturnsErrorOperation {
@@ -217,23 +215,12 @@
   XCTAssertEqualObjects(payload[@"live_activity_id"], @"chest_timer");
 }
 
-- (void)testRequestPayloadContainsOffsetSecondsAsInteger {
+- (void)testRequestPayloadContainsOffsetSeconds {
   TeakOperation* op = [self validOperation];
 
   NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
   XCTAssertEqualObjects(payload[@"offset_seconds"], @3600,
-                        @"offset_seconds should be an integer NSNumber (truncated from NSTimeInterval)");
-}
-
-- (void)testFractionalOffsetIsTruncatedToInteger {
-  TeakOperation* op = [Teak scheduleLiveActivityUpdate:@"chest_timer"
-                                                offset:7.9
-                                            customData:[self sampleCustomData]
-                                            systemData:[self sampleSystemData]];
-
-  NSDictionary* payload = [self requestParamsFromOperation:op][@"payload"];
-  XCTAssertEqualObjects(payload[@"offset_seconds"], @7,
-                        @"offset_seconds should truncate (not round) sub-second precision");
+                        @"offset_seconds should be an integer NSNumber");
 }
 
 - (void)testRequestPayloadContainsCustomDataAsJSONString {
