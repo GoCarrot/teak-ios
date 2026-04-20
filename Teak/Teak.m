@@ -243,8 +243,6 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
   return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
 }
 
-// Live Activities require iOS 16.1+; the caller (Swift/ActivityKit) is responsible for
-// gating invocation on platform availability rather than duplicating the check here.
 + (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
                                               offset:(NSTimeInterval)offset
                                           customData:(nonnull NSDictionary*)customData
@@ -310,8 +308,6 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
   return op;
 }
 
-// Live Activities require iOS 16.1+; the caller (Swift/ActivityKit) is responsible for
-// gating invocation on platform availability rather than duplicating the check here.
 + (nonnull TeakOperation*)cancelLiveActivityUpdates:(nonnull NSString*)activityId {
   TeakLog_t(@"[Teak cancelLiveActivityUpdates]", @{@"activityId" : _(activityId)});
 
