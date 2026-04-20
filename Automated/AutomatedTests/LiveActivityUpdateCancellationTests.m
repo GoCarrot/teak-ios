@@ -1,36 +1,15 @@
-#import <XCTest/XCTest.h>
-
-#import "TeakOperation.h"
+#import "TeakOperationTestCase.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
 
-// Re-expose internal replyParser property for testing
-@interface TeakOperation ()
-@property (nonatomic, copy, nullable) id (^replyParser)(NSDictionary* _Nonnull);
-@end
-
-@interface LiveActivityUpdateCancellationTests : XCTestCase
+@interface LiveActivityUpdateCancellationTests : TeakOperationTestCase
 @end
 
 @implementation LiveActivityUpdateCancellationTests
 
 #pragma mark - Helpers
-
-- (TeakOperationResult*)runOperationAndGetResult:(TeakOperation*)op {
-  NSOperationQueue* queue = [[NSOperationQueue alloc] init];
-  [queue addOperation:op];
-  [queue waitUntilAllOperationsAreFinished];
-  return (TeakOperationResult*)[op result];
-}
-
-- (NSDictionary*)requestParamsFromOperation:(TeakOperation*)op {
-  NSInvocation* inv = op.invocation;
-  __unsafe_unretained NSDictionary* requestParams;
-  [inv getArgument:&requestParams atIndex:2];
-  return requestParams;
-}
 
 - (TeakOperation*)validOperation {
   return [Teak cancelLiveActivityUpdates:@"chest_timer"];

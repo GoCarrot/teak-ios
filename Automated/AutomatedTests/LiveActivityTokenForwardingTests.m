@@ -1,17 +1,10 @@
-#import <XCTest/XCTest.h>
-
-#import "TeakOperation.h"
+#import "TeakOperationTestCase.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
 
-// Re-expose internal replyParser property for testing
-@interface TeakOperation ()
-@property (nonatomic, copy, nullable) id (^replyParser)(NSDictionary* _Nonnull);
-@end
-
-@interface LiveActivityTokenForwardingTests : XCTestCase
+@interface LiveActivityTokenForwardingTests : TeakOperationTestCase
 @end
 
 @implementation LiveActivityTokenForwardingTests
@@ -21,21 +14,6 @@
 - (NSData*)sampleTokenData {
   unsigned char bytes[] = {0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0x01, 0x23};
   return [NSData dataWithBytes:bytes length:sizeof(bytes)];
-}
-
-- (TeakOperationResult*)runOperationAndGetResult:(TeakOperation*)op {
-  NSOperationQueue* queue = [[NSOperationQueue alloc] init];
-  [queue addOperation:op];
-  [queue waitUntilAllOperationsAreFinished];
-  return (TeakOperationResult*)[op result];
-}
-
-/// Extract the request params dictionary (endpoint + payload) from a TeakOperation's invocation.
-- (NSDictionary*)requestParamsFromOperation:(TeakOperation*)op {
-  NSInvocation* inv = op.invocation;
-  __unsafe_unretained NSDictionary* requestParams;
-  [inv getArgument:&requestParams atIndex:2];
-  return requestParams;
 }
 
 - (TeakOperation*)validOperation {
