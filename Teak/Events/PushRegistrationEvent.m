@@ -15,4 +15,10 @@
   PushRegistrationEvent* event = [[PushRegistrationEvent alloc] initWithType:PushUnRegistered];
   [TeakEvent postEvent:event];
 }
+
++ (void)liveActivityPushToStartRegisteredWithToken:(NSString* _Nonnull)token {
+  PushRegistrationEvent* event = [[PushRegistrationEvent alloc] initWithType:LiveActivityPushToStartRegistered];
+  event.token = token;
+  [TeakEvent postEvent:event];
+}
 @end

@@ -6,6 +6,7 @@
 typedef enum {
   PushRegistered,
   PushUnRegistered,
+  LiveActivityPushToStartRegistered,
   UserIdentified,
   TrackedEvent,
   PurchaseFailed,

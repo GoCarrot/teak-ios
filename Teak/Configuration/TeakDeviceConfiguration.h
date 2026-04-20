@@ -11,6 +11,7 @@ extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState
 @property (strong, nonatomic, readonly) NSString* _Nonnull deviceId;
 @property (strong, nonatomic, readonly) NSString* _Nonnull deviceModel;
 @property (strong, nonatomic, readonly) NSString* _Nonnull pushToken;
+@property (strong, nonatomic, readonly) NSString* _Nonnull liveActivityPushToStartToken;
 @property (strong, nonatomic, readonly) NSString* _Nonnull platformString;
 @property (strong, nonatomic, readonly) NSString* _Nonnull advertisingIdentifier;
 @property (strong, nonatomic, readonly) NSString* _Nonnull notificationDisplayEnabled;
