@@ -460,11 +460,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 }
 
 - (NSDictionary*)to_h {
-  // Live Activity taps carry no schedule/creative/reward/channel/deep-link metadata,
-  // so skip the attributed-chain fields (which would all be NSNull here) and emit
-  // just the base launch_link plus our system-activity identifier.
-  NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
-  dictionary[@"launch_link"] = TeakValueOrNSNull(self.launchUrl.absoluteString);
+  NSMutableDictionary* dictionary = (NSMutableDictionary*)[super to_h];
   dictionary[@"teakSystemActivityId"] = TeakValueOrNSNull(self.systemActivityId);
   return dictionary;
 }
