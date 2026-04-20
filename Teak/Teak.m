@@ -175,6 +175,22 @@ Teak* _teakSharedInstance;
   [[self sharedInstance] setStringAttribute:value forKey:key];
 }
 
++ (void)registerPushToStartToken:(nonnull NSData*)token {
+  if (token == nil) {
+    TeakLog_e(@"live_activity.push_to_start.error", @"token cannot be nil");
+    return;
+  }
+
+  NSString* tokenString = TeakHexStringFromData(token);
+  if (tokenString == nil) {
+    TeakLog_e(@"live_activity.push_to_start.error", @"token cannot be empty");
+    return;
+  }
+
+  TeakLog_i(@"live_activity.push_to_start.registered", @{@"token" : tokenString});
+  [PushRegistrationEvent liveActivityPushToStartRegisteredWithToken:tokenString];
+}
+
 + (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId {
   TeakLog_t(@"[Teak startedLiveActivity]", @{@"activityId" : _(activityId), @"systemActivityId" : _(systemActivityId)});
 

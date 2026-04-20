@@ -590,6 +590,17 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  */
 + (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId;
 
+/**
+ * Report a live activity push-to-start token to Teak.
+ *
+ * Call this from any location where your app observes
+ * ``Activity<Attributes>.pushToStartTokenUpdates`` — typically at launch and again
+ * whenever the OS emits a rotated token.
+ *
+ * @param token The push-to-start token data from ``Activity.pushToStartTokenUpdates``.
+ */
++ (void)registerPushToStartToken:(nonnull NSData*)token;
+
 @end
 
 #endif /* __OBJC__ */

@@ -247,6 +247,10 @@ DefineTeakState(Expired, (@[]));
       payload[@"apns_push_key"] = @"";
     }
 
+    if ([self.deviceConfiguration.liveActivityPushToStartToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+      payload[@"live_activity_push_to_start_key"] = self.deviceConfiguration.liveActivityPushToStartToken;
+    }
+
     if (!self.appConfiguration.sdk5Behaviors) {
       if (dataCollectionConfiguration.enableFacebookAccessToken) {
         if (self.facebookAccessToken == nil) {
@@ -388,6 +392,7 @@ DefineTeakState(Expired, (@[]));
 
     RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
     RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
+    RegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
     RegisterKeyValueObserverFor(self, currentState);
 
     [TeakEvent addEventHandler:self];
@@ -415,6 +420,7 @@ DefineTeakState(Expired, (@[]));
   }
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
   UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
+  UnRegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
   UnRegisterKeyValueObserverFor(self, currentState);
 
   [TeakEvent removeEventHandler:self];
@@ -920,6 +926,11 @@ KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, advertisingIdentifier)
 }
 
 KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, pushToken) {
+  TeakUnusedKVOValues;
+  [self identifyUserInfoHasChanged];
+}
+
+KeyValueObserverFor(TeakSession, TeakDeviceConfiguration, liveActivityPushToStartToken) {
   TeakUnusedKVOValues;
   [self identifyUserInfoHasChanged];
 }

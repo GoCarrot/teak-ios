@@ -5,4 +5,5 @@
 
 + (void)registeredWithToken:(NSString* _Nonnull)token;
 + (void)unRegistered;
++ (void)liveActivityPushToStartRegisteredWithToken:(NSString* _Nonnull)token;
 @end

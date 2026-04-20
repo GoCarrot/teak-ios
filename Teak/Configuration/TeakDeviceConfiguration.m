@@ -18,6 +18,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 @property (strong, nonatomic, readwrite) NSString* deviceId;
 @property (strong, nonatomic, readwrite) NSString* deviceModel;
 @property (strong, nonatomic, readwrite) NSString* pushToken;
+@property (strong, nonatomic, readwrite) NSString* liveActivityPushToStartToken;
 @property (strong, nonatomic, readwrite) NSString* platformString;
 @property (strong, nonatomic, readwrite) NSString* advertisingIdentifier;
 @property (strong, nonatomic, readwrite) NSString* notificationDisplayEnabled;
@@ -89,6 +90,7 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     // Make sure these are not nil
     self.advertisingIdentifier = @"";
     self.pushToken = @"";
+    self.liveActivityPushToStartToken = @"";
 
     [TeakEvent addEventHandler:self];
 
@@ -152,7 +154,8 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking],
     @"notificationDisplayEnabled" : self.notificationDisplayEnabled,
     @"pushRegistration" : @{
-      @"apns_push_key" : TeakValueOrNSNull(self.pushToken)
+      @"apns_push_key" : TeakValueOrNSNull(self.pushToken),
+      @"live_activity_push_to_start_key" : TeakValueOrNSNull(self.liveActivityPushToStartToken)
     }
   };
 }
@@ -184,6 +187,13 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     } break;
     case PushUnRegistered: {
       if (self.pushToken != nil) self.pushToken = nil;
+    } break;
+    case LiveActivityPushToStartRegistered: {
+      NSString* token = ((PushRegistrationEvent*)event).token;
+      // Check before assignment so KVO isn't triggered unless it should be
+      if (self.liveActivityPushToStartToken == nil || ![self.liveActivityPushToStartToken isEqualToString:token]) {
+        self.liveActivityPushToStartToken = token;
+      }
     } break;
     case LifecycleActivate: {
       [self updateValuesThatCouldHaveChanged];
