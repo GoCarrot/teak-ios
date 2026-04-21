@@ -1185,8 +1185,8 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
   TeakUnused(application);
   TeakUnused(restorationHandler);
 
-  if ([userActivity.activityType isEqualToString:NSUserActivityTypeBrowsingWeb]) {
-    TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromUniversalLink:userActivity.webpageURL];
+  TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromUserActivity:userActivity];
+  if (launchData != nil) {
     [TeakSession didLaunchWithData:launchData];
   }
 
