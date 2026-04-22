@@ -6,6 +6,8 @@
 + (TeakLaunchDataOperation*)fromUniversalLink:(NSURL*)url;
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url;
 + (TeakLaunchDataOperation*)fromPushNotification:(TeakNotification*)teakNotification;
++ (TeakLaunchDataOperation*)fromLiveActivityTap:(NSString*)systemActivityId;
++ (TeakLaunchDataOperation*)fromUserActivity:(NSUserActivity*)userActivity;
 + (TeakLaunchDataOperation*)unattributed;
 
 - (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink withLaunchLink:(NSURL*)launchLink;
@@ -41,4 +43,8 @@
 @end
 
 @interface TeakRewardlinkLaunchData : TeakAttributedLaunchData
+@end
+
+@interface TeakLiveActivityLaunchData : TeakAttributedLaunchData
+@property (copy, nonatomic, readonly) NSString* systemActivityId;
 @end
