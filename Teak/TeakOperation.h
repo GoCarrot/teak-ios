@@ -28,6 +28,10 @@
 @property (strong, nonatomic) NSArray* _Nonnull notifications;
 @end
 
+@interface TeakOperationLiveActivityCancelResult : TeakOperationResult
+@property (nonatomic) NSInteger canceled;
+@end
+
 @interface TeakOperation : NSInvocationOperation
 
 + (nonnull TeakOperation*)withResult:(nonnull id)result;

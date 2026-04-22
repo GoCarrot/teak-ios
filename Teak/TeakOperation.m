@@ -76,6 +76,13 @@ const static NSString* const kPayload = @"payload";
 }
 @end
 
+@implementation TeakOperationLiveActivityCancelResult
+- (nonnull NSDictionary*)toDictionary {
+  NSMutableDictionary* ret = [NSMutableDictionary dictionaryWithDictionary:[super toDictionary]];
+  ret[@"canceled"] = @(self.canceled);
+  return ret;
+}
+@end
 
 @interface TeakOperation ()
 @property (nonatomic, copy, nullable) id (^replyParser)(NSDictionary* _Nonnull);
