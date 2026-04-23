@@ -256,6 +256,51 @@ BOOL TeakRequestPushAuthorization(BOOL includeProvisional) {
   return TeakRequestPushAuthorizationWithCallback(includeProvisional, NULL, NULL);
 }
 
+// Parse a UTF-8 JSON cstring into an NSDictionary, or return nil for NULL,
+// non-UTF-8, malformed JSON, or non-dictionary roots. Used by the Live Activity
+// wrappers; callers rely on nil propagating into the underlying ObjC API's
+// existing nil-handling (which surfaces a TeakOperationResult error).
+static NSDictionary* TeakParseJSONDictionaryOrNil(const char* jsonCStr) {
+  if (jsonCStr == NULL) {
+    return nil;
+  }
+  NSString* jsonString = [NSString stringWithUTF8String:jsonCStr];
+  if (jsonString == nil) {
+    return nil;
+  }
+  NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+  if (jsonData == nil) {
+    return nil;
+  }
+  id parsed = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:NULL];
+  if (![parsed isKindOfClass:[NSDictionary class]]) {
+    return nil;
+  }
+  return parsed;
+}
+
+TeakOperation* TeakStartedLiveActivity(const char* activityId, const void* pushTokenBytes, int pushTokenLength, const char* systemActivityId) {
+  NSString* activityIdString = activityId == NULL ? nil : [NSString stringWithUTF8String:activityId];
+  NSString* systemActivityIdString = systemActivityId == NULL ? nil : [NSString stringWithUTF8String:systemActivityId];
+  NSData* tokenData = (pushTokenBytes == NULL || pushTokenLength <= 0) ? nil : [NSData dataWithBytes:pushTokenBytes length:pushTokenLength];
+  return [Teak startedLiveActivity:activityIdString withToken:tokenData systemActivityId:systemActivityIdString];
+}
+
+TeakOperation* TeakScheduleLiveActivityUpdate(const char* activityId, int64_t offset, const char* customDataJson, const char* systemDataJson) {
+  NSString* activityIdString = activityId == NULL ? nil : [NSString stringWithUTF8String:activityId];
+  NSDictionary* customData = TeakParseJSONDictionaryOrNil(customDataJson);
+  NSDictionary* systemData = TeakParseJSONDictionaryOrNil(systemDataJson);
+  return [Teak scheduleLiveActivityUpdate:activityIdString
+                                   offset:offset
+                               customData:customData
+                               systemData:systemData];
+}
+
+TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId) {
+  NSString* activityIdString = activityId == NULL ? nil : [NSString stringWithUTF8String:activityId];
+  return [Teak cancelLiveActivityUpdates:activityIdString];
+}
+
 TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channelCstr) {
   NSString* state = [NSString stringWithUTF8String:stateCstr];
   NSString* channel = [NSString stringWithUTF8String:channelCstr];
