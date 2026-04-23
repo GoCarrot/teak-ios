@@ -24,10 +24,7 @@
 
 - (void)testFallsBackToConfigurationErrorWhenTitleMissing {
   NSDictionary* err = @{@"message" : @"Something went wrong"};
-  XCTAssertEqualObjects([TeakRequest titleForClientError:err], @"Configuration Error",
-                        @"Title must fall back to 'Configuration Error' when the key is missing — "
-                        @"the original ternary was inverted and returned nil here, crashing "
-                        @"TeakIntegrationChecker.reportError:forCategory:");
+  XCTAssertEqualObjects([TeakRequest titleForClientError:err], @"Configuration Error");
 }
 
 - (void)testFallsBackToConfigurationErrorForNilDict {
@@ -40,9 +37,7 @@
 
 - (void)testFallsBackToConfigurationErrorWhenTitleIsNSNull {
   NSDictionary* err = @{@"title" : [NSNull null]};
-  XCTAssertEqualObjects([TeakRequest titleForClientError:err], @"Configuration Error",
-                        @"NSNull must be treated the same as a missing key — it cannot be used as "
-                        @"a dictionary key by the downstream integration checker.");
+  XCTAssertEqualObjects([TeakRequest titleForClientError:err], @"Configuration Error");
 }
 
 @end

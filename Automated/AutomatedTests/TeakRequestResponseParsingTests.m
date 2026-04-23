@@ -21,7 +21,7 @@
 
 - (void)testReturnsEmptyDictForNilData {
   NSDictionary* result = [TeakRequest parseJSONResponseData:nil];
-  XCTAssertNotNil(result, @"Must never return nil — downstream NSDictionary literals cannot accept nil values");
+  XCTAssertNotNil(result);
   XCTAssertEqualObjects(result, @{});
 }
 
@@ -54,7 +54,7 @@
   NSData* jsonArray = [@"[1, 2, 3]" dataUsingEncoding:NSUTF8StringEncoding];
   NSDictionary* result = [TeakRequest parseJSONResponseData:jsonArray];
   XCTAssertNotNil(result);
-  XCTAssertEqualObjects(result, @{}, @"Top-level non-object JSON must not be forwarded as an NSDictionary*");
+  XCTAssertEqualObjects(result, @{});
 }
 
 - (void)testReturnsEmptyDictForJSONString {
