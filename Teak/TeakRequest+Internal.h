@@ -16,4 +16,9 @@
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
+
+// Parse an HTTP response body into a reply dictionary. Always returns a
+// dictionary — nil/empty/non-JSON/non-object bodies all collapse to @{} so
+// downstream code (reply parsers, dictionary literals) never sees nil.
++ (NSDictionary* _Nonnull)parseJSONResponseData:(NSData* _Nullable)data;
 @end

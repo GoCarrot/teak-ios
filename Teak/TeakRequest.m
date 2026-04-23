@@ -141,6 +141,13 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return session;
 }
 
++ (NSDictionary*)parseJSONResponseData:(NSData*)data {
+  if (data == nil || data.length == 0) return @{};
+  id parsed = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:nil];
+  if (![parsed isKindOfClass:[NSDictionary class]]) return @{};
+  return parsed;
+}
+
 + (NSMutableDictionary*)requestsInFlight {
   static NSMutableDictionary* dict = nil;
   static dispatch_once_t onceToken;
@@ -632,14 +639,11 @@ KeyValueObserverSupported(TeakBatchedRequest);
     TeakLog_e(@"request.reply.error", error);
   } else {
     teak_try {
+      NSData* data = nil;
       @synchronized(self) {
-        NSData* data = self.responseData[@(dataTask.taskIdentifier)];
-        if (data) {
-          reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data
-                                                                 options:kNilOptions
-                                                                   error:&error];
-        }
+        data = self.responseData[@(dataTask.taskIdentifier)];
       }
+      reply = [TeakRequest parseJSONResponseData:data];
     }
     teak_catch_report;
   }
