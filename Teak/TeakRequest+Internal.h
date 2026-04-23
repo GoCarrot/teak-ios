@@ -20,7 +20,11 @@
 // Parse an HTTP response body into a reply dictionary. Always returns a
 // dictionary — nil/empty/non-JSON/non-object bodies all collapse to @{} so
 // downstream code (reply parsers, dictionary literals) never sees nil.
-+ (NSDictionary* _Nonnull)parseJSONResponseData:(NSData* _Nullable)data;
+// On parse/shape failures, `*outError` (when provided) is set to a non-nil
+// NSError so callers can surface the failure to logging. On nil/empty data
+// or a successful parse, `*outError` is left unchanged.
++ (NSDictionary* _Nonnull)parseJSONResponseData:(NSData* _Nullable)data
+                                          error:(NSError* _Nullable* _Nullable)outError;
 
 // Resolve the user-facing title for a `report_client_error` payload.
 // Returns the dict's "title" when present and a string, otherwise

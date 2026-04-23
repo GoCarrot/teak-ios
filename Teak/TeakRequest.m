@@ -141,10 +141,23 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return session;
 }
 
-+ (NSDictionary*)parseJSONResponseData:(NSData*)data {
++ (NSDictionary*)parseJSONResponseData:(NSData*)data error:(NSError**)outError {
   if (data == nil || data.length == 0) return @{};
-  id parsed = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:nil];
-  if (![parsed isKindOfClass:[NSDictionary class]]) return @{};
+
+  NSError* parseError = nil;
+  id parsed = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&parseError];
+  if (parsed == nil) {
+    if (outError) *outError = parseError;
+    return @{};
+  }
+  if (![parsed isKindOfClass:[NSDictionary class]]) {
+    if (outError) {
+      *outError = [NSError errorWithDomain:@"io.teak.TeakRequest"
+                                      code:0
+                                  userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Expected top-level JSON object, got %@", NSStringFromClass([parsed class])]}];
+    }
+    return @{};
+  }
   return parsed;
 }
 
@@ -649,7 +662,11 @@ KeyValueObserverSupported(TeakBatchedRequest);
       @synchronized(self) {
         data = self.responseData[@(dataTask.taskIdentifier)];
       }
-      reply = [TeakRequest parseJSONResponseData:data];
+      NSError* parseError = nil;
+      reply = [TeakRequest parseJSONResponseData:data error:&parseError];
+      if (parseError) {
+        TeakLog_e(@"request.reply.parse_error", parseError);
+      }
     }
     teak_catch_report;
   }
