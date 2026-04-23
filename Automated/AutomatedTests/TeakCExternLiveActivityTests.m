@@ -59,6 +59,18 @@ extern TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId);
   XCTAssertNotNil(result.errors[@"token"]);
 }
 
+- (void)testStartedLiveActivity_NullActivityIdSurfacesErrorResult {
+  unsigned char bytes[] = {0xde, 0xad, 0xbe, 0xef};
+  TeakOperation* op = TeakStartedLiveActivity(NULL, bytes, (int)sizeof(bytes), "system-activity-uuid");
+
+  XCTAssertNotNil(op, @"Wrapper should still return an operation for a NULL activityId");
+
+  TeakOperationResult* result = [self.driver runSync:op];
+  XCTAssertTrue(result.error);
+  XCTAssertEqualObjects(result.status, @"error");
+  XCTAssertNotNil(result.errors[@"activityId"]);
+}
+
 #pragma mark - TeakScheduleLiveActivityUpdate
 
 - (void)testScheduleLiveActivityUpdate_BuildsValidRequest {
@@ -94,9 +106,22 @@ extern TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId);
   XCTAssertNotNil(op);
 
   NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
-  id systemData = payload[@"system_data"];
-  XCTAssertTrue(systemData == nil || systemData == [NSNull null],
-                @"NULL systemDataJson should map to nil/NSNull on the payload");
+  XCTAssertEqualObjects(payload[@"system_data"], [NSNull null],
+                        @"NULL systemDataJson should serialize to NSNull on the payload");
+}
+
+- (void)testScheduleLiveActivityUpdate_NullActivityIdSurfacesErrorResult {
+  TeakOperation* op = TeakScheduleLiveActivityUpdate(NULL,
+                                                     3600,
+                                                     "{\"score\":42}",
+                                                     "{\"event\":\"update\"}");
+
+  XCTAssertNotNil(op, @"Wrapper should still return an operation for a NULL activityId");
+
+  TeakOperationResult* result = [self.driver runSync:op];
+  XCTAssertTrue(result.error);
+  XCTAssertEqualObjects(result.status, @"error");
+  XCTAssertNotNil(result.errors[@"activityId"]);
 }
 
 - (void)testScheduleLiveActivityUpdate_MalformedCustomDataJsonSurfacesError {
@@ -128,9 +153,8 @@ extern TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId);
 
   NSDictionary* payload = [self.driver requestParamsFor:op][@"payload"];
   XCTAssertNotNil(payload, @"Malformed systemDataJson should not short-circuit to an error");
-  id systemData = payload[@"system_data"];
-  XCTAssertTrue(systemData == nil || systemData == [NSNull null],
-                @"Malformed systemDataJson should be treated as absent");
+  XCTAssertEqualObjects(payload[@"system_data"], [NSNull null],
+                        @"Malformed systemDataJson should be treated as absent (NSNull on payload)");
 }
 
 #pragma mark - TeakCancelLiveActivityUpdates
@@ -145,6 +169,17 @@ extern TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId);
 
   NSDictionary* payload = requestParams[@"payload"];
   XCTAssertEqualObjects(payload[@"live_activity_id"], @"chest_timer");
+}
+
+- (void)testCancelLiveActivityUpdates_NullActivityIdSurfacesErrorResult {
+  TeakOperation* op = TeakCancelLiveActivityUpdates(NULL);
+
+  XCTAssertNotNil(op, @"Wrapper should still return an operation for a NULL activityId");
+
+  TeakOperationResult* result = [self.driver runSync:op];
+  XCTAssertTrue(result.error);
+  XCTAssertEqualObjects(result.status, @"error");
+  XCTAssertNotNil(result.errors[@"activityId"]);
 }
 
 @end
