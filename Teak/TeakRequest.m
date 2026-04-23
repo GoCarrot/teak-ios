@@ -148,6 +148,12 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return parsed;
 }
 
++ (NSString*)titleForClientError:(NSDictionary*)clientError {
+  id title = clientError[@"title"];
+  if ([title isKindOfClass:[NSString class]]) return title;
+  return @"Configuration Error";
+}
+
 + (NSMutableDictionary*)requestsInFlight {
   static NSMutableDictionary* dict = nil;
   static dispatch_once_t onceToken;
@@ -352,7 +358,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
             @try {
               // We are going to get a 'message' key and optionally a 'title' key
               NSDictionary* clientError = payload[@"report_client_error"];
-              NSString* title = clientError[@"title"] == nil ? clientError[@"title"] : @"Configuration Error";
+              NSString* title = [TeakRequest titleForClientError:clientError];
 
               [[Teak sharedInstance].integrationChecker reportError:clientError[@"message"] forCategory:title];
             } @finally {

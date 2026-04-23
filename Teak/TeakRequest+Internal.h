@@ -21,4 +21,10 @@
 // dictionary — nil/empty/non-JSON/non-object bodies all collapse to @{} so
 // downstream code (reply parsers, dictionary literals) never sees nil.
 + (NSDictionary* _Nonnull)parseJSONResponseData:(NSData* _Nullable)data;
+
+// Resolve the user-facing title for a `report_client_error` payload.
+// Returns the dict's "title" when present and a string, otherwise
+// "Configuration Error". Never nil — the result is used as a key into the
+// integration checker's error dictionary.
++ (NSString* _Nonnull)titleForClientError:(NSDictionary* _Nullable)clientError;
 @end
