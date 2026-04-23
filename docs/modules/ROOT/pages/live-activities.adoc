@@ -1,0 +1,79 @@
+= Live Activities
+
+Teak can schedule server-driven updates to iOS Live Activities your app starts itself, and attribute taps on those activities back to the Teak campaign that drove them.
+
+NOTE: 4.3.12 drives updates for Live Activities your app develops and starts itself. Starting an activity from a push-to-start payload will come in a later release.
+
+== What Teak needs from you
+
+Three token/id handoffs, all from the Live Activity APIs Apple already gives you:
+
+* **Push-to-start token** — one per app, global across every Live Activity kind. Rotates occasionally. Observe ``Activity<Attributes>.pushToStartTokenUpdates`` at app launch and forward every value to Teak.
+* **Push-to-update token** — one per *instance*, issued when the activity starts. Observe ``activity.pushTokenUpdates`` for each activity you start and forward every value.
+* **System activity id** — ``activity.id``, the per-instance identifier iOS assigns. Pass it alongside the push-to-update token so Teak can attribute taps.
+
+You also choose a stable ``activityId`` string (for example, ``"chest_timer"``) that Teak uses as the schedule key for that activity. It must be unique *per concurrent instance* — if a player can have three chest timers running at once, give them distinct ids like ``"chest_timer_0"``, ``"chest_timer_1"``, ``"chest_timer_2"``. Reusing the same ``activityId`` across two live instances will collide on the server side.
+
+== Register tokens
+
+.Push-to-start, at launch
+[source,swift]
+----
+for await data in Activity<ChestAttributes>.pushToStartTokenUpdates {
+  Teak.registerPushToStartToken(data)
+}
+----
+
+.Push-to-update, when you start an activity
+[source,swift]
+----
+let activity = try Activity.request(attributes: attrs, content: .init(state: state, staleDate: nil))
+
+Task {
+  for await tokenData in activity.pushTokenUpdates {
+    Teak.startedLiveActivity("chest_timer",
+                             withToken: tokenData,
+                             systemActivityId: activity.id)
+  }
+}
+----
+
+Both loops should run for the lifetime they describe — tokens rotate, and Teak needs every value.
+
+== Schedule an update
+
+.Deliver a content-state update 60s from now
+[source,swift]
+----
+Teak.scheduleLiveActivityUpdate("chest_timer",
+                                offset: 60,
+                                customData: ["remaining": 0, "status": "ready"],
+                                systemData: ["event": "update"])
+----
+
+* ``offset`` is seconds from server-now. The server resolves the absolute delivery time, so device clock skew doesn't matter.
+* ``customData`` becomes the APNs ``content-state``. Values must be JSON-serializable; pre-encode any dates per Apple's content-state conventions.
+* ``systemData`` is optional and carries Apple system fields (``event``, ``stale-date``, ``dismissal-date``).
+
+== Cancel pending updates
+
+.Drop every pending update for this kind of activity
+[source,swift]
+----
+Teak.cancelLiveActivityUpdates("chest_timer")
+----
+
+Scoped to the current user and the given ``activityId``. The result carries a ``canceled`` count so you can confirm how many pending updates were dropped.
+
+NOTE: Because ``activityId`` is the cancellation scope, this is another reason to give concurrent instances distinct ids — cancelling ``"chest_timer_0"`` won't touch pending updates for ``"chest_timer_1"``.
+
+== Attribute taps
+
+When a player taps a Live Activity and resumes your app, Teak routes the launch through its normal attribution pipeline. Observe ``TeakPostLaunchSummary`` as usual — for a Live Activity tap, the ``userInfo`` dictionary carries:
+
+* ``teakSystemActivityId`` — the ``activity.id`` of the tapped activity
+* ``teakScheduleId`` and ``teakScheduleName`` — the Teak schedule that drove the activity, once the session's server response enriches the launch
+
+NOTE: Live Activity taps currently surface only the schedule id and name. Creative and reward attribution is available for push and deep-link launches but is not yet sent down for Live Activity clicks.
+
+No extra wiring required beyond an observer for ``TeakPostLaunchSummary``.

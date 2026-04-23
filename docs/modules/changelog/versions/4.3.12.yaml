@@ -1,0 +1,5 @@
+new:
+  - "Live Activity Support: Attribute taps, register push-to-start and push-to-update tokens, and schedule or cancel server-driven content-state updates. 4.3.12 drives updates for Live Activities your app develops and starts itself; starting activities from a push-to-start payload will come in a later release."
+bug:
+  - "Server-enriched ``teak_schedule_id`` / ``teak_creative_id`` / ``teak_reward_id`` fields now land on the launch data and in the ``TeakPostLaunchSummary`` payload for launches that started without attribution. Previously the enrichment merge was a no-op in that case."
+  - "Non-JSON error responses no longer raise ``NSInvalidArgumentException`` while parsing request replies."
