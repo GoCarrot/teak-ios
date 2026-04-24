@@ -1,5 +1,5 @@
 #import <AVKit/AVKit.h>
-#import <Teak/TeakNotificationViewControllerCore.h>
+#import "TeakNotificationViewControllerCore.h"
 #import "TeakHelpers.h"
 #import <UserNotifications/UserNotifications.h>
 #import <UserNotificationsUI/UserNotificationsUI.h>

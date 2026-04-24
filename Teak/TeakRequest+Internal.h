@@ -16,4 +16,19 @@
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
+
+// Parse an HTTP response body into a reply dictionary. Always returns a
+// dictionary — nil/empty/non-JSON/non-object bodies all collapse to @{} so
+// downstream code (reply parsers, dictionary literals) never sees nil.
+// On parse/shape failures, `*outError` (when provided) is set to a non-nil
+// NSError so callers can surface the failure to logging. On nil/empty data
+// or a successful parse, `*outError` is left unchanged.
++ (NSDictionary* _Nonnull)parseJSONResponseData:(NSData* _Nullable)data
+                                          error:(NSError* _Nullable* _Nullable)outError;
+
+// Resolve the user-facing title for a `report_client_error` payload.
+// Returns the dict's "title" when present and a string, otherwise
+// "Configuration Error". Never nil — the result is used as a key into the
+// integration checker's error dictionary.
++ (NSString* _Nonnull)titleForClientError:(NSDictionary* _Nullable)clientError;
 @end

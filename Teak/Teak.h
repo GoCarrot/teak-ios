@@ -617,7 +617,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * @param systemActivityId The OS-level per-instance activity identifier, from ``Activity.id``.
  * @return A TeakOperation which contains the status and result of the call.
  */
-+ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId;
++ (nonnull TeakOperation*)startedLiveActivity:(nonnull NSString*)activityId withToken:(nonnull NSData*)pushToken systemActivityId:(nonnull NSString*)systemActivityId
+    NS_SWIFT_NAME(startedLiveActivity(_:withToken:systemActivityId:));
 
 /**
  * Schedule a single update to be delivered to a live activity at a future time.
@@ -643,7 +644,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 + (nonnull TeakOperation*)scheduleLiveActivityUpdate:(nonnull NSString*)activityId
                                               offset:(int64_t)offset
                                           customData:(nonnull NSDictionary*)customData
-                                          systemData:(nullable NSDictionary*)systemData;
+                                          systemData:(nullable NSDictionary*)systemData
+    NS_SWIFT_NAME(scheduleLiveActivityUpdate(_:offset:customData:systemData:));
 
 /**
  * Cancel all pending scheduled updates for a live activity.
@@ -657,7 +659,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  *         ``TeakOperationLiveActivityCancelResult`` carrying the number of updates
  *         canceled by the server.
  */
-+ (nonnull TeakOperation*)cancelLiveActivityUpdates:(nonnull NSString*)activityId;
++ (nonnull TeakOperation*)cancelLiveActivityUpdates:(nonnull NSString*)activityId
+    NS_SWIFT_NAME(cancelLiveActivityUpdates(_:));
 
 /**
  * Report a live activity push-to-start token to Teak.
@@ -668,7 +671,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  *
  * @param token The push-to-start token data from ``Activity.pushToStartTokenUpdates``.
  */
-+ (void)registerPushToStartToken:(nonnull NSData*)token;
++ (void)registerPushToStartToken:(nonnull NSData*)token
+    NS_SWIFT_NAME(registerPushToStartToken(_:));
 
 @end
 

@@ -141,6 +141,32 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return session;
 }
 
++ (NSDictionary*)parseJSONResponseData:(NSData*)data error:(NSError**)outError {
+  if (data == nil || data.length == 0) return @{};
+
+  NSError* parseError = nil;
+  id parsed = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&parseError];
+  if (parsed == nil) {
+    if (outError) *outError = parseError;
+    return @{};
+  }
+  if (![parsed isKindOfClass:[NSDictionary class]]) {
+    if (outError) {
+      *outError = [NSError errorWithDomain:@"io.teak.TeakRequest"
+                                      code:0
+                                  userInfo:@{NSLocalizedDescriptionKey : [NSString stringWithFormat:@"Expected top-level JSON object, got %@", NSStringFromClass([parsed class])]}];
+    }
+    return @{};
+  }
+  return parsed;
+}
+
++ (NSString*)titleForClientError:(NSDictionary*)clientError {
+  id title = clientError[@"title"];
+  if ([title isKindOfClass:[NSString class]]) return title;
+  return @"Configuration Error";
+}
+
 + (NSMutableDictionary*)requestsInFlight {
   static NSMutableDictionary* dict = nil;
   static dispatch_once_t onceToken;
@@ -345,7 +371,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
             @try {
               // We are going to get a 'message' key and optionally a 'title' key
               NSDictionary* clientError = payload[@"report_client_error"];
-              NSString* title = clientError[@"title"] == nil ? clientError[@"title"] : @"Configuration Error";
+              NSString* title = [TeakRequest titleForClientError:clientError];
 
               [[Teak sharedInstance].integrationChecker reportError:clientError[@"message"] forCategory:title];
             } @finally {
@@ -632,13 +658,14 @@ KeyValueObserverSupported(TeakBatchedRequest);
     TeakLog_e(@"request.reply.error", error);
   } else {
     teak_try {
+      NSData* data = nil;
       @synchronized(self) {
-        NSData* data = self.responseData[@(dataTask.taskIdentifier)];
-        if (data) {
-          reply = (NSDictionary*)[NSJSONSerialization JSONObjectWithData:data
-                                                                 options:kNilOptions
-                                                                   error:&error];
-        }
+        data = self.responseData[@(dataTask.taskIdentifier)];
+      }
+      NSError* parseError = nil;
+      reply = [TeakRequest parseJSONResponseData:data error:&parseError];
+      if (parseError) {
+        TeakLog_e(@"request.reply.parse_error", parseError);
       }
     }
     teak_catch_report;
