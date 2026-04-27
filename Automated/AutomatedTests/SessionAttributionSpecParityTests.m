@@ -89,10 +89,12 @@ static NSArray<NSString*>* TeakCanonicalWireKeys(void) {
                  label, (unsigned long)canonical.count, (unsigned long)dict.count, dict.allKeys);
 }
 
-#pragma mark - Drift item 1: all-keys-always-present
+#pragma mark - All eleven canonical keys always present
 
 /// Bare unattributed launch — only `launch_link` carries a value. The other
-/// ten keys must still be present in to_h, all as NSNull. Spec drift item 1.
+/// ten keys must still be present in to_h, all as NSNull. The cross-SDK
+/// contract is "every blob carries every key"; readers can address each
+/// slot by name without per-launch-class branching.
 - (void)testBareLaunchDataEmitsAllElevenKeysWithNullsForUnattributed {
   TeakLaunchData* data = [[TeakLaunchData alloc] init];
   NSDictionary* dict = [data to_h];
@@ -108,7 +110,7 @@ static NSArray<NSString*>* TeakCanonicalWireKeys(void) {
 
 /// Rewardlink-shaped launch — populates schedule/creative/reward/channel/etc.
 /// but not `teakNotifId` or `teakSystemActivityId`. Both must still be present
-/// (as NSNull) in to_h. Spec drift item 1.
+/// (as NSNull) in to_h.
 - (void)testRewardlinkLaunchDataEmitsAllElevenKeys {
   NSURL* url = [NSURL URLWithString:@"teaktest-app://promo?teak_rewardlink_id=42&teak_rewardlink_name=referral&teak_reward_id=99&teak_channel_name=generic_link&teak_opt_out_category=promos"];
   TeakRewardlinkLaunchData* data = [[TeakRewardlinkLaunchData alloc] initWithUrl:url andShortLink:nil];
@@ -128,7 +130,7 @@ static NSArray<NSString*>* TeakCanonicalWireKeys(void) {
 }
 
 /// Notification launch carries `teakNotifId` but never `teakSystemActivityId`.
-/// The latter must still be in to_h as NSNull. Spec drift item 1.
+/// The latter must still be in to_h as NSNull.
 - (void)testNotificationLaunchDataEmitsAllElevenKeys {
   NSURL* url = [NSURL URLWithString:@"teaktest-app://chest?teak_notif_id=12345&teak_schedule_id=7&teak_creative_id=42&teak_reward_id=99&teak_channel_name=ios_push&teak_opt_out_category=promos"];
   TeakNotificationLaunchData* data = [[TeakNotificationLaunchData alloc] initWithUrl:url];
@@ -142,8 +144,9 @@ static NSArray<NSString*>* TeakCanonicalWireKeys(void) {
 }
 
 /// Live-activity launch carries `teakSystemActivityId` but no URL/attribution.
-/// The other ten keys must still be NSNull in to_h. Spec drift item 1; matches
-/// fixtures/session_attribution/live_activity.json.
+/// The other ten keys must still be NSNull in to_h. Matches the canonical
+/// `live_activity.json` fixture: an LA tap has no notification or attributed-
+/// URL source, so every attributed slot stays null on the wire.
 - (void)testLiveActivityLaunchDataEmitsAllElevenKeysWithOnlySystemActivityIdPopulated {
   NSString* systemActivityId = @"D3CBB9AF-7292-4FD9-B22D-DEAC3D033BD2";
   TeakLiveActivityLaunchData* data = [[TeakLiveActivityLaunchData alloc] initWithSystemActivityId:systemActivityId];
@@ -159,13 +162,13 @@ static NSArray<NSString*>* TeakCanonicalWireKeys(void) {
   }
 }
 
-#pragma mark - Drift item 2: teakDeepLink uses deepLink (not launchUrl)
+#pragma mark - teakDeepLink publishes the resolved deep link
 
 /// On the rewardlink path, the outer (short) launch URL carries a
 /// `teak_deep_link` query param that points to the inner deep link the host
 /// game routes on. The constructor uses the short link's query for the
 /// teak_deep_link lookup; teakDeepLink must surface the inner link, not the
-/// outer short link. Spec drift item 2.
+/// outer short link.
 - (void)testTeakDeepLinkPublishesInnerDeepLinkForRewardlinkLaunch {
   NSURL* shortLink = [NSURL URLWithString:@"teaktest-app://r/abc?teak_rewardlink_id=42&teak_deep_link=teaktest-app%3A%2F%2Fpromo%2Fsummer"];
   NSURL* resolvedUrl = [NSURL URLWithString:@"teaktest-app://r/abc?teak_rewardlink_id=42"];
@@ -189,11 +192,12 @@ static NSArray<NSString*>* TeakCanonicalWireKeys(void) {
                         @"teakDeepLink must publish self.deepLink (the resolved deep link), gated by TeakLink_WillHandleDeepLink");
 }
 
-#pragma mark - Drift item 3: teakOptOutCategory defaults to "teak"
+#pragma mark - teakOptOutCategory defaults to "teak" on attributed launches
 
 /// On a notification launch where the source omitted `teak_opt_out_category`,
-/// teakOptOutCategory must default to the literal string "teak", matching
-/// Android. Spec drift item 3.
+/// teakOptOutCategory must default to the literal string "teak". Cross-SDK
+/// contract — Android publishes the same default, host games rely on a
+/// non-null category bucket on every attributed launch.
 - (void)testTeakOptOutCategoryDefaultsToTeakLiteralWhenAbsentOnNotification {
   NSURL* url = [NSURL URLWithString:@"teaktest-app://chest?teak_notif_id=12345&teak_creative_id=42&teak_reward_id=99"];
   TeakNotificationLaunchData* data = [[TeakNotificationLaunchData alloc] initWithUrl:url];

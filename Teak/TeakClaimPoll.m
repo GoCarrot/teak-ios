@@ -4,10 +4,25 @@
 #import "TeakLaunchData.h"
 #import "TeakSession.h"
 
-// In-flight polls are keyed by event_id. The dictionary is mutated only on
-// the main thread (NSTimer fires on its scheduling run loop, and we schedule
-// on the main run loop).
-static NSMutableDictionary<NSString*, NSTimer*>* sActivePolls = nil;
+// In-flight polls are keyed by event_id. Values are either an NSTimer (delay
+// before next attempt) or the kInFlightSentinel (request issued, awaiting
+// reply). Either way, a non-nil value means "this event_id is being polled
+// for"; +startPollForEventId: refuses to start a duplicate. The dictionary is
+// mutated only on the main thread (NSTimer fires on its scheduling run loop,
+// and every other write dispatches to main).
+static NSMutableDictionary<NSString*, id>* sActivePolls = nil;
+
+// Bumped by +cancelAllPolls. Each pollTimerFired: captures the current
+// generation; when its completion block runs, if the generation has moved
+// the request is from a session that has since expired and we drop it.
+// Avoids late /claim_status replies firing TeakOnRewardClaimResolved against
+// a session the host game doesn't remember initiating.
+static uint64_t sPollGeneration = 0;
+
+// Sentinel value for "request in flight, no timer scheduled." Any non-nil
+// value satisfies the dedupe check; using a distinct singleton makes the
+// state legible in the debugger.
+static id kInFlightSentinel = nil;
 
 @implementation TeakClaimPoll
 
@@ -15,6 +30,7 @@ static NSMutableDictionary<NSString*, NSTimer*>* sActivePolls = nil;
   static dispatch_once_t once;
   dispatch_once(&once, ^{
     sActivePolls = [[NSMutableDictionary alloc] init];
+    kInFlightSentinel = [NSObject new];
   });
   return sActivePolls;
 }
@@ -76,9 +92,13 @@ static NSMutableDictionary<NSString*, NSTimer*>* sActivePolls = nil;
   dispatch_async(dispatch_get_main_queue(), ^{
     NSMutableDictionary* polls = [TeakClaimPoll activePolls];
     for (NSString* key in polls.allKeys) {
-      [polls[key] invalidate];
+      id slot = polls[key];
+      if ([slot isKindOfClass:[NSTimer class]]) {
+        [(NSTimer*)slot invalidate];
+      }
     }
     [polls removeAllObjects];
+    sPollGeneration++;
   });
 }
 
@@ -116,21 +136,36 @@ static NSMutableDictionary<NSString*, NSTimer*>* sActivePolls = nil;
   id launchDataValue = userInfo[@"launch_data"];
   TeakAttributedLaunchData* launchData = (launchDataValue == [NSNull null]) ? nil : launchDataValue;
 
-  // Clear the timer slot before we send the request — the next attempt will
-  // re-key when it schedules.
-  [[TeakClaimPoll activePolls] removeObjectForKey:eventId];
+  // Replace the timer slot with the in-flight sentinel — keeps dedupe truthy
+  // for the duration of the request so a re-entrant +startPollForEventId:
+  // sees an existing poll. The slot is cleared by the completion handler
+  // (terminal → fire+ack path) or replaced by the next timer (continue-poll
+  // path).
+  [[TeakClaimPoll activePolls] setObject:kInFlightSentinel forKey:eventId];
+
+  // Snapshot the generation for the completion's session-still-alive check.
+  uint64_t generation = sPollGeneration;
 
   [TeakClaimPoll sendClaimStatusRequestForEventId:eventId
                                        completion:^(NSDictionary* reply) {
-                                         NSString* status = reply[@"status"];
-                                         if ([TeakClaimPoll isTerminalStatus:status]) {
-                                           [TeakClaimPoll fireResolvedAndAck:reply
-                                                                      eventId:eventId
-                                                                   launchData:launchData];
-                                           return;
-                                         }
-
                                          dispatch_async(dispatch_get_main_queue(), ^{
+                                           if (generation != sPollGeneration) {
+                                             // Session expired between request-send and reply.
+                                             // Drop the reply; cancelAllPolls already cleared the
+                                             // dictionary entry.
+                                             TeakLog_i(@"claim_poll.reply.stale", @{@"event_id" : eventId});
+                                             return;
+                                           }
+
+                                           NSString* status = reply[@"status"];
+                                           if ([TeakClaimPoll isTerminalStatus:status]) {
+                                             [[TeakClaimPoll activePolls] removeObjectForKey:eventId];
+                                             [TeakClaimPoll fireResolvedAndAck:reply
+                                                                        eventId:eventId
+                                                                     launchData:launchData];
+                                             return;
+                                           }
+
                                            [TeakClaimPoll scheduleNextPollForEventId:eventId
                                                                            launchData:launchData
                                                                               attempt:attempt + 1

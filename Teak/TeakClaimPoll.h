@@ -39,19 +39,35 @@
 /// notification. Merges the `/claim_status` reply with the launch-data
 /// `to_h` attribution fields. When `launchData` is nil, returns the reply
 /// alone — defensive against an unusual mid-session teardown.
+///
+/// Key convention: wire reply keys are snake_case (`event_id`, `status`,
+/// `reward`, `customer_response`, `customer_status_code`, `teak_reward_id`),
+/// attribution keys are teakCamelCase (`teakRewardId`, `teakNotifId`, etc).
+/// They never alias the same logical id at the dict-key level — both
+/// `teakRewardId` (the reward this launch was attributed to, from the URL or
+/// notification payload) and `teak_reward_id` (the reward the server
+/// authoritatively granted on this specific click) can coexist on the
+/// resolved-event userInfo and are distinct fields.
 + (NSDictionary*)buildResolvedUserInfoForReply:(NSDictionary*)reply
                                 withLaunchData:(TeakAttributedLaunchData*)launchData;
 
 /// Begin polling `/claim_status` for the given event id. The poll uses
 /// `initialDelay` for the first attempt and doubles up to `ceiling` for each
-/// subsequent attempt. Calling repeatedly with the same `eventId` is a no-op
-/// (the existing poll continues; no second poll is started).
+/// subsequent attempt. Dedupe is "at most one poll per event id at a time":
+/// if a timer is scheduled OR a request is in flight for the same eventId,
+/// a second call is a no-op.
 + (void)startPollForEventId:(NSString*)eventId
                  launchData:(TeakAttributedLaunchData*)launchData
                initialDelay:(NSTimeInterval)initialDelay
                     ceiling:(NSTimeInterval)ceiling;
 
-/// Cancel any in-flight polls. Called when the session expires.
+/// Cancel all in-flight polls. Called when the session expires. Pending
+/// timers are invalidated immediately. In-flight `/claim_status` requests
+/// can't be canceled mid-flight, but their completion handlers detect the
+/// session change via a generation counter and drop the reply rather than
+/// firing `TeakOnRewardClaimResolved` against a session the host game no
+/// longer remembers initiating. Cross-session resolutions are picked up by
+/// the session-start sweep on next launch.
 + (void)cancelAllPolls;
 
 @end

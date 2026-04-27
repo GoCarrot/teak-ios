@@ -18,8 +18,42 @@ extern NSString* _Nonnull const TeakNotificationAppLaunch;
  */
 extern NSString* _Nonnull const TeakOnReward;
 
+/**
+ * Use this named notification to listen for the JWT-issued response when an
+ * app is configured for client-side JWT reward claims.
+ *
+ * The notification's userInfo carries the JWT token, event id, reward,
+ * claim source, teak reward id, and the launch-data attribution fields so
+ * the host game can render reward UI and forward the JWT to its own
+ * backend.
+ */
 extern NSString* _Nonnull const TeakOnRewardJwtIssued;
+
+/**
+ * Use this named notification to listen for the pending-claim response when
+ * an app is configured for server-side JWT reward claims.
+ *
+ * The notification's userInfo carries the event id (used by the SDK's
+ * click-time poll loop) plus the reward and attribution context so the host
+ * game can render an optimistic surface while the claim is in flight.
+ */
 extern NSString* _Nonnull const TeakOnRewardClaimPending;
+
+/**
+ * Use this named notification to listen for the resolved-claim response from
+ * the SDK's click-time poll loop. Fires when the server reaches a terminal
+ * state (completed or failed) for a previously-pending claim.
+ *
+ * The notification's userInfo carries the polled status, the customer's
+ * server response, and the launch-data attribution fields.
+ *
+ * Delivery is at-least-once: if the SDK's `/claim_ack` post fails (network
+ * blip, app backgrounded mid-flight), the server's session-start sweep will
+ * resurface the same resolved claim on the next launch and fire this
+ * notification again with the same `event_id`. Host games SHOULD idempotent-
+ * key any reward grant on the `event_id` field of the userInfo dictionary
+ * so a duplicate delivery doesn't grant the reward twice.
+ */
 extern NSString* _Nonnull const TeakOnRewardClaimResolved;
 
 /**
