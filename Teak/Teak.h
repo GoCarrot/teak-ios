@@ -18,6 +18,10 @@ extern NSString* _Nonnull const TeakNotificationAppLaunch;
  */
 extern NSString* _Nonnull const TeakOnReward;
 
+extern NSString* _Nonnull const TeakOnRewardJwtIssued;
+extern NSString* _Nonnull const TeakOnRewardClaimPending;
+extern NSString* _Nonnull const TeakOnRewardClaimResolved;
+
 /**
  * Use this named notification to listen for when your app receives a Teak notification while in the foreground.
  * 	[[NSNotificationCenter defaultCenter] addObserver:self

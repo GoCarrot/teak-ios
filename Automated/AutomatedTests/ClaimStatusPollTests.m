@@ -1,0 +1,121 @@
+#import <XCTest/XCTest.h>
+
+#import <Teak/Teak.h>
+
+#import "TeakClaimPoll.h"
+#import "TeakLaunchData.h"
+
+@import OCHamcrest;
+@import OCMockito;
+
+@interface TeakNotificationLaunchData (Testing)
+- (id)initWithUrl:(NSURL*)url;
+@end
+
+@interface TeakConfiguration : NSObject
++ (BOOL)configureForAppId:(NSString*)appId andSecret:(NSString*)appSecret;
+@end
+
+@interface ClaimStatusPollTests : XCTestCase
+@end
+
+@implementation ClaimStatusPollTests
+
++ (void)setUp {
+  [super setUp];
+  @try {
+    [TeakConfiguration configureForAppId:@"test-app" andSecret:@"test-secret"];
+  } @catch (NSException* e) {
+    // Already initialized — fine.
+  }
+}
+
+#pragma mark - Backoff schedule
+
+/// First poll happens after the initial delay (~2s per spec).
+- (void)testFirstPollUsesInitialDelay {
+  NSTimeInterval delay = [TeakClaimPoll nextDelayAfter:0
+                                          initialDelay:2.0
+                                               ceiling:30.0];
+  XCTAssertEqualWithAccuracy(delay, 2.0, 0.001);
+}
+
+/// Each subsequent attempt doubles the delay (exponential backoff).
+- (void)testSubsequentPollsDoubleTheDelay {
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:1 initialDelay:2.0 ceiling:30.0], 4.0, 0.001);
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:2 initialDelay:2.0 ceiling:30.0], 8.0, 0.001);
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:3 initialDelay:2.0 ceiling:30.0], 16.0, 0.001);
+}
+
+/// Delay caps at the ceiling and never exceeds it, regardless of attempt count.
+- (void)testDelayClampsToCeiling {
+  // 2 * 2^4 = 32, exceeds 30s ceiling — must clamp.
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:4 initialDelay:2.0 ceiling:30.0], 30.0, 0.001);
+  // Far past the ceiling: still clamped.
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:20 initialDelay:2.0 ceiling:30.0], 30.0, 0.001);
+}
+
+/// Helper accepts arbitrary base values — guards against hard-coded constants
+/// (a future tunable could change initial/ceiling).
+- (void)testBackoffIsParameterizedNotHardcoded {
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:0 initialDelay:1.0 ceiling:10.0], 1.0, 0.001);
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:3 initialDelay:1.0 ceiling:10.0], 8.0, 0.001);
+  XCTAssertEqualWithAccuracy([TeakClaimPoll nextDelayAfter:5 initialDelay:1.0 ceiling:10.0], 10.0, 0.001);
+}
+
+#pragma mark - Terminal status detection
+
+/// `pending` is the only non-terminal /claim_status response — keep polling.
+- (void)testPendingIsNotTerminal {
+  XCTAssertFalse([TeakClaimPoll isTerminalStatus:@"pending"]);
+}
+
+/// `completed` and `failed` are terminal — fire resolved event and stop.
+- (void)testCompletedAndFailedAreTerminal {
+  XCTAssertTrue([TeakClaimPoll isTerminalStatus:@"completed"]);
+  XCTAssertTrue([TeakClaimPoll isTerminalStatus:@"failed"]);
+}
+
+/// Unknown / nil / empty values are treated as non-terminal so a malformed
+/// reply doesn't lock the poll into an early exit. The poll's own retry/timeout
+/// machinery handles network-level oddness.
+- (void)testUnknownStatusIsNotTerminal {
+  XCTAssertFalse([TeakClaimPoll isTerminalStatus:nil]);
+  XCTAssertFalse([TeakClaimPoll isTerminalStatus:@""]);
+  XCTAssertFalse([TeakClaimPoll isTerminalStatus:@"some_future_state"]);
+}
+
+#pragma mark - session_attribution mint (round-trip)
+
+/// session_attribution is minted at click-request-build time as a JSON string
+/// of launchData.to_h (the canonical wire shape from session_attribution_spec.md).
+/// The blob must round-trip through JSON cleanly so the server can persist it.
+- (void)testSessionAttributionMintRoundTripsForNotificationFixture {
+  NSURL* url = [NSURL URLWithString:@"teaktest-app://chest?teak_notif_id=2048153148060669486&teak_schedule_id=2046986133304291328&teak_schedule_name=daily_promo_2026q2&teak_creative_id=2046986561123301779&teak_creative_name=summer_sale_v3&teak_reward_id=2048153148060669138&teak_channel_name=ios_push&teak_opt_out_category=teak"];
+  TeakNotificationLaunchData* data = [[TeakNotificationLaunchData alloc] initWithUrl:url];
+
+  NSString* blob = [TeakReward sessionAttributionStringFromLaunchData:data];
+  XCTAssertNotNil(blob, @"mint must produce a non-nil JSON string");
+
+  NSError* err = nil;
+  NSDictionary* roundTripped = [NSJSONSerialization JSONObjectWithData:[blob dataUsingEncoding:NSUTF8StringEncoding]
+                                                                options:0
+                                                                  error:&err];
+  XCTAssertNil(err);
+  XCTAssertEqualObjects(roundTripped[@"teakNotifId"], @"2048153148060669486");
+  XCTAssertEqualObjects(roundTripped[@"teakScheduleId"], @"2046986133304291328");
+  XCTAssertEqualObjects(roundTripped[@"teakCreativeId"], @"2046986561123301779");
+  XCTAssertEqualObjects(roundTripped[@"teakRewardId"], @"2048153148060669138");
+  XCTAssertEqualObjects(roundTripped[@"teakChannelName"], @"ios_push");
+  // Class-aware nulls present-but-null on a notification mint.
+  XCTAssertEqualObjects(roundTripped[@"teakSystemActivityId"], [NSNull null]);
+}
+
+/// Mint from a nil launchData yields nil — caller (TeakReward) treats nil as
+/// "omit the param from the click POST" rather than sending an empty blob.
+- (void)testSessionAttributionMintReturnsNilForNilLaunchData {
+  NSString* blob = [TeakReward sessionAttributionStringFromLaunchData:nil];
+  XCTAssertNil(blob);
+}
+
+@end

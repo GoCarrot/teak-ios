@@ -1,5 +1,7 @@
 #import <Foundation/Foundation.h>
 
+@class TeakAttributedLaunchData;
+
 typedef enum : int {
   kTeakRewardStatusUnknown = -1,                ///< An unknown error occured while processing the reward.
   kTeakRewardStatusGrantReward = 0,             ///< Valid reward claim, grant the user the reward.
@@ -23,4 +25,8 @@ typedef void (^RewardCompleted)(void);
 @property (nonatomic, copy) RewardCompleted _Nullable onComplete;
 
 + (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId;
++ (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId
+                           withLaunchData:(nullable TeakAttributedLaunchData*)launchData;
+
++ (nullable NSString*)sessionAttributionStringFromLaunchData:(nullable TeakAttributedLaunchData*)launchData;
 @end

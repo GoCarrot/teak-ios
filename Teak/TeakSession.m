@@ -653,6 +653,12 @@ DefineTeakState(Expired, (@[]));
   }];
 }
 
+// TODO: real impl in next commit — for now returns nil so the stub-targeted
+// tests fail at runtime (the value-comparison assertions match against nil).
++ (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
+  return nil;
+}
+
 + (void)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
   if (launchData.rewardId == nil) return;
 

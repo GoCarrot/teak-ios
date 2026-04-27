@@ -48,6 +48,17 @@
                                     self.json];
 }
 
++ (TeakReward*)rewardForRewardId:(NSString*)teakRewardId withLaunchData:(id)launchData {
+  // TODO: real impl in next commit — for now route to legacy path so the
+  // rest of the SDK keeps working while tests for the new behavior land red.
+  return [TeakReward rewardForRewardId:teakRewardId];
+}
+
++ (NSString*)sessionAttributionStringFromLaunchData:(id)launchData {
+  // TODO: real impl in next commit.
+  return nil;
+}
+
 + (TeakReward*)rewardForRewardId:(NSString*)teakRewardId {
   if (teakRewardId == nil || teakRewardId.length == 0) {
     TeakLog_e(@"reward.error", @"teakRewardId must not be nil or empty");

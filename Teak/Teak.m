@@ -34,6 +34,9 @@
 
 NSString* const TeakNotificationAppLaunch = @"TeakNotificationAppLaunch";
 NSString* const TeakOnReward = @"TeakOnReward";
+NSString* const TeakOnRewardJwtIssued = @"TeakOnRewardJwtIssued";
+NSString* const TeakOnRewardClaimPending = @"TeakOnRewardClaimPending";
+NSString* const TeakOnRewardClaimResolved = @"TeakOnRewardClaimResolved";
 NSString* const TeakForegroundNotification = @"TeakForegroundNotification";
 NSString* const TeakConfigurationData = @"TeakConfigurationData";
 NSString* const TeakAdditionalData = @"TeakAdditionalData";
