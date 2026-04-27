@@ -29,10 +29,25 @@
   if ([(NSArray*)supportedClaimModes containsObject:configuredClaimMode]) {
     return YES;
   }
+
+  // Match Android's event_data shape so cross-SDK log ingestion doesn't have
+  // to special-case per-platform: snake-cased keys and a stringified list.
+  NSString* supportedClaimModesString = nil;
+  teak_try {
+    NSData* json = [NSJSONSerialization dataWithJSONObject:supportedClaimModes options:0 error:nil];
+    if (json != nil) {
+      supportedClaimModesString = [[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding];
+    }
+  }
+  teak_catch_report;
+  if (supportedClaimModesString == nil) {
+    supportedClaimModesString = [(NSArray*)supportedClaimModes description];
+  }
+
   TeakLog_w(@"claim_mode.unsupported",
             @"Configured TeakClaimMode is not in the game's supported_claim_modes; reward clicks may be rejected.",
-            @{@"configured" : configuredClaimMode,
-              @"supported" : supportedClaimModes});
+            @{@"configured_claim_mode" : configuredClaimMode,
+              @"supported_claim_modes" : supportedClaimModesString});
   return NO;
 }
 

@@ -86,10 +86,12 @@ extern Teak* _teakSharedInstance;
   NSArray* supported = @[@"legacy"];
   [TeakRemoteConfiguration validateClaimMode:@"server_jwt" againstSupported:supported];
 
+  // Field shape mirrors Android's claim_mode.unsupported event so cross-SDK
+  // log ingestion doesn't need per-platform branches.
   assertThat(observedEvent, is(@"claim_mode.unsupported"));
   assertThat(observedLevel, is(@"WARN"));
-  assertThat(observedData[@"configured"], is(@"server_jwt"));
-  assertThat(observedData[@"supported"], hasItem(@"legacy"));
+  assertThat(observedData[@"configured_claim_mode"], is(@"server_jwt"));
+  assertThat(observedData[@"supported_claim_modes"], is(@"[\"legacy\"]"));
 }
 
 - (void)testDoesNotEmitWarningWhenModeIsSupported {
