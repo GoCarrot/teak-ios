@@ -262,8 +262,22 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 }
 
 - (NSDictionary*)to_h {
+  // Every blob carries the same eleven keys. Bare LaunchData populates only
+  // launch_link; subclasses overwrite the slots they know. Keys absent on a
+  // subclass remain present-with-NSNull on the wire, so cross-SDK readers can
+  // address each key by name without per-launch-class branching.
   NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
   dictionary[@"launch_link"] = TeakValueOrNSNull(self.launchUrl.absoluteString);
+  dictionary[@"teakScheduleName"] = [NSNull null];
+  dictionary[@"teakScheduleId"] = [NSNull null];
+  dictionary[@"teakCreativeName"] = [NSNull null];
+  dictionary[@"teakCreativeId"] = [NSNull null];
+  dictionary[@"teakRewardId"] = [NSNull null];
+  dictionary[@"teakChannelName"] = [NSNull null];
+  dictionary[@"teakDeepLink"] = [NSNull null];
+  dictionary[@"teakOptOutCategory"] = [NSNull null];
+  dictionary[@"teakNotifId"] = [NSNull null];
+  dictionary[@"teakSystemActivityId"] = [NSNull null];
   return dictionary;
 }
 
@@ -364,8 +378,16 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   dictionary[@"teakCreativeId"] = TeakValueOrNSNull(self.creativeId);
   dictionary[@"teakRewardId"] = TeakValueOrNSNull(self.rewardId);
   dictionary[@"teakChannelName"] = TeakValueOrNSNull(self.channelName);
-  dictionary[@"teakDeepLink"] = TeakLink_WillHandleDeepLink(self.launchUrl) ? self.launchUrl.absoluteString : [NSNull null];
-  dictionary[@"teakOptOutCategory"] = TeakValueOrNSNull(self.optOutCategory);
+  // teakDeepLink carries the inner deep link the host game routes on (the
+  // teak_deep_link query-param value, or the dashboard-mapped link), gated by
+  // TeakLink_WillHandleDeepLink so non-routable URLs surface as null. The
+  // outer launch URL would publish the rewardlink shortlink on the rewardlink
+  // path, which is not what the host game routes on.
+  dictionary[@"teakDeepLink"] = TeakLink_WillHandleDeepLink(self.deepLink) ? self.deepLink.absoluteString : [NSNull null];
+  // Opt-out category defaults to the literal "teak" bucket when the source
+  // omitted an explicit category. This matches Android's mint behavior so a
+  // host game receives the same default across SDKs.
+  dictionary[@"teakOptOutCategory"] = self.optOutCategory != nil ? self.optOutCategory : @"teak";
   return dictionary;
 }
 
@@ -462,6 +484,11 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 - (NSDictionary*)to_h {
   NSMutableDictionary* dictionary = (NSMutableDictionary*)[super to_h];
   dictionary[@"teakSystemActivityId"] = TeakValueOrNSNull(self.systemActivityId);
+  // A live-activity tap has no notification or attributed-URL source from
+  // which to derive an opt-out category; the spec mints null in this slot for
+  // LA blobs. The "teak" default in TeakAttributedLaunchData applies only to
+  // sources that *could* have declared an explicit category but didn't.
+  dictionary[@"teakOptOutCategory"] = [NSNull null];
   return dictionary;
 }
 

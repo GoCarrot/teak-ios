@@ -28,5 +28,10 @@ typedef void (^RewardCompleted)(void);
 + (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId
                            withLaunchData:(nullable TeakAttributedLaunchData*)launchData;
 
+/// Mints a JSON-encoded `session_attribution` blob from the launch data's
+/// canonical wire shape (`launchData.to_h`). Returns nil when `launchData`
+/// is nil so callers can omit the param from the click request rather than
+/// sending an empty value. Exposed for unit testing of the round-trip; the
+/// production caller is `+rewardForRewardId:withLaunchData:`.
 + (nullable NSString*)sessionAttributionStringFromLaunchData:(nullable TeakAttributedLaunchData*)launchData;
 @end

@@ -3,6 +3,7 @@
 #import "FacebookAccessTokenEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
+#import "TeakClaimPoll.h"
 #import "TeakDebugConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLaunchData.h"
@@ -653,32 +654,69 @@ DefineTeakState(Expired, (@[]));
   }];
 }
 
-// TODO: real impl in next commit — for now returns nil so the stub-targeted
-// tests fail at runtime (the value-comparison assertions match against nil).
-+ (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
-  return nil;
-}
-
 + (void)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
   if (launchData.rewardId == nil) return;
 
-  TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId];
+  TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId withLaunchData:launchData];
   if (reward == nil) return;
 
   __weak TeakReward* tempWeakReward = reward;
   reward.onComplete = ^() {
     __strong TeakReward* blockReward = tempWeakReward;
     if (blockReward.json != nil) {
-      NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
-      [userInfo addEntriesFromDictionary:blockReward.json];
-
-      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                            object:session
-                                                          userInfo:userInfo];
-      }];
+      [TeakSession dispatchClickResponse:blockReward.json forLaunchData:launchData];
     }
   };
+}
+
+/// Branches the click response on its wire `status` field. Legacy and
+/// gate-rejection statuses ride the existing TeakOnReward event; JWT-mode
+/// statuses fan out to the new TeakOnRewardJwtIssued / TeakOnRewardClaimPending
+/// surfaces. On `claim_pending` the SDK additionally starts a click-time poll
+/// against /claim_status that fires TeakOnRewardClaimResolved on terminal
+/// status. Returns the notification it posted (for testability — production
+/// callers ignore the return value).
++ (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
+  NSString* wireStatus = reply[@"status"];
+
+  NSString* notificationName = TeakOnReward;
+  if ([wireStatus isEqualToString:@"token_issued"]) {
+    notificationName = TeakOnRewardJwtIssued;
+  } else if ([wireStatus isEqualToString:@"claim_pending"]) {
+    notificationName = TeakOnRewardClaimPending;
+  }
+
+  NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
+  if (launchData != nil) {
+    [userInfo addEntriesFromDictionary:[launchData to_h]];
+  }
+  [userInfo addEntriesFromDictionary:reply];
+
+  // Default initial delay 2s, ceiling 30s — chosen to keep the first poll close
+  // to claim-completion latency while preventing busy-loops if the customer
+  // backend is slow.
+  static const NSTimeInterval kClaimPollInitialDelay = 2.0;
+  static const NSTimeInterval kClaimPollCeiling = 30.0;
+
+  if ([wireStatus isEqualToString:@"claim_pending"]) {
+    NSString* eventId = reply[@"event_id"];
+    if ([eventId isKindOfClass:[NSString class]] && eventId.length > 0) {
+      [TeakClaimPoll startPollForEventId:eventId
+                              launchData:launchData
+                            initialDelay:kClaimPollInitialDelay
+                                 ceiling:kClaimPollCeiling];
+    }
+  }
+
+  NSNotification* note = [NSNotification notificationWithName:notificationName
+                                                       object:nil
+                                                     userInfo:userInfo];
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    [[NSNotificationCenter defaultCenter] postNotificationName:notificationName
+                                                        object:session
+                                                      userInfo:userInfo];
+  }];
+  return note;
 }
 
 + (void)checkLaunchDataForNotificationAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
@@ -822,6 +860,12 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       }
     } else if (newValue == [TeakSession Expiring]) {
       self.endDate = [[NSDate alloc] init];
+
+      // Click-time claim polls don't outlive their session — they fire from
+      // an in-session click and the resolved-event payload is read from the
+      // launch-data state we still hold. The session-start sweep handles
+      // claims that resolve after the app closes.
+      [TeakClaimPoll cancelAllPolls];
 
       // Stop heartbeat, Expiring->Expiring is possible, so no invalid data here
       if (self.heartbeat != nil) {
