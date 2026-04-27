@@ -8,14 +8,14 @@
 @implementation TeakAppConfigurationClaimModeTests
 
 - (void)testClaimModeDefaultsToLegacyWhenInfoPlistKeyAbsent {
-  // The test bundle's Info.plist does not declare TeakClaimMode, so a real
+  // The test bundle's Info.plist does not declare TeakRewardClaimMode, so a real
   // TeakAppConfiguration constructed against [NSBundle mainBundle] should
   // fall back to the documented default of @"legacy".
   TeakAppConfiguration* config = [[TeakAppConfiguration alloc] initWithAppId:@"app-id" apiKey:@"api-key"];
 
   XCTAssertNotNil(config.claimMode, @"claimMode must always be populated");
   XCTAssertEqualObjects(config.claimMode, @"legacy",
-                        @"Apps without TeakClaimMode in Info.plist must default to 'legacy'");
+                        @"Apps without TeakRewardClaimMode in Info.plist must default to 'legacy'");
 }
 
 - (void)testClaimModeIsExposedInToHForLogging {

@@ -45,7 +45,7 @@
   }
 
   TeakLog_w(@"claim_mode.unsupported",
-            @"Configured TeakClaimMode is not in the game's supported_claim_modes; reward clicks may be rejected.",
+            @"Configured TeakRewardClaimMode is not in the game's supported_claim_modes; reward clicks may be rejected.",
             @{@"configured_claim_mode" : configuredClaimMode,
               @"supported_claim_modes" : supportedClaimModesString});
   return NO;

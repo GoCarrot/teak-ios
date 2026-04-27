@@ -71,7 +71,7 @@ BOOL Teak_isProductionBuild(void) {
 
     self.claimMode = @"legacy";
     teak_try {
-      NSString* claimMode = [[NSBundle mainBundle] infoDictionary][@"TeakClaimMode"];
+      NSString* claimMode = [[NSBundle mainBundle] infoDictionary][@"TeakRewardClaimMode"];
       if ([claimMode isKindOfClass:[NSString class]] && claimMode.length > 0) {
         self.claimMode = claimMode;
       }
