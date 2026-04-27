@@ -22,6 +22,20 @@
 
 @implementation TeakRemoteConfiguration
 
++ (BOOL)validateClaimMode:(nullable NSString*)configuredClaimMode againstSupported:(nullable id)supportedClaimModes {
+  if (configuredClaimMode == nil || ![supportedClaimModes isKindOfClass:[NSArray class]]) {
+    return YES;
+  }
+  if ([(NSArray*)supportedClaimModes containsObject:configuredClaimMode]) {
+    return YES;
+  }
+  TeakLog_w(@"claim_mode.unsupported",
+            @"Configured TeakClaimMode is not in the game's supported_claim_modes; reward clicks may be rejected.",
+            @{@"configured" : configuredClaimMode,
+              @"supported" : supportedClaimModes});
+  return NO;
+}
+
 + (NSDictionary*)defaultEndpointConfiguration {
 #define QUOTE(...) #__VA_ARGS__
   static NSString* defaultEndpointConfiguration = @QUOTE(
@@ -162,6 +176,10 @@
 
                                                     // Categories
                                                     self.channelCategories = [TeakChannelCategory createFromRemoteConfiguration:reply[@"available_categories"]];
+
+                                                    // Validate the configured claim mode against the game's supported set.
+                                                    [TeakRemoteConfiguration validateClaimMode:session.appConfiguration.claimMode
+                                                                              againstSupported:reply[@"supported_claim_modes"]];
 
                                                     [RemoteConfigurationEvent remoteConfigurationReady:self deviceConfiguration:session.deviceConfiguration];
                                                   }];

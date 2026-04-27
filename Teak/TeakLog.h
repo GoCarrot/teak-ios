@@ -29,3 +29,8 @@ extern __attribute__((overloadable)) void TeakLog_i(NSString* _Nonnull eventType
 extern __attribute__((overloadable)) void TeakLog_i(NSString* _Nonnull eventType, NSDictionary* _Nullable eventData);
 extern __attribute__((overloadable)) void TeakLog_i(NSString* _Nonnull eventType, NSString* _Nullable message);
 extern __attribute__((overloadable)) void TeakLog_i(NSString* _Nonnull eventType, NSString* _Nullable message, NSDictionary* _Nullable eventData);
+
+extern __attribute__((overloadable)) void TeakLog_w(NSString* _Nonnull eventType);
+extern __attribute__((overloadable)) void TeakLog_w(NSString* _Nonnull eventType, NSDictionary* _Nullable eventData);
+extern __attribute__((overloadable)) void TeakLog_w(NSString* _Nonnull eventType, NSString* _Nullable message);
+extern __attribute__((overloadable)) void TeakLog_w(NSString* _Nonnull eventType, NSString* _Nullable message, NSDictionary* _Nullable eventData);

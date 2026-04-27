@@ -22,6 +22,7 @@ BOOL Teak_isProductionBuild(void) {
 @property (strong, nonatomic, readwrite) NSString* bundleId;
 @property (strong, nonatomic, readwrite) NSString* appVersion;
 @property (strong, nonatomic, readwrite) NSString* _Nonnull appVersionName;
+@property (strong, nonatomic, readwrite) NSString* claimMode;
 @property (strong, nonatomic, readwrite) NSSet* urlSchemes;
 @property (nonatomic, readwrite) BOOL isProduction;
 @property (nonatomic, readwrite) BOOL traceLog;
@@ -68,6 +69,15 @@ BOOL Teak_isProductionBuild(void) {
     }
     teak_catch_report;
 
+    self.claimMode = @"legacy";
+    teak_try {
+      NSString* claimMode = [[NSBundle mainBundle] infoDictionary][@"TeakClaimMode"];
+      if ([claimMode isKindOfClass:[NSString class]] && claimMode.length > 0) {
+        self.claimMode = claimMode;
+      }
+    }
+    teak_catch_report;
+
 #define kTeakLogTrace @"TeakLogTrace"
 #define kTeakSDK5Behaviors @"TeakSDK5Behaviors"
 #define kTeakDoNotRefreshPushToken @"TeakDoNotRefreshPushToken"
@@ -89,6 +99,7 @@ BOOL Teak_isProductionBuild(void) {
     @"apiKey" : self.apiKey,
     @"bundleId" : self.bundleId,
     @"appVersion" : self.appVersion,
+    @"claimMode" : self.claimMode,
     @"isProduction" : self.isProduction ? @YES : @NO,
     @"traceLog" : self.traceLog ? @YES : @NO,
     @"sdk5Behaviors" : self.sdk5Behaviors ? @YES : @NO
@@ -96,13 +107,14 @@ BOOL Teak_isProductionBuild(void) {
 }
 
 - (NSString*)description {
-  return [NSString stringWithFormat:@"<%@: %p> app-id: %@; api-key: %@; bundle-id: %@; app-version: %@; is-production: %@; trace-log: %@; sdk5-behaviors: %@",
+  return [NSString stringWithFormat:@"<%@: %p> app-id: %@; api-key: %@; bundle-id: %@; app-version: %@; claim-mode: %@; is-production: %@; trace-log: %@; sdk5-behaviors: %@",
                                     NSStringFromClass([self class]),
                                     self, // @"0x%016llx"
                                     self.appId,
                                     self.apiKey,
                                     self.bundleId,
                                     self.appVersion,
+                                    self.claimMode,
                                     self.isProduction ? @"YES" : @"NO",
                                     self.traceLog ? @"YES" : @"NO",
                                     self.sdk5Behaviors ? @"YES" : @"NO"];
