@@ -12,6 +12,7 @@
 #import "TeakHelpers.h"
 
 NSString* INFO = @"INFO";
+NSString* WARN = @"WARN";
 NSString* ERROR = @"ERROR";
 
 extern BOOL Teak_isProductionBuild(void);
@@ -82,6 +83,26 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
     [payload setValue:message forKey:@"message"];
   }
   [[Teak sharedInstance].log logEvent:eventType level:INFO eventData:payload];
+}
+
+__attribute__((overloadable)) void TeakLog_w(NSString* eventType) {
+  TeakLog_w(eventType, nil, nil);
+}
+
+__attribute__((overloadable)) void TeakLog_w(NSString* _Nonnull eventType, NSDictionary* _Nullable eventData) {
+  TeakLog_w(eventType, nil, eventData);
+}
+
+__attribute__((overloadable)) void TeakLog_w(NSString* eventType, NSString* message) {
+  TeakLog_w(eventType, message, nil);
+}
+
+__attribute__((overloadable)) void TeakLog_w(NSString* eventType, NSString* message, NSDictionary* eventData) {
+  NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:eventData == nil ? @{} : eventData];
+  if (message != nil) {
+    [payload setValue:message forKey:@"message"];
+  }
+  [[Teak sharedInstance].log logEvent:eventType level:WARN eventData:payload];
 }
 
 @interface TeakLog ()

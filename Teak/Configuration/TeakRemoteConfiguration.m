@@ -22,6 +22,35 @@
 
 @implementation TeakRemoteConfiguration
 
++ (BOOL)validateClaimMode:(nullable NSString*)configuredClaimMode againstSupported:(nullable id)supportedClaimModes {
+  if (configuredClaimMode == nil || ![supportedClaimModes isKindOfClass:[NSArray class]]) {
+    return YES;
+  }
+  if ([(NSArray*)supportedClaimModes containsObject:configuredClaimMode]) {
+    return YES;
+  }
+
+  // Match Android's event_data shape so cross-SDK log ingestion doesn't have
+  // to special-case per-platform: snake-cased keys and a stringified list.
+  NSString* supportedClaimModesString = nil;
+  teak_try {
+    NSData* json = [NSJSONSerialization dataWithJSONObject:supportedClaimModes options:0 error:nil];
+    if (json != nil) {
+      supportedClaimModesString = [[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding];
+    }
+  }
+  teak_catch_report;
+  if (supportedClaimModesString == nil) {
+    supportedClaimModesString = [(NSArray*)supportedClaimModes description];
+  }
+
+  TeakLog_w(@"claim_mode.unsupported",
+            @"Configured TeakRewardClaimMode is not in the game's supported_claim_modes; reward clicks may be rejected.",
+            @{@"configured_claim_mode" : configuredClaimMode,
+              @"supported_claim_modes" : supportedClaimModesString});
+  return NO;
+}
+
 + (NSDictionary*)defaultEndpointConfiguration {
 #define QUOTE(...) #__VA_ARGS__
   static NSString* defaultEndpointConfiguration = @QUOTE(
@@ -162,6 +191,10 @@
 
                                                     // Categories
                                                     self.channelCategories = [TeakChannelCategory createFromRemoteConfiguration:reply[@"available_categories"]];
+
+                                                    // Validate the configured claim mode against the game's supported set.
+                                                    [TeakRemoteConfiguration validateClaimMode:session.appConfiguration.claimMode
+                                                                              againstSupported:reply[@"supported_claim_modes"]];
 
                                                     [RemoteConfigurationEvent remoteConfigurationReady:self deviceConfiguration:session.deviceConfiguration];
                                                   }];
