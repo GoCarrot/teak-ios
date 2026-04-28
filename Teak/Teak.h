@@ -26,6 +26,11 @@ extern NSString* _Nonnull const TeakOnReward;
  * claim source, teak reward id, and the launch-data attribution fields so
  * the host game can render reward UI and forward the JWT to its own
  * backend.
+ *
+ * Access the wire-reply fields via the ``TeakRewardKey...`` constants below
+ * (e.g. ``userInfo[TeakRewardKeyJwtToken]``). Launch-data attribution fields
+ * use the existing ``teakCamelCase`` keys (e.g. ``teakRewardId``,
+ * ``teakNotifId``, ``teakScheduleId``).
  */
 extern NSString* _Nonnull const TeakOnRewardJwtIssued;
 
@@ -36,6 +41,8 @@ extern NSString* _Nonnull const TeakOnRewardJwtIssued;
  * The notification's userInfo carries the event id (used by the SDK's
  * click-time poll loop) plus the reward and attribution context so the host
  * game can render an optimistic surface while the claim is in flight.
+ *
+ * Access the wire-reply fields via the ``TeakRewardKey...`` constants below.
  */
 extern NSString* _Nonnull const TeakOnRewardClaimPending;
 
@@ -45,16 +52,43 @@ extern NSString* _Nonnull const TeakOnRewardClaimPending;
  * state (completed or failed) for a previously-pending claim.
  *
  * The notification's userInfo carries the polled status, the customer's
- * server response, and the launch-data attribution fields.
+ * server response, and the launch-data attribution fields. Access the
+ * wire-reply fields via the ``TeakRewardKey...`` constants below.
  *
  * Delivery is at-least-once: if the SDK's `/claim_ack` post fails (network
  * blip, app backgrounded mid-flight), the server's session-start sweep will
  * resurface the same resolved claim on the next launch and fire this
- * notification again with the same `event_id`. Host games SHOULD idempotent-
- * key any reward grant on the `event_id` field of the userInfo dictionary
- * so a duplicate delivery doesn't grant the reward twice.
+ * notification again with the same ``TeakRewardKeyEventId``. Host games
+ * SHOULD idempotent-key any reward grant on that field so a duplicate
+ * delivery doesn't grant the reward twice.
  */
 extern NSString* _Nonnull const TeakOnRewardClaimResolved;
+
+/**
+ * Keys for the ``userInfo`` dictionary on ``TeakOnRewardJwtIssued``,
+ * ``TeakOnRewardClaimPending``, and ``TeakOnRewardClaimResolved``.
+ *
+ * The wire reply from the server uses snake_case field names; these
+ * constants are the canonical access path so host games don't depend on
+ * the literal strings. Launch-data attribution fields (``teakRewardId``,
+ * ``teakNotifId``, ``teakScheduleId``, etc.) keep their existing
+ * ``teakCamelCase`` names.
+ *
+ * ``TeakRewardKeyId`` (the snake_case ``teak_reward_id`` from the server)
+ * is the reward the server authoritatively granted on this click; the
+ * launch-data ``teakRewardId`` field is the reward this launch was
+ * *attributed to* (from the URL or notification payload). The two can
+ * differ on proxy reward routes, and both are preserved on the same
+ * userInfo dictionary as distinct fields.
+ */
+extern NSString* _Nonnull const TeakRewardKeyEventId;
+extern NSString* _Nonnull const TeakRewardKeyStatus;
+extern NSString* _Nonnull const TeakRewardKeyJwtToken;
+extern NSString* _Nonnull const TeakRewardKeyReward;
+extern NSString* _Nonnull const TeakRewardKeyClaimSource;
+extern NSString* _Nonnull const TeakRewardKeyId;
+extern NSString* _Nonnull const TeakRewardKeyCustomerResponse;
+extern NSString* _Nonnull const TeakRewardKeyCustomerStatusCode;
 
 /**
  * Use this named notification to listen for when your app receives a Teak notification while in the foreground.

@@ -44,6 +44,15 @@ NSString* const TeakLaunchedFromLink = @"TeakLaunchedFromLink";
 NSString* const TeakPostLaunchSummary = @"TeakPostLaunchSummary";
 NSString* const TeakUserData = @"TeakUserData";
 
+NSString* const TeakRewardKeyEventId = @"event_id";
+NSString* const TeakRewardKeyStatus = @"status";
+NSString* const TeakRewardKeyJwtToken = @"token";
+NSString* const TeakRewardKeyReward = @"reward";
+NSString* const TeakRewardKeyClaimSource = @"claim_source";
+NSString* const TeakRewardKeyId = @"teak_reward_id";
+NSString* const TeakRewardKeyCustomerResponse = @"customer_response";
+NSString* const TeakRewardKeyCustomerStatusCode = @"customer_status_code";
+
 NSString* const TeakOptOutIdfa = @"opt_out_idfa";
 NSString* const TeakOptOutPushKey = @"opt_out_push_key";
 NSString* const TeakOptOutFacebook = @"opt_out_facebook";
