@@ -73,16 +73,16 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 + (NSDictionary*)buildResolvedUserInfoForReply:(NSDictionary*)reply
                                 withLaunchData:(TeakAttributedLaunchData*)launchData {
   return [TeakClaimPoll buildResolvedUserInfoForReply:reply
-                                       withAttribution:(launchData != nil ? [launchData to_h] : nil)];
+                                       withAttribution:[launchData to_h]];
 }
 
 + (NSDictionary*)buildResolvedUserInfoForReply:(NSDictionary*)reply
                                withAttribution:(NSDictionary*)attribution {
   NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
-  if ([attribution isKindOfClass:[NSDictionary class]]) {
+  if (attribution != nil) {
     [userInfo addEntriesFromDictionary:attribution];
   }
-  if ([reply isKindOfClass:[NSDictionary class]]) {
+  if (reply != nil) {
     [userInfo addEntriesFromDictionary:[TeakClaimPoll normalizeWireReplyForResolvedEvent:reply]];
   }
   return userInfo;
@@ -118,9 +118,8 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   // Click-time path: flatten the launch-data to its eleven-key wire shape
   // once at start so all subsequent reads route through the same dict the
   // session-start sweep uses.
-  NSDictionary* attribution = launchData != nil ? [launchData to_h] : nil;
   [TeakClaimPoll startPollForEventId:eventId
-                       withAttribution:attribution
+                       withAttribution:[launchData to_h]
                           initialDelay:initialDelay
                                ceiling:ceiling];
 }
