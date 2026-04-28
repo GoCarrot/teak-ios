@@ -177,6 +177,11 @@
 /// response data, plus the launchData.to_h provenance fields (in-session
 /// optimization: SDK uses its own launch-data state instead of round-tripping
 /// the persisted blob).
+///
+/// The reply fixture intentionally uses a different `teak_reward_id` than the
+/// launch-data's `teakRewardId` — proxy reward routes can resolve to a
+/// different reward than the one the click was attributed to, and both must
+/// land on the resolved-event userInfo as distinct, non-aliased fields.
 - (void)testResolvedEventCarriesLaunchDataProvenanceAndPollReply {
   NSDictionary* claimStatusReply = @{
     @"event_id" : @"evt-pending-1",
@@ -185,6 +190,8 @@
     @"customer_response" : @"{\"ok\":true}",
     @"customer_status_code" : @200,
     @"acked_at" : [NSNull null],
+    // Different from the launch-data's teakRewardId — proxy reward case.
+    @"teak_reward_id" : @"2048153148060669999",
   };
   TeakAttributedLaunchData* launchData = [self launchDataForNotificationFixture];
 
@@ -200,10 +207,16 @@
 
   // Launch-data provenance is carried via the in-session optimization.
   XCTAssertEqualObjects(userInfo[@"teakNotifId"], @"2048153148060669486");
-  XCTAssertEqualObjects(userInfo[@"teakRewardId"], @"2048153148060669138");
   XCTAssertEqualObjects(userInfo[@"teakScheduleId"], @"2046986133304291328");
   XCTAssertEqualObjects(userInfo[@"teakCreativeId"], @"2046986561123301779");
   XCTAssertEqualObjects(userInfo[@"teakChannelName"], @"ios_push");
+
+  // Both reward-id flavors are present and carry distinct values.
+  // teakRewardId (camelCase) — what this launch was *attributed to*.
+  // teak_reward_id (snake_case) — what the server *authoritatively granted*.
+  XCTAssertEqualObjects(userInfo[@"teakRewardId"], @"2048153148060669138");
+  XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"2048153148060669999");
+  XCTAssertNotEqualObjects(userInfo[@"teakRewardId"], userInfo[@"teak_reward_id"]);
 }
 
 /// When the launch data is nil (defensive — shouldn't happen in production

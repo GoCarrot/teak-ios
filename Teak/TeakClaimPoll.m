@@ -6,8 +6,8 @@
 
 // Bounded /claim_ack retry budget. Counts the initial attempt, so 3 means
 // "send once, retry up to two times." After exhaustion the claim is dropped
-// from the in-flight dictionary and the server's session-start sweep
-// (C-699) will re-surface the claim on the next launch.
+// from the in-flight dictionary; the session-start sweep on next launch
+// will re-surface the claim.
 static const NSUInteger kAckMaxAttempts = 3;
 
 // Per-event-id state held in the in-flight dictionary. An entry exists from
@@ -230,8 +230,8 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   }
 
   if (claim.ackAttempt >= kAckMaxAttempts) {
-    // Budget exhausted on this session. Drop; C-699's session-start sweep
-    // will re-surface the claim on next launch.
+    // Budget exhausted on this session. Drop; the session-start sweep on
+    // next launch will re-surface the claim.
     TeakLog_i(@"claim_ack.retry_exhausted", @{@"event_id" : eventId, @"attempts" : @(claim.ackAttempt)});
     [[TeakClaimPoll inflightClaims] removeObjectForKey:eventId];
     return;

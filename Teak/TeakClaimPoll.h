@@ -17,8 +17,8 @@
 /// 2. POSTs `POST /claim_ack` so the server can mark the claim as
 ///    acknowledged and skip it on the next session-start sweep. Ack failure
 ///    is retried on the same session up to a small bounded budget; if all
-///    retries exhaust, the claim is dropped and C-699's session-start sweep
-///    re-surfaces it on next launch.
+///    retries exhaust, the claim is dropped and the session-start sweep on
+///    next launch re-surfaces it.
 ///
 /// All timing happens on `[NSRunLoop mainRunLoop]` via NSTimer.
 ///

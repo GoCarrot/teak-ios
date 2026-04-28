@@ -16,10 +16,12 @@
 + (BOOL)configureForAppId:(NSString*)appId andSecret:(NSString*)appSecret;
 @end
 
-// Internal accessor for the in-flight claims dictionary so the dedupe
-// contract can be asserted against state, not behavior alone.
+// Internal accessors for the in-flight claims dictionary and the
+// reply-handling step, so the round-2 invariants (dedupe, cancel,
+// stale-session drop) can be asserted against state, not behavior alone.
 @interface TeakClaimPoll (Testing)
 + (NSMutableDictionary*)inflightClaims;
++ (void)handleClaimStatusReply:(NSDictionary*)reply forEventId:(NSString*)eventId;
 @end
 
 @interface ClaimStatusPollTests : XCTestCase
@@ -163,6 +165,34 @@
 
   [TeakClaimPoll cancelAllPolls];
   [self drainMainQueue];
+}
+
+/// A reply for a claim whose originating session is no longer the current
+/// session must drop the claim without firing TeakOnRewardClaimResolved.
+/// In the test environment there's no live TeakSession, so the captured
+/// originatingSession is nil at start-poll time — equivalent to the
+/// production case where the originating session was deallocated post-
+/// capture (logout/login swap, post-Expired session replacement). The
+/// staleness check at reply time is the central round-2 correctness
+/// invariant: it ensures a late reply never fires a resolved event against
+/// a session the host game doesn't remember initiating.
+- (void)testReplyForStaleClaimIsDropped {
+  [TeakClaimPoll cancelAllPolls];
+  [self drainMainQueue];
+
+  NSString* eventId = @"evt-stale-1";
+  [TeakClaimPoll startPollForEventId:eventId launchData:nil initialDelay:60.0 ceiling:120.0];
+  [self drainMainQueue];
+
+  XCTAssertNotNil([TeakClaimPoll inflightClaims][eventId],
+                  @"start-poll must record the claim");
+
+  [TeakClaimPoll handleClaimStatusReply:@{@"status" : @"completed", @"event_id" : eventId}
+                             forEventId:eventId];
+  [self drainMainQueue];
+
+  XCTAssertNil([TeakClaimPoll inflightClaims][eventId],
+               @"reply for a claim with no live originating session must drop the entry");
 }
 
 /// +cancelAllPolls clears the dictionary and invalidates pending timers.

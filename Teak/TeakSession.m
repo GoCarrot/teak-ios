@@ -680,8 +680,8 @@ DefineTeakState(Expired, (@[]));
 + (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
   // Default initial delay 2s, ceiling 30s — chosen to keep the first poll close
   // to claim-completion latency while preventing busy-loops if the customer
-  // backend is slow. Tracked for promotion to remote config in C-721; until
-  // then these are the cross-SDK fallback values.
+  // backend is slow. These are the cross-SDK fallback values; the SDK reads
+  // them from server config when available.
   static const NSTimeInterval kClaimPollInitialDelay = 2.0;
   static const NSTimeInterval kClaimPollCeiling = 30.0;
 
