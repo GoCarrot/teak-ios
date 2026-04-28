@@ -674,31 +674,23 @@ DefineTeakState(Expired, (@[]));
 /// statuses fan out to the new TeakOnRewardJwtIssued / TeakOnRewardClaimPending
 /// surfaces. On `claim_pending` the SDK additionally starts a click-time poll
 /// against /claim_status that fires TeakOnRewardClaimResolved on terminal
-/// status. Returns the notification it posted (for testability — production
-/// callers ignore the return value).
+/// status. Returns the notification it dispatched (for testability —
+/// production callers ignore the return value; the same notification is
+/// posted once the user id is ready).
 + (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
-  NSString* wireStatus = reply[@"status"];
+  // Default initial delay 2s, ceiling 30s — chosen to keep the first poll close
+  // to claim-completion latency while preventing busy-loops if the customer
+  // backend is slow. Tracked for promotion to remote config in C-721; until
+  // then these are the cross-SDK fallback values.
+  static const NSTimeInterval kClaimPollInitialDelay = 2.0;
+  static const NSTimeInterval kClaimPollCeiling = 30.0;
 
+  NSString* wireStatus = reply[@"status"];
   NSString* notificationName = TeakOnReward;
   if ([wireStatus isEqualToString:@"token_issued"]) {
     notificationName = TeakOnRewardJwtIssued;
   } else if ([wireStatus isEqualToString:@"claim_pending"]) {
     notificationName = TeakOnRewardClaimPending;
-  }
-
-  NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
-  if (launchData != nil) {
-    [userInfo addEntriesFromDictionary:[launchData to_h]];
-  }
-  [userInfo addEntriesFromDictionary:reply];
-
-  // Default initial delay 2s, ceiling 30s — chosen to keep the first poll close
-  // to claim-completion latency while preventing busy-loops if the customer
-  // backend is slow.
-  static const NSTimeInterval kClaimPollInitialDelay = 2.0;
-  static const NSTimeInterval kClaimPollCeiling = 30.0;
-
-  if ([wireStatus isEqualToString:@"claim_pending"]) {
     NSString* eventId = reply[@"event_id"];
     if ([eventId isKindOfClass:[NSString class]] && eventId.length > 0) {
       [TeakClaimPoll startPollForEventId:eventId
@@ -708,13 +700,20 @@ DefineTeakState(Expired, (@[]));
     }
   }
 
+  NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
+  if (launchData != nil) {
+    [userInfo addEntriesFromDictionary:[launchData to_h]];
+  }
+  [userInfo addEntriesFromDictionary:reply];
+
   NSNotification* note = [NSNotification notificationWithName:notificationName
                                                        object:nil
                                                      userInfo:userInfo];
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-    [[NSNotificationCenter defaultCenter] postNotificationName:notificationName
-                                                        object:session
-                                                      userInfo:userInfo];
+    NSNotification* sessionNote = [NSNotification notificationWithName:note.name
+                                                                object:session
+                                                              userInfo:note.userInfo];
+    [[NSNotificationCenter defaultCenter] postNotification:sessionNote];
   }];
   return note;
 }
@@ -861,12 +860,6 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
     } else if (newValue == [TeakSession Expiring]) {
       self.endDate = [[NSDate alloc] init];
 
-      // Click-time claim polls don't outlive their session — they fire from
-      // an in-session click and the resolved-event payload is read from the
-      // launch-data state we still hold. The session-start sweep handles
-      // claims that resolve after the app closes.
-      [TeakClaimPoll cancelAllPolls];
-
       // Stop heartbeat, Expiring->Expiring is possible, so no invalid data here
       if (self.heartbeat != nil) {
         dispatch_source_cancel(self.heartbeat);
@@ -918,6 +911,15 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
       }
     } else if (newValue == [TeakSession Expired]) {
+      // Click-time claim polls live as long as the session that started them.
+      // Expiring is a may-resume state (the user briefly opens Notification
+      // Center, App Switcher, etc.), so polling continues across that
+      // transition; in-flight replies validate against the session reference
+      // they were started under and drop if the session has been replaced.
+      // Only on Expired — the truly-terminal transition — do we tear timers
+      // down and abandon the in-flight tracking. Anything that resolves
+      // after Expired is picked up by the session-start sweep on next launch.
+      [TeakClaimPoll cancelAllPolls];
     }
   }
 }
