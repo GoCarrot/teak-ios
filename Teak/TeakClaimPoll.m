@@ -89,16 +89,23 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 }
 
 // Normalize a /claim_status or /claims wire reply into the host-game-facing
-// userInfo shape. `session_attribution` is unpacked into top-level
-// attribution keys before this merge — the raw blob would just confuse
-// host-game observers. Server bookkeeping fields (`created_at`,
-// `completed_at`) are likewise stripped; they're not part of the documented
-// userInfo surface.
+// userInfo shape. Strip:
+//
+// * `session_attribution` — already unpacked into top-level teakCamelCase
+//   attribution keys before this merge; the raw blob would just duplicate
+//   that on the userInfo.
+// * `created_at`, `completed_at` — server bookkeeping, not part of the
+//   documented public surface.
+// * `teak_reward_id` — the wire's authoritative-grant id. Resolved events
+//   surface only the attribution id (`teakRewardId` from launch-data),
+//   matching the legacy `TeakOnReward` semantics: id is provenance, the
+//   `reward` blob carries the grant content. Host games that need to detect
+//   a proxy-reward substitution read the `reward` blob, not a second id.
 + (NSDictionary*)normalizeWireReplyForResolvedEvent:(NSDictionary*)reply {
   static NSSet* stripKeys = nil;
   static dispatch_once_t once;
   dispatch_once(&once, ^{
-    stripKeys = [NSSet setWithObjects:@"session_attribution", @"created_at", @"completed_at", nil];
+    stripKeys = [NSSet setWithObjects:@"session_attribution", @"created_at", @"completed_at", @"teak_reward_id", nil];
   });
 
   NSMutableDictionary* normalized = [NSMutableDictionary dictionaryWithCapacity:reply.count];

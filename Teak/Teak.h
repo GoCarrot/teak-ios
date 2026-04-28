@@ -74,12 +74,15 @@ extern NSString* _Nonnull const TeakOnRewardClaimResolved;
  * ``teakNotifId``, ``teakScheduleId``, etc.) keep their existing
  * ``teakCamelCase`` names.
  *
- * ``TeakRewardKeyId`` (the snake_case ``teak_reward_id`` from the server)
- * is the reward the server authoritatively granted on this click; the
- * launch-data ``teakRewardId`` field is the reward this launch was
- * *attributed to* (from the URL or notification payload). The two can
- * differ on proxy reward routes, and both are preserved on the same
- * userInfo dictionary as distinct fields.
+ * The reward this launch was *attributed to* is always available via the
+ * launch-data ``teakRewardId`` field (camelCase), matching the legacy
+ * ``TeakOnReward`` semantics. ``TeakRewardKeyId`` (the snake_case
+ * ``teak_reward_id`` from the click POST reply) is the server's
+ * authoritative-grant id and is surfaced on ``TeakOnRewardJwtIssued`` and
+ * ``TeakOnRewardClaimPending`` for client-side JWT consumers that need it.
+ * It is *not* surfaced on ``TeakOnRewardClaimResolved`` — host games render
+ * grant content from the ``reward`` blob there, and the attribution id
+ * provides provenance.
  */
 extern NSString* _Nonnull const TeakRewardKeyEventId;
 extern NSString* _Nonnull const TeakRewardKeyStatus;

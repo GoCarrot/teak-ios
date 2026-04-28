@@ -62,9 +62,10 @@
 /// The dict-taking helper unpacks the eleven-key session_attribution blob and
 /// merges it with the wire reply at fire time. Reply wins on key collision —
 /// same merge order as the launchData-taking helper used by the click-time
-/// path. The two reward-id flavors (teakRewardId attribution vs.
-/// teak_reward_id authoritative) coexist on the same userInfo as distinct
-/// fields.
+/// path. The resolved-event userInfo surfaces only the attribution reward id
+/// (`teakRewardId`), matching legacy `TeakOnReward` semantics; the wire's
+/// authoritative-grant id is stripped before the merge (host games read the
+/// `reward` blob for grant content).
 - (void)testBuildResolvedUserInfoMergesAttributionDictAndReply {
   NSDictionary* attribution = @{
     @"launch_link" : @"teaktest-app://chest",
@@ -101,9 +102,9 @@
   XCTAssertEqualObjects(userInfo[@"teakCreativeName"], @"summer_sale_v3");
   XCTAssertEqualObjects(userInfo[@"teakChannelName"], @"ios_push");
 
+  // Attribution id surfaces; the wire's authoritative-grant id is stripped.
   XCTAssertEqualObjects(userInfo[@"teakRewardId"], @"2048153148060669138");
-  XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"2048153148060669999");
-  XCTAssertNotEqualObjects(userInfo[@"teakRewardId"], userInfo[@"teak_reward_id"]);
+  XCTAssertNil(userInfo[@"teak_reward_id"]);
 }
 
 /// Defensive: a nil attribution dict yields the wire reply alone. Mirrors the

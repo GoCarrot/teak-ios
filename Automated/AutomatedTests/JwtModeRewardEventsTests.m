@@ -178,9 +178,11 @@
 /// optimization: SDK uses its own launch-data state instead of round-tripping
 /// the persisted blob).
 ///
-/// The reply's authoritative-grant value intentionally differs from the
-/// launch-data's `teakRewardId` (proxy reward case): both flavors must land
-/// on the resolved-event userInfo as distinct, non-aliased fields.
+/// Reward id surfacing matches the legacy `TeakOnReward` semantics: only the
+/// attribution id (`teakRewardId` from launch-data) lands on the userInfo.
+/// The wire reply's `teak_reward_id` is stripped — the `reward` blob carries
+/// grant content and is what host games render against. The fixture sets a
+/// distinct wire id to lock in the strip behavior.
 - (void)testResolvedEventCarriesLaunchDataProvenanceAndPollReply {
   NSDictionary* claimStatusReply = @{
     @"event_id" : @"evt-pending-1",
@@ -189,7 +191,6 @@
     @"customer_response" : @"{\"ok\":true}",
     @"customer_status_code" : @200,
     @"acked_at" : [NSNull null],
-    // Different from the launch-data's teakRewardId — proxy reward case.
     @"teak_reward_id" : @"2048153148060669999",
   };
   TeakAttributedLaunchData* launchData = [self launchDataForNotificationFixture];
@@ -210,12 +211,11 @@
   XCTAssertEqualObjects(userInfo[@"teakCreativeId"], @"2046986561123301779");
   XCTAssertEqualObjects(userInfo[@"teakChannelName"], @"ios_push");
 
-  // Both reward-id flavors are present and carry distinct values.
-  // teakRewardId (camelCase) — what this launch was *attributed to*.
-  // teak_reward_id (snake_case) — what the server *authoritatively granted*.
+  // Only the attribution id surfaces, matching legacy TeakOnReward semantics.
+  // The wire's authoritative-grant id is stripped from the resolved-event
+  // userInfo; host games inspect the `reward` blob for grant content.
   XCTAssertEqualObjects(userInfo[@"teakRewardId"], @"2048153148060669138");
-  XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"2048153148060669999");
-  XCTAssertNotEqualObjects(userInfo[@"teakRewardId"], userInfo[@"teak_reward_id"]);
+  XCTAssertNil(userInfo[@"teak_reward_id"]);
 }
 
 /// Server bookkeeping fields and the raw `session_attribution` blob are
