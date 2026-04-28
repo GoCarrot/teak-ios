@@ -838,12 +838,17 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       // Process deep links and/or rewards
       [self processAttributionAndDispatchEvents];
 
-      // Pull the unacked-claims list for this user. Idempotent against the
-      // click-time path: the in-flight dictionary's event_id key dedupes
-      // any claim already mid-poll. Running on every UserIdentified
-      // transition is safe — a claim dropped on Expired re-surfaces here on
-      // the next launch via at-least-once delivery.
-      [TeakClaimPoll startSweep];
+      // Pull the unacked-claims list for this user on a fresh user-identify
+      // pass — i.e. transitions in from IdentifyingUser. The Expiring →
+      // UserIdentified flicker (notification-center swipe, app-switcher
+      // peek) is a same-session resume; running the sweep then would
+      // double-fire resolved events for any claim whose ack hasn't yet
+      // committed server-side, since the at-least-once contract on
+      // TeakOnRewardClaimResolved is scoped to fresh launches, not
+      // sub-second flickers within a live session.
+      if (oldValue != [TeakSession Expiring]) {
+        [TeakClaimPoll startSweep];
+      }
 
       // Send the server a "hey nevermind that" message if needed
       if (oldValue == [TeakSession Expiring]) {

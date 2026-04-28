@@ -63,7 +63,8 @@
 /// merges it with the wire reply at fire time. Reply wins on key collision —
 /// same merge order as the launchData-taking helper used by the click-time
 /// path. The two reward-id flavors (teakRewardId attribution vs. teak_reward_id
-/// authoritative) coexist on the same userInfo as distinct fields.
+/// authoritative, renamed from the wire's `reward_id`) coexist on the same
+/// userInfo as distinct fields.
 - (void)testBuildResolvedUserInfoMergesAttributionDictAndReply {
   NSDictionary* attribution = @{
     @"launch_link" : @"teaktest-app://chest",
@@ -84,7 +85,7 @@
     @"reward" : @{@"gems" : @25},
     @"customer_response" : @"{\"ok\":true}",
     @"customer_status_code" : @200,
-    @"teak_reward_id" : @"2048153148060669999",
+    @"reward_id" : @"2048153148060669999",
   };
 
   NSDictionary* userInfo = [TeakClaimPoll buildResolvedUserInfoForReply:reply
@@ -103,6 +104,7 @@
   XCTAssertEqualObjects(userInfo[@"teakRewardId"], @"2048153148060669138");
   XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"2048153148060669999");
   XCTAssertNotEqualObjects(userInfo[@"teakRewardId"], userInfo[@"teak_reward_id"]);
+  XCTAssertNil(userInfo[@"reward_id"]);
 }
 
 /// Defensive: a nil attribution dict yields the wire reply alone. Mirrors the

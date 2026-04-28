@@ -178,10 +178,12 @@
 /// optimization: SDK uses its own launch-data state instead of round-tripping
 /// the persisted blob).
 ///
-/// The reply fixture intentionally uses a different `teak_reward_id` than the
-/// launch-data's `teakRewardId` — proxy reward routes can resolve to a
-/// different reward than the one the click was attributed to, and both must
-/// land on the resolved-event userInfo as distinct, non-aliased fields.
+/// The reply fixture uses `reward_id` to match the wire shape — the SDK
+/// renames it to `teak_reward_id` on the wire→userInfo boundary so host
+/// games reading the public `TeakRewardKeyId` constant see the right value.
+/// The reply's authoritative-grant value intentionally differs from the
+/// launch-data's `teakRewardId` (proxy reward case): both flavors must land
+/// on the resolved-event userInfo as distinct, non-aliased fields.
 - (void)testResolvedEventCarriesLaunchDataProvenanceAndPollReply {
   NSDictionary* claimStatusReply = @{
     @"event_id" : @"evt-pending-1",
@@ -190,8 +192,10 @@
     @"customer_response" : @"{\"ok\":true}",
     @"customer_status_code" : @200,
     @"acked_at" : [NSNull null],
-    // Different from the launch-data's teakRewardId — proxy reward case.
-    @"teak_reward_id" : @"2048153148060669999",
+    // Wire shape: server emits `reward_id` (post-C-709 taro). The SDK renames
+    // it to `teak_reward_id` on the userInfo boundary. Different from the
+    // launch-data's teakRewardId — proxy reward case.
+    @"reward_id" : @"2048153148060669999",
   };
   TeakAttributedLaunchData* launchData = [self launchDataForNotificationFixture];
 
@@ -213,10 +217,60 @@
 
   // Both reward-id flavors are present and carry distinct values.
   // teakRewardId (camelCase) — what this launch was *attributed to*.
-  // teak_reward_id (snake_case) — what the server *authoritatively granted*.
+  // teak_reward_id (snake_case) — what the server *authoritatively granted*,
+  // renamed from the wire's `reward_id` field.
   XCTAssertEqualObjects(userInfo[@"teakRewardId"], @"2048153148060669138");
   XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"2048153148060669999");
   XCTAssertNotEqualObjects(userInfo[@"teakRewardId"], userInfo[@"teak_reward_id"]);
+  // The raw wire key MUST NOT leak through — it's renamed, not aliased.
+  XCTAssertNil(userInfo[@"reward_id"]);
+}
+
+/// Server bookkeeping fields and the raw `session_attribution` blob are
+/// stripped from the wire reply before the merge — host-game observers see
+/// the unpacked attribution keys (already on the userInfo from the dict
+/// merge) and the documented public-surface fields, not duplicated raw blobs
+/// or server timestamps that aren't part of the contract.
+- (void)testResolvedEventStripsServerBookkeepingAndRawAttributionBlob {
+  NSDictionary* claimStatusReply = @{
+    @"event_id" : @"evt-pending-strip-1",
+    @"status" : @"completed",
+    @"reward" : @{@"gems" : @25},
+    @"created_at" : @"2026-04-28T17:00:00Z",
+    @"completed_at" : @"2026-04-28T17:00:05Z",
+    @"session_attribution" : @{@"teakNotifId" : @"would-leak-as-raw-blob"},
+  };
+  TeakAttributedLaunchData* launchData = [self launchDataForNotificationFixture];
+
+  NSDictionary* userInfo = [TeakClaimPoll buildResolvedUserInfoForReply:claimStatusReply
+                                                          withLaunchData:launchData];
+
+  XCTAssertEqualObjects(userInfo[@"event_id"], @"evt-pending-strip-1");
+  XCTAssertEqualObjects(userInfo[@"status"], @"completed");
+  XCTAssertNil(userInfo[@"created_at"]);
+  XCTAssertNil(userInfo[@"completed_at"]);
+  XCTAssertNil(userInfo[@"session_attribution"]);
+  // The launch-data attribution keys still ride along (in-session
+  // optimization populates them from the host's own state).
+  XCTAssertEqualObjects(userInfo[@"teakNotifId"], @"2048153148060669486");
+}
+
+/// Defensive: if the wire ever lands `teak_reward_id` directly (mixed-version
+/// or future shape), it wins — the rename only fires when teak_reward_id is
+/// absent.
+- (void)testResolvedEventDoesNotClobberExistingTeakRewardIdOnRename {
+  NSDictionary* claimStatusReply = @{
+    @"event_id" : @"evt-mixed-1",
+    @"status" : @"completed",
+    @"reward_id" : @"wire-side-id",
+    @"teak_reward_id" : @"already-renamed-id",
+  };
+
+  NSDictionary* userInfo = [TeakClaimPoll buildResolvedUserInfoForReply:claimStatusReply
+                                                          withLaunchData:nil];
+
+  XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"already-renamed-id");
+  XCTAssertNil(userInfo[@"reward_id"]);
 }
 
 /// When the launch data is nil (defensive — shouldn't happen in production
