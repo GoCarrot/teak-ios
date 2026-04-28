@@ -2,6 +2,7 @@
 #import "Teak+Internal.h"
 #import "TeakHelpers.h"
 #import "TeakLaunchData.h"
+#import "TeakRemoteConfiguration.h"
 #import "TeakSession.h"
 
 // Bounded /claim_ack retry budget. Counts the initial attempt, so 3 means
@@ -11,15 +12,23 @@
 static const NSUInteger kAckMaxAttempts = 3;
 
 // Per-event-id state held in the in-flight dictionary. An entry exists from
-// the first start-poll call through final ack (or ack-retry exhaustion).
-// The originatingSession weak-ref is the source of truth for "is this poll
-// still relevant?" — same TeakSession instance during the Expiring→Active
-// flicker means the poll continues; a replaced session (logout/login,
-// Expired+new) means the entry's reply will be dropped.
+// the first start-poll (or sweep-enroll) call through final ack (or ack-retry
+// exhaustion). The originatingSession weak-ref is the source of truth for
+// "is this poll still relevant?" — same TeakSession instance during the
+// Expiring→Active flicker means the poll continues; a replaced session
+// (logout/login, Expired+new) means the entry's reply will be dropped.
+//
+// `attribution` is the eleven-key flat bag (TeakLaunchData.to_h shape) used
+// to populate context on the resolved-event userInfo. The click-time path
+// flattens its launch-data once at start; the session-start sweep unpacks
+// the server's per-claim `session_attribution` blob into the same shape.
+// Storing the dict (rather than a TeakAttributedLaunchData) decouples the
+// in-flight tracker from the launch-data class hierarchy and lets both
+// surfaces share the same fire/ack machinery.
 @interface TeakInflightClaim : NSObject
 @property (nonatomic, weak) TeakSession* originatingSession;
 @property (nonatomic, copy) NSString* eventId;
-@property (nonatomic, strong) TeakAttributedLaunchData* launchData;
+@property (nonatomic, copy, nullable) NSDictionary* attribution;
 @property (nonatomic, strong, nullable) NSTimer* nextPollTimer;
 @property (nonatomic, assign) NSUInteger pollAttempt;
 @property (nonatomic, assign) NSTimeInterval initialDelay;
@@ -63,14 +72,48 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 
 + (NSDictionary*)buildResolvedUserInfoForReply:(NSDictionary*)reply
                                 withLaunchData:(TeakAttributedLaunchData*)launchData {
+  return [TeakClaimPoll buildResolvedUserInfoForReply:reply
+                                       withAttribution:[launchData to_h]];
+}
+
++ (NSDictionary*)buildResolvedUserInfoForReply:(NSDictionary*)reply
+                               withAttribution:(NSDictionary*)attribution {
   NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
-  if (launchData != nil) {
-    [userInfo addEntriesFromDictionary:[launchData to_h]];
+  if (attribution != nil) {
+    [userInfo addEntriesFromDictionary:attribution];
   }
-  if ([reply isKindOfClass:[NSDictionary class]]) {
-    [userInfo addEntriesFromDictionary:reply];
+  if (reply != nil) {
+    [userInfo addEntriesFromDictionary:[TeakClaimPoll normalizeWireReplyForResolvedEvent:reply]];
   }
   return userInfo;
+}
+
+// Normalize a /claim_status or /claims wire reply into the host-game-facing
+// userInfo shape. Strip:
+//
+// * `session_attribution` — already unpacked into top-level teakCamelCase
+//   attribution keys before this merge; the raw blob would just duplicate
+//   that on the userInfo.
+// * `created_at`, `completed_at` — server bookkeeping, not part of the
+//   documented public surface.
+// * `teak_reward_id` — the wire's authoritative-grant id. Resolved events
+//   surface only the attribution id (`teakRewardId` from launch-data),
+//   matching the legacy `TeakOnReward` semantics: id is provenance, the
+//   `reward` blob carries the grant content. Host games that need to detect
+//   a proxy-reward substitution read the `reward` blob, not a second id.
++ (NSDictionary*)normalizeWireReplyForResolvedEvent:(NSDictionary*)reply {
+  static NSSet* stripKeys = nil;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    stripKeys = [NSSet setWithObjects:@"session_attribution", @"created_at", @"completed_at", @"teak_reward_id", nil];
+  });
+
+  NSMutableDictionary* normalized = [NSMutableDictionary dictionaryWithCapacity:reply.count];
+  for (NSString* key in reply) {
+    if ([stripKeys containsObject:key]) continue;
+    normalized[key] = reply[key];
+  }
+  return normalized;
 }
 
 #pragma mark - Lifecycle
@@ -79,6 +122,19 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
                  launchData:(TeakAttributedLaunchData*)launchData
                initialDelay:(NSTimeInterval)initialDelay
                     ceiling:(NSTimeInterval)ceiling {
+  // Click-time path: flatten the launch-data to its eleven-key wire shape
+  // once at start so all subsequent reads route through the same dict the
+  // session-start sweep uses.
+  [TeakClaimPoll startPollForEventId:eventId
+                       withAttribution:[launchData to_h]
+                          initialDelay:initialDelay
+                               ceiling:ceiling];
+}
+
++ (void)startPollForEventId:(NSString*)eventId
+              withAttribution:(NSDictionary*)attribution
+                 initialDelay:(NSTimeInterval)initialDelay
+                      ceiling:(NSTimeInterval)ceiling {
   if (eventId == nil || eventId.length == 0) {
     TeakLog_e(@"claim_poll.error", @"event_id must not be nil or empty");
     return;
@@ -99,7 +155,7 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
     TeakInflightClaim* claim = [[TeakInflightClaim alloc] init];
     claim.originatingSession = originatingSession;
     claim.eventId = eventId;
-    claim.launchData = launchData;
+    claim.attribution = attribution;
     claim.pollAttempt = 0;
     claim.initialDelay = initialDelay;
     claim.ceiling = ceiling;
@@ -195,7 +251,7 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   TeakLog_i(@"claim_resolved.received", @{@"event_id" : claim.eventId});
 
   NSDictionary* userInfo = [TeakClaimPoll buildResolvedUserInfoForReply:reply
-                                                          withLaunchData:claim.launchData];
+                                                          withAttribution:claim.attribution];
 
   // Fire the resolved event first; ack second. Per cross-SDK contract: host
   // games observe the reward grant before the server marks it acked. Ack
@@ -351,6 +407,132 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
                                                  TeakLog_i(@"claim_ack.request.reply", @{@"event_id" : eventId});
                                                }
                                                completion(ok);
+                                             }];
+  [task resume];
+}
+
+#pragma mark - Session-start sweep
+
++ (void)startSweep {
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    [TeakClaimPoll sendClaimsListRequestForSession:session
+                                         completion:^(NSArray* claims) {
+                                           dispatch_async(dispatch_get_main_queue(), ^{
+                                             [TeakClaimPoll dispatchSweptClaims:claims session:session];
+                                           });
+                                         }];
+  }];
+}
+
++ (void)dispatchSweptClaims:(NSArray*)claims session:(TeakSession*)session {
+  if (![claims isKindOfClass:[NSArray class]]) {
+    TeakLog_i(@"claim_sweep.empty", @{});
+    return;
+  }
+
+  NSMutableDictionary<NSString*, TeakInflightClaim*>* inflight = [TeakClaimPoll inflightClaims];
+
+  // Live sessions read the server-overridable poll cadence; the no-session
+  // fallback (e.g., test paths) reads the same defaults from the class
+  // method so no literal seconds live in this file.
+  TeakRemoteConfiguration* remoteConfig = session.remoteConfiguration;
+  NSTimeInterval initialDelay = remoteConfig != nil ? remoteConfig.claimPollInitialDelay : [TeakRemoteConfiguration defaultClaimPollInitialDelay];
+  NSTimeInterval ceiling = remoteConfig != nil ? remoteConfig.claimPollCeiling : [TeakRemoteConfiguration defaultClaimPollCeiling];
+
+  for (id rawEntry in claims) {
+    if (![rawEntry isKindOfClass:[NSDictionary class]]) {
+      TeakLog_i(@"claim_sweep.entry.skipped", @{@"reason" : @"not_a_dict"});
+      continue;
+    }
+    NSDictionary* entry = (NSDictionary*)rawEntry;
+
+    NSString* eventId = entry[@"event_id"];
+    if (![eventId isKindOfClass:[NSString class]] || eventId.length == 0) {
+      TeakLog_i(@"claim_sweep.entry.skipped", @{@"reason" : @"missing_event_id"});
+      continue;
+    }
+
+    if (inflight[eventId] != nil) {
+      // The click-time path (or an earlier sweep entry in the same response)
+      // owns delivery for this event_id. Sweep is a no-op.
+      TeakLog_i(@"claim_sweep.entry.duplicate", @{@"event_id" : eventId});
+      continue;
+    }
+
+    NSDictionary* attribution = [TeakClaimPoll unpackSessionAttribution:entry[@"session_attribution"]];
+
+    TeakInflightClaim* claim = [[TeakInflightClaim alloc] init];
+    claim.originatingSession = session;
+    claim.eventId = eventId;
+    claim.attribution = attribution;
+    claim.pollAttempt = 0;
+    claim.initialDelay = initialDelay;
+    claim.ceiling = ceiling;
+    claim.ackAttempt = 0;
+    inflight[eventId] = claim;
+
+    NSString* status = entry[@"status"];
+    if ([TeakClaimPoll isTerminalStatus:status]) {
+      TeakLog_i(@"claim_sweep.entry.terminal", @{@"event_id" : eventId, @"status" : status});
+      [TeakClaimPoll fireResolvedAndAckForClaim:claim reply:entry];
+    } else {
+      // Pending (or unknown / forward-compat) — enroll into the poll loop
+      // without firing TeakOnRewardClaimPending. Per cross-SDK contract:
+      // Pending is a point-in-time event, not a history-replay event.
+      TeakLog_i(@"claim_sweep.entry.pending", @{@"event_id" : eventId});
+      [TeakClaimPoll scheduleNextPollForClaim:claim];
+    }
+  }
+}
+
++ (NSDictionary*)unpackSessionAttribution:(id)raw {
+  if ([raw isKindOfClass:[NSDictionary class]]) {
+    return (NSDictionary*)raw;
+  }
+  if ([raw isKindOfClass:[NSString class]]) {
+    NSData* data = [(NSString*)raw dataUsingEncoding:NSUTF8StringEncoding];
+    if (data == nil) return nil;
+    id parsed = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    if ([parsed isKindOfClass:[NSDictionary class]]) {
+      return (NSDictionary*)parsed;
+    }
+  }
+  return nil;
+}
+
++ (void)sendClaimsListRequestForSession:(TeakSession*)session
+                              completion:(void (^)(NSArray* claims))completion {
+  NSString* hostname = [NSString stringWithFormat:@"rewards.%@", kTeakHostname];
+  NSURLComponents* components = [NSURLComponents componentsWithString:[NSString stringWithFormat:@"https://%@/claims", hostname]];
+  components.queryItems = @[
+    [NSURLQueryItem queryItemWithName:@"teak_app_id" value:session.appConfiguration.appId],
+    [NSURLQueryItem queryItemWithName:@"clicking_user_id" value:session.userId],
+  ];
+
+  NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:components.URL];
+  request.HTTPMethod = @"GET";
+
+  TeakLog_i(@"claim_sweep.request.send", @{@"clicking_user_id" : session.userId});
+
+  NSURLSession* urlSession = [Teak URLSessionWithoutDelegate];
+  NSURLSessionDataTask* task = [urlSession dataTaskWithRequest:request
+                                             completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
+                                               NSArray* claims = @[];
+                                               if (error == nil && data != nil) {
+                                                 id parsed = [NSJSONSerialization JSONObjectWithData:data
+                                                                                             options:0
+                                                                                               error:nil];
+                                                 if ([parsed isKindOfClass:[NSDictionary class]]) {
+                                                   id list = ((NSDictionary*)parsed)[@"claims"];
+                                                   if ([list isKindOfClass:[NSArray class]]) {
+                                                     claims = list;
+                                                   }
+                                                 }
+                                                 TeakLog_i(@"claim_sweep.request.reply", @{@"count" : @(claims.count)});
+                                               } else if (error != nil) {
+                                                 TeakLog_e(@"claim_sweep.request.error", @{@"error" : error.localizedDescription});
+                                               }
+                                               completion(claims);
                                              }];
   [task resume];
 }
