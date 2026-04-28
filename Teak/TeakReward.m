@@ -1,5 +1,6 @@
 #import "TeakReward.h"
 #import "Teak+Internal.h"
+#import "TeakLaunchData.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
 #import "TeakHelpers.h"
@@ -49,6 +50,25 @@
 }
 
 + (TeakReward*)rewardForRewardId:(NSString*)teakRewardId {
+  return [TeakReward rewardForRewardId:teakRewardId withLaunchData:nil];
+}
+
++ (NSString*)sessionAttributionStringFromLaunchData:(TeakAttributedLaunchData*)launchData {
+  if (launchData == nil) return nil;
+
+  NSDictionary* wireShape = [launchData to_h];
+  NSError* error = nil;
+  NSData* data = [NSJSONSerialization dataWithJSONObject:wireShape
+                                                 options:0
+                                                   error:&error];
+  if (error != nil || data == nil) {
+    TeakLog_e(@"reward.session_attribution.encode_error", error);
+    return nil;
+  }
+  return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+}
+
++ (TeakReward*)rewardForRewardId:(NSString*)teakRewardId withLaunchData:(TeakAttributedLaunchData*)launchData {
   if (teakRewardId == nil || teakRewardId.length == 0) {
     TeakLog_e(@"reward.error", @"teakRewardId must not be nil or empty");
     return nil;
@@ -58,13 +78,23 @@
   ret.completed = NO;
   ret.rewardStatus = kTeakRewardStatusUnknown;
 
+  NSString* sessionAttribution = [TeakReward sessionAttributionStringFromLaunchData:launchData];
+
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
     NSString* urlString = [NSString stringWithFormat:@"/%@/clicks", teakRewardId];
+
+    NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
+      @"clicking_user_id" : session.userId,
+      @"claim_mode" : session.appConfiguration.claimMode,
+    }];
+    if (sessionAttribution != nil) {
+      payload[@"session_attribution"] = sessionAttribution;
+    }
+
     TeakRequest* request = [TeakRequest requestWithSession:session
                                                forHostname:[NSString stringWithFormat:@"rewards.%@", kTeakHostname]
                                               withEndpoint:urlString
-                                               withPayload:@{@"clicking_user_id" : session.userId,
-                                                             @"claim_mode" : session.appConfiguration.claimMode}
+                                               withPayload:payload
                                                     method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     NSMutableDictionary* rewardResponse = [NSMutableDictionary dictionaryWithDictionary:reply[@"response"]];

@@ -3,6 +3,7 @@
 #import "FacebookAccessTokenEvent.h"
 #import "Teak+Internal.h"
 #import "TeakAppConfiguration.h"
+#import "TeakClaimPoll.h"
 #import "TeakDebugConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLaunchData.h"
@@ -656,23 +657,65 @@ DefineTeakState(Expired, (@[]));
 + (void)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
   if (launchData.rewardId == nil) return;
 
-  TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId];
+  TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId withLaunchData:launchData];
   if (reward == nil) return;
 
   __weak TeakReward* tempWeakReward = reward;
   reward.onComplete = ^() {
     __strong TeakReward* blockReward = tempWeakReward;
     if (blockReward.json != nil) {
-      NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
-      [userInfo addEntriesFromDictionary:blockReward.json];
-
-      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                            object:session
-                                                          userInfo:userInfo];
-      }];
+      [TeakSession dispatchClickResponse:blockReward.json forLaunchData:launchData];
     }
   };
+}
+
+/// Branches the click response on its wire `status` field. Legacy and
+/// gate-rejection statuses ride the existing TeakOnReward event; JWT-mode
+/// statuses fan out to the new TeakOnRewardJwtIssued / TeakOnRewardClaimPending
+/// surfaces. On `claim_pending` the SDK additionally starts a click-time poll
+/// against /claim_status that fires TeakOnRewardClaimResolved on terminal
+/// status. Returns the notification it dispatched (for testability —
+/// production callers ignore the return value; the same notification is
+/// posted once the user id is ready).
++ (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
+  NSString* wireStatus = reply[@"status"];
+  NSString* notificationName = TeakOnReward;
+  if ([wireStatus isEqualToString:@"token_issued"]) {
+    notificationName = TeakOnRewardJwtIssued;
+  } else if ([wireStatus isEqualToString:@"claim_pending"]) {
+    notificationName = TeakOnRewardClaimPending;
+    NSString* eventId = reply[@"event_id"];
+    if ([eventId isKindOfClass:[NSString class]] && eventId.length > 0) {
+      // Live sessions read the server-overridable values from their
+      // remoteConfiguration; the no-session fallback (test paths, pre-init
+      // window) reads the same defaults from the class-method source of
+      // truth. No literal seconds live in this file.
+      TeakRemoteConfiguration* remoteConfig = [TeakSession currentSessionOrNil].remoteConfiguration;
+      NSTimeInterval initialDelay = remoteConfig != nil ? remoteConfig.claimPollInitialDelay : [TeakRemoteConfiguration defaultClaimPollInitialDelay];
+      NSTimeInterval ceiling = remoteConfig != nil ? remoteConfig.claimPollCeiling : [TeakRemoteConfiguration defaultClaimPollCeiling];
+      [TeakClaimPoll startPollForEventId:eventId
+                              launchData:launchData
+                            initialDelay:initialDelay
+                                 ceiling:ceiling];
+    }
+  }
+
+  NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] init];
+  if (launchData != nil) {
+    [userInfo addEntriesFromDictionary:[launchData to_h]];
+  }
+  [userInfo addEntriesFromDictionary:reply];
+
+  NSNotification* note = [NSNotification notificationWithName:notificationName
+                                                       object:nil
+                                                     userInfo:userInfo];
+  [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+    NSNotification* sessionNote = [NSNotification notificationWithName:note.name
+                                                                object:session
+                                                              userInfo:note.userInfo];
+    [[NSNotificationCenter defaultCenter] postNotification:sessionNote];
+  }];
+  return note;
 }
 
 + (void)checkLaunchDataForNotificationAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
@@ -868,6 +911,15 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
       }
     } else if (newValue == [TeakSession Expired]) {
+      // Click-time claim polls live as long as the session that started them.
+      // Expiring is a may-resume state (the user briefly opens Notification
+      // Center, App Switcher, etc.), so polling continues across that
+      // transition; in-flight replies validate against the session reference
+      // they were started under and drop if the session has been replaced.
+      // Only on Expired — the truly-terminal transition — do we tear timers
+      // down and abandon the in-flight tracking. Anything that resolves
+      // after Expired is picked up by the session-start sweep on next launch.
+      [TeakClaimPoll cancelAllPolls];
     }
   }
 }

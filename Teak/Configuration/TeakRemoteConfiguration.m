@@ -18,9 +18,32 @@
 @property (nonatomic, readwrite) BOOL enhancedIntegrationChecks;
 @property (nonatomic, readwrite) int heartbeatInterval;
 @property (strong, nonatomic, readwrite) NSArray* _Nonnull channelCategories;
+@property (nonatomic, readwrite) NSTimeInterval claimPollInitialDelay;
+@property (nonatomic, readwrite) NSTimeInterval claimPollCeiling;
 @end
 
 @implementation TeakRemoteConfiguration
+
++ (NSTimeInterval)defaultClaimPollInitialDelay {
+  return 2.0;
+}
+
++ (NSTimeInterval)defaultClaimPollCeiling {
+  return 30.0;
+}
+
+/// Parse a millisecond-valued integer field from a settings.json reply,
+/// returning seconds (an NSTimeInterval). When the field is absent, NSNull,
+/// or non-numeric, the caller's fallback is returned unchanged. Carrot's
+/// GamesController#settings emits these as nullable integer columns; this
+/// helper bridges the wire/SDK unit boundary in one place.
++ (NSTimeInterval)secondsFromReply:(NSDictionary*)reply
+                               key:(NSString*)key
+                          fallback:(NSTimeInterval)fallback {
+  id raw = reply[key];
+  if (![raw isKindOfClass:[NSNumber class]]) return fallback;
+  return [(NSNumber*)raw doubleValue] / 1000.0;
+}
 
 + (BOOL)validateClaimMode:(nullable NSString*)configuredClaimMode againstSupported:(nullable id)supportedClaimModes {
   if (configuredClaimMode == nil || ![supportedClaimModes isKindOfClass:[NSArray class]]) {
@@ -127,6 +150,11 @@
     self.dynamicParameters = @{};
     self.heartbeatInterval = 60;
     self.channelCategories = @[];
+    // Click-time JWT-claim poll cadence. Server-config overrides via
+    // claim_poll_initial_delay_ms / claim_poll_ceiling_ms when present;
+    // until then the cross-SDK fallback class-method values apply.
+    self.claimPollInitialDelay = [TeakRemoteConfiguration defaultClaimPollInitialDelay];
+    self.claimPollCeiling = [TeakRemoteConfiguration defaultClaimPollCeiling];
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       __strong typeof(self) blockSelf = weakSelf;
@@ -182,6 +210,16 @@
                                                       }
                                                       teak_catch_report;
                                                     }
+
+                                                    // Click-time JWT-claim poll cadence — server values override the
+                                                    // SDK-baked fallback. A null/missing field leaves the fallback in
+                                                    // place (the property is initialized to the fallback in init).
+                                                    self.claimPollInitialDelay = [TeakRemoteConfiguration secondsFromReply:reply
+                                                                                                                       key:@"claim_poll_initial_delay_ms"
+                                                                                                                  fallback:self.claimPollInitialDelay];
+                                                    self.claimPollCeiling = [TeakRemoteConfiguration secondsFromReply:reply
+                                                                                                                  key:@"claim_poll_ceiling_ms"
+                                                                                                             fallback:self.claimPollCeiling];
 
                                                     // Batching/endpoint configuration
                                                     self.endpointConfigurations = reply[@"endpoint_configurations"];

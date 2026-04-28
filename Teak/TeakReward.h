@@ -1,5 +1,7 @@
 #import <Foundation/Foundation.h>
 
+@class TeakAttributedLaunchData;
+
 typedef enum : int {
   kTeakRewardStatusUnknown = -1,                ///< An unknown error occured while processing the reward.
   kTeakRewardStatusGrantReward = 0,             ///< Valid reward claim, grant the user the reward.
@@ -23,4 +25,13 @@ typedef void (^RewardCompleted)(void);
 @property (nonatomic, copy) RewardCompleted _Nullable onComplete;
 
 + (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId;
++ (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId
+                           withLaunchData:(nullable TeakAttributedLaunchData*)launchData;
+
+/// Mints a JSON-encoded `session_attribution` blob from the launch data's
+/// canonical wire shape (`launchData.to_h`). Returns nil when `launchData`
+/// is nil so callers can omit the param from the click request rather than
+/// sending an empty value. Exposed for unit testing of the round-trip; the
+/// production caller is `+rewardForRewardId:withLaunchData:`.
++ (nullable NSString*)sessionAttributionStringFromLaunchData:(nullable TeakAttributedLaunchData*)launchData;
 @end
