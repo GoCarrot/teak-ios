@@ -178,9 +178,6 @@
 /// optimization: SDK uses its own launch-data state instead of round-tripping
 /// the persisted blob).
 ///
-/// The reply fixture uses `reward_id` to match the wire shape — the SDK
-/// renames it to `teak_reward_id` on the wire→userInfo boundary so host
-/// games reading the public `TeakRewardKeyId` constant see the right value.
 /// The reply's authoritative-grant value intentionally differs from the
 /// launch-data's `teakRewardId` (proxy reward case): both flavors must land
 /// on the resolved-event userInfo as distinct, non-aliased fields.
@@ -192,10 +189,8 @@
     @"customer_response" : @"{\"ok\":true}",
     @"customer_status_code" : @200,
     @"acked_at" : [NSNull null],
-    // Wire shape: server emits `reward_id` (post-C-709 taro). The SDK renames
-    // it to `teak_reward_id` on the userInfo boundary. Different from the
-    // launch-data's teakRewardId — proxy reward case.
-    @"reward_id" : @"2048153148060669999",
+    // Different from the launch-data's teakRewardId — proxy reward case.
+    @"teak_reward_id" : @"2048153148060669999",
   };
   TeakAttributedLaunchData* launchData = [self launchDataForNotificationFixture];
 
@@ -217,13 +212,10 @@
 
   // Both reward-id flavors are present and carry distinct values.
   // teakRewardId (camelCase) — what this launch was *attributed to*.
-  // teak_reward_id (snake_case) — what the server *authoritatively granted*,
-  // renamed from the wire's `reward_id` field.
+  // teak_reward_id (snake_case) — what the server *authoritatively granted*.
   XCTAssertEqualObjects(userInfo[@"teakRewardId"], @"2048153148060669138");
   XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"2048153148060669999");
   XCTAssertNotEqualObjects(userInfo[@"teakRewardId"], userInfo[@"teak_reward_id"]);
-  // The raw wire key MUST NOT leak through — it's renamed, not aliased.
-  XCTAssertNil(userInfo[@"reward_id"]);
 }
 
 /// Server bookkeeping fields and the raw `session_attribution` blob are
@@ -253,24 +245,6 @@
   // The launch-data attribution keys still ride along (in-session
   // optimization populates them from the host's own state).
   XCTAssertEqualObjects(userInfo[@"teakNotifId"], @"2048153148060669486");
-}
-
-/// Defensive: if the wire ever lands `teak_reward_id` directly (mixed-version
-/// or future shape), it wins — the rename only fires when teak_reward_id is
-/// absent.
-- (void)testResolvedEventDoesNotClobberExistingTeakRewardIdOnRename {
-  NSDictionary* claimStatusReply = @{
-    @"event_id" : @"evt-mixed-1",
-    @"status" : @"completed",
-    @"reward_id" : @"wire-side-id",
-    @"teak_reward_id" : @"already-renamed-id",
-  };
-
-  NSDictionary* userInfo = [TeakClaimPoll buildResolvedUserInfoForReply:claimStatusReply
-                                                          withLaunchData:nil];
-
-  XCTAssertEqualObjects(userInfo[@"teak_reward_id"], @"already-renamed-id");
-  XCTAssertNil(userInfo[@"reward_id"]);
 }
 
 /// When the launch data is nil (defensive — shouldn't happen in production

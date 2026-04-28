@@ -89,18 +89,11 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 }
 
 // Normalize a /claim_status or /claims wire reply into the host-game-facing
-// userInfo shape. Two transformations:
-//
-// * `reward_id` is the wire field carrying the authoritative-grant id; the
-//   public SDK constant `TeakRewardKeyId` resolves to `teak_reward_id`. The
-//   rename happens on the wire→userInfo boundary so host games reading
-//   `userInfo[TeakRewardKeyId]` see the right value without changing the
-//   public surface. If the wire ever lands `teak_reward_id` directly, that
-//   value wins (no clobber).
-// * `session_attribution` is unpacked into top-level attribution keys before
-//   this merge — the raw blob would just confuse host-game observers. Server
-//   bookkeeping fields (`created_at`, `completed_at`) are likewise stripped;
-//   they're not part of the documented userInfo surface.
+// userInfo shape. `session_attribution` is unpacked into top-level
+// attribution keys before this merge — the raw blob would just confuse
+// host-game observers. Server bookkeeping fields (`created_at`,
+// `completed_at`) are likewise stripped; they're not part of the documented
+// userInfo surface.
 + (NSDictionary*)normalizeWireReplyForResolvedEvent:(NSDictionary*)reply {
   static NSSet* stripKeys = nil;
   static dispatch_once_t once;
@@ -111,12 +104,6 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   NSMutableDictionary* normalized = [NSMutableDictionary dictionaryWithCapacity:reply.count];
   for (NSString* key in reply) {
     if ([stripKeys containsObject:key]) continue;
-    if ([key isEqualToString:@"reward_id"]) {
-      if (normalized[@"teak_reward_id"] == nil && reply[@"teak_reward_id"] == nil) {
-        normalized[@"teak_reward_id"] = reply[key];
-      }
-      continue;
-    }
     normalized[key] = reply[key];
   }
   return normalized;
