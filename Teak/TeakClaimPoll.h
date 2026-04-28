@@ -3,17 +3,28 @@
 @class TeakAttributedLaunchData;
 @class TeakSession;
 
-/// Click-time polling for server_jwt-mode claims.
+/// Polling and resolve/ack delivery for server_jwt-mode claims.
 ///
-/// When a click response carries `status: 'claim_pending'`, the SDK starts a
-/// poll loop against `GET /claim_status?event_id=...` on an exponential
-/// backoff schedule until the server returns a terminal status (completed or
-/// failed). On terminal status, the loop:
+/// Two surfaces drive entries into the same in-flight tracker:
 ///
-/// 1. Fires `TeakOnRewardClaimResolved` carrying the polled reply merged with
-///    launch-data attribution context (in-session optimization: the SDK reads
-///    its own launch-data state instead of round-tripping the server-stored
-///    `session_attribution` blob).
+/// * **Click-time path** — when a click response carries
+///   `status: 'claim_pending'`, the SDK starts a poll loop against
+///   `GET /claim_status?event_id=...` on an exponential backoff schedule.
+///   Attribution comes from the host launch-data the click was minted with
+///   (in-session optimization: SDK reads its own state instead of
+///   round-tripping the persisted `session_attribution` blob).
+/// * **Session-start sweep** — at user-identify time, the SDK pulls
+///   `GET /claims?clicking_user_id=...`, the unacked-claims list for the
+///   current user. Terminal entries fire resolved+ack immediately;
+///   pending entries enroll into the same poll loop the click-time path
+///   uses. Pending sweep entries do NOT re-fire `TeakOnRewardClaimPending`
+///   — that is a point-in-time event, not a history-replay event. Per-claim
+///   attribution is unpacked from the server's `session_attribution` blob.
+///
+/// On terminal status (from either surface) the loop:
+///
+/// 1. Fires `TeakOnRewardClaimResolved` carrying the wire reply merged with
+///    the per-claim attribution context.
 /// 2. POSTs `POST /claim_ack` so the server can mark the claim as
 ///    acknowledged and skip it on the next session-start sweep. Ack failure
 ///    is retried on the same session up to a small bounded budget; if all
@@ -79,5 +90,17 @@
 /// empty dictionary and drops silently. Cross-session resolutions are
 /// picked up by the session-start sweep on next launch.
 + (void)cancelAllPolls;
+
+/// Run the session-start sweep: pull the unacked-claims list for the
+/// current user from `GET /claims` and dispatch each entry. Terminal
+/// entries fire `TeakOnRewardClaimResolved` and ack immediately; pending
+/// entries enroll into the click-time poll loop.
+///
+/// Idempotent across the click-time path: a sweep entry whose `event_id`
+/// is already in the in-flight dictionary is a no-op (the click-time
+/// poll, mid-request, or post-resolve ack-retry, owns delivery). Safe to
+/// call on every UserIdentified transition — entries that were dropped
+/// on Expired re-surface on the next launch via at-least-once delivery.
++ (void)startSweep;
 
 @end

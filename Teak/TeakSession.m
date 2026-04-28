@@ -838,6 +838,13 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       // Process deep links and/or rewards
       [self processAttributionAndDispatchEvents];
 
+      // Pull the unacked-claims list for this user. Idempotent against the
+      // click-time path: the in-flight dictionary's event_id key dedupes
+      // any claim already mid-poll. Running on every UserIdentified
+      // transition is safe — a claim dropped on Expired re-surfaces here on
+      // the next launch via at-least-once delivery.
+      [TeakClaimPoll startSweep];
+
       // Send the server a "hey nevermind that" message if needed
       if (oldValue == [TeakSession Expiring]) {
         // Cancel any pending duration report
