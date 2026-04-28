@@ -15,6 +15,15 @@
 @property (nonatomic, readonly) NSTimeInterval claimPollInitialDelay;
 @property (nonatomic, readonly) NSTimeInterval claimPollCeiling;
 
+/// Cross-SDK fallback values for the click-time JWT-claim poll cadence.
+/// These are the source-of-truth defaults — both this class's
+/// ``-initForSession:`` and any callers that don't have a live remote
+/// configuration on hand should read from these accessors rather than
+/// re-declaring the literal seconds. Server config overrides live on the
+/// per-instance ``claimPollInitialDelay`` / ``claimPollCeiling`` properties.
++ (NSTimeInterval)defaultClaimPollInitialDelay;
++ (NSTimeInterval)defaultClaimPollCeiling;
+
 - (TeakRemoteConfiguration* _Nullable)initForSession:(TeakSession* _Nonnull)session;
 - (nonnull NSDictionary*)to_h;
 @end

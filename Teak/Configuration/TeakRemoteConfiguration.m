@@ -24,6 +24,14 @@
 
 @implementation TeakRemoteConfiguration
 
++ (NSTimeInterval)defaultClaimPollInitialDelay {
+  return 2.0;
+}
+
++ (NSTimeInterval)defaultClaimPollCeiling {
+  return 30.0;
+}
+
 /// Parse a millisecond-valued integer field from a settings.json reply,
 /// returning seconds (an NSTimeInterval). When the field is absent, NSNull,
 /// or non-numeric, the caller's fallback is returned unchanged. Carrot's
@@ -144,9 +152,9 @@
     self.channelCategories = @[];
     // Click-time JWT-claim poll cadence. Server-config overrides via
     // claim_poll_initial_delay_ms / claim_poll_ceiling_ms when present;
-    // these are the cross-SDK fallback values.
-    self.claimPollInitialDelay = 2.0;
-    self.claimPollCeiling = 30.0;
+    // until then the cross-SDK fallback class-method values apply.
+    self.claimPollInitialDelay = [TeakRemoteConfiguration defaultClaimPollInitialDelay];
+    self.claimPollCeiling = [TeakRemoteConfiguration defaultClaimPollCeiling];
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       __strong typeof(self) blockSelf = weakSelf;

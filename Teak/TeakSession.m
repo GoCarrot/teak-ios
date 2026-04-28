@@ -678,14 +678,6 @@ DefineTeakState(Expired, (@[]));
 /// production callers ignore the return value; the same notification is
 /// posted once the user id is ready).
 + (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
-  // Cross-SDK fallback for the poll cadence. Used only when there's no
-  // current session (test paths) or no remote configuration on it. Live
-  // sessions read the values from TeakRemoteConfiguration, which itself
-  // initializes to the same defaults and overrides them from the
-  // /games/.../settings.json reply.
-  static const NSTimeInterval kClaimPollInitialDelayFallback = 2.0;
-  static const NSTimeInterval kClaimPollCeilingFallback = 30.0;
-
   NSString* wireStatus = reply[@"status"];
   NSString* notificationName = TeakOnReward;
   if ([wireStatus isEqualToString:@"token_issued"]) {
@@ -694,9 +686,13 @@ DefineTeakState(Expired, (@[]));
     notificationName = TeakOnRewardClaimPending;
     NSString* eventId = reply[@"event_id"];
     if ([eventId isKindOfClass:[NSString class]] && eventId.length > 0) {
+      // Live sessions read the server-overridable values from their
+      // remoteConfiguration; the no-session fallback (test paths, pre-init
+      // window) reads the same defaults from the class-method source of
+      // truth. No literal seconds live in this file.
       TeakRemoteConfiguration* remoteConfig = [TeakSession currentSessionOrNil].remoteConfiguration;
-      NSTimeInterval initialDelay = remoteConfig != nil ? remoteConfig.claimPollInitialDelay : kClaimPollInitialDelayFallback;
-      NSTimeInterval ceiling = remoteConfig != nil ? remoteConfig.claimPollCeiling : kClaimPollCeilingFallback;
+      NSTimeInterval initialDelay = remoteConfig != nil ? remoteConfig.claimPollInitialDelay : [TeakRemoteConfiguration defaultClaimPollInitialDelay];
+      NSTimeInterval ceiling = remoteConfig != nil ? remoteConfig.claimPollCeiling : [TeakRemoteConfiguration defaultClaimPollCeiling];
       [TeakClaimPoll startPollForEventId:eventId
                               launchData:launchData
                             initialDelay:initialDelay

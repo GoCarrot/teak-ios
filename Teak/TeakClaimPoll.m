@@ -186,6 +186,14 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 #pragma mark - Internal — resolve + ack
 
 + (void)fireResolvedAndAckForClaim:(TeakInflightClaim*)claim reply:(NSDictionary*)reply {
+  // Entry-point log paired with claim_resolved.delivered below: a trace can
+  // distinguish "we observed terminal status and queued the event" from "we
+  // actually delivered to the host game." If userId-ready never fires
+  // (e.g. login never completes), the queued delivery doesn't run and the
+  // delivered log is silent — but this received log proves the SDK saw
+  // the resolution.
+  TeakLog_i(@"claim_resolved.received", @{@"event_id" : claim.eventId});
+
   NSDictionary* userInfo = [TeakClaimPoll buildResolvedUserInfoForReply:reply
                                                           withLaunchData:claim.launchData];
 
