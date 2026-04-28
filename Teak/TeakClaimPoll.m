@@ -92,6 +92,7 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
       // SDK is already responsible for delivering this event_id. Re-entrant
       // start is a no-op — the existing claim continues with its own session
       // ref, timer, and ack-retry state.
+      TeakLog_i(@"claim_poll.start.duplicate", @{@"event_id" : eventId});
       return;
     }
 
@@ -142,6 +143,7 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   TeakInflightClaim* claim = [TeakClaimPoll inflightClaims][eventId];
   if (claim == nil) {
     // Cancelled between schedule and fire. Nothing to do.
+    TeakLog_i(@"claim_poll.timer.cancelled", @{@"event_id" : eventId});
     return;
   }
 
@@ -161,7 +163,8 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 + (void)handleClaimStatusReply:(NSDictionary*)reply forEventId:(NSString*)eventId {
   TeakInflightClaim* claim = [TeakClaimPoll inflightClaims][eventId];
   if (claim == nil) {
-    // Cancelled while the request was in flight. Drop the reply silently.
+    // Cancelled while the request was in flight. Drop the reply.
+    TeakLog_i(@"claim_poll.reply.cancelled", @{@"event_id" : eventId});
     return;
   }
 
@@ -205,6 +208,7 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   TeakInflightClaim* claim = [TeakClaimPoll inflightClaims][eventId];
   if (claim == nil) {
     // Cancelled between resolve and ack. Drop.
+    TeakLog_i(@"claim_ack.cancelled", @{@"event_id" : eventId});
     return;
   }
 
