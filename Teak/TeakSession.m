@@ -678,12 +678,13 @@ DefineTeakState(Expired, (@[]));
 /// production callers ignore the return value; the same notification is
 /// posted once the user id is ready).
 + (NSNotification*)dispatchClickResponse:(NSDictionary*)reply forLaunchData:(TeakAttributedLaunchData*)launchData {
-  // Default initial delay 2s, ceiling 30s — chosen to keep the first poll close
-  // to claim-completion latency while preventing busy-loops if the customer
-  // backend is slow. These are the cross-SDK fallback values; the SDK reads
-  // them from server config when available.
-  static const NSTimeInterval kClaimPollInitialDelay = 2.0;
-  static const NSTimeInterval kClaimPollCeiling = 30.0;
+  // Cross-SDK fallback for the poll cadence. Used only when there's no
+  // current session (test paths) or no remote configuration on it. Live
+  // sessions read the values from TeakRemoteConfiguration, which itself
+  // initializes to the same defaults and overrides them from the
+  // /games/.../settings.json reply.
+  static const NSTimeInterval kClaimPollInitialDelayFallback = 2.0;
+  static const NSTimeInterval kClaimPollCeilingFallback = 30.0;
 
   NSString* wireStatus = reply[@"status"];
   NSString* notificationName = TeakOnReward;
@@ -693,10 +694,13 @@ DefineTeakState(Expired, (@[]));
     notificationName = TeakOnRewardClaimPending;
     NSString* eventId = reply[@"event_id"];
     if ([eventId isKindOfClass:[NSString class]] && eventId.length > 0) {
+      TeakRemoteConfiguration* remoteConfig = [TeakSession currentSessionOrNil].remoteConfiguration;
+      NSTimeInterval initialDelay = remoteConfig != nil ? remoteConfig.claimPollInitialDelay : kClaimPollInitialDelayFallback;
+      NSTimeInterval ceiling = remoteConfig != nil ? remoteConfig.claimPollCeiling : kClaimPollCeilingFallback;
       [TeakClaimPoll startPollForEventId:eventId
                               launchData:launchData
-                            initialDelay:kClaimPollInitialDelay
-                                 ceiling:kClaimPollCeiling];
+                            initialDelay:initialDelay
+                                 ceiling:ceiling];
     }
   }
 
