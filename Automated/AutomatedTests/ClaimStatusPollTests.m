@@ -16,10 +16,10 @@
 + (BOOL)configureForAppId:(NSString*)appId andSecret:(NSString*)appSecret;
 @end
 
-// Internal accessor for the active polls dictionary so the dedupe contract
-// can be asserted against state, not behavior alone.
+// Internal accessor for the in-flight claims dictionary so the dedupe
+// contract can be asserted against state, not behavior alone.
 @interface TeakClaimPoll (Testing)
-+ (NSMutableDictionary*)activePolls;
++ (NSMutableDictionary*)inflightClaims;
 @end
 
 @interface ClaimStatusPollTests : XCTestCase
@@ -136,10 +136,10 @@
   [self waitForExpectations:@[ e ] timeout:1.0];
 }
 
-/// First +startPollForEventId: schedules a timer; a second call with the
-/// same eventId is a no-op (the existing poll continues, no second timer).
-/// Tightens the cross-SDK dedupe contract: at most one poll per event id,
-/// regardless of whether a timer is scheduled or a request is mid-flight.
+/// First +startPollForEventId: records an in-flight claim; a second call
+/// with the same eventId is a no-op (the existing claim continues, no
+/// second entry). Cross-SDK dedupe contract: the SDK is responsible for
+/// delivering each event_id exactly once.
 - (void)testStartPollDedupesByEventId {
   [TeakClaimPoll cancelAllPolls];
   [self drainMainQueue];
@@ -149,35 +149,37 @@
   [TeakClaimPoll startPollForEventId:eventId launchData:nil initialDelay:60.0 ceiling:120.0];
   [self drainMainQueue];
 
-  id firstSlot = [TeakClaimPoll activePolls][eventId];
-  XCTAssertNotNil(firstSlot, @"first start must record a poll for event id");
+  id firstSlot = [TeakClaimPoll inflightClaims][eventId];
+  XCTAssertNotNil(firstSlot, @"first start must record an in-flight claim for the event id");
 
   [TeakClaimPoll startPollForEventId:eventId launchData:nil initialDelay:60.0 ceiling:120.0];
   [self drainMainQueue];
 
-  id secondSlot = [TeakClaimPoll activePolls][eventId];
+  id secondSlot = [TeakClaimPoll inflightClaims][eventId];
   XCTAssertEqual(firstSlot, secondSlot,
-                 @"re-entrant start with the same eventId must not replace the existing poll slot");
-  XCTAssertEqual([TeakClaimPoll activePolls].count, (NSUInteger)1,
-                 @"only one poll should be tracked");
+                 @"re-entrant start with the same eventId must not replace the existing claim");
+  XCTAssertEqual([TeakClaimPoll inflightClaims].count, (NSUInteger)1,
+                 @"only one in-flight claim should be tracked");
 
   [TeakClaimPoll cancelAllPolls];
   [self drainMainQueue];
 }
 
 /// +cancelAllPolls clears the dictionary and invalidates pending timers.
+/// Called from the Expired session transition; the click-time tracker is
+/// abandoned in favor of the session-start sweep at next launch.
 - (void)testCancelAllPollsClearsState {
   [TeakClaimPoll startPollForEventId:@"evt-cancel-1" launchData:nil initialDelay:60.0 ceiling:120.0];
   [TeakClaimPoll startPollForEventId:@"evt-cancel-2" launchData:nil initialDelay:60.0 ceiling:120.0];
   [self drainMainQueue];
 
-  XCTAssertEqual([TeakClaimPoll activePolls].count, (NSUInteger)2);
+  XCTAssertEqual([TeakClaimPoll inflightClaims].count, (NSUInteger)2);
 
   [TeakClaimPoll cancelAllPolls];
   [self drainMainQueue];
 
-  XCTAssertEqual([TeakClaimPoll activePolls].count, (NSUInteger)0,
-                 @"cancelAllPolls must clear the active polls dictionary");
+  XCTAssertEqual([TeakClaimPoll inflightClaims].count, (NSUInteger)0,
+                 @"cancelAllPolls must clear the in-flight claims dictionary");
 }
 
 @end

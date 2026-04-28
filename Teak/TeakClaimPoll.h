@@ -15,10 +15,21 @@
 ///    its own launch-data state instead of round-tripping the server-stored
 ///    `session_attribution` blob).
 /// 2. POSTs `POST /claim_ack` so the server can mark the claim as
-///    acknowledged and skip it on the next session-start sweep.
+///    acknowledged and skip it on the next session-start sweep. Ack failure
+///    is retried on the same session up to a small bounded budget; if all
+///    retries exhaust, the claim is dropped and C-699's session-start sweep
+///    re-surfaces it on next launch.
 ///
-/// All timing happens on `[NSRunLoop mainRunLoop]` via NSTimer; the poll
-/// stops when the session expires or the SDK observes a terminal state.
+/// All timing happens on `[NSRunLoop mainRunLoop]` via NSTimer.
+///
+/// Each in-flight claim holds a weak reference to the TeakSession that
+/// started it. The Expiring state is a may-resume transition (the user
+/// briefly opens Notification Center, App Switcher, etc.) and is *not* a
+/// reason to cancel — polling continues across the flicker because the
+/// session pointer is unchanged. Only the truly-terminal Expired transition
+/// cancels in-flight claims. If the originating session is replaced
+/// mid-poll (logout/login), in-flight replies see a session mismatch on the
+/// weak ref and drop themselves.
 @interface TeakClaimPoll : NSObject
 
 /// Computes the delay for the next poll attempt. `attempt` is the
@@ -53,21 +64,20 @@
 
 /// Begin polling `/claim_status` for the given event id. The poll uses
 /// `initialDelay` for the first attempt and doubles up to `ceiling` for each
-/// subsequent attempt. Dedupe is "at most one poll per event id at a time":
-/// if a timer is scheduled OR a request is in flight for the same eventId,
-/// a second call is a no-op.
+/// subsequent attempt. Dedupe is "the SDK is responsible for delivering this
+/// event_id exactly once": if an in-flight claim already exists for the same
+/// eventId — whether scheduled, mid-request, or post-resolve awaiting ack —
+/// a second start is a no-op.
 + (void)startPollForEventId:(NSString*)eventId
                  launchData:(TeakAttributedLaunchData*)launchData
                initialDelay:(NSTimeInterval)initialDelay
                     ceiling:(NSTimeInterval)ceiling;
 
-/// Cancel all in-flight polls. Called when the session expires. Pending
-/// timers are invalidated immediately. In-flight `/claim_status` requests
-/// can't be canceled mid-flight, but their completion handlers detect the
-/// session change via a generation counter and drop the reply rather than
-/// firing `TeakOnRewardClaimResolved` against a session the host game no
-/// longer remembers initiating. Cross-session resolutions are picked up by
-/// the session-start sweep on next launch.
+/// Cancel all in-flight claims. Called from the Expired session transition.
+/// Pending timers are invalidated and the in-flight dictionary is cleared;
+/// any /claim_status or /claim_ack reply that arrives after cancel sees an
+/// empty dictionary and drops silently. Cross-session resolutions are
+/// picked up by the session-start sweep on next launch.
 + (void)cancelAllPolls;
 
 @end
