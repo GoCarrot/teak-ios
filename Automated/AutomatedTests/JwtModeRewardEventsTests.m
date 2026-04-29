@@ -218,18 +218,20 @@
   XCTAssertNil(userInfo[@"teak_reward_id"]);
 }
 
-/// Server bookkeeping fields and the raw `session_attribution` blob are
-/// stripped from the wire reply before the merge — host-game observers see
-/// the unpacked attribution keys (already on the userInfo from the dict
-/// merge) and the documented public-surface fields, not duplicated raw blobs
-/// or server timestamps that aren't part of the contract.
-- (void)testResolvedEventStripsServerBookkeepingAndRawAttributionBlob {
+/// Canonical resolved-event strip set on the /claim_status (click-time-poll)
+/// fixture: the redundant wire fields (`teak_reward_id` — superseded by
+/// attribution `teakRewardId`; `session_attribution` — already unpacked into
+/// discrete top-level keys) are stripped; `acked_at` rides through. The
+/// /claim_status reply does not emit `created_at` / `completed_at` today —
+/// those fields live on /claims (sweep) and are exercised in the sweep-path
+/// timing test in SessionStartSweepTests.m.
+- (void)testResolvedEventStripsRedundantWireFieldsOnClaimStatusReply {
   NSDictionary* claimStatusReply = @{
     @"event_id" : @"evt-pending-strip-1",
     @"status" : @"completed",
     @"reward" : @{@"gems" : @25},
-    @"created_at" : @"2026-04-28T17:00:00Z",
-    @"completed_at" : @"2026-04-28T17:00:05Z",
+    @"acked_at" : @"2026-04-28T17:00:06Z",
+    @"teak_reward_id" : @"2048153148060669999",
     @"session_attribution" : @{@"teakNotifId" : @"would-leak-as-raw-blob"},
   };
   TeakAttributedLaunchData* launchData = [self launchDataForNotificationFixture];
@@ -239,9 +241,14 @@
 
   XCTAssertEqualObjects(userInfo[@"event_id"], @"evt-pending-strip-1");
   XCTAssertEqualObjects(userInfo[@"status"], @"completed");
-  XCTAssertNil(userInfo[@"created_at"]);
-  XCTAssertNil(userInfo[@"completed_at"]);
+
+  // Redundant wire fields stripped.
+  XCTAssertNil(userInfo[@"teak_reward_id"]);
   XCTAssertNil(userInfo[@"session_attribution"]);
+
+  // acked_at rides through — present on /claim_status reply (Surface 2).
+  XCTAssertEqualObjects(userInfo[@"acked_at"], @"2026-04-28T17:00:06Z");
+
   // The launch-data attribution keys still ride along (in-session
   // optimization populates them from the host's own state).
   XCTAssertEqualObjects(userInfo[@"teakNotifId"], @"2048153148060669486");
