@@ -4,9 +4,18 @@
 
 #import "TeakClaimPoll.h"
 #import "TeakLaunchData.h"
+#import "TeakSession.h"
 
 @import OCHamcrest;
 @import OCMockito;
+
+// Re-declare the in-flight claim's testable slots. The class itself is
+// defined privately in TeakClaimPoll.m; the runtime resolves these
+// properties dynamically when the test reads them off a dictionary value.
+@interface TeakInflightClaim : NSObject
+@property (nonatomic, copy, nullable) NSString* clickingUserId;
+@property (nonatomic, copy) NSString* eventId;
+@end
 
 @interface TeakConfiguration : NSObject
 + (BOOL)configureForAppId:(NSString*)appId andSecret:(NSString*)appSecret;
@@ -261,6 +270,42 @@
 }
 
 #pragma mark - Sweep dispatch — session_attribution unpack tolerance
+
+#pragma mark - Sweep dispatch — clicking_user_id capture
+
+/// Sweep enrollment captures the dispatching session's userId onto each
+/// in-flight claim's clicking_user_id slot. Subsequent /claim_status polls
+/// and /claim_ack POSTs for the resurfaced claim read from this captured
+/// value, not from a live session reference at request-send time. This
+/// matches the click-time capture-at-click contract — the user that owned
+/// the click owns the per-claim wire identity for that claim's lifetime.
+- (void)testSweepCapturesClickingUserIdFromSessionOntoEachClaim {
+  TeakSession* mockSession = mock([TeakSession class]);
+  [given([mockSession userId]) willReturn:@"user-sweep-A"];
+
+  NSArray* claims = @[
+    @{
+      @"event_id" : @"evt-sweep-capture-1",
+      @"status" : @"pending",
+      @"session_attribution" : @{@"teakNotifId" : @"2048153148060669486"},
+    },
+    @{
+      @"event_id" : @"evt-sweep-capture-2",
+      @"status" : @"completed",
+      @"reward" : @{@"gems" : @25},
+    },
+  ];
+
+  [TeakClaimPoll dispatchSweptClaims:claims session:mockSession];
+  [self drainMainQueue];
+
+  TeakInflightClaim* pendingClaim = [TeakClaimPoll inflightClaims][@"evt-sweep-capture-1"];
+  TeakInflightClaim* terminalClaim = [TeakClaimPoll inflightClaims][@"evt-sweep-capture-2"];
+  XCTAssertEqualObjects(pendingClaim.clickingUserId, @"user-sweep-A",
+                        @"pending sweep entry must capture clicking_user_id from the dispatching session");
+  XCTAssertEqualObjects(terminalClaim.clickingUserId, @"user-sweep-A",
+                        @"terminal sweep entry must capture clicking_user_id from the dispatching session");
+}
 
 /// session_attribution may arrive as a JSON-encoded string (mirrors the
 /// click-POST mint shape) or as an inline dict. The sweep dispatcher tolerates

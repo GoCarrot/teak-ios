@@ -19,9 +19,28 @@
 // Internal accessors for the in-flight claims dictionary and the
 // reply-handling step, so the round-2 invariants (dedupe, cancel,
 // stale-session drop) can be asserted against state, not behavior alone.
+//
+// `claimStatusURLForAppId:clickingUserId:eventId:` and the parallel ack-payload
+// helper are pure builders the wire-call sites delegate to; tests cover them
+// directly to lock in the value-locked clicking_user_id contract without
+// having to mock NSURLSession.
 @interface TeakClaimPoll (Testing)
 + (NSMutableDictionary*)inflightClaims;
 + (void)handleClaimStatusReply:(NSDictionary*)reply forEventId:(NSString*)eventId;
++ (NSURL*)claimStatusURLForAppId:(NSString*)appId
+                  clickingUserId:(NSString*)clickingUserId
+                         eventId:(NSString*)eventId;
++ (NSDictionary*)claimAckPayloadForAppId:(NSString*)appId
+                          clickingUserId:(NSString*)clickingUserId
+                                 eventId:(NSString*)eventId;
+@end
+
+// Re-declare the in-flight claim's testable slots. The class itself is
+// defined privately in TeakClaimPoll.m; the runtime resolves these
+// properties dynamically when the test reads them off a dictionary value.
+@interface TeakInflightClaim : NSObject
+@property (nonatomic, copy, nullable) NSString* clickingUserId;
+@property (nonatomic, copy) NSString* eventId;
 @end
 
 @interface ClaimStatusPollTests : XCTestCase
@@ -193,6 +212,58 @@
 
   XCTAssertNil([TeakClaimPoll inflightClaims][eventId],
                @"reply for a claim with no live originating session must drop the entry");
+}
+
+#pragma mark - clicking_user_id capture-at-click
+
+/// /claim_status URL helper carries the value passed in — the helper has no
+/// "current session" awareness. This is the boundary that locks the
+/// value-at-click semantics: the wire path consumes a captured string, never
+/// re-reads from a live session reference.
+- (void)testClaimStatusURLUsesGivenClickingUserId {
+  NSURL* url = [TeakClaimPoll claimStatusURLForAppId:@"app-123"
+                                      clickingUserId:@"user-A"
+                                             eventId:@"evt-1"];
+  NSString* query = url.query ?: @"";
+  XCTAssertTrue([query containsString:@"clicking_user_id=user-A"],
+                @"expected query to lock clicking_user_id to the captured value, got: %@", query);
+  XCTAssertTrue([query containsString:@"teak_app_id=app-123"]);
+  XCTAssertTrue([query containsString:@"event_id=evt-1"]);
+  XCTAssertEqualObjects(url.path, @"/claim_status");
+}
+
+/// /claim_ack body carries the value passed in — same value-locked semantics
+/// as /claim_status. The retry path reads from the captured string on the
+/// claim, not from any session reference at retry-send time.
+- (void)testClaimAckPayloadUsesGivenClickingUserId {
+  NSDictionary* payload = [TeakClaimPoll claimAckPayloadForAppId:@"app-123"
+                                                  clickingUserId:@"user-A"
+                                                         eventId:@"evt-1"];
+  XCTAssertEqualObjects(payload[@"clicking_user_id"], @"user-A");
+  XCTAssertEqualObjects(payload[@"teak_app_id"], @"app-123");
+  XCTAssertEqualObjects(payload[@"event_id"], @"evt-1");
+}
+
+/// Click-time start-poll captures the clicking_user_id onto the in-flight
+/// claim. With no live session in the test environment, the captured value
+/// is nil — but the slot itself exists, so the wire send sites read off the
+/// captured value (nil here) rather than late-binding to a live session at
+/// send time.
+- (void)testStartPollCapturesClickingUserIdSlotOnInflightClaim {
+  [TeakClaimPoll cancelAllPolls];
+  [self drainMainQueue];
+
+  NSString* eventId = @"evt-capture-slot-1";
+  [TeakClaimPoll startPollForEventId:eventId launchData:nil initialDelay:60.0 ceiling:120.0];
+  [self drainMainQueue];
+
+  TeakInflightClaim* claim = [TeakClaimPoll inflightClaims][eventId];
+  XCTAssertNotNil(claim, @"start-poll must record the claim");
+  XCTAssertTrue([claim respondsToSelector:@selector(clickingUserId)],
+                @"in-flight claim must expose a clickingUserId slot for the wire-send sites");
+
+  [TeakClaimPoll cancelAllPolls];
+  [self drainMainQueue];
 }
 
 /// +cancelAllPolls clears the dictionary and invalidates pending timers.
