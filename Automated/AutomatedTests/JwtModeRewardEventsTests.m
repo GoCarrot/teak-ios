@@ -218,19 +218,18 @@
   XCTAssertNil(userInfo[@"teak_reward_id"]);
 }
 
-/// Canonical resolved-event strip set: the redundant wire fields
-/// (`teak_reward_id` — superseded by attribution `teakRewardId`;
-/// `session_attribution` — already unpacked into discrete top-level keys)
-/// are stripped, but server-emitted timing fields (`created_at`,
-/// `completed_at`, `acked_at` when present) ride through onto the userInfo
-/// so host games can render the click→resolve timeline.
-- (void)testResolvedEventStripsRedundantWireFieldsAndKeepsTimingFields {
+/// Canonical resolved-event strip set on the /claim_status (click-time-poll)
+/// fixture: the redundant wire fields (`teak_reward_id` — superseded by
+/// attribution `teakRewardId`; `session_attribution` — already unpacked into
+/// discrete top-level keys) are stripped; `acked_at` rides through. The
+/// /claim_status reply does not emit `created_at` / `completed_at` today —
+/// those fields live on /claims (sweep) and are exercised in the sweep-path
+/// timing test in SessionStartSweepTests.m.
+- (void)testResolvedEventStripsRedundantWireFieldsOnClaimStatusReply {
   NSDictionary* claimStatusReply = @{
     @"event_id" : @"evt-pending-strip-1",
     @"status" : @"completed",
     @"reward" : @{@"gems" : @25},
-    @"created_at" : @"2026-04-28T17:00:00Z",
-    @"completed_at" : @"2026-04-28T17:00:05Z",
     @"acked_at" : @"2026-04-28T17:00:06Z",
     @"teak_reward_id" : @"2048153148060669999",
     @"session_attribution" : @{@"teakNotifId" : @"would-leak-as-raw-blob"},
@@ -247,10 +246,7 @@
   XCTAssertNil(userInfo[@"teak_reward_id"]);
   XCTAssertNil(userInfo[@"session_attribution"]);
 
-  // Server-emitted timing surfaced — host games render click→resolve timing
-  // off these fields.
-  XCTAssertEqualObjects(userInfo[@"created_at"], @"2026-04-28T17:00:00Z");
-  XCTAssertEqualObjects(userInfo[@"completed_at"], @"2026-04-28T17:00:05Z");
+  // acked_at rides through — present on /claim_status reply (Surface 2).
   XCTAssertEqualObjects(userInfo[@"acked_at"], @"2026-04-28T17:00:06Z");
 
   // The launch-data attribution keys still ride along (in-session

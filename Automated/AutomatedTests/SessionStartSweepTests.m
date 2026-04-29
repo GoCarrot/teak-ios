@@ -116,6 +116,33 @@
   XCTAssertNil(userInfo[@"teak_reward_id"]);
 }
 
+/// /claims (sweep) wire reply carries `created_at` and `completed_at` —
+/// those server-emitted timing fields ride through to the resolved-event
+/// userInfo on the sweep-terminal path so host games can render the
+/// click→resolve timeline. /claim_status (click-time-poll) does not emit
+/// these fields today; the click-time-poll path's strip set is covered in
+/// JwtModeRewardEventsTests.m.
+- (void)testBuildResolvedUserInfoSurfacesTimingFieldsFromClaimsReply {
+  NSDictionary* attribution = @{
+    @"teakNotifId" : @"2048153148060669486",
+    @"teakRewardId" : @"2048153148060669138",
+  };
+  NSDictionary* claimsReply = @{
+    @"event_id" : @"evt-sweep-timing-1",
+    @"status" : @"completed",
+    @"reward" : @{@"gems" : @25},
+    @"created_at" : @"2026-04-28T17:00:00Z",
+    @"completed_at" : @"2026-04-28T17:00:05Z",
+  };
+
+  NSDictionary* userInfo = [TeakClaimPoll buildResolvedUserInfoForReply:claimsReply
+                                                          withAttribution:attribution];
+
+  XCTAssertEqualObjects(userInfo[@"event_id"], @"evt-sweep-timing-1");
+  XCTAssertEqualObjects(userInfo[@"created_at"], @"2026-04-28T17:00:00Z");
+  XCTAssertEqualObjects(userInfo[@"completed_at"], @"2026-04-28T17:00:05Z");
+}
+
 /// Defensive: a nil attribution dict yields the wire reply alone. Mirrors the
 /// nil-launchData defensive case on the click-time helper.
 - (void)testBuildResolvedUserInfoWithNilAttributionReturnsReplyAlone {
