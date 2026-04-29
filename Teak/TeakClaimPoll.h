@@ -63,7 +63,7 @@
 /// alone — defensive against an unusual mid-session teardown.
 ///
 /// Key convention: wire reply keys are snake_case (`event_id`, `status`,
-/// `reward`, `customer_response`, `customer_status_code`,
+/// `reward`, `customer_response`, `customer_status_code`, `claim_source`,
 /// `created_at`, `completed_at`, `acked_at`); attribution keys are
 /// teakCamelCase (`teakRewardId`, `teakNotifId`, etc).
 ///
