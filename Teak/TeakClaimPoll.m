@@ -18,6 +18,13 @@ static const NSUInteger kAckMaxAttempts = 3;
 // Expiring→Active flicker means the poll continues; a replaced session
 // (logout/login, Expired+new) means the entry's reply will be dropped.
 //
+// `clickingUserId` is value-locked at the moment the claim is enrolled — at
+// click-time it's the originating session's userId at click; on the sweep
+// path it's the dispatching session's userId at sweep time. Subsequent
+// /claim_status polls and /claim_ack POSTs read this captured string rather
+// than re-binding to a live session reference; a session that rotates its
+// userId mid-flight does not change the wire identity of the in-flight claim.
+//
 // `attribution` is the eleven-key flat bag (TeakLaunchData.to_h shape) used
 // to populate context on the resolved-event userInfo. The click-time path
 // flattens its launch-data once at start; the session-start sweep unpacks
@@ -28,6 +35,7 @@ static const NSUInteger kAckMaxAttempts = 3;
 @interface TeakInflightClaim : NSObject
 @property (nonatomic, weak) TeakSession* originatingSession;
 @property (nonatomic, copy) NSString* eventId;
+@property (nonatomic, copy, nullable) NSString* clickingUserId;
 @property (nonatomic, copy, nullable) NSDictionary* attribution;
 @property (nonatomic, strong, nullable) NSTimer* nextPollTimer;
 @property (nonatomic, assign) NSUInteger pollAttempt;
@@ -94,18 +102,20 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 // * `session_attribution` — already unpacked into top-level teakCamelCase
 //   attribution keys before this merge; the raw blob would just duplicate
 //   that on the userInfo.
-// * `created_at`, `completed_at` — server bookkeeping, not part of the
-//   documented public surface.
 // * `teak_reward_id` — the wire's authoritative-grant id. Resolved events
 //   surface only the attribution id (`teakRewardId` from launch-data),
 //   matching the legacy `TeakOnReward` semantics: id is provenance, the
 //   `reward` blob carries the grant content. Host games that need to detect
 //   a proxy-reward substitution read the `reward` blob, not a second id.
+//
+// Server-emitted timing fields (`created_at`, `completed_at`, `acked_at`)
+// are surfaced on the resolved event so host games can render the
+// click→resolve timeline; they're part of the documented public surface.
 + (NSDictionary*)normalizeWireReplyForResolvedEvent:(NSDictionary*)reply {
   static NSSet* stripKeys = nil;
   static dispatch_once_t once;
   dispatch_once(&once, ^{
-    stripKeys = [NSSet setWithObjects:@"session_attribution", @"created_at", @"completed_at", @"teak_reward_id", nil];
+    stripKeys = [NSSet setWithObjects:@"session_attribution", @"teak_reward_id", nil];
   });
 
   NSMutableDictionary* normalized = [NSMutableDictionary dictionaryWithCapacity:reply.count];
@@ -141,6 +151,11 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   }
 
   TeakSession* originatingSession = [TeakSession currentSessionOrNil];
+  // Value-lock the originating session's userId. /claim_status polls and
+  // /claim_ack retries for this claim read off this captured string for the
+  // claim's lifetime — a session that later rotates its userId does not
+  // change the wire identity of an in-flight claim.
+  NSString* clickingUserId = [originatingSession.userId copy];
 
   dispatch_async(dispatch_get_main_queue(), ^{
     NSMutableDictionary* claims = [TeakClaimPoll inflightClaims];
@@ -155,6 +170,7 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
     TeakInflightClaim* claim = [[TeakInflightClaim alloc] init];
     claim.originatingSession = originatingSession;
     claim.eventId = eventId;
+    claim.clickingUserId = clickingUserId;
     claim.attribution = attribution;
     claim.pollAttempt = 0;
     claim.initialDelay = initialDelay;
@@ -277,13 +293,13 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   }
 
   claim.ackAttempt += 1;
-  [TeakClaimPoll sendClaimAckRequestForEventId:eventId
-                                       session:session
-                                    completion:^(BOOL success) {
-                                      dispatch_async(dispatch_get_main_queue(), ^{
-                                        [TeakClaimPoll handleAckResult:success forEventId:eventId session:session];
-                                      });
-                                    }];
+  [TeakClaimPoll sendClaimAckRequestForClaim:claim
+                                     session:session
+                                  completion:^(BOOL success) {
+                                    dispatch_async(dispatch_get_main_queue(), ^{
+                                      [TeakClaimPoll handleAckResult:success forEventId:eventId session:session];
+                                    });
+                                  }];
 }
 
 + (void)handleAckResult:(BOOL)success forEventId:(NSString*)eventId session:(TeakSession*)session {
@@ -334,18 +350,42 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
 
 #pragma mark - Wire calls
 
+// Pure URL builder for the /claim_status GET. Locks the value-at-click
+// contract: callers pass in the captured clicking_user_id, the helper has
+// no awareness of any live session reference.
++ (NSURL*)claimStatusURLForAppId:(NSString*)appId
+                  clickingUserId:(NSString*)clickingUserId
+                         eventId:(NSString*)eventId {
+  NSString* hostname = [NSString stringWithFormat:@"rewards.%@", kTeakHostname];
+  NSURLComponents* components = [NSURLComponents componentsWithString:[NSString stringWithFormat:@"https://%@/claim_status", hostname]];
+  components.queryItems = @[
+    [NSURLQueryItem queryItemWithName:@"teak_app_id" value:appId],
+    [NSURLQueryItem queryItemWithName:@"clicking_user_id" value:clickingUserId],
+    [NSURLQueryItem queryItemWithName:@"event_id" value:eventId],
+  ];
+  return components.URL;
+}
+
+// Pure body builder for the /claim_ack POST. Same value-locked semantics as
+// the /claim_status URL: callers pass the captured clicking_user_id.
++ (NSDictionary*)claimAckPayloadForAppId:(NSString*)appId
+                          clickingUserId:(NSString*)clickingUserId
+                                 eventId:(NSString*)eventId {
+  return @{
+    @"teak_app_id" : appId,
+    @"clicking_user_id" : clickingUserId,
+    @"event_id" : eventId,
+  };
+}
+
 + (void)sendClaimStatusRequestForClaim:(TeakInflightClaim*)claim
                             completion:(void (^)(NSDictionary* reply))completion {
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-    NSString* hostname = [NSString stringWithFormat:@"rewards.%@", kTeakHostname];
-    NSURLComponents* components = [NSURLComponents componentsWithString:[NSString stringWithFormat:@"https://%@/claim_status", hostname]];
-    components.queryItems = @[
-      [NSURLQueryItem queryItemWithName:@"teak_app_id" value:session.appConfiguration.appId],
-      [NSURLQueryItem queryItemWithName:@"clicking_user_id" value:session.userId],
-      [NSURLQueryItem queryItemWithName:@"event_id" value:claim.eventId],
-    ];
+    NSURL* url = [TeakClaimPoll claimStatusURLForAppId:session.appConfiguration.appId
+                                        clickingUserId:claim.clickingUserId
+                                               eventId:claim.eventId];
 
-    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:components.URL];
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"GET";
 
     TeakLog_i(@"claim_poll.request.send", @{@"event_id" : claim.eventId});
@@ -370,26 +410,25 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   }];
 }
 
-+ (void)sendClaimAckRequestForEventId:(NSString*)eventId
-                              session:(TeakSession*)session
-                           completion:(void (^)(BOOL success))completion {
++ (void)sendClaimAckRequestForClaim:(TeakInflightClaim*)claim
+                            session:(TeakSession*)session
+                         completion:(void (^)(BOOL success))completion {
   NSString* hostname = [NSString stringWithFormat:@"rewards.%@", kTeakHostname];
   NSURLComponents* components = [NSURLComponents componentsWithString:[NSString stringWithFormat:@"https://%@/claim_ack", hostname]];
 
-  NSDictionary* payload = @{
-    @"teak_app_id" : session.appConfiguration.appId,
-    @"clicking_user_id" : session.userId,
-    @"event_id" : eventId,
-  };
+  NSDictionary* payload = [TeakClaimPoll claimAckPayloadForAppId:session.appConfiguration.appId
+                                                  clickingUserId:claim.clickingUserId
+                                                         eventId:claim.eventId];
 
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:components.URL];
   request.HTTPMethod = @"POST";
   request.HTTPBody = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
   [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
-  TeakLog_i(@"claim_ack.request.send", @{@"event_id" : eventId});
+  TeakLog_i(@"claim_ack.request.send", @{@"event_id" : claim.eventId});
 
   NSURLSession* urlSession = [Teak URLSessionWithoutDelegate];
+  NSString* eventId = claim.eventId;
   NSURLSessionDataTask* task = [urlSession dataTaskWithRequest:request
                                              completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
                                                BOOL ok = NO;
@@ -439,6 +478,12 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
   NSTimeInterval initialDelay = remoteConfig != nil ? remoteConfig.claimPollInitialDelay : [TeakRemoteConfiguration defaultClaimPollInitialDelay];
   NSTimeInterval ceiling = remoteConfig != nil ? remoteConfig.claimPollCeiling : [TeakRemoteConfiguration defaultClaimPollCeiling];
 
+  // Capture the dispatching session's userId once. /claims returns only the
+  // unacked claims for this user, so every entry in this batch belongs to
+  // the same clicking_user_id; subsequent /claim_status polls and
+  // /claim_ack POSTs read from this captured value.
+  NSString* clickingUserId = [session.userId copy];
+
   for (id rawEntry in claims) {
     if (![rawEntry isKindOfClass:[NSDictionary class]]) {
       TeakLog_i(@"claim_sweep.entry.skipped", @{@"reason" : @"not_a_dict"});
@@ -464,6 +509,7 @@ static NSMutableDictionary<NSString*, TeakInflightClaim*>* sInflightClaims = nil
     TeakInflightClaim* claim = [[TeakInflightClaim alloc] init];
     claim.originatingSession = session;
     claim.eventId = eventId;
+    claim.clickingUserId = clickingUserId;
     claim.attribution = attribution;
     claim.pollAttempt = 0;
     claim.initialDelay = initialDelay;

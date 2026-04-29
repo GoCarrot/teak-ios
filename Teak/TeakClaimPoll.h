@@ -63,13 +63,20 @@
 /// alone — defensive against an unusual mid-session teardown.
 ///
 /// Key convention: wire reply keys are snake_case (`event_id`, `status`,
-/// `reward`, `customer_response`, `customer_status_code`, `teak_reward_id`),
-/// attribution keys are teakCamelCase (`teakRewardId`, `teakNotifId`, etc).
-/// They never alias the same logical id at the dict-key level — both
-/// `teakRewardId` (the reward this launch was attributed to, from the URL or
-/// notification payload) and `teak_reward_id` (the reward the server
-/// authoritatively granted on this specific click) can coexist on the
-/// resolved-event userInfo and are distinct fields.
+/// `reward`, `customer_response`, `customer_status_code`,
+/// `created_at`, `completed_at`, `acked_at`); attribution keys are
+/// teakCamelCase (`teakRewardId`, `teakNotifId`, etc).
+///
+/// Two wire keys are stripped from the merge:
+///
+/// * `teak_reward_id` — the wire's authoritative-grant id. Resolved events
+///   surface only the attribution id (`teakRewardId` from launch-data),
+///   matching legacy `TeakOnReward` semantics. Host games that need the
+///   server-authoritative grant id correlate by `event_id` against
+///   `TeakOnRewardJwtIssued` / `TeakOnRewardClaimPending`.
+/// * `session_attribution` — the raw eleven-key blob is unpacked into
+///   discrete top-level attribution keys before this merge; keeping the raw
+///   blob would just duplicate the unpacked surface.
 + (NSDictionary*)buildResolvedUserInfoForReply:(NSDictionary*)reply
                                 withLaunchData:(TeakAttributedLaunchData*)launchData;
 
