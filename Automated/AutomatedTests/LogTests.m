@@ -19,6 +19,10 @@
 @implementation LogTests
 
 - (void)setUp {
+  while ([TeakRavenLocationHelper peekHelper] != nil) {
+    [TeakRavenLocationHelper popHelper];
+  }
+
   self.teakMock = mock([Teak class]);
   [given([self.teakMock enableRemoteLogging]) willReturn:@NO];
   [given([self.teakMock enableDebugOutput]) willReturn:@NO];
@@ -50,9 +54,9 @@
 
   assertThat(helper.breadcrumbs, hasCountOf(1));
   NSDictionary* breadcrumb = helper.breadcrumbs[0];
-  assertThat(breadcrumb[@"category"], is(@"INFO"));
-  assertThat(breadcrumb[@"message"], is(@"test.breadcrumb"));
+  assertThat(breadcrumb[@"category"], is(@"test.breadcrumb"));
   assertThat(breadcrumb[@"data"][@"key"], is(@"value"));
+  assertThat(breadcrumb[@"data"][@"log_level"], is(@"INFO"));
 }
 
 - (void)testLogEventOutsideTryDoesNotCrash {
@@ -64,12 +68,14 @@
   TeakRavenLocationHelper* helper = [TeakRavenLocationHelper pushHelperForFile:__FILE__ line:__LINE__ function:__PRETTY_FUNCTION__];
 
   for (int i = 0; i < 110; i++) {
-    [self.log logEvent:@"test.volume" level:@"INFO" eventData:@{}];
+    [self.log logEvent:@"test.volume" level:@"INFO" eventData:@{@"i" : @(i)}];
   }
 
   [TeakRavenLocationHelper popHelper];
 
   assertThat(helper.breadcrumbs, hasCountOf(100));
+  // Oldest-kept entry is event index 10 (events 0–9 were evicted); verifies FIFO eviction.
+  assertThat(helper.breadcrumbs[0][@"data"][@"i"], equalTo(@10));
 }
 
 @end
