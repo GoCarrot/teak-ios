@@ -217,6 +217,8 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
       NSLog(@"Teak: %@", jsonString);
     }
   }
+
+  [[TeakRavenLocationHelper peekHelper] addBreadcrumb:logLevel message:eventType data:eventData file:__FILE__ line:__LINE__];
 }
 @end
 

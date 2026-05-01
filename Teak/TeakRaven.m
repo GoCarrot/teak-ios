@@ -580,6 +580,10 @@ void TeakSignalHandler(int signal) {
   if (message != nil) [breadcrumb setValue:message forKey:@"message"];
 
   [self.breadcrumbs addObject:breadcrumb];
+
+  if ([self.breadcrumbs count] > 100) {
+    [self.breadcrumbs removeObjectAtIndex:0];
+  }
 }
 
 @end
