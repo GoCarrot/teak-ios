@@ -7,10 +7,6 @@
 @import OCHamcrest;
 @import OCMockito;
 
-@interface TeakRavenLocationHelper (LogTestAccess)
-@property (strong, nonatomic) NSMutableArray* breadcrumbs;
-@end
-
 @interface LogTests : XCTestCase
 @property (strong, nonatomic) TeakLog* log;
 @property (strong, nonatomic) Teak* teakMock;
@@ -19,6 +15,7 @@
 @implementation LogTests
 
 - (void)setUp {
+  [[TeakRavenLocationHelper sharedBreadcrumbs] removeAllObjects];
   while ([TeakRavenLocationHelper peekHelper] != nil) {
     [TeakRavenLocationHelper popHelper];
   }
@@ -45,15 +42,12 @@
   assertThat(listenerCalled, is(@YES));
 }
 
-- (void)testLogEventAddsBreadcrumbToActiveHelper {
-  TeakRavenLocationHelper* helper = [TeakRavenLocationHelper pushHelperForFile:__FILE__ line:__LINE__ function:__PRETTY_FUNCTION__];
-
+- (void)testLogEventAddsBreadcrumb {
   [self.log logEvent:@"test.breadcrumb" level:@"INFO" eventData:@{@"key" : @"value"}];
 
-  [TeakRavenLocationHelper popHelper];
-
-  assertThat(helper.breadcrumbs, hasCountOf(1));
-  NSDictionary* breadcrumb = helper.breadcrumbs[0];
+  NSMutableArray* breadcrumbs = [TeakRavenLocationHelper sharedBreadcrumbs];
+  assertThat(breadcrumbs, hasCountOf(1));
+  NSDictionary* breadcrumb = breadcrumbs[0];
   assertThat(breadcrumb[@"category"], is(@"test.breadcrumb"));
   assertThat(breadcrumb[@"data"][@"key"], is(@"value"));
   assertThat(breadcrumb[@"data"][@"log_level"], is(@"INFO"));
@@ -65,17 +59,14 @@
 }
 
 - (void)testBreadcrumbCapAt100 {
-  TeakRavenLocationHelper* helper = [TeakRavenLocationHelper pushHelperForFile:__FILE__ line:__LINE__ function:__PRETTY_FUNCTION__];
-
   for (int i = 0; i < 110; i++) {
     [self.log logEvent:@"test.volume" level:@"INFO" eventData:@{@"i" : @(i)}];
   }
 
-  [TeakRavenLocationHelper popHelper];
-
-  assertThat(helper.breadcrumbs, hasCountOf(100));
+  NSMutableArray* breadcrumbs = [TeakRavenLocationHelper sharedBreadcrumbs];
+  assertThat(breadcrumbs, hasCountOf(100));
   // Oldest-kept entry is event index 10 (events 0–9 were evicted); verifies FIFO eviction.
-  assertThat(helper.breadcrumbs[0][@"data"][@"i"], equalTo(@10));
+  assertThat(breadcrumbs[0][@"data"][@"i"], equalTo(@10));
 }
 
 @end

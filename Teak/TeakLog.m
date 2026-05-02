@@ -220,7 +220,7 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
 
   NSMutableDictionary* breadcrumbData = [NSMutableDictionary dictionaryWithDictionary:eventData == nil ? @{} : eventData];
   breadcrumbData[@"log_level"] = logLevel;
-  [[TeakRavenLocationHelper peekHelper] addBreadcrumb:eventType message:nil data:breadcrumbData file:__FILE__ line:__LINE__];
+  [TeakRavenLocationHelper addBreadcrumb:eventType message:nil data:breadcrumbData file:__FILE__ line:__LINE__];
 }
 @end
 
