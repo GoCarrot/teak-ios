@@ -13,6 +13,9 @@ extern NSString* _Nonnull const TeakRavenLevelFatal;
 + (nullable TeakRavenLocationHelper*)popHelper;
 + (nullable TeakRavenLocationHelper*)peekHelper;
 
++ (void)addBreadcrumb:(nonnull NSString*)category message:(nullable NSString*)message data:(nullable NSDictionary*)data file:(const char* _Nonnull)file line:(int)line;
++ (nonnull NSMutableArray*)sharedBreadcrumbs;
+
 - (void)addBreadcrumb:(nonnull NSString*)category message:(nullable NSString*)message data:(nullable NSDictionary*)data file:(const char* _Nonnull)file line:(int)line;
 
 @end

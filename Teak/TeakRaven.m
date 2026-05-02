@@ -23,7 +23,7 @@ extern bool AmIBeingDebugged(void);
 @property (strong, nonatomic) NSString* file;
 @property (strong, nonatomic) NSNumber* line;
 @property (strong, nonatomic) NSString* function;
-@property (strong, nonatomic) NSMutableArray* breadcrumbs;
++ (dispatch_queue_t)breadcrumbQueue;
 @end
 
 @interface TeakRaven ()
@@ -176,7 +176,11 @@ void TeakSignalHandler(int signal) {
       }
     ]
   }];
-  if (helper.breadcrumbs != nil) additions[@"breadcrumbs"] = helper.breadcrumbs;
+  __block NSArray* breadcrumbSnapshot = nil;
+  dispatch_sync([TeakRavenLocationHelper breadcrumbQueue], ^{
+    breadcrumbSnapshot = [[TeakRavenLocationHelper sharedBreadcrumbs] copy];
+  });
+  if (breadcrumbSnapshot.count > 0) additions[@"breadcrumbs"] = breadcrumbSnapshot;
 
   TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
                                                             level:TeakRavenLevelError
@@ -562,9 +566,25 @@ void TeakSignalHandler(int signal) {
   return self;
 }
 
-- (void)addBreadcrumb:(nonnull NSString*)category message:(NSString*)message data:(NSDictionary*)data file:(const char*)file line:(int)line {
-  if (self.breadcrumbs == nil) self.breadcrumbs = [[NSMutableArray alloc] init];
++ (dispatch_queue_t)breadcrumbQueue {
+  static dispatch_queue_t queue;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    queue = dispatch_queue_create("io.teak.breadcrumbs", DISPATCH_QUEUE_SERIAL);
+  });
+  return queue;
+}
 
++ (NSMutableArray*)sharedBreadcrumbs {
+  static NSMutableArray* breadcrumbs;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    breadcrumbs = [[NSMutableArray alloc] init];
+  });
+  return breadcrumbs;
+}
+
++ (void)addBreadcrumb:(nonnull NSString*)category message:(NSString*)message data:(NSDictionary*)data file:(const char*)file line:(int)line {
   NSMutableDictionary* fullData = [NSMutableDictionary dictionaryWithDictionary:@{
     @"file" : [NSString stringWithUTF8String:(strrchr(file, '/') ?: file - 1) + 1],
     @"line" : [NSNumber numberWithInt:line]
@@ -576,10 +596,20 @@ void TeakSignalHandler(int signal) {
     @"category" : category == nil ? @"unknown" : category,
     @"data" : fullData
   }];
-
   if (message != nil) [breadcrumb setValue:message forKey:@"message"];
 
-  [self.breadcrumbs addObject:breadcrumb];
+  dispatch_sync([TeakRavenLocationHelper breadcrumbQueue], ^{
+    static const NSUInteger kTeakBreadcrumbCapacity = 100;
+    NSMutableArray* breadcrumbs = [TeakRavenLocationHelper sharedBreadcrumbs];
+    [breadcrumbs addObject:breadcrumb];
+    if ([breadcrumbs count] > kTeakBreadcrumbCapacity) {
+      [breadcrumbs removeObjectAtIndex:0];
+    }
+  });
+}
+
+- (void)addBreadcrumb:(nonnull NSString*)category message:(NSString*)message data:(NSDictionary*)data file:(const char*)file line:(int)line {
+  [TeakRavenLocationHelper addBreadcrumb:category message:message data:data file:file line:line];
 }
 
 @end
