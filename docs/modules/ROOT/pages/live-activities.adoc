@@ -1,8 +1,20 @@
 = Live Activities
 
-Teak can schedule server-driven updates to iOS Live Activities your app starts itself, and attribute taps on those activities back to the Teak campaign that drove them.
+Teak can schedule server-driven updates to iOS link:https://developer.apple.com/design/human-interface-guidelines/live-activities[Live Activities, window=_blank] your app starts itself, and attribute taps on those activities back to the Teak campaign that drove them.
 
-NOTE: 4.3.12 drives updates for Live Activities your app develops and starts itself. Starting an activity from a push-to-start payload will come in a later release.
+NOTE: Live Activity updates require Teak SDK 4.3.12 or newer and iOS 16.2 or newer on the device; gate ActivityKit calls with ``if #available(iOS 16.2, *)``.
+
+NOTE: Teak drives updates for Live Activities your app develops and starts itself. Starting an activity from a push-to-start payload will come in a later release.
+
+== What are Live Activities?
+
+A Live Activity is a small, live-updating view iOS shows outside your app, on the Lock Screen and in the Dynamic Island, while an event is happening. It shows a few values that change over a set period and then ends. See link:https://developer.apple.com/documentation/activitykit[Apple's ActivityKit documentation, window=_blank] for the presentation contexts, sizes, and lifecycle.
+
+Live Activities fit a single ongoing event with a real beginning and end, ideally one the player is actively taking part in rather than just something happening in the background. Think a tournament they've entered, a chest or energy timer they triggered, a limited-time event they've joined, or a boost they activated.
+
+Apple's guidelines say to avoid ads and promotions in a Live Activity, and link:https://developer.apple.com/app-store/review/guidelines/[App Store Review Guideline 4.5.3, window=_blank] bars using them to spam or send unsolicited messages. Treat them as genuine status, not a promotional channel, broad re-engagement tool, or permanent dashboard.
+
+TIP: Read link:https://developer.apple.com/design/human-interface-guidelines/live-activities[Apple's Human Interface Guidelines for Live Activities, window=_blank] and design your Live Activity within Apple's rules before you build it. This page covers the Teak integration once it fits those rules.
 
 == What Teak needs from you
 
@@ -12,7 +24,7 @@ Three token/id handoffs, all from the Live Activity APIs Apple already gives you
 * **Push-to-update token** — one per *instance*, issued when the activity starts. Observe ``activity.pushTokenUpdates`` for each activity you start and forward every value.
 * **System activity id** — ``activity.id``, the per-instance identifier iOS assigns. Pass it alongside the push-to-update token so Teak can attribute taps.
 
-You also choose a stable ``activityId`` string (for example, ``"chest_timer"``) that Teak uses as the schedule key for that activity. It must be unique *per concurrent instance* — if a player can have three chest timers running at once, give them distinct ids like ``"chest_timer_0"``, ``"chest_timer_1"``, ``"chest_timer_2"``. Reusing the same ``activityId`` across two live instances will collide on the server side.
+You also choose a stable ``activityId`` string (for example, ``"chest_timer"``) that Teak uses as the schedule key for that activity. It must be unique *per concurrent instance* — if a player can have three chest timers running at once, give them distinct ids like ``"chest_timer_0"``, ``"chest_timer_1"``, ``"chest_timer_2"``. Reusing the same ``activityId`` across two live instances will collide on the server side. Each instance has its own push token, and Teak keys both scheduling and cancellation off your ``activityId``, so distinct ids are what let it target and cancel the right instance when several run at once.
 
 == Register tokens
 
@@ -42,6 +54,8 @@ Both loops should run for the lifetime they describe — tokens rotate, and Teak
 
 == Schedule an update
 
+TIP: You don't need a scheduled update for every tick of a countdown. Render elapsing time with ``Text(timerInterval:)`` and ``ProgressView(timerInterval:)``, which update on-device with no push, and reserve Teak-scheduled updates for genuine data changes such as a status flip, a new rank, or "reward ready." See link:https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities[Displaying live data with Live Activities, window=_blank].
+
 .Deliver a content-state update 60s from now
 [source,swift]
 ----
@@ -53,7 +67,15 @@ Teak.scheduleLiveActivityUpdate("chest_timer",
 
 * ``offset`` is seconds from server-now. The server resolves the absolute delivery time, so device clock skew doesn't matter.
 * ``customData`` becomes the APNs ``content-state``. Values must be JSON-serializable; pre-encode any dates per Apple's content-state conventions.
-* ``systemData`` is optional and carries Apple system fields (``event``, ``stale-date``, ``dismissal-date``).
+* ``systemData`` is optional and carries Apple system fields (``event``, ``stale-date``, ``dismissal-date``). Use these to drive the activity's lifecycle: ``stale-date`` marks when the content should be treated as outdated (the activity's state flips to stale and the system flags it, so your view can refresh), and ``dismissal-date`` schedules its removal. A Live Activity is meant to represent a task with a real end, so set them on the update that finishes the mechanic.
+
+TIP: Keep the payload lean. Apple caps the entire push at 4 KB (the ``content-state`` plus the rest of the JSON), so send only the values your UI renders, not general game state. The activity's view also has no network access, so bundle the images it shows or share them through an link:https://developer.apple.com/documentation/xcode/configuring-app-groups[App Group, window=_blank] rather than passing URLs.
+
+=== Rate limits on updates
+
+Apple budgets high-priority Live Activity updates based on device conditions and throttles or drops them once that budget is spent; the budget only replenishes over time. Low-priority updates aren't count-capped but may be delayed. Apple doesn't publish a fixed rate, so schedule meaningful changes rather than a constant stream.
+
+If a mechanic genuinely needs frequent updates, set the ``NSSupportsLiveActivitiesFrequentUpdates`` Info.plist key in your app; it raises the budget but doesn't guarantee delivery. These are Apple's limits and can change. See link:https://developer.apple.com/documentation/activitykit/starting-and-updating-live-activities-with-activitykit-push-notifications[Apple's push-update guidance, window=_blank].
 
 == Cancel pending updates
 
