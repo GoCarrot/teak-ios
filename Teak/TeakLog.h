@@ -7,6 +7,8 @@
 @class Teak;
 
 @interface TeakLog : NSObject
+@property (readonly, strong, nonatomic) NSString* _Nonnull runId;
+
 - (void)useSdk:(nonnull NSDictionary*)sdkVersion andXcode:(nonnull NSDictionary*)xcodeVersion;
 - (void)useDeviceConfiguration:(nonnull TeakDeviceConfiguration*)deviceConfiguration;
 - (void)useAppConfiguration:(nonnull TeakAppConfiguration*)appConfiguration;

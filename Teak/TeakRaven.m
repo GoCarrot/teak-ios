@@ -258,7 +258,7 @@ void TeakSignalHandler(int signal) {
         @"logger" : @"teak",
         @"platform" : @"objc",
         @"release" : teak.sdkVersion,
-        @"tags" : @{},
+        @"tags" : @{@"run_id" : teak.log.runId},
         @"sdk" : @{
           @"name" : @"teak",
           @"version" : TeakSentryVersion
