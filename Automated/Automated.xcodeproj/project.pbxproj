@@ -34,6 +34,7 @@
 		55AAEB0EF3B9E90616642C8E /* LiveActivityUpdateSchedulingTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 741732706353CEBB41D0AE37 /* LiveActivityUpdateSchedulingTests.m */; };
 		67ED924AB1318D0336E94BE6 /* TeakAttributedLaunchDataEnrichmentTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 864427BAEA58D0DAC8B50E43 /* TeakAttributedLaunchDataEnrichmentTests.m */; };
 		6CCAAEB7E63F06EEC9B8512E /* RemoteConfigurationEventTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */; };
+		6D15A01FD0A680A1CD603491 /* TeakRavenTests.m in Sources */ = {isa = PBXBuildFile; fileRef = C1ECFF9E3A6CB54927A8A327 /* TeakRavenTests.m */; };
 		6D792A77134D055F66346BC3 /* PushToStartTokenRegistrationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 98067217DB9FF5953786EA99 /* PushToStartTokenRegistrationTests.m */; };
 		7FEB52BB31B7C9926174546D /* NotificationSettingsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 7520CCFA85F3D201187FC76C /* NotificationSettingsTests.m */; };
 		97323CF5B3B2B4A49C9C8B78 /* UserDataEventTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6A2BD9B7EEAF70309185B446 /* UserDataEventTests.m */; };
@@ -140,6 +141,7 @@
 		98067217DB9FF5953786EA99 /* PushToStartTokenRegistrationTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = PushToStartTokenRegistrationTests.m; sourceTree = "<group>"; };
 		9F86877CA9B4C0AA27811874 /* RemoteConfigurationEventTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = RemoteConfigurationEventTests.m; sourceTree = "<group>"; };
 		AB391C763C6BB4A6052F1D21 /* LiveActivityTokenForwardingTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = LiveActivityTokenForwardingTests.m; sourceTree = "<group>"; };
+		C1ECFF9E3A6CB54927A8A327 /* TeakRavenTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakRavenTests.m; sourceTree = "<group>"; };
 		C9598B14D3B84355AFA2A5E3 /* Pods_AutomatedTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AutomatedTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E3C947C03B892266BFC39FBA /* LiveActivityUpdateCancellationTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = LiveActivityUpdateCancellationTests.m; sourceTree = "<group>"; };
 		EB6801CB2EE90121E8092CE8 /* libPods-Automated.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Automated.a"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -261,6 +263,7 @@
 				068757CAA89B4CEADFCD522C /* TeakRequestResponseParsingTests.m */,
 				F6BD644662C93410AC229F7F /* TeakRequestClientErrorTests.m */,
 				EBC630E46232B6C929C398A1 /* TeakCExternLiveActivityTests.m */,
+				C1ECFF9E3A6CB54927A8A327 /* TeakRavenTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -591,6 +594,7 @@
 				AB45EA094468C6D3E9E23B3E /* TeakRequestResponseParsingTests.m in Sources */,
 				20DF1A9F71CE2989A71C1277 /* TeakRequestClientErrorTests.m in Sources */,
 				01E4848D5111513C772D7A82 /* TeakCExternLiveActivityTests.m in Sources */,
+				6D15A01FD0A680A1CD603491 /* TeakRavenTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
