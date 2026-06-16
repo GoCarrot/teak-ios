@@ -20,5 +20,7 @@
 - (IBAction)makePurchase;
 - (IBAction)scheduleNotification:(id)sender;
 - (IBAction)crashApp;
+- (IBAction)deferredDeepLinkOpenURL;
+- (IBAction)deferredDeepLinkContinueUserActivity;
 
 @end

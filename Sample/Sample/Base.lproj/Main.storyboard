@@ -45,6 +45,22 @@
                                     <action selector="crashApp" destination="BYZ-38-t0r" eventType="touchDown" id="hgM-4Y-hiy"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="c74-A1-001">
+                                <rect key="frame" x="175" y="332" width="250" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="DDL: openURL"/>
+                                <connections>
+                                    <action selector="deferredDeepLinkOpenURL" destination="BYZ-38-t0r" eventType="touchDown" id="c74-A1-A01"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="c74-B1-001">
+                                <rect key="frame" x="175" y="370" width="250" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="DDL: continueUserActivity"/>
+                                <connections>
+                                    <action selector="deferredDeepLinkContinueUserActivity" destination="BYZ-38-t0r" eventType="touchDown" id="c74-B1-A01"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                     </view>
