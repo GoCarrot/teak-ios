@@ -1181,14 +1181,17 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
   }
 }
 
+- (void)handleLaunchData:(TeakLaunchDataOperation*)launchData {
+  if (launchData != nil) {
+    [TeakSession didLaunchWithData:launchData];
+  }
+}
+
 - (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler {
   TeakUnused(application);
   TeakUnused(restorationHandler);
 
-  TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromUserActivity:userActivity];
-  if (launchData != nil) {
-    [TeakSession didLaunchWithData:launchData];
-  }
+  [self handleLaunchData:[TeakLaunchDataOperation fromUserActivity:userActivity]];
 
   return YES;
 }
@@ -1196,19 +1199,10 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
 - (void)processDeferredDeepLink:(NSURL*)url {
   if (url == nil) return;
 
-  // Reuse the continueUserActivity: path by manufacturing the same NSUserActivity
-  // the OS would hand us for a universal link tap (see TeakSceneHooks.m).
-  NSUserActivity* userActivity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
-  userActivity.webpageURL = url;
-
-  // Pass nil for application: the receiver ignores it (TeakUnused, above), and
-  // nil avoids touching [UIApplication sharedApplication] off the main thread —
-  // attribution-SDK callbacks (e.g. Singular) may not run on main. Do NOT
-  // "fix" this back to sharedApplication; that silently reintroduces main-affinity.
-  [self application:nil
-      continueUserActivity:userActivity
-        restorationHandler:^(NSArray* _Nullable restorables){
-        }];
+  // Resolve the universal link straight from the URL, the same way
+  // continueUserActivity: resolves a browsing-web activity. Both funnel through
+  // handleLaunchData:.
+  [self handleLaunchData:[TeakLaunchDataOperation fromUniversalLink:url]];
 }
 
 @end
