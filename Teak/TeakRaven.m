@@ -254,6 +254,8 @@ void TeakSignalHandler(int signal) {
 
       self.isSdkRaven = YES;
       self.appId = @"sdk";
+      // teak.log must be initialized before this point (Teak.m:644 precedes :678);
+      // nil log causes @{run_id:nil} to throw → raven init fails → crash reporting silently off.
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary:@{
         @"logger" : @"teak",
         @"platform" : @"objc",

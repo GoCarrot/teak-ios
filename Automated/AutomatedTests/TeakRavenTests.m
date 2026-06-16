@@ -50,7 +50,6 @@
   self.teakMock = mock([Teak class]);
   [given([self.teakMock sdkVersion]) willReturn:@"4.3.13-test"];
   [given([self.teakMock configuration]) willReturn:config];
-  [given([self.teakMock enableRemoteLogging]) willReturn:@NO];
 
   self.log = [[TeakLog alloc] initForTeak:self.teakMock withAppId:@"test"];
   [given([self.teakMock log]) willReturn:self.log];
