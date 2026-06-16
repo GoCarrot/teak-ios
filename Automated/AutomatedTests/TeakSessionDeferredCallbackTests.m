@@ -27,18 +27,20 @@ extern TeakSession* currentSession;
   [super tearDown];
 }
 
-// C-615: the deferred callback must run with the session that was current when
-// it was *enqueued*, not whatever currentSession points at when the async block
-// finally fires. Before the fix the block re-read the currentSession global
-// after the @synchronized(currentSessionMutex) lock had been released, racing
-// with reassignment — an unsynchronized objc_retain of the strong global that
-// over-released the session and crashed a later access.
+// Enforces the capture invariant for the deferred callbacks
+// (whenUserIdIsReadyRun: / whenUserIdIsOrWasReadyRun:): the callback must run
+// with the session that was current when it was *enqueued*, not whatever
+// currentSession points at when the async block later fires. The session has to
+// be captured under @synchronized(currentSessionMutex); reading the
+// currentSession global from inside the async block reads it after the lock is
+// released, racing an unsynchronized retain of the strong global against
+// reassignment (C-615).
 //
-// This loops because it documents capture semantics rather than reproducing the
-// data race: the fixed code passes deterministically every iteration, while the
-// old re-read-the-global pattern almost always loses the race against the swap
-// below and is caught well within the iteration count. A true crash repro needs
-// ThreadSanitizer, which this project's schemes don't enable.
+// The loop documents the invariant rather than reproducing the race: a
+// capturing implementation passes deterministically, while one that re-reads
+// the global fails because the swap below almost always wins the race against
+// the async wakeup. A true race repro needs ThreadSanitizer, which this
+// project's schemes don't enable.
 - (void)assertDeferredCaptureConfiguring:(void (^)(TeakSession*))configureSession
                                  enqueue:(void (^)(UserIdReadyBlock))enqueue {
   for (NSUInteger i = 0; i < 256; i++) {
@@ -55,9 +57,9 @@ extern TeakSession* currentSession;
       [ran fulfill];
     });
 
-    // Swap the global out from under the just-enqueued callback. The fixed code
-    // captured `enqueued` under the lock; the buggy code re-reads the global
-    // here and hands the callback `replacement` instead.
+    // Swap the global out from under the just-enqueued callback. A callback that
+    // captured the session under the lock still sees `enqueued`; one that
+    // re-reads the global here would see `replacement` instead.
     currentSession = replacement;
 
     [self waitForExpectations:@[ ran ] timeout:2.0];
