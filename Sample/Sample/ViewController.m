@@ -99,6 +99,26 @@ extern void TeakAddOperationToQueue(NSOperation* op);
   }
 }
 
+// Handing an unresolved Teak universal link to UIApplication openURL: does NOT
+// re-enter the app — iOS routes the https URL to Safari. Shown here as the
+// counter-example to the helper below.
+- (IBAction)deferredDeepLinkOpenURL {
+  NSURL* url = [NSURL URLWithString:@"https://teak-dev2.freechips.link/1bafc0c4f1"];
+  NSLog(@"deferredDeepLinkOpenURL: %@", url);
+  [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:^(BOOL success) {
+    NSLog(@"deferredDeepLinkOpenURL completion success=%d", success);
+  }];
+}
+
+// When an attribution SDK (e.g. Singular) hands you an unresolved Teak universal
+// link after launch, processDeferredDeepLink: resolves it as if the user had
+// tapped it: it starts a session, claims any reward, and routes the deep link.
+- (IBAction)deferredDeepLinkProcessHelper {
+  NSURL* url = [NSURL URLWithString:@"https://teak-dev2.freechips.link/1bafc0c4f1"];
+  NSLog(@"deferredDeepLinkProcessHelper: %@", url);
+  [[Teak sharedInstance] processDeferredDeepLink:url];
+}
+
 - (IBAction)scheduleNotification:(id)sender {
     NSDictionary* personalizationData = @{
         @"test_data":@"hello there",

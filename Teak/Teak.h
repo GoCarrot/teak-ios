@@ -529,6 +529,22 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (BOOL)handleDeepLinkPath:(nonnull NSString*)path;
 
 /**
+ * Process a deferred deep link.
+ *
+ * Call this when an upstream attribution SDK (e.g. Singular) hands your app an
+ * unresolved Teak universal link *after* launch, instead of the operating system
+ * delivering it via @c continueUserActivity:. Teak resolves the link exactly as
+ * if the user had tapped it: it starts a session, claims any attached reward, and
+ * routes any configured deep link. Your @c TeakOnReward and @c TeakLaunchedFromLink
+ * observers, and any registered @c TeakLink routes, fire as normal.
+ *
+ * @note Safe to call from any thread; a nil @c url is a no-op.
+ *
+ * @param url The unresolved Teak universal link, as handed to you by the attribution SDK.
+ */
+- (void)processDeferredDeepLink:(nonnull NSURL*)url;
+
+/**
  * Returns true if the notification was sent by Teak.
  */
 + (BOOL)isTeakNotification:(nonnull UNNotification*)notification;

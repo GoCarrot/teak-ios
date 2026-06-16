@@ -32,6 +32,16 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
 
 @end
 
+// Walk to the deepest presented controller so a second alert can stack on top
+// of the first instead of getting dropped with "already presenting".
+static UIViewController* SampleTopViewController(void) {
+  UIViewController* vc = [[[UIApplication sharedApplication] keyWindow] rootViewController];
+  while (vc.presentedViewController) {
+    vc = vc.presentedViewController;
+  }
+  return vc;
+}
+
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
@@ -51,6 +61,13 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
               description:@"Echo to log"
                     block:^(NSDictionary* _Nonnull parameters) {
                       NSLog(@"%@", parameters);
+                      dispatch_async(dispatch_get_main_queue(), ^{
+                        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Deep Link: /slots/:slot"
+                                                                                       message:[NSString stringWithFormat:@"slot = %@", parameters[@"slot"]]
+                                                                                preferredStyle:UIAlertControllerStyleAlert];
+                        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+                        [SampleTopViewController() presentViewController:alert animated:YES completion:nil];
+                      });
                     }];
 
   // Register a deep link that opens the store to the specific SKU
@@ -139,22 +156,27 @@ extern BOOL TeakRequestPushAuthorization(BOOL includeProvisional);
   NSDictionary* userInfo = notification.userInfo;
   NSLog(@"handleTeakReward: %@", userInfo);
 #ifdef SAMPLE_ALERT_ON_REWARD
+  NSString* status = userInfo[@"status"];
   NSDictionary* reward = userInfo[@"reward"];
-  if (reward) {
-    dispatch_async(dispatch_get_main_queue(), ^{
-      NSNumber* coins = reward[@"coins"];
-      UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Sweet Coins!"
-                                                                     message:[NSString stringWithFormat:@"You just got %@ coins!", coins]
-                                                              preferredStyle:UIAlertControllerStyleAlert];
-
-      UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"Awesome"
-                                                              style:UIAlertActionStyleDefault
-                                                            handler:^(UIAlertAction* action){}];
-
-      [alert addAction:defaultAction];
-      [[[[UIApplication sharedApplication] keyWindow] rootViewController] presentViewController:alert animated:YES completion:nil];
-    });
+  NSString* title;
+  NSString* message;
+  if ([status isEqualToString:@"grant_reward"] && reward) {
+    title = @"Sweet Coins!";
+    message = [NSString stringWithFormat:@"You just got %@ coins!", reward[@"coins"]];
+  } else if ([status isEqualToString:@"already_clicked"]) {
+    title = @"Reward already claimed";
+    message = @"This reward has already been issued to this user.";
+  } else {
+    title = @"Reward";
+    message = [NSString stringWithFormat:@"status = %@", status ?: @"(nil)"];
   }
+  dispatch_async(dispatch_get_main_queue(), ^{
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
+                                                                   message:message
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [SampleTopViewController() presentViewController:alert animated:YES completion:nil];
+  });
 #endif
 }
 
