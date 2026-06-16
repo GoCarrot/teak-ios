@@ -33,6 +33,11 @@ extern NSString* _Nonnull const TeakRavenLevelFatal;
 
 + (nonnull NSArray*)stacktraceSkippingFrames:(int)skipFrames;
 + (nonnull NSArray*)reverseStacktraceSkippingFrames:(int)skipFrames;
+
+// event_data for the observable "exception" TeakLog event, keyed to match
+// Android's throwableToMap: type ← NSException.name, value ← NSException.reason.
+// nil-safe — a nil name or reason is omitted rather than crashing.
++ (nonnull NSDictionary*)exceptionLogEventDataForException:(nonnull NSException*)exception;
 @end
 
 #define teak_try                                                                                   \
