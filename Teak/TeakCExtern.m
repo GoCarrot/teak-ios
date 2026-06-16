@@ -279,10 +279,14 @@ static NSDictionary* TeakParseJSONDictionaryOrNil(const char* jsonCStr) {
   return parsed;
 }
 
+static NSData* TeakDataFromBytesOrNil(const void* bytes, int length) {
+  return (bytes == NULL || length <= 0) ? nil : [NSData dataWithBytes:bytes length:length];
+}
+
 TeakOperation* TeakStartedLiveActivity(const char* activityId, const void* pushTokenBytes, int pushTokenLength, const char* systemActivityId) {
   NSString* activityIdString = activityId == NULL ? nil : [NSString stringWithUTF8String:activityId];
   NSString* systemActivityIdString = systemActivityId == NULL ? nil : [NSString stringWithUTF8String:systemActivityId];
-  NSData* tokenData = (pushTokenBytes == NULL || pushTokenLength <= 0) ? nil : [NSData dataWithBytes:pushTokenBytes length:pushTokenLength];
+  NSData* tokenData = TeakDataFromBytesOrNil(pushTokenBytes, pushTokenLength);
   return [Teak startedLiveActivity:activityIdString withToken:tokenData systemActivityId:systemActivityIdString];
 }
 
@@ -299,6 +303,10 @@ TeakOperation* TeakScheduleLiveActivityUpdate(const char* activityId, int64_t of
 TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId) {
   NSString* activityIdString = activityId == NULL ? nil : [NSString stringWithUTF8String:activityId];
   return [Teak cancelLiveActivityUpdates:activityIdString];
+}
+
+void TeakRegisterPushToStartToken(const void* pushTokenBytes, int pushTokenLength) {
+  [Teak registerPushToStartToken:TeakDataFromBytesOrNil(pushTokenBytes, pushTokenLength)];
 }
 
 TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channelCstr) {
