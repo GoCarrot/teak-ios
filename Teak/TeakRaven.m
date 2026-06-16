@@ -254,11 +254,16 @@ void TeakSignalHandler(int signal) {
 
       self.isSdkRaven = YES;
       self.appId = @"sdk";
+      NSMutableDictionary* tags = [NSMutableDictionary dictionary];
+      NSString* runId = teak.log.runId;
+      if (runId != nil) {
+        tags[@"run_id"] = runId;
+      }
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary:@{
         @"logger" : @"teak",
         @"platform" : @"objc",
         @"release" : teak.sdkVersion,
-        @"tags" : @{},
+        @"tags" : tags,
         @"sdk" : @{
           @"name" : @"teak",
           @"version" : TeakSentryVersion
