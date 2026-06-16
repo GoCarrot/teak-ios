@@ -210,8 +210,6 @@ void TeakSignalHandler(int signal) {
 - (void)reportUncaughtException:(nonnull NSException*)exception {
   [self unsetAsUncaughtExceptionHandler];
 
-  TeakLog_e(@"exception", [TeakRaven exceptionLogEventDataForException:exception]);
-
   NSDictionary* additions = @{
     @"exception" : @[
       @{
