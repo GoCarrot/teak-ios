@@ -99,23 +99,23 @@ extern void TeakAddOperationToQueue(NSOperation* op);
   }
 }
 
-// Singular hands an unresolved Teak universal link to the app post-launch and we
-// need it to start a session, claim the reward, and route the deep link. C-744
-// test path A: hand the URL to UIApplication openURL:.
+// Handing an unresolved Teak universal link to UIApplication openURL: does NOT
+// re-enter the app — iOS routes the https URL to Safari. Shown here as the
+// counter-example to the helper below.
 - (IBAction)deferredDeepLinkOpenURL {
   NSURL* url = [NSURL URLWithString:@"https://teak-dev2.freechips.link/1bafc0c4f1"];
-  NSLog(@"C-744 path A openURL: %@", url);
+  NSLog(@"deferredDeepLinkOpenURL: %@", url);
   [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:^(BOOL success) {
-    NSLog(@"C-744 path A openURL completion success=%d", success);
+    NSLog(@"deferredDeepLinkOpenURL completion success=%d", success);
   }];
 }
 
-// C-744 test path B: the public helper. This is what a customer calls when an
-// attribution SDK (e.g. Singular) hands them an unresolved universal link after
-// launch — no bridging-header forward decl, no NSUserActivity knowledge needed.
+// When an attribution SDK (e.g. Singular) hands you an unresolved Teak universal
+// link after launch, processDeferredDeepLink: resolves it as if the user had
+// tapped it: it starts a session, claims any reward, and routes the deep link.
 - (IBAction)deferredDeepLinkProcessHelper {
   NSURL* url = [NSURL URLWithString:@"https://teak-dev2.freechips.link/1bafc0c4f1"];
-  NSLog(@"C-744 path B processDeferredDeepLink: %@", url);
+  NSLog(@"deferredDeepLinkProcessHelper: %@", url);
   [[Teak sharedInstance] processDeferredDeepLink:url];
 }
 
