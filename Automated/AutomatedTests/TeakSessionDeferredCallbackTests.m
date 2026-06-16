@@ -12,6 +12,11 @@
 // standing up a real session (which performs network I/O at init).
 extern TeakSession* currentSession;
 
+// previousState is internal; re-expose it so the OrWas Expiring gate can be stubbed.
+@interface TeakSession (Testing)
+@property (strong, nonatomic) TeakState* previousState;
+@end
+
 @interface TeakSessionDeferredCallbackTests : XCTestCase
 @end
 
@@ -34,10 +39,11 @@ extern TeakSession* currentSession;
 // old re-read-the-global pattern almost always loses the race against the swap
 // below and is caught well within the iteration count. A true crash repro needs
 // ThreadSanitizer, which this project's schemes don't enable.
-- (void)assertDeferredCaptureFor:(void (^)(UserIdReadyBlock))enqueue {
+- (void)assertDeferredCaptureConfiguring:(void (^)(TeakSession*))configureSession
+                                 enqueue:(void (^)(UserIdReadyBlock))enqueue {
   for (NSUInteger i = 0; i < 256; i++) {
     TeakSession* enqueued = mock([TeakSession class]);
-    [given([enqueued currentState]) willReturn:[TeakSession UserIdentified]];
+    configureSession(enqueued);
     TeakSession* replacement = mock([TeakSession class]);
 
     currentSession = enqueued;
@@ -62,15 +68,33 @@ extern TeakSession* currentSession;
 }
 
 - (void)testWhenUserIdIsReadyRunCapturesSessionAtEnqueue {
-  [self assertDeferredCaptureFor:^(UserIdReadyBlock block) {
-    [TeakSession whenUserIdIsReadyRun:block];
-  }];
+  [self assertDeferredCaptureConfiguring:^(TeakSession* session) {
+    [given([session currentState]) willReturn:[TeakSession UserIdentified]];
+  }
+      enqueue:^(UserIdReadyBlock block) {
+        [TeakSession whenUserIdIsReadyRun:block];
+      }];
 }
 
 - (void)testWhenUserIdIsOrWasReadyRunCapturesSessionAtEnqueue {
-  [self assertDeferredCaptureFor:^(UserIdReadyBlock block) {
-    [TeakSession whenUserIdIsOrWasReadyRun:block];
-  }];
+  [self assertDeferredCaptureConfiguring:^(TeakSession* session) {
+    [given([session currentState]) willReturn:[TeakSession UserIdentified]];
+  }
+      enqueue:^(UserIdReadyBlock block) {
+        [TeakSession whenUserIdIsOrWasReadyRun:block];
+      }];
+}
+
+// Exercises whenUserIdIsOrWasReadyRun:'s own gate — Expiring with a previous
+// UserIdentified state — which the UserIdentified cases above don't reach.
+- (void)testWhenUserIdIsOrWasReadyRunCapturesSessionWhileExpiring {
+  [self assertDeferredCaptureConfiguring:^(TeakSession* session) {
+    [given([session currentState]) willReturn:[TeakSession Expiring]];
+    [given([session previousState]) willReturn:[TeakSession UserIdentified]];
+  }
+      enqueue:^(UserIdReadyBlock block) {
+        [TeakSession whenUserIdIsOrWasReadyRun:block];
+      }];
 }
 
 @end
