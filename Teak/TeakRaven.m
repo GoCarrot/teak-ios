@@ -182,6 +182,11 @@ void TeakSignalHandler(int signal) {
   });
   if (breadcrumbSnapshot.count > 0) additions[@"breadcrumbs"] = breadcrumbSnapshot;
 
+  // Surface an observable "exception" log event (Unity OnLogEvent, remote TeakLog
+  // consumers) on parity with Android's log.exception(). Built from a fresh dict so
+  // the Sentry report payload is untouched.
+  TeakLog_e(@"exception", [TeakRaven exceptionLogEventDataForException:helper.exception]);
+
   TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:self
                                                             level:TeakRavenLevelError
                                                           message:[NSString stringWithFormat:@"%@: %@", helper.exception.name, helper.exception.reason]
@@ -412,6 +417,13 @@ void TeakSignalHandler(int signal) {
   return stacktrace;
 }
 
++ (NSDictionary*)exceptionLogEventDataForException:(NSException*)exception {
+  NSMutableDictionary* eventData = [NSMutableDictionary dictionary];
+  [eventData setValue:exception.name forKey:@"type"];
+  [eventData setValue:exception.reason forKey:@"value"];
+  return eventData;
+}
+
 + (NSArray*)reverseStacktraceSkippingFrames:(int)skipFrames {
   void* callstack[128];
   int frames = backtrace(callstack, 128);
@@ -484,10 +496,6 @@ void TeakSignalHandler(int signal) {
 }
 
 - (void)send {
-  if ([Teak sharedInstance].log != nil) {
-    TeakLog_e(@"exception", self.payload);
-  }
-
   if (self.raven.endpoint == nil) return;
 
   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:self.raven.endpoint];
