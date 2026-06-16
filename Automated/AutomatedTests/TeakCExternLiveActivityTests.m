@@ -1,10 +1,17 @@
 #import <XCTest/XCTest.h>
 
+#import "PushRegistrationEvent.h"
+#import "TeakEvent.h"
 #import "TeakOperationTestDriver.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
+
+// Expose the internal serial event processing queue so tests can flush pending events.
+@interface TeakEvent (PushToStartTesting)
++ (dispatch_queue_t)eventProcessingQueue;
+@end
 
 // Forward declarations for the TeakCExtern Live Activity wrappers. They are
 // defined in TeakCExtern.m (compiled into Teak.framework) and consumed from
@@ -18,6 +25,7 @@ extern TeakOperation* TeakScheduleLiveActivityUpdate(const char* activityId,
                                                     const char* customDataJson,
                                                     const char* systemDataJson);
 extern TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId);
+extern void TeakRegisterPushToStartToken(const void* pushTokenBytes, int pushTokenLength);
 
 @interface TeakCExternLiveActivityTests : XCTestCase
 @property (nonatomic) TeakOperationTestDriver* driver;
@@ -180,6 +188,63 @@ extern TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId);
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
   XCTAssertNotNil(result.errors[@"activityId"]);
+}
+
+@end
+
+#pragma mark - TeakCExternPushToStartTokenTests
+
+@interface TeakCExternPushToStartTokenTests : XCTestCase
+@property (strong, nonatomic) NSMutableArray<PushRegistrationEvent*>* capturedEvents;
+@property (strong, nonatomic) TeakEventBlockHandler* handler;
+@end
+
+@implementation TeakCExternPushToStartTokenTests
+
+- (void)setUp {
+  self.capturedEvents = [[NSMutableArray alloc] init];
+  NSMutableArray* events = self.capturedEvents;
+  self.handler = [TeakEventBlockHandler handlerWithBlock:^(TeakEvent* event) {
+    if (event.type == LiveActivityPushToStartRegistered) {
+      @synchronized(events) {
+        [events addObject:(PushRegistrationEvent*)event];
+      }
+    }
+  }];
+  [TeakEvent addEventHandler:self.handler];
+}
+
+- (void)tearDown {
+  [TeakEvent removeEventHandler:self.handler];
+  self.handler = nil;
+  self.capturedEvents = nil;
+}
+
+- (NSArray<PushRegistrationEvent*>*)drainCapturedEvents {
+  dispatch_sync([TeakEvent eventProcessingQueue], ^{});
+  @synchronized(self.capturedEvents) {
+    return [self.capturedEvents copy];
+  }
+}
+
+- (void)testRegisterPushToStartToken_ValidBytesPostEventWithHexToken {
+  unsigned char bytes[] = {0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0x01, 0x23};
+  TeakRegisterPushToStartToken(bytes, (int)sizeof(bytes));
+
+  NSArray<PushRegistrationEvent*>* events = [self drainCapturedEvents];
+  assertThat(events, hasCountOf(1));
+  assertThat(events[0].token, is(@"deadbeefcafe0123"));
+}
+
+- (void)testRegisterPushToStartToken_NullBytesDoesNotPostEvent {
+  TeakRegisterPushToStartToken(NULL, 0);
+  assertThat([self drainCapturedEvents], hasCountOf(0));
+}
+
+- (void)testRegisterPushToStartToken_ZeroLengthDoesNotPostEvent {
+  unsigned char bytes[] = {0xde, 0xad};
+  TeakRegisterPushToStartToken(bytes, 0);
+  assertThat([self drainCapturedEvents], hasCountOf(0));
 }
 
 @end

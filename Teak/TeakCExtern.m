@@ -301,6 +301,11 @@ TeakOperation* TeakCancelLiveActivityUpdates(const char* activityId) {
   return [Teak cancelLiveActivityUpdates:activityIdString];
 }
 
+void TeakRegisterPushToStartToken(const void* pushTokenBytes, int pushTokenLength) {
+  NSData* tokenData = (pushTokenBytes == NULL || pushTokenLength <= 0) ? nil : [NSData dataWithBytes:pushTokenBytes length:pushTokenLength];
+  [Teak registerPushToStartToken:tokenData];
+}
+
 TeakOperation* TeakSetStateForChannel(const char* stateCstr, const char* channelCstr) {
   NSString* state = [NSString stringWithUTF8String:stateCstr];
   NSString* channel = [NSString stringWithUTF8String:channelCstr];
