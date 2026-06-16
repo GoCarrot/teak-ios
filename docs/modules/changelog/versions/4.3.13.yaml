@@ -1,0 +1,2 @@
+bug:
+  - "Fixed a rare multi-threaded crash (``EXC_BAD_ACCESS`` in ``+[TeakSession whenUserIdIsReadyRun:]``) where a deferred callback could retain a session that was being replaced on another thread. The callback now captures the session that was current when it was queued."
