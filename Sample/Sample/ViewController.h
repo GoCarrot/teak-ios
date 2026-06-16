@@ -21,6 +21,6 @@
 - (IBAction)scheduleNotification:(id)sender;
 - (IBAction)crashApp;
 - (IBAction)deferredDeepLinkOpenURL;
-- (IBAction)deferredDeepLinkContinueUserActivity;
+- (IBAction)deferredDeepLinkProcessHelper;
 
 @end

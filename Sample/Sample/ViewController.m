@@ -26,12 +26,6 @@ extern void TeakAddOperationToQueue(NSOperation* op);
 
 @end
 
-// Re-declare Teak's continueUserActivity hook so we can drive it directly from
-// a button tap to simulate a deferred universal link (C-744).
-@interface Teak (DeferredDeepLinkSample)
-- (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler;
-@end
-
 @implementation ViewController
 
 - (void)viewDidLoad {
@@ -116,18 +110,13 @@ extern void TeakAddOperationToQueue(NSOperation* op);
   }];
 }
 
-// C-744 test path B: build an NSUserActivity that mirrors what the OS hands us
-// when the user taps a universal link, then drive Teak's continueUserActivity
-// hook directly.
-- (IBAction)deferredDeepLinkContinueUserActivity {
+// C-744 test path B: the public helper. This is what a customer calls when an
+// attribution SDK (e.g. Singular) hands them an unresolved universal link after
+// launch — no bridging-header forward decl, no NSUserActivity knowledge needed.
+- (IBAction)deferredDeepLinkProcessHelper {
   NSURL* url = [NSURL URLWithString:@"https://teak-dev2.freechips.link/1bafc0c4f1"];
-  NSLog(@"C-744 path B continueUserActivity: %@", url);
-  NSUserActivity* activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
-  activity.webpageURL = url;
-  [[Teak sharedInstance] application:[UIApplication sharedApplication]
-                continueUserActivity:activity
-                  restorationHandler:^(NSArray* _Nullable restorables){
-                  }];
+  NSLog(@"C-744 path B processDeferredDeepLink: %@", url);
+  [[Teak sharedInstance] processDeferredDeepLink:url];
 }
 
 - (IBAction)scheduleNotification:(id)sender {

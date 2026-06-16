@@ -1193,4 +1193,22 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
   return YES;
 }
 
+- (void)processDeferredDeepLink:(NSURL*)url {
+  if (url == nil) return;
+
+  // Reuse the continueUserActivity: path by manufacturing the same NSUserActivity
+  // the OS would hand us for a universal link tap (see TeakSceneHooks.m).
+  NSUserActivity* userActivity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
+  userActivity.webpageURL = url;
+
+  // Pass nil for application: the receiver ignores it (TeakUnused, above), and
+  // nil avoids touching [UIApplication sharedApplication] off the main thread —
+  // attribution-SDK callbacks (e.g. Singular) may not run on main. Do NOT
+  // "fix" this back to sharedApplication; that silently reintroduces main-affinity.
+  [self application:nil
+      continueUserActivity:userActivity
+        restorationHandler:^(NSArray* _Nullable restorables){
+        }];
+}
+
 @end

@@ -48,7 +48,7 @@
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="c74-A1-001">
                                 <rect key="frame" x="175" y="332" width="250" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="DDL: openURL"/>
+                                <state key="normal" title="DDL openURL (does NOT work — Safari)"/>
                                 <connections>
                                     <action selector="deferredDeepLinkOpenURL" destination="BYZ-38-t0r" eventType="touchDown" id="c74-A1-A01"/>
                                 </connections>
@@ -56,9 +56,9 @@
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="c74-B1-001">
                                 <rect key="frame" x="175" y="370" width="250" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="DDL: continueUserActivity"/>
+                                <state key="normal" title="DDL processDeferredDeepLink (works)"/>
                                 <connections>
-                                    <action selector="deferredDeepLinkContinueUserActivity" destination="BYZ-38-t0r" eventType="touchDown" id="c74-B1-A01"/>
+                                    <action selector="deferredDeepLinkProcessHelper" destination="BYZ-38-t0r" eventType="touchDown" id="c74-B1-A01"/>
                                 </connections>
                             </button>
                         </subviews>
