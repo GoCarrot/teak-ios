@@ -595,6 +595,11 @@ DefineTeakState(Expired, (@[]));
 }
 
 + (void)didLaunchWithData:(nonnull TeakLaunchDataOperation*)launchDataOperation {
+  // Invariant: this path must stay off-main-safe. It already runs off-main today
+  // (NSURLSession / remote-config completions and IDFA/pushToken KVO drive these
+  // transitions), and -[Teak processDeferredDeepLink:] additionally promises callers
+  // any-thread access and feeds through here. Keep main-affine work inside dispatched
+  // blocks.
   @synchronized(currentSessionMutex) {
     // Call getCurrentSession() so the null || Expired logic stays in one place
     [TeakSession currentSession];
