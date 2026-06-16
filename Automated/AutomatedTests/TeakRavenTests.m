@@ -64,4 +64,14 @@
   assertThat(raven.payloadTemplate[@"tags"][@"run_id"], is(knownRunId));
 }
 
+- (void)testPayloadTemplateTagsOmitRunIdWhenLogIsNil {
+  [given([self.teakMock log]) willReturn:nil];
+
+  TeakRaven* raven = [TeakRaven ravenForTeak:self.teakMock];
+
+  // nil log must degrade gracefully: tag absent, raven still created
+  XCTAssertNotNil(raven);
+  XCTAssertNil(raven.payloadTemplate[@"tags"][@"run_id"]);
+}
+
 @end
