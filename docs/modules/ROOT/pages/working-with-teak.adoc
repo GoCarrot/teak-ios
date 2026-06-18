@@ -30,7 +30,7 @@ Having a consistent ID between your game makes customer support easier, and make
 
 === Player Configuration
 
-Additional data, such as a player's email address and Facebook ID, can be passed to Teak by setting the appropriate fields on the `TeakUserConfiguration` object passed to xref:<<login:withConfiguration:>>
+Additional data, such as a player's email address and Facebook ID, can be passed to Teak by setting the appropriate fields on the `TeakUserConfiguration` object passed to <<login:withConfiguration:>>
 
 If you need to update any of this additional data during a game session, call `Teak.login()` with an appropriately configured `TeakUserConfiguration` object. `Teak.login()` will never clear or remove information about a player, and fields that are not set on the `TeakUserConfiguration` object will be ignored.
 
