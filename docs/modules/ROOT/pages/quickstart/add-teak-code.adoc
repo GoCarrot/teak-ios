@@ -57,6 +57,7 @@ Your game probably has a player ID to store progress, coin balances, and other u
 Having a consistent ID between your game makes customer support easier, and makes life easier for your analytics team.
 ====
 
+[discrete]
 === Build Your Game
 
 At this point, Teak is ready to to be tested on device or in the simulator.
@@ -64,6 +65,7 @@ At this point, Teak is ready to to be tested on device or in the simulator.
 * Build your game and get it running on a device or in the simulator.
 * Approve the system prompt asking for push notification permissions.
 
+[discrete]
 === See Your Active User
 
 * Open the https://app.teak.io/login[Teak Dashboard] and navigate to your game.
