@@ -3,7 +3,7 @@
 
 An example application with the Teak SDK integrated using CocoaPods is available at https://github.com/GoCarrot/TeakCocoaPodsExample
 
-1. Add the Teak pod.
+. Add the Teak pod.
 +
 In your Podfile add
 +
@@ -13,11 +13,11 @@ pod 'Teak'
 +
 to your primary target, then run `pod install`.
 +
-1. Open Xcode and select your project to view the list of targets.
+. Open Xcode and select your project to view the list of targets.
 
 include::ios::page$quickstart/partials/add-service-extension.adoc[]
 
-1. Add the Teak/Extension pod to your TeakNotificationService target.
+. Add the Teak/Extension pod to your TeakNotificationService target.
 +
 In your Podfile add
 +
@@ -33,7 +33,7 @@ Run `pod install`
 +
 include::ios::page$quickstart/partials/add-content-extension.adoc[]
 
-1. Add the Teak/Extension pod to your TeakNotificationContent target.
+. Add the Teak/Extension pod to your TeakNotificationContent target.
 +
 In your Podfile add
 +
