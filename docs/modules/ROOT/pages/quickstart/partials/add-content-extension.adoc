@@ -1,12 +1,12 @@
-1. Click the *+* button to add a new target.
+. Click the *+* button to add a new target.
 +
 image::quickstart/add-target-button.png[]
 
-1. Select *Notification Content Extension* then *Next*
+. Select *Notification Content Extension* then *Next*
 +
 image::quickstart/notification-content-extension.png[]
 
-1. Enter the product name as *TeakContentExtension* and click *Finish*
+. Enter the product name as *TeakContentExtension* and click *Finish*
 +
 Do not active the scheme on the dialog that is shown after clicking Finish.
 +
@@ -14,7 +14,7 @@ Press *Don't Activate* on the Activate scheme prompt.
 +
 image::quickstart/add-content-extension.png[]
 
-1. Open the *NotificationViewController* file and replace its contents with
+. Open the *NotificationViewController* file and replace its contents with
 +
 .Notification View Controller
 [source,swift]
@@ -30,7 +30,7 @@ class NotificationViewController: TeakNotificationViewControllerCore {
 +
 image::quickstart/notification-extension-code.png[]
 
-1. Open the *Info* file with an External Editor
+. Open the *Info* file with an External Editor
 +
 image::quickstart/info-external-editor.png[]
 +
