@@ -151,7 +151,7 @@
 		FA8B793A2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FA8B793B2D72562A00179852 /* TeakSceneHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = FA8B79392D72562A00179852 /* TeakSceneHooks.m */; };
 		FA8B793C2D72562A00179852 /* TeakSceneHooks.m in Sources */ = {isa = PBXBuildFile; fileRef = FA8B79392D72562A00179852 /* TeakSceneHooks.m */; };
-		FA8B793D2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; };
+		FA8B793D2D72562A00179852 /* TeakSceneHooks.h in Headers */ = {isa = PBXBuildFile; fileRef = FA8B79382D72562A00179852 /* TeakSceneHooks.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FAA142BF2D70E0B5009C3996 /* TeakLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 43CEF65A1E4137C20065E4E5 /* TeakLink.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FAA142C02D70E0B5009C3996 /* Teak.h in Headers */ = {isa = PBXBuildFile; fileRef = 431C97FD1C7E609800B19DD5 /* Teak.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FAA142C12D70E0B5009C3996 /* TeakNotification.h in Headers */ = {isa = PBXBuildFile; fileRef = 432EDF071CC02CE3007E9C5C /* TeakNotification.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -284,7 +284,7 @@
 		FAA143472D70E21D009C3996 /* TeakMPInt.h in Headers */ = {isa = PBXBuildFile; fileRef = 4347A31C22405506001A3A8A /* TeakMPInt.h */; };
 		FAA143482D70E21D009C3996 /* TeakIntegrationChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = 43A8ACF7244A41F3003B1C3C /* TeakIntegrationChecker.h */; };
 		FAA143492D70E21D009C3996 /* TeakWaitForDeepLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 4355CE922672890100889B0B /* TeakWaitForDeepLink.h */; };
-		FAA4DCFC1DC32AD100374B93 /* TeakReward.h in Headers */ = {isa = PBXBuildFile; fileRef = FAA4DCFA1DC32AD100374B93 /* TeakReward.h */; };
+		FAA4DCFC1DC32AD100374B93 /* TeakReward.h in Headers */ = {isa = PBXBuildFile; fileRef = FAA4DCFA1DC32AD100374B93 /* TeakReward.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		FAA4DCFD1DC32AD100374B93 /* TeakReward.m in Sources */ = {isa = PBXBuildFile; fileRef = FAA4DCFB1DC32AD100374B93 /* TeakReward.m */; };
 		FAFEC6F82A607508005E6AD2 /* TeakChannelCategory.m in Sources */ = {isa = PBXBuildFile; fileRef = FAFEC6F62A607508005E6AD2 /* TeakChannelCategory.m */; };
 		FAFEC6F92A607508005E6AD2 /* TeakChannelCategory.h in Headers */ = {isa = PBXBuildFile; fileRef = FAFEC6F72A607508005E6AD2 /* TeakChannelCategory.h */; };

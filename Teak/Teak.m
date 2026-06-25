@@ -1260,16 +1260,28 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
   }
 }
 
+- (void)handleLaunchData:(TeakLaunchDataOperation*)launchData {
+  if (launchData != nil) {
+    [TeakSession didLaunchWithData:launchData];
+  }
+}
+
 - (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray* _Nullable))restorationHandler {
   TeakUnused(application);
   TeakUnused(restorationHandler);
 
-  TeakLaunchDataOperation* launchData = [TeakLaunchDataOperation fromUserActivity:userActivity];
-  if (launchData != nil) {
-    [TeakSession didLaunchWithData:launchData];
-  }
+  [self handleLaunchData:[TeakLaunchDataOperation fromUserActivity:userActivity]];
 
   return YES;
+}
+
+- (void)processDeferredDeepLink:(NSURL*)url {
+  if (url == nil) return;
+
+  // Resolve the universal link straight from the URL, the same way
+  // continueUserActivity: resolves a browsing-web activity. Both funnel through
+  // handleLaunchData:.
+  [self handleLaunchData:[TeakLaunchDataOperation fromUniversalLink:url]];
 }
 
 @end

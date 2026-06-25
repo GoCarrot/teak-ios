@@ -105,8 +105,12 @@ DefineTeakState(Expired, (@[]));
 + (void)whenUserIdIsReadyRun:(nonnull UserIdReadyBlock)block {
   @synchronized(currentSessionMutex) {
     if (currentSession != nil && currentSession.currentState == [TeakSession UserIdentified]) {
+      // Bind to a local so the async block captures the session that was current
+      // under the lock. Reading the currentSession global from inside the block
+      // would re-read it after the lock is released, racing with reassignment.
+      TeakSession* session = currentSession;
       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        block(currentSession);
+        block(session);
       });
     } else {
       [[TeakSession whenUserIdIsReadyRunBlocks] addObject:[block copy]];
@@ -119,8 +123,12 @@ DefineTeakState(Expired, (@[]));
     if (currentSession != nil && (currentSession.currentState == [TeakSession UserIdentified] ||
                                   (currentSession.currentState == [TeakSession Expiring] &&
                                    currentSession.previousState == [TeakSession UserIdentified]))) {
+      // Bind to a local so the async block captures the session that was current
+      // under the lock. Reading the currentSession global from inside the block
+      // would re-read it after the lock is released, racing with reassignment.
+      TeakSession* session = currentSession;
       dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        block(currentSession);
+        block(session);
       });
     } else {
       [[TeakSession whenUserIdIsReadyRunBlocks] addObject:[block copy]];
@@ -587,6 +595,11 @@ DefineTeakState(Expired, (@[]));
 }
 
 + (void)didLaunchWithData:(nonnull TeakLaunchDataOperation*)launchDataOperation {
+  // Invariant: this path must stay off-main-safe. It already runs off-main today
+  // (NSURLSession / remote-config completions and IDFA/pushToken KVO drive these
+  // transitions), and -[Teak processDeferredDeepLink:] additionally promises callers
+  // any-thread access and feeds through here. Keep main-affine work inside dispatched
+  // blocks.
   @synchronized(currentSessionMutex) {
     // Call getCurrentSession() so the null || Expired logic stays in one place
     [TeakSession currentSession];

@@ -1,0 +1,6 @@
+new:
+  - "``-[Teak processDeferredDeepLink:]`` resolves an unresolved Teak universal link handed to your app after launch by an upstream attribution SDK (e.g. Singular), as if the user had tapped it — starting a session, claiming any attached reward, and routing the deep link. Swift: ``Teak.sharedInstance()?.processDeferredDeepLink(url)``."
+bug:
+  - "Fixed a rare multi-threaded crash (``EXC_BAD_ACCESS`` in ``+[TeakSession whenUserIdIsReadyRun:]``) where a deferred callback could retain a session that was being replaced on another thread. The callback now captures the session that was current when it was queued."
+enhancement:
+  - "Improved internal error reporting."
