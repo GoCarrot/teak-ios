@@ -530,6 +530,7 @@ void TeakSignalHandler(int signal) {
   dispatch_once(&onceToken, ^{
     NSTimeZone* timeZone = [NSTimeZone timeZoneWithName:@"UTC"];
     dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
     [dateFormatter setTimeZone:timeZone];
     [dateFormatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss"];
   });

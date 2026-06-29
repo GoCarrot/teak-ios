@@ -43,6 +43,7 @@
 
     teak_log_breadcrumb(@"Building date formatter");
     NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
+    [formatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
     [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
     [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZ"];
 
