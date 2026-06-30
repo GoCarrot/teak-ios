@@ -62,9 +62,13 @@ IMPORTANT: This should be the same way that you identify the user in your system
 
 === User Configuration
 
-``identifyUser:withConfiguration:`` accepts a ``TeakUserConfiguration`` to attach an email address or Facebook id to the user, and to opt that user out of specific data collection:
+``identifyUser:withConfiguration:`` accepts a ``TeakUserConfiguration`` to attach an email address or Facebook id to the user, and to opt that user out of specific data collection. See the property docs on ``TeakUserConfiguration`` for the full effect of each opt-out:
 
-[cols="1,3"]
+// This table is hand-written, not doxygen2adoc-generated: only Teak.h and TeakNotification.h
+// are in the Doxyfile INPUT, and doxygen2adoc's "parts" mechanism only emits embeddable partials
+// for methods, not properties, so TeakUserConfiguration can't be wired into it without adding
+// Doxyfile/pipeline support for property parts.
+[cols="1,3a", stripes="even"]
 |===
 |Property |Effect
 
@@ -75,13 +79,13 @@ IMPORTANT: This should be the same way that you identify the user in your system
 |The user's Facebook id.
 
 |``optOutIdfa``
-|Opts this user out of IDFA (advertising identifier) collection.
+|Opts out of IDFA collection for this user.
 
 |``optOutPushKey``
-|Opts this user out of Push Key (push token) collection. Teak will no longer be able to send this user Local Notifications or Push Notifications.
+|Opts out of Push Key (push token) collection for this user.
 
 |``optOutFacebook``
-|Deprecated, and has no effect unless ``TeakSDK5Behaviors`` is set to ``false`` -- see xref:sdk5.adoc[SDK 5 Behaviors].
+|Deprecated -- see xref:sdk5.adoc[SDK 5 Behaviors].
 |===
 
 .Example
@@ -94,7 +98,7 @@ configuration.optOutIdfa = YES;
 [[Teak sharedInstance] identifyUser:@"someuserid" withConfiguration:configuration];
 ----
 
-=== Disabling Automatic Data Collection
+== Disabling Automatic Data Collection
 
 In addition to the per-user opt-outs above, you can disable IDFA, Push Key, or Facebook access token collection for your whole app by adding the following keys to your ``Info.plist``:
 

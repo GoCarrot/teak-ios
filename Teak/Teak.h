@@ -361,7 +361,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * 	                             const char* userConfigurationJson);
  *
  * @param userIdentifier      The string Teak should use to identify the current user.
- * @param userConfiguration   Email, Facebook id, and data collection opt-outs for the current user.
+ * @param userConfiguration   See TeakUserConfiguration.
  */
 - (void)identifyUser:(nonnull NSString*)userIdentifier withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration;
 
