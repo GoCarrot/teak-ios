@@ -12,6 +12,7 @@
 @property (strong, nonatomic, readwrite) TeakBatchConfiguration* _Nonnull batch;
 @property (strong, nonatomic, readwrite) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readwrite) BOOL blackhole;
+@property (nonatomic) BOOL retriedAfterSocketError;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
@@ -31,4 +32,11 @@
 // "Configuration Error". Never nil — the result is used as a key into the
 // integration checker's error dictionary.
 + (NSString* _Nonnull)titleForClientError:(NSDictionary* _Nullable)clientError;
+
+// Returns YES when `error` is the OS-closed-socket transport failure
+// (ECONNABORTED) that occurs when a pooled connection is reused after the
+// app returns from background and the OS has torn down the underlying
+// socket without reopening it. Checks both the top-level domain/code and,
+// for robustness against API surfaces that nest it, NSUnderlyingErrorKey.
++ (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
 @end
