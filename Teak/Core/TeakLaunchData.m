@@ -83,6 +83,27 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return [[TeakLaunchData alloc] initWithUrl:url];
 }
 
+// Classify a resolved universal link. When the server omits iOSPath, resolvedUrl is
+// nil and we fall back to the original launch link so reward/notification attribution
+// carried on the link itself isn't lost — mirroring teak-android's launchDataFromUriPair,
+// which classifies the original launch link when AndroidPath is absent. Distinct from
+// launchDataFromUrl:withShortlink: above: that one drops the short link (launchUrl=nil)
+// for reward links, whereas here the short link is retained as launchUrl.
++ (TeakLaunchData*)launchDataFromResolvedUrl:(NSURL*)resolvedUrl shortLink:(NSURL*)shortLink {
+  NSURL* attributionUrl = NewIfNotOld(resolvedUrl, shortLink);
+  NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(attributionUrl);
+  if (query[@"teak_rewardlink_id"]) {
+    // If it has a 'teak_rewardlink_id' then it's a reward link
+    return [[TeakRewardlinkLaunchData alloc] initWithUrl:attributionUrl andShortLink:shortLink];
+  } else if (query[@"teak_notif_id"]) {
+    // If it has a 'teak_notif_id' then it's a notification
+    return [[TeakNotificationLaunchData alloc] initWithUrl:attributionUrl];
+  }
+
+  // Otherwise this is not a Teak attributed launch
+  return [[TeakLaunchData alloc] initWithUrl:shortLink];
+}
+
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url {
   TeakLaunchData* launchData = [TeakLaunchDataOperation launchDataFromUrl:url withShortlink:nil];
   return [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
@@ -141,26 +162,15 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 // This will get run as an NSInvocationOperation
 - (TeakLaunchData*)resolveUniversalLink:(NSURL*)url {
   // Resolve the universal link, wait for the NSURLSession to complete (or timeout)
-  // then run super, which will use the updated contents.
+  // then classify the result.
   dispatch_semaphore_t sema = dispatch_semaphore_create(0);
   [self resolveUniversalLink:url retryCount:0 thenSignal:sema];
   dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
-  // NOTE: This is different logic for what goes into the unattributed
-  // launch case from launchDataFromUrl:andShortLink:
-
-  // Process the resolved link
-  NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(self.resolvedLaunchUrl);
-  if (query[@"teak_rewardlink_id"]) {
-    // If it has a 'teak_rewardlink_id' then it's a reward link
-    return [[TeakRewardlinkLaunchData alloc] initWithUrl:self.resolvedLaunchUrl andShortLink:url];
-  } else if (query[@"teak_notif_id"]) {
-    // If it has a 'teak_notif_id' then it's a notification
-    return [[TeakNotificationLaunchData alloc] initWithUrl:self.resolvedLaunchUrl];
-  }
-
-  // Otherwise this is not a Teak attributed launch
-  return [[TeakLaunchData alloc] initWithUrl:url];
+  // resolvedLaunchUrl is set only when the server returned an iOSPath; when it's
+  // absent (or the request failed) the classifier falls back to the original launch
+  // link so reward/notification attribution on the link itself isn't lost.
+  return [TeakLaunchDataOperation launchDataFromResolvedUrl:self.resolvedLaunchUrl shortLink:url];
 }
 
 - (void)resolveUniversalLink:(NSURL*)url retryCount:(int)retryCount thenSignal:(dispatch_semaphore_t)sema {
@@ -219,6 +229,17 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
                      }
 
                      TeakLog_i(@"deep_link.request.resolve", self.resolvedLaunchUrl.absoluteString);
+                   } else if ([reply isKindOfClass:NSDictionary.class] && reply.count > 0) {
+                     // A resolved link is expected to carry an iOSPath; a well-formed
+                     // response that omits it (e.g. an Android-only link) is anomalous,
+                     // so report it with the URL and body to surface which links omit
+                     // the key. Attribution still survives via the original launch link
+                     // in launchDataFromResolvedUrl:shortLink:. Empty/malformed bodies
+                     // (count 0, or not a dictionary) fall through and stay out of the log.
+                     TeakLog_e(@"deep_link.no_ios_path", @{
+                       @"url" : url.absoluteString,
+                       @"response" : [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
+                     });
                    }
                  } else {
                    TeakLog_e(@"deep_link.json.error", @{
