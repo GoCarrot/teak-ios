@@ -210,6 +210,11 @@ void TeakSignalHandler(int signal) {
 - (void)reportUncaughtException:(nonnull NSException*)exception {
   [self unsetAsUncaughtExceptionHandler];
 
+  // Surface an observable "exception" log event on the uncaught path, matching the
+  // caught path's {type, value} shape. Built from a fresh dict so the Sentry report
+  // payload below is untouched.
+  TeakLog_e(@"exception", [TeakRaven exceptionLogEventDataForException:exception]);
+
   NSDictionary* additions = @{
     @"exception" : @[
       @{
