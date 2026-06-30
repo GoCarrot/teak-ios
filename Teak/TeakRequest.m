@@ -18,6 +18,11 @@
 // same underlying OS behavior on its own NSURLSession — tune both together.
 static const NSTimeInterval TeakRequestSocketErrorRetryDelay = 1.5;
 
+// How many times a socket-closed transport error gets retried. The stop
+// policy lives here so the call site doesn't need to know the limit —
+// raising it later is a one-line change.
+static const NSUInteger TeakRequestMaxSocketRetries = 1;
+
 #define _(_id) TeakValueOrNSNull(_id)
 
 NSString* _Nonnull const TeakRequest_POST = @"POST";
@@ -186,8 +191,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return NO;
 }
 
-+ (BOOL)shouldRetrySocketError:(NSError*)error alreadyRetried:(BOOL)alreadyRetried {
-  return [TeakRequest isRetryableSocketError:error] && !alreadyRetried;
++ (BOOL)shouldRetrySocketError:(NSError*)error retryCount:(NSUInteger)retryCount {
+  return [TeakRequest isRetryableSocketError:error] && retryCount < TeakRequestMaxSocketRetries;
 }
 
 + (NSMutableDictionary*)requestsInFlight {
@@ -232,7 +237,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     self.batch = [[TeakBatchConfiguration alloc] init];
     self.blackhole = NO;
     self.method = method;
-    self.retriedAfterSocketError = NO;
+    self.socketErrorRetryCount = 0;
 
     @try {
       // Assign configuration
@@ -374,14 +379,14 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
 
-        if ([TeakRequest shouldRetrySocketError:error alreadyRetried:self.retriedAfterSocketError]) {
+        if ([TeakRequest shouldRetrySocketError:error retryCount:self.socketErrorRetryCount]) {
           // The OS can close a pooled connection's socket while the app is
           // backgrounded and fail to reopen it on the next request; retry
           // once after a short delay rather than surfacing an empty reply.
           // Checked ahead of the server-configured retry ladder below since
           // it's a distinct failure class (transport, not HTTP) — a request
           // with configured retry times still gets this one stacked on top.
-          self.retriedAfterSocketError = YES;
+          self.socketErrorRetryCount++;
           TeakLog_i(@"request.retry.socket_error", [self to_h]);
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);

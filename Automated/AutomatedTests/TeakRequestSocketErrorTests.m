@@ -13,7 +13,7 @@
 // tests".
 @interface TeakRequest (SocketErrorTests)
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
-+ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error alreadyRetried:(BOOL)alreadyRetried;
++ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
 @end
 
 @interface TeakRequestSocketErrorTests : XCTestCase
@@ -79,33 +79,38 @@
 @end
 
 ///// The retry gate: response:payload:withError: calls
-///// +shouldRetrySocketError:alreadyRetried: to decide whether to fire the
-///// one-shot retry. These pin the full truth table so the gate can't loop or
-///// silently stop retrying a fresh socket error.
+///// +shouldRetrySocketError:retryCount: to decide whether to fire another
+///// retry. These pin the count boundary so the gate can't loop past the stop
+///// policy or silently stop retrying a fresh socket error.
 
 @interface TeakRequestRetryGateTests : XCTestCase
 @end
 
 @implementation TeakRequestRetryGateTests
 
-- (void)testRetriesAFreshSocketError {
+- (void)testRetriesASocketErrorBelowTheLimit {
   NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertTrue([TeakRequest shouldRetrySocketError:error alreadyRetried:NO]);
+  XCTAssertTrue([TeakRequest shouldRetrySocketError:error retryCount:0]);
 }
 
-- (void)testDoesNotRetryASocketErrorTwice {
+- (void)testDoesNotRetryASocketErrorAtTheLimit {
   NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error alreadyRetried:YES]);
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:1]);
 }
 
-- (void)testDoesNotRetryANonSocketErrorWhenFresh {
-  NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error alreadyRetried:NO]);
+- (void)testDoesNotRetryASocketErrorPastTheLimit {
+  NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:2]);
 }
 
-- (void)testDoesNotRetryANonSocketErrorAlreadyRetried {
+- (void)testDoesNotRetryANonSocketErrorBelowTheLimit {
   NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error alreadyRetried:YES]);
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:0]);
+}
+
+- (void)testDoesNotRetryANonSocketErrorAtTheLimit {
+  NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:1]);
 }
 
 @end

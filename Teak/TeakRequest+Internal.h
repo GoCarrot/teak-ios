@@ -12,7 +12,7 @@
 @property (strong, nonatomic, readwrite) TeakBatchConfiguration* _Nonnull batch;
 @property (strong, nonatomic, readwrite) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readwrite) BOOL blackhole;
-@property (nonatomic) BOOL retriedAfterSocketError;
+@property (nonatomic) NSUInteger socketErrorRetryCount;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
@@ -41,6 +41,7 @@
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
 
 // Returns YES when `error` is a retryable socket error (see
-// isRetryableSocketError:) and the one-shot retry hasn't already happened.
-+ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error alreadyRetried:(BOOL)alreadyRetried;
+// isRetryableSocketError:) and `retryCount` hasn't reached the stop policy
+// (TeakRequestMaxSocketRetries) yet.
++ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
 @end
