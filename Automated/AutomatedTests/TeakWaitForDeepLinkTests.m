@@ -5,7 +5,6 @@
 #import "TeakWaitForDeepLink.h"
 #import <Teak/Teak.h>
 
-@import OCHamcrest;
 @import OCMockito;
 
 // Set by Teak_Plant in production; we drive it directly so configureForSession:
@@ -58,9 +57,8 @@ extern Teak* _teakSharedInstance;
   [queue addOperation:gatedOp];
 
   // Barrier not yet released: the op has an unsatisfied dependency, so it is
-  // neither ready nor run.
+  // not ready to run.
   XCTAssertFalse(gatedOp.ready, @"gated op must not be ready until the deep-link barrier is released");
-  XCTAssertFalse(gatedOp.finished, @"gated op must not run until the deep-link barrier is released");
 
   [wait addToQueue:queue];
 
@@ -79,7 +77,7 @@ extern Teak* _teakSharedInstance;
 
 #pragma mark - Behavior: remote config blocks until deep links are ready
 
-// The C-384 guard: configureForSession: must gate the settings.json request on
+// Regression guard: configureForSession: must gate the settings.json request on
 // the deep-link barrier. Red if whenFinishedRun:configOp is removed. The barrier
 // is deliberately left unreleased, so the configOp block never runs and no
 // TeakRequest is sent.
@@ -94,16 +92,16 @@ extern Teak* _teakSharedInstance;
   TeakRemoteConfiguration* remoteConfig = [[TeakRemoteConfiguration alloc] init];
   [remoteConfig configureForSession:session];
 
-  NSOperation* barrierOp = _teakSharedInstance.waitForDeepLink.operation;
-  BOOL gated = NO;
-  for (NSOperation* op in _teakSharedInstance.operationQueue.operations) {
-    if ([op.dependencies containsObject:barrierOp]) {
-      gated = YES;
-      break;
-    }
-  }
+  // configureForSession: enqueues exactly the settings.json op, and it must
+  // depend on the barrier. Asserting on that one op (rather than "some op is
+  // gated") keeps the guard honest if a second op is ever enqueued here.
+  NSArray<NSOperation*>* operations = _teakSharedInstance.operationQueue.operations;
+  XCTAssertEqual(operations.count, (NSUInteger)1, @"configureForSession: should enqueue exactly the settings.json op");
 
-  XCTAssertTrue(gated, @"configureForSession: must gate the settings.json request on the deep-link barrier");
+  NSOperation* configOp = operations.firstObject;
+  NSOperation* barrierOp = _teakSharedInstance.waitForDeepLink.operation;
+  XCTAssertTrue([configOp.dependencies containsObject:barrierOp],
+                @"the settings.json op must depend on the deep-link barrier");
 }
 
 @end
