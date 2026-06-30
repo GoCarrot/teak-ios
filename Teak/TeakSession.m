@@ -28,8 +28,13 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @interface TeakSession ()
-@property (strong, nonatomic, readwrite) TeakState* currentState;
-@property (strong, nonatomic) TeakState* previousState;
+// currentState/previousState are atomic: these state-machine fields are read in the
+// currentSessionMutex lock domain (the class methods) but written under @synchronized(self)
+// in -setState:. previousState is additionally written lock-free in the -sendUserIdentifier
+// request callback, so that read is otherwise wholly unsynchronized. atomic accessors
+// prevent a torn read across those boundaries.
+@property (strong, atomic, readwrite) TeakState* currentState;
+@property (strong, atomic) TeakState* previousState;
 @property (strong, nonatomic) NSDate* startDate;
 @property (strong, nonatomic) NSDate* endDate;
 @property (strong, nonatomic) NSString* countryCode;

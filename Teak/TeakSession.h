@@ -25,7 +25,7 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readwrite) NSString* _Nullable email;
 @property (strong, nonatomic, readonly) NSString* _Nullable facebookId;
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
-@property (strong, nonatomic, readonly) TeakState* _Nonnull currentState;
+@property (strong, atomic, readonly) TeakState* _Nonnull currentState;
 @property (strong, nonatomic, readonly) TeakUserProfile* _Nonnull userProfile;
 @property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull emailStatus;
 @property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull pushStatus;
