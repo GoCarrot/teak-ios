@@ -14,8 +14,8 @@
 #include <sys/errno.h>
 
 // Delay before retrying a request that failed with a socket-closed transport
-// error. Matches the delay TeakLog's analogous retry uses for the same
-// underlying OS behavior.
+// error. Matches TeakLog.m's TeakLogSender delayInSeconds, which retries the
+// same underlying OS behavior on its own NSURLSession — tune both together.
 static const NSTimeInterval TeakRequestSocketErrorRetryDelay = 1.5;
 
 #define _(_id) TeakValueOrNSNull(_id)
@@ -184,6 +184,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   }
 
   return NO;
+}
+
++ (BOOL)shouldRetrySocketError:(NSError*)error alreadyRetried:(BOOL)alreadyRetried {
+  return [TeakRequest isRetryableSocketError:error] && !alreadyRetried;
 }
 
 + (NSMutableDictionary*)requestsInFlight {
@@ -370,10 +374,13 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
 
-        if (isSocketError && !self.retriedAfterSocketError) {
+        if ([TeakRequest shouldRetrySocketError:error alreadyRetried:self.retriedAfterSocketError]) {
           // The OS can close a pooled connection's socket while the app is
           // backgrounded and fail to reopen it on the next request; retry
           // once after a short delay rather than surfacing an empty reply.
+          // Checked ahead of the server-configured retry ladder below since
+          // it's a distinct failure class (transport, not HTTP) — a request
+          // with configured retry times still gets this one stacked on top.
           self.retriedAfterSocketError = YES;
           TeakLog_i(@"request.retry.socket_error", [self to_h]);
 

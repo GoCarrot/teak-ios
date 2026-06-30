@@ -8,10 +8,12 @@
 @import OCHamcrest;
 @import OCMockito;
 
-// Re-expose the internal predicate so tests can exercise it without driving
-// a full NSURLSession round-trip. See CLAUDE.md "Header imports in tests".
+// Re-expose the internal predicates so tests can exercise them without
+// driving a full NSURLSession round-trip. See CLAUDE.md "Header imports in
+// tests".
 @interface TeakRequest (SocketErrorTests)
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
++ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error alreadyRetried:(BOOL)alreadyRetried;
 @end
 
 @interface TeakRequestSocketErrorTests : XCTestCase
@@ -72,6 +74,38 @@
                                         code:NSURLErrorUnknown
                                     userInfo:@{NSUnderlyingErrorKey : underlying}];
   XCTAssertFalse([TeakRequest isRetryableSocketError:error]);
+}
+
+@end
+
+///// The retry gate: response:payload:withError: calls
+///// +shouldRetrySocketError:alreadyRetried: to decide whether to fire the
+///// one-shot retry. These pin the full truth table so the gate can't loop or
+///// silently stop retrying a fresh socket error.
+
+@interface TeakRequestRetryGateTests : XCTestCase
+@end
+
+@implementation TeakRequestRetryGateTests
+
+- (void)testRetriesAFreshSocketError {
+  NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
+  XCTAssertTrue([TeakRequest shouldRetrySocketError:error alreadyRetried:NO]);
+}
+
+- (void)testDoesNotRetryASocketErrorTwice {
+  NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error alreadyRetried:YES]);
+}
+
+- (void)testDoesNotRetryANonSocketErrorWhenFresh {
+  NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error alreadyRetried:NO]);
+}
+
+- (void)testDoesNotRetryANonSocketErrorAlreadyRetried {
+  NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error alreadyRetried:YES]);
 }
 
 @end

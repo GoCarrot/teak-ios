@@ -39,4 +39,8 @@
 // socket without reopening it. Checks both the top-level domain/code and,
 // for robustness against API surfaces that nest it, NSUnderlyingErrorKey.
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
+
+// Returns YES when `error` is a retryable socket error (see
+// isRetryableSocketError:) and the one-shot retry hasn't already happened.
++ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error alreadyRetried:(BOOL)alreadyRetried;
 @end
