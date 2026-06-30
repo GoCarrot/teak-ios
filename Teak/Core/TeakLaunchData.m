@@ -229,13 +229,14 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
                      }
 
                      TeakLog_i(@"deep_link.request.resolve", self.resolvedLaunchUrl.absoluteString);
-                   } else if ([reply isKindOfClass:NSDictionary.class] && reply.count > 0) {
+                   } else if (reply.count > 0) {
                      // A resolved link is expected to carry an iOSPath; a well-formed
                      // response that omits it (e.g. an Android-only link) is anomalous,
                      // so report it with the URL and body to surface which links omit
                      // the key. Attribution still survives via the original launch link
-                     // in launchDataFromResolvedUrl:shortLink:. Empty/malformed bodies
-                     // (count 0, or not a dictionary) fall through and stay out of the log.
+                     // in launchDataFromResolvedUrl:shortLink:. The count gate skips an
+                     // empty body, mirroring Android's teakData.length() > 0. (A malformed
+                     // body parses to error != nil and is handled in the else below.)
                      TeakLog_e(@"deep_link.no_ios_path", @{
                        @"url" : url.absoluteString,
                        @"response" : [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
