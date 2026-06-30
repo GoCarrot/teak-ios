@@ -60,7 +60,7 @@
   XCTAssertEqualObjects(data.launchUrl.absoluteString, shortLink.absoluteString);
 }
 
-#pragma mark - iOSPath absent (the C-836 fix — classify from the original launch link)
+#pragma mark - iOSPath absent (the fix — classify from the original launch link)
 
 /// THE regression guard. When the server omits iOSPath, resolvedUrl is nil and the
 /// reward params live on the original launch link. Before the `?: shortLink` fallback
