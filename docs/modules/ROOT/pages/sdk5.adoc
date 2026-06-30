@@ -2,20 +2,19 @@
 
 Teak SDK 5 will contain many changes, and break many things. We do not have a firm date or timeline for it, however as we integrate systems and make incremental changes that can be previewed.
 
-== Previewing SDK 5 Behaviors
+== SDK 5 Behaviors
 
-Starting in SDK 4.1.0 there is a way to preview SDK 5 behaviors.
+Starting in SDK 4.1.0 there was a way to preview SDK 5 behaviors via the ``TeakSDK5Behaviors`` Info.plist key. As of SDK 4.2.0, ``TeakSDK5Behaviors`` defaults to ``true``, so the behaviors below are active unless you opt back into the legacy behavior.
 
-To enable this, add the ``TeakSDK5Behaviors`` boolean key to your ``Info.plist``, and set it to ``true``.
+To restore the legacy (pre-4.2.0) behavior, add the ``TeakSDK5Behaviors`` boolean key to your ``Info.plist``, and set it to ``false``.
 
 .Info.plist
 [source,xml]
 ----
   <key>TeakSDK5Behaviors</key>
-  <true/>
+  <false/>
 ----
 
-== SDK 5 Behavior Preview Functionality
+== SDK 5 Behavior Changes
 
-- Teak will no longer automatically collect Facebook Access Token, instead you must pass the Facebook User Id to <<identifyUser:withConfiguration:>>
-- Teak will no longer automatically collect email addresses from Facebook, instead you must pass the email address to <<identifyUser:withConfiguration:>>
+- Teak no longer automatically collects the Facebook access token from the Facebook SDK (if present). To associate a Facebook login with a Teak user, pass the Facebook id via <<identifyUser:withConfiguration:>> instead.
