@@ -11,6 +11,17 @@
 #import "TeakKVOHelpers.h"
 
 #include <CommonCrypto/CommonHMAC.h>
+#include <sys/errno.h>
+
+// Delay before retrying a request that failed with a socket-closed transport
+// error. Matches TeakLog.m's TeakLogSender delayInSeconds, which retries the
+// same underlying OS behavior on its own NSURLSession — tune both together.
+static const NSTimeInterval TeakRequestSocketErrorRetryDelay = 1.5;
+
+// How many times a socket-closed transport error gets retried. The stop
+// policy lives here so the call site doesn't need to know the limit —
+// raising it later is a one-line change.
+const NSUInteger TeakRequestMaxSocketRetries = 1;
 
 #define _(_id) TeakValueOrNSNull(_id)
 
@@ -167,6 +178,23 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return @"Configuration Error";
 }
 
++ (BOOL)isRetryableSocketError:(NSError*)error {
+  if (error == nil) return NO;
+  if ([error.domain isEqualToString:NSPOSIXErrorDomain] && error.code == ECONNABORTED) return YES;
+
+  NSError* underlying = error.userInfo[NSUnderlyingErrorKey];
+  if ([underlying isKindOfClass:[NSError class]] &&
+      [underlying.domain isEqualToString:NSPOSIXErrorDomain] && underlying.code == ECONNABORTED) {
+    return YES;
+  }
+
+  return NO;
+}
+
++ (BOOL)shouldRetrySocketError:(NSError*)error retryCount:(NSUInteger)retryCount {
+  return [TeakRequest isRetryableSocketError:error] && retryCount < TeakRequestMaxSocketRetries;
+}
+
 + (NSMutableDictionary*)requestsInFlight {
   static NSMutableDictionary* dict = nil;
   static dispatch_once_t onceToken;
@@ -209,6 +237,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     self.batch = [[TeakBatchConfiguration alloc] init];
     self.blackhole = NO;
     self.method = method;
+    self.socketErrorRetryCount = 0;
 
     @try {
       // Assign configuration
@@ -322,8 +351,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
-  TeakUnused(error);
-
   teak_try {
     NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
 
@@ -350,7 +377,23 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
-        if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
+        BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
+
+        if ([TeakRequest shouldRetrySocketError:error retryCount:self.socketErrorRetryCount]) {
+          // The OS can close a pooled connection's socket while the app is
+          // backgrounded and fail to reopen it on the next request; retry
+          // once after a short delay rather than surfacing an empty reply.
+          // Checked ahead of the server-configured retry ladder below since
+          // it's a distinct failure class (transport, not HTTP) — a request
+          // with configured retry times still gets this one stacked on top.
+          self.socketErrorRetryCount++;
+          TeakLog_i(@"request.retry.socket_error", [self to_h]);
+
+          dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
+          dispatch_after(delayTime, dispatch_get_main_queue(), ^{
+            [self send];
+          });
+        } else if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
           // Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
@@ -363,6 +406,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
             [self send];
           });
         } else {
+          if (isSocketError) {
+            TeakLog_e(@"request.retry.socket_error.exhausted", [self to_h]);
+          }
+
           // Check to see if the response has a 'report_client_error' key
           if (payload[@"report_client_error"] != nil &&
               payload[@"report_client_error"] != [NSNull null]) {
