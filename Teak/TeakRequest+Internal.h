@@ -1,5 +1,8 @@
 #import "TeakRequest.h"
 
+// Stop policy for isRetryableSocketError: retries — see shouldRetrySocketError:retryCount:.
+extern const NSUInteger TeakRequestMaxSocketRetries;
+
 @interface TeakRequest ()
 @property (strong, nonatomic, readwrite) NSString* _Nonnull endpoint;
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;

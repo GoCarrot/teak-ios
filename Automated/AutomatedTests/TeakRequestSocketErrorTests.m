@@ -8,9 +8,11 @@
 @import OCHamcrest;
 @import OCMockito;
 
-// Re-expose the internal predicates so tests can exercise them without
-// driving a full NSURLSession round-trip. See CLAUDE.md "Header imports in
-// tests".
+// Re-expose the internal predicates and stop-policy constant so tests can
+// exercise them without driving a full NSURLSession round-trip. See
+// CLAUDE.md "Header imports in tests".
+extern const NSUInteger TeakRequestMaxSocketRetries;
+
 @interface TeakRequest (SocketErrorTests)
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
 + (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
@@ -90,27 +92,27 @@
 
 - (void)testRetriesASocketErrorBelowTheLimit {
   NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertTrue([TeakRequest shouldRetrySocketError:error retryCount:0]);
+  XCTAssertTrue([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries - 1]);
 }
 
 - (void)testDoesNotRetryASocketErrorAtTheLimit {
   NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:1]);
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries]);
 }
 
 - (void)testDoesNotRetryASocketErrorPastTheLimit {
   NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:2]);
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries + 1]);
 }
 
 - (void)testDoesNotRetryANonSocketErrorBelowTheLimit {
   NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:0]);
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries - 1]);
 }
 
 - (void)testDoesNotRetryANonSocketErrorAtTheLimit {
   NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:1]);
+  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries]);
 }
 
 @end

@@ -21,7 +21,7 @@ static const NSTimeInterval TeakRequestSocketErrorRetryDelay = 1.5;
 // How many times a socket-closed transport error gets retried. The stop
 // policy lives here so the call site doesn't need to know the limit —
 // raising it later is a one-line change.
-static const NSUInteger TeakRequestMaxSocketRetries = 1;
+const NSUInteger TeakRequestMaxSocketRetries = 1;
 
 #define _(_id) TeakValueOrNSNull(_id)
 
