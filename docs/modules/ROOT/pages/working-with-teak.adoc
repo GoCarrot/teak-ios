@@ -44,6 +44,73 @@ playerConfiguration.facebookId = "YOUR_PLAYER_FACEBOOK_ID"
 Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
 ----
 
+== Identify User
+
+Objective-C projects not using ``login:withConfiguration:`` can instead identify the current user with ``identifyUser:withConfiguration:``. This tells Teak how the user should be referenced in the Teak system.
+
+All Teak events will be delayed until ``identifyUser`` is called.
+
+doxygen2adoc:identifyUser:withConfiguration:[]
+
+.Example
+[source,objc]
+----
+[[Teak sharedInstance] identifyUser:@"someuserid"];
+----
+
+IMPORTANT: This should be the same way that you identify the user in your system, so that when you export data from Teak, it will be easy for you to associate with your own data.
+
+=== User Configuration
+
+``identifyUser:withConfiguration:`` accepts a ``TeakUserConfiguration`` to attach an email address or Facebook id to the user, and to opt that user out of specific data collection:
+
+[cols="1,3"]
+|===
+|Property |Effect
+
+|``email``
+|The user's email address.
+
+|``facebookId``
+|The user's Facebook id.
+
+|``optOutIdfa``
+|Opts this user out of IDFA (advertising identifier) collection.
+
+|``optOutPushKey``
+|Opts this user out of Push Key (push token) collection. Teak will no longer be able to send this user Local Notifications or Push Notifications.
+
+|``optOutFacebook``
+|Deprecated, and has no effect unless ``TeakSDK5Behaviors`` is set to ``false`` -- see xref:sdk5.adoc[SDK 5 Behaviors].
+|===
+
+.Example
+[source,objc]
+----
+TeakUserConfiguration* configuration = [[TeakUserConfiguration alloc] init];
+configuration.email = @"player@example.com";
+configuration.optOutIdfa = YES;
+
+[[Teak sharedInstance] identifyUser:@"someuserid" withConfiguration:configuration];
+----
+
+=== Disabling Automatic Data Collection
+
+In addition to the per-user opt-outs above, you can disable IDFA, Push Key, or Facebook access token collection for your whole app by adding the following keys to your ``Info.plist``:
+
+.Info.plist
+[source,xml]
+----
+<key>TeakEnableIDFA</key>
+<false/>
+<key>TeakEnablePushKey</key>
+<false/>
+<key>TeakEnableFacebook</key>
+<false/>
+----
+
+Each key defaults to ``true`` (collection enabled) when absent. IDFA collection is also subject to the OS-level advertising tracking authorization, regardless of this setting. ``TeakEnableFacebook`` only has an effect when ``TeakSDK5Behaviors`` has been set to ``false`` -- see xref:sdk5.adoc[SDK 5 Behaviors].
+
 == Rewards
 
 Whenever your game should grant a reward to a player Teak will let you know by posting a notification to the default notification center with the name `Notification.Name(TeakOnReward)`
