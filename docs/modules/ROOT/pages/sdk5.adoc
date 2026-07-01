@@ -18,3 +18,4 @@ To restore the legacy (pre-4.2.0) behavior, add the ``TeakSDK5Behaviors`` boolea
 == SDK 5 Behavior Changes
 
 - Teak no longer automatically collects the Facebook access token from the Facebook SDK (if present). To associate a Facebook login with a Teak user, pass the Facebook id via <<identifyUser:withConfiguration:>> instead.
+- Because the access token is no longer sent, Teak's backend can no longer use it to look up the user's email from Facebook as a fallback when no email was provided directly. Pass the email via <<identifyUser:withConfiguration:>> if you want it collected.

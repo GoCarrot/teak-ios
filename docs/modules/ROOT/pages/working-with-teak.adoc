@@ -62,7 +62,7 @@ IMPORTANT: This should be the same way that you identify the user in your system
 
 === User Configuration
 
-``identifyUser:withConfiguration:`` accepts a ``TeakUserConfiguration`` to attach an email address or Facebook id to the user, and to opt that user out of specific data collection. See the property docs on ``TeakUserConfiguration`` for the full effect of each opt-out:
+``identifyUser:withConfiguration:`` accepts a ``TeakUserConfiguration`` to attach an email address or Facebook id to the user, and to opt that user out of specific data collection:
 
 // This table is hand-written, not doxygen2adoc-generated: only Teak.h and TeakNotification.h
 // are in the Doxyfile INPUT, and doxygen2adoc's "parts" mechanism only emits embeddable partials
@@ -73,16 +73,16 @@ IMPORTANT: This should be the same way that you identify the user in your system
 |Property |Effect
 
 |``email``
-|The user's email address.
+|The user's email address. See <<deleteEmail>> to remove it later.
 
 |``facebookId``
 |The user's Facebook id.
 
 |``optOutIdfa``
-|Opts out of IDFA collection for this user.
+|Opts out of IDFA collection for this user. See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
 
 |``optOutPushKey``
-|Opts out of Push Key (push token) collection for this user.
+|Opts out of Push Key (push token) collection for this user. See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
 
 |``optOutFacebook``
 |Deprecated -- see xref:sdk5.adoc[SDK 5 Behaviors].
@@ -98,6 +98,7 @@ configuration.optOutIdfa = YES;
 [[Teak sharedInstance] identifyUser:@"someuserid" withConfiguration:configuration];
 ----
 
+[#disabling_automatic_data_collection]
 == Disabling Automatic Data Collection
 
 In addition to the per-user opt-outs above, you can disable IDFA, Push Key, or Facebook access token collection for your whole app by adding the following keys to your ``Info.plist``:
