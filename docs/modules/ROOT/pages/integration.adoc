@@ -12,7 +12,7 @@ The following frameworks are required by Teak
 * `AdSupport.framework`
 * `AVFoundation.framework`
 * `ImageIO.framework`
-* `Services.framework`
+* `CoreServices.framework`
 * `StoreKit.framework`
 * `UserNotifications.framework`
 * `CoreGraphics.framework`
