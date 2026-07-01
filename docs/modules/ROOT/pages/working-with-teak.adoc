@@ -103,8 +103,6 @@ By default, Teak automatically re-registers for remote notifications at every ap
 <true/>
 ----
 
-doxygen2adoc:refreshPushTokenIfAuthorized[]
-
 == Rewards
 
 Whenever your game should grant a reward to a player Teak will let you know by posting a notification to the default notification center with the name `Notification.Name(TeakOnReward)`
