@@ -1,0 +1,4 @@
+= iOS Push Credentials
+:page-pagination:
+
+include::ROOT:integrations:apple-apns.adoc[leveloffset=+1]

@@ -1,0 +1,5 @@
+include::ROOT:user-guide:partial$new-game.adoc[]
+
+== Game Settings
+
+Now that we've created or located our game project on Teak, let's get our credentials set up so Apple will let us send push notifications on iOS.

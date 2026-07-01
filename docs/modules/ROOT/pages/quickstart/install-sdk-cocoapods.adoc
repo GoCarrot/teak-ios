@@ -1,0 +1,48 @@
+= Adding the SDK and Rich Push Extensions
+:page-pagination:
+
+An example application with the Teak SDK integrated using CocoaPods is available at https://github.com/GoCarrot/TeakCocoaPodsExample
+
+. Add the Teak pod.
++
+In your Podfile add
++
+```
+pod 'Teak'
+```
++
+to your primary target, then run `pod install`.
++
+. Open Xcode and select your project to view the list of targets.
+
+include::ios::page$quickstart/partials/add-service-extension.adoc[]
+
+. Add the Teak/Extension pod to your TeakNotificationService target.
++
+In your Podfile add
++
+```
+target 'TeakNotificationService' do
+  use_frameworks!
+
+  pod 'Teak/Extension'
+end
+```
++
+Run `pod install`
++
+include::ios::page$quickstart/partials/add-content-extension.adoc[]
+
+. Add the Teak/Extension pod to your TeakNotificationContent target.
++
+In your Podfile add
++
+```
+target 'TeakNotificationContent' do
+  use_frameworks!
+
+  pod 'Teak/Extension'
+end
+```
++
+Run `pod install`
