@@ -44,6 +44,65 @@ playerConfiguration.facebookId = "YOUR_PLAYER_FACEBOOK_ID"
 Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
 ----
 
+=== User Configuration
+
+In addition to email and Facebook id, ``TeakUserConfiguration`` carries per-user data collection opt-outs:
+
+// This table is hand-written, not doxygen2adoc-generated: only Teak.h and TeakNotification.h
+// are in the Doxyfile INPUT, and doxygen2adoc's "parts" mechanism only emits embeddable partials
+// for methods, not properties, so TeakUserConfiguration can't be wired into it without adding
+// Doxyfile/pipeline support for property parts.
+[cols="1,3a", stripes="even"]
+|===
+|Property |Effect
+
+|``optOutIdfa``
+|Opts out of IDFA collection for this user. See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
+
+|``optOutPushKey``
+|Opts out of Push Key (push token) collection for this user. See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
+
+|``optOutFacebook``
+|Deprecated -- see xref:sdk5.adoc[SDK 5 Behaviors].
+|===
+
+.Example
+[source,swift]
+----
+let playerConfiguration = TeakUserConfiguration()
+playerConfiguration.optOutIdfa = true
+Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
+----
+
+[#disabling_automatic_data_collection]
+== Disabling Automatic Data Collection
+
+In addition to the per-user opt-outs above, you can disable IDFA, Push Key, or Facebook access token collection for your whole app by adding the following keys to your ``Info.plist``:
+
+.Info.plist
+[source,xml]
+----
+<key>TeakEnableIDFA</key>
+<false/>
+<key>TeakEnablePushKey</key>
+<false/>
+<key>TeakEnableFacebook</key>
+<false/>
+----
+
+Each key defaults to ``true`` (collection enabled) when absent. IDFA collection is also subject to the OS-level advertising tracking authorization, regardless of this setting. ``TeakEnableFacebook`` only has an effect when ``TeakSDK5Behaviors`` has been set to ``false`` -- see xref:sdk5.adoc[SDK 5 Behaviors].
+
+== Push Token Refresh
+
+By default, Teak automatically re-registers for remote notifications at every app launch (silently, with no permission prompt) so its push token stays current. To take over this responsibility yourself, add the ``TeakDoNotRefreshPushToken`` boolean key to your ``Info.plist`` and set it to ``true``, then call ``<<refreshPushTokenIfAuthorized>>`` whenever you want Teak to refresh its push token.
+
+.Info.plist
+[source,xml]
+----
+<key>TeakDoNotRefreshPushToken</key>
+<true/>
+----
+
 == Rewards
 
 Whenever your game should grant a reward to a player Teak will let you know by posting a notification to the default notification center with the name `Notification.Name(TeakOnReward)`
