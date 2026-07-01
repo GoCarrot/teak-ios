@@ -44,25 +44,9 @@ playerConfiguration.facebookId = "YOUR_PLAYER_FACEBOOK_ID"
 Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
 ----
 
-== Identify User
-
-Objective-C projects not using ``login:withConfiguration:`` can instead identify the current user with ``identifyUser:withConfiguration:``. This tells Teak how the user should be referenced in the Teak system.
-
-All Teak events will be delayed until ``identifyUser`` is called.
-
-doxygen2adoc:identifyUser:withConfiguration:[]
-
-.Example
-[source,objc]
-----
-[[Teak sharedInstance] identifyUser:@"someuserid"];
-----
-
-IMPORTANT: This should be the same way that you identify the user in your system, so that when you export data from Teak, it will be easy for you to associate with your own data.
-
 === User Configuration
 
-``identifyUser:withConfiguration:`` accepts a ``TeakUserConfiguration`` to attach an email address or Facebook id to the user, and to opt that user out of specific data collection:
+In addition to email and Facebook id, ``TeakUserConfiguration`` carries per-user data collection opt-outs:
 
 // This table is hand-written, not doxygen2adoc-generated: only Teak.h and TeakNotification.h
 // are in the Doxyfile INPUT, and doxygen2adoc's "parts" mechanism only emits embeddable partials
@@ -71,12 +55,6 @@ IMPORTANT: This should be the same way that you identify the user in your system
 [cols="1,3a", stripes="even"]
 |===
 |Property |Effect
-
-|``email``
-|The user's email address. See <<deleteEmail>> to remove it later.
-
-|``facebookId``
-|The user's Facebook id.
 
 |``optOutIdfa``
 |Opts out of IDFA collection for this user. See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
@@ -89,13 +67,11 @@ IMPORTANT: This should be the same way that you identify the user in your system
 |===
 
 .Example
-[source,objc]
+[source,swift]
 ----
-TeakUserConfiguration* configuration = [[TeakUserConfiguration alloc] init];
-configuration.email = @"player@example.com";
-configuration.optOutIdfa = YES;
-
-[[Teak sharedInstance] identifyUser:@"someuserid" withConfiguration:configuration];
+let playerConfiguration = TeakUserConfiguration()
+playerConfiguration.optOutIdfa = true
+Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
 ----
 
 [#disabling_automatic_data_collection]
