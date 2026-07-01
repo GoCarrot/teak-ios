@@ -212,8 +212,14 @@ void TeakSignalHandler(int signal) {
 
   // Surface an observable "exception" log event on the uncaught path, matching the
   // caught path's {type, value} shape. Built from a fresh dict so the Sentry report
-  // payload below is untouched.
-  TeakLog_e(@"exception", [TeakRaven exceptionLogEventDataForException:exception]);
+  // payload below is untouched. Guarded because this is the last-resort handler: the
+  // synchronous host logListener is the only host code on this path, so a listener
+  // that throws would escape and suppress the Sentry crash report below. Swallow it —
+  // don't re-log, the log system is what just threw.
+  @try {
+    TeakLog_e(@"exception", [TeakRaven exceptionLogEventDataForException:exception]);
+  } @catch (NSException* ignored) {
+  }
 
   NSDictionary* additions = @{
     @"exception" : @[

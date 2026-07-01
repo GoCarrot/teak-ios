@@ -148,7 +148,8 @@ extern Teak* _Nullable _teakSharedInstance;
 
   // reportUncaughtException: unsets the process uncaught + signal handlers as its
   // first step; snapshot and restore them so the test doesn't leak SIG_DFL into the
-  // XCTest harness.
+  // XCTest harness. The signal set mirrors the one production manages in
+  // setAsUncaughtExceptionHandler.
   NSUncaughtExceptionHandler* savedUncaught = NSGetUncaughtExceptionHandler();
   int signals[] = {SIGABRT, SIGILL, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE};
   const int signalCount = sizeof(signals) / sizeof(signals[0]);
@@ -172,6 +173,44 @@ extern Teak* _Nullable _teakSharedInstance;
   assertThat(capturedEventType, is(@"exception"));
   assertThat(capturedEventData[@"type"], is(@"UncaughtTestException"));
   assertThat(capturedEventData[@"value"], is(@"boom"));
+}
+
+// On the fatal uncaught path the synchronous host logListener is the only host code
+// that runs before the Sentry crash report is sent. A listener that throws must not
+// escape reportUncaughtException: and suppress that report — the emit is guarded so
+// the throw is swallowed and the report below still sends.
+- (void)testReportUncaughtExceptionSwallowsThrowingLogListener {
+  Teak* teak = [[Teak alloc] init];
+  teak.sdkVersion = @"4.3.13-test";
+  teak.log = [[TeakLog alloc] initForTeak:teak withAppId:@"test"];
+  teak.logListener = ^(NSString* event, NSString* level, NSDictionary* payload) {
+    [NSException raise:@"ListenerBoom" format:@"host listener threw"];
+  };
+
+  TeakRaven* raven = [TeakRaven ravenForTeak:self.teakMock];
+  NSException* exception = [NSException exceptionWithName:@"UncaughtTestException"
+                                                  reason:@"boom"
+                                                userInfo:nil];
+
+  NSUncaughtExceptionHandler* savedUncaught = NSGetUncaughtExceptionHandler();
+  int signals[] = {SIGABRT, SIGILL, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE};
+  const int signalCount = sizeof(signals) / sizeof(signals[0]);
+  struct sigaction savedActions[signalCount];
+  for (int i = 0; i < signalCount; i++) {
+    sigaction(signals[i], NULL, &savedActions[i]);
+  }
+
+  Teak* previousShared = _teakSharedInstance;
+  _teakSharedInstance = teak;
+  @try {
+    XCTAssertNoThrow([raven reportUncaughtException:exception]);
+  } @finally {
+    _teakSharedInstance = previousShared;
+    NSSetUncaughtExceptionHandler(savedUncaught);
+    for (int i = 0; i < signalCount; i++) {
+      sigaction(signals[i], &savedActions[i], NULL);
+    }
+  }
 }
 
 - (void)testExceptionLogEventDataMapsNameToTypeAndReasonToValue {
