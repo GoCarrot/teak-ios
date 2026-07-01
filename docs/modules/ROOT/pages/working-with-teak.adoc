@@ -101,8 +101,6 @@ You can still make this call even if the player cannot be prompted for permissio
 
 == Notifications
 
-NOTE: The C signatures shown in this section are the SDK's cross-language bridge (used internally by the Unity plugin) rather than the primary calling convention for a native app -- prefer the Objective-C or Swift forms shown first in each example.
-
 === Scheduling a Notification
 
 You can schedule a notification to be delivered for the current player by using ``<<scheduleNotificationForCreative:secondsFromNow:personalizationData:>>``. The optional ``personalizationData`` dictionary is sent along for templating the notification's content on the dashboard.
@@ -133,9 +131,9 @@ let op = TeakNotification.scheduleNotification(forCreative: "my_creative_id",
                                                 personalizationData: personalizationData)
 ----
 
-Unlike the deprecated call below, this returns a ``TeakOperation`` rather than completing synchronously. ``TeakOperation`` is a plain ``NSOperation``, so rather than polling for it to finish, attach a dependent operation and let the queue notify you -- Teak already enqueues ``op`` internally before handing it back, so a completion block set on ``op`` itself would race; a dependency on an operation you control does not.
+This returns a ``TeakOperation``, a plain ``NSOperation``. Read the result by attaching a dependent operation -- Teak enqueues ``op`` internally before returning it, so a completion block set directly on ``op`` would race.
 
-.Reading the result without polling (Objective-C)
+.Reading the result (Objective-C)
 [source,objc]
 ----
 NSBlockOperation* whenDone = [NSBlockOperation blockOperationWithBlock:^{
@@ -150,7 +148,7 @@ NSBlockOperation* whenDone = [NSBlockOperation blockOperationWithBlock:^{
 [[[NSOperationQueue alloc] init] addOperation:whenDone];
 ----
 
-.Reading the result without polling (Swift)
+.Reading the result (Swift)
 [source,swift]
 ----
 let whenDone = BlockOperation {
@@ -166,42 +164,6 @@ if let op = op {
   whenDone.addDependency(op)
 }
 OperationQueue().addOperation(whenDone)
-----
-
-.From C
-[source,c]
-----
-TeakOperation* TeakNotificationSchedulePersonalizationData(const char* creativeId,
-                                                            int64_t delay,
-                                                            const char* personalizationDataJson)
-
-NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation)
-----
-
-WARNING: ``<<scheduleNotificationForCreative:withMessage:secondsFromNow:>>`` is deprecated in favor of the call above, but still works for existing integrations.
-
-.Example (deprecated, Objective-C)
-[source,objc]
-----
-TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"my_creative_id"
-                                                                 withMessage:@"Come back and play!"
-                                                              secondsFromNow:5];
-----
-
-.Example (deprecated, Swift)
-[source,swift]
-----
-let notif = TeakNotification.scheduleNotification(forCreative: "my_creative_id",
-                                                    withMessage: "Come back and play!",
-                                                    secondsFromNow: 5)
-----
-
-.From C
-[source,c]
-----
-TeakNotification* TeakNotificationSchedule(const char* creativeId,
-                                           const char* message,
-                                           int64_t delay)
 ----
 
 === Canceling a Scheduled Notification
@@ -220,12 +182,6 @@ To cancel a notification that you've scheduled from the client use ``<<cancelSch
 TeakNotification.cancelScheduledNotification("scheduleId")
 ----
 
-.From C
-[source,c]
-----
-TeakNotification* TeakNotificationCancel(const char* scheduleId)
-----
-
 === Cancel All Client-Scheduled Notifications
 
 Using ``<<cancelAll>>`` will cancel all of the notifications which were scheduled from client-side code.
@@ -240,12 +196,6 @@ Using ``<<cancelAll>>`` will cancel all of the notifications which were schedule
 [source,swift]
 ----
 TeakNotification.cancelAll()
-----
-
-.From C
-[source,c]
-----
-TeakNotification* TeakNotificationCancelAll()
 ----
 
 == Player Properties
