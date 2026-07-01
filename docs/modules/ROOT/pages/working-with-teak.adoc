@@ -180,7 +180,7 @@ NSDictionary* TeakOperationGetResultAsDictionary(TeakOperation* operation)
 
 WARNING: ``<<scheduleNotificationForCreative:withMessage:secondsFromNow:>>`` is deprecated in favor of the call above, but still works for existing integrations.
 
-.Example (deprecated)
+.Example (deprecated, Objective-C)
 [source,objc]
 ----
 TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"my_creative_id"
@@ -188,6 +188,7 @@ TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"my
                                                               secondsFromNow:5];
 ----
 
+.Example (deprecated, Swift)
 [source,swift]
 ----
 let notif = TeakNotification.scheduleNotification(forCreative: "my_creative_id",
@@ -205,7 +206,7 @@ TeakNotification* TeakNotificationSchedule(const char* creativeId,
 
 You can schedule a notification to be delivered to other players--a long-distance notification--by using ``<<scheduleNotificationForCreative:secondsFromNow:forUserIds:>>``.
 
-.Example
+.Example (Objective-C)
 [source,objc]
 ----
 TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"my_creative_id"
@@ -213,6 +214,7 @@ TeakNotification* notif = [TeakNotification scheduleNotificationForCreative:@"my
                                                                   forUserIds:@[ @"user1", @"user2" ]];
 ----
 
+.Example (Swift)
 [source,swift]
 ----
 let notif = TeakNotification.scheduleNotification(forCreative: "my_creative_id",
@@ -237,12 +239,13 @@ TeakNotification* TeakNotificationScheduleLongDistanceWithNSArray(const char* cr
 
 To cancel a notification that you've scheduled from the client use ``<<cancelScheduledNotification:>>``.
 
-.Example
+.Example (Objective-C)
 [source,objc]
 ----
 [TeakNotification cancelScheduledNotification:@"scheduleId"];
 ----
 
+.Example (Swift)
 [source,swift]
 ----
 TeakNotification.cancelScheduledNotification("scheduleId")
@@ -258,12 +261,13 @@ TeakNotification* TeakNotificationCancel(const char* scheduleId)
 
 Using ``<<cancelAll>>`` will cancel all of the notifications which were scheduled from client-side code.
 
-.Example
+.Example (Objective-C)
 [source,objc]
 ----
 [TeakNotification cancelAll];
 ----
 
+.Example (Swift)
 [source,swift]
 ----
 TeakNotification.cancelAll()
