@@ -5,8 +5,33 @@ platform :ios do
   lane :test do
     scan(
       workspace: 'Automated/Automated.xcworkspace',
+      # RaceTripwireTests is the ThreadSanitizer race regression guard — it carries signal only under
+      # a sanitizer, so it's excluded from this fast (non-TSan) lane to keep it a quick green signal;
+      # the `test_race` lane runs it under TSan on every commit.
+      skip_testing: ['AutomatedTests/RaceTripwireTests'],
       output_directory: 'test_output/automated',
       output_files: 'results.xml',
+      output_types: 'junit'
+    )
+  end
+
+  desc "Run the race-detection regression guard under ThreadSanitizer (per-commit)"
+  lane :test_race do
+    # TSan options for the simulator test process, via the SIMCTL_CHILD_ prefix:
+    #   halt_on_error=0 — report every race and keep running, rather than aborting on the first.
+    #   suppressions    — vendored code only (see Automated/tsan-suppressions.txt).
+    ENV['SIMCTL_CHILD_TSAN_OPTIONS'] = "halt_on_error=0 suppressions=#{File.expand_path('Automated/tsan-suppressions.txt')}"
+
+    # Runs the race regression guard under TSan. Green in normal operation; a red run means a real
+    # regression — a guarded fix was reverted, or a new race landed. scan writes the JUnit report
+    # before it raises on failure, so the result is always stored and the lane exits nonzero for CI.
+    scan(
+      workspace: 'Automated/Automated.xcworkspace',
+      scheme: 'Automated',
+      thread_sanitizer: true,
+      only_testing: ['AutomatedTests/RaceTripwireTests'],
+      output_directory: 'test_output/race',
+      output_files: 'race.xml',
       output_types: 'junit'
     )
   end
