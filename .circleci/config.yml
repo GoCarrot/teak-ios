@@ -209,10 +209,9 @@ workflows:
           filters:
             tags:
               ignore: /.*/
-      # Runs the race tripwires under TSan on every commit, for visibility. Expected red while a
-      # guarded defect is open — some tripwires assert an as-yet-unfixed invariant and fail by
-      # design, and that red is the tracking signal, not a regression. Non-gating here (not a
-      # dependency of tag_build), so a known red doesn't block promote-tag creation; the release
+      # Runs the race regression guard under TSan on every commit. Green in normal operation; a red
+      # means a real regression — the fix it guards was reverted, or a new race landed. Non-gating
+      # here (not a dependency of tag_build), so it doesn't block promote-tag creation; the release
       # gate lives in the tagged-build workflow below, where a red run blocks the deploy.
       - test_race:
           context:
@@ -252,10 +251,9 @@ workflows:
               ignore: /.*/
             tags:
               only: /.*/
-      # Release gate: the tripwires must be green before a version deploys. The commitment is that
-      # every red is fixed before cutting a release; this enforces it — a red tripwire run blocks
-      # deploy_versioned (and the whole deploy chain below), so a version can't ship while a guarded
-      # defect is open.
+      # Release gate: the race guard must be green before a version deploys. A red run — a reverted
+      # fix or a new race — blocks deploy_versioned (and the whole deploy chain below), so a version
+      # can't ship while a guarded race is open.
       - test_race:
           context:
             - iOS-Build
