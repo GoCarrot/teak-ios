@@ -52,6 +52,8 @@ The generator creates a boilerplate XCTest file with OCMockito/OCHamcrest import
 - `LogTests.m` — OCMockito mocking with `mock()`, `given()`, `stubProperty()`, `assertThat()`
 - `NotificationSettingsTests.m` — bare Teak instance with mocked dependencies, internal property re-declaration
 
+**Testing for race conditions:** see [`Automated/RACE_TESTING.md`](Automated/RACE_TESTING.md) — how to pick a detector for a given race class (ThreadSanitizer vs. a dynamic crash repro vs. a static assertion), why a green TSan run doesn't mean "safe" for nonatomic-strong pointers, and the revert check that makes any race test trustworthy. The `test_race` fastlane lane runs these guards under TSan (per-commit and as a release gate).
+
 **Format code:**
 ```bash
 ./format-code
