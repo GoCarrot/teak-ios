@@ -45,11 +45,7 @@
       self.firstSetTime = [NSDate date];
     }
 
-    BOOL safeNotEquals = YES;
-    @try {
-      safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
-    } @finally {
-    }
+    BOOL safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
 
     if (safeNotEquals) {
       if (self.scheduledBlock != nil) {
