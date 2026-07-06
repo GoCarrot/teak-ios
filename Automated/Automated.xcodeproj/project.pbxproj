@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01DF60A7FDB4617C18BBEAE2 /* RaceTripwireTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2F0B163A675BB4810C732B49 /* RaceTripwireTests.m */; };
 		01E4848D5111513C772D7A82 /* TeakCExternLiveActivityTests.m in Sources */ = {isa = PBXBuildFile; fileRef = EBC630E46232B6C929C398A1 /* TeakCExternLiveActivityTests.m */; };
 		0F9BB099DE5CFEDF8A8B30F9 /* Pods_AutomatedUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDCD65E1A5663F5B9041146E /* Pods_AutomatedUITests.framework */; };
 		137B2D87B7DFDBCC7B5DC85A /* TeakUserProfileAttributeQueueTests.m in Sources */ = {isa = PBXBuildFile; fileRef = A858CD24B4B5AADAD2CD7719 /* TeakUserProfileAttributeQueueTests.m */; };
@@ -107,6 +108,7 @@
 		12B44A19FD44C70C575E9A8B /* TeakDeviceConfigurationTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakDeviceConfigurationTests.m; sourceTree = "<group>"; };
 		2286E8051950D4EC6E1C79EF /* TeakSessionDeferredCallbackTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakSessionDeferredCallbackTests.m; sourceTree = "<group>"; };
 		2CC8154D37CB560E22904A43 /* Pods-AutomatedTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedTests.debug.xcconfig"; path = "Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests.debug.xcconfig"; sourceTree = "<group>"; };
+		2F0B163A675BB4810C732B49 /* RaceTripwireTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = RaceTripwireTests.m; sourceTree = "<group>"; };
 		3FFF5A9E3FBB614BDDAF98EC /* Pods-Automated.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Automated.release.xcconfig"; path = "Target Support Files/Pods-Automated/Pods-Automated.release.xcconfig"; sourceTree = "<group>"; };
 		433392902654423400B10DE4 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		4358FF7F22541E540068A4FD /* Automated.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Automated.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -285,6 +287,7 @@
 				DC251E1F09B0739648086440 /* TeakRequestSocketErrorTests.m */,
 				B165DB88E09CABE8CFB776BA /* TeakWaitForDeepLinkTests.m */,
 				A858CD24B4B5AADAD2CD7719 /* TeakUserProfileAttributeQueueTests.m */,
+				2F0B163A675BB4810C732B49 /* RaceTripwireTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -623,6 +626,7 @@
 				CF22EC2983C75A4444F429C6 /* TeakRequestSocketErrorTests.m in Sources */,
 				5E6B9B4295CBD9D24A0CF31D /* TeakWaitForDeepLinkTests.m in Sources */,
 				137B2D87B7DFDBCC7B5DC85A /* TeakUserProfileAttributeQueueTests.m in Sources */,
+				01DF60A7FDB4617C18BBEAE2 /* RaceTripwireTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

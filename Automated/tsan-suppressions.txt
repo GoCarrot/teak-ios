@@ -1,0 +1,14 @@
+# ThreadSanitizer suppressions for the nightly race lane (bundle exec fastlane test_race).
+#
+# Vendored third-party code ONLY. Never suppress a race in Teak's own code — fix it, or add a
+# tripwire to RaceTripwireTests instead. Each entry must name the vendored library it silences and
+# say why. This file lives outside Teak/ on purpose so a suppression can never be mistaken for a
+# blessed race in first-party source.
+#
+# Format: https://github.com/google/sanitizers/wiki/threadsanitizersuppressions
+#
+# No active suppressions: the nightly runs only the targeted RaceTripwireTests, which touch no
+# vendored code. Add entries here if a vendored library (e.g. libtommath) ever trips TSan.
+#
+# Example (disabled):
+# race:libtommath

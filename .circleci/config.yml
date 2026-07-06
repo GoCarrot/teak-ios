@@ -22,6 +22,35 @@ jobs:
           command: bundle exec fastlane test
       - store_test_results:
           path: test_output/automated
+  test_race:
+    parameters:
+      xcode-version:
+        type: string
+        default: "14.3.1"
+    macos:
+      xcode: << parameters.xcode-version >>
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios_setup
+      - run:
+          name: Run Race Tripwires (ThreadSanitizer)
+          command: |
+            mkdir -p test_output/race
+            # The lane runs every tripwire and exits nonzero if any is red; swallow that here so the
+            # results are always stored, then re-surface it as a job failure in a later step.
+            bundle exec fastlane test_race || touch test_output/race/.failed
+      - store_test_results:
+          path: test_output/race
+      - store_artifacts:
+          path: test_output/race
+      - run:
+          name: Surface race tripwire result
+          command: |
+            if [ -f test_output/race/.failed ]; then
+              echo "Race tripwires reported failures — a guarded defect is still open (see stored results)."
+              exit 1
+            fi
   build:
     parameters:
       xcode-version:
@@ -176,6 +205,19 @@ workflows:
           context:
             - iOS-Build
       - build:
+          context:
+            - iOS-Build
+
+  nightly-race:
+    triggers:
+      - schedule:
+          cron: "0 0 * * 1-5"
+          filters:
+            branches:
+              only:
+                - 4.3-stable
+    jobs:
+      - test_race:
           context:
             - iOS-Build
 
