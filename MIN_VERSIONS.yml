@@ -1,0 +1,5 @@
+# Minimum version requirements for the Teak iOS SDK.
+# Read by antora-ui-teak/script/extract-sdk-versions at docs build time.
+# Update this file when minimum versions change.
+min-ios: "11.0"
+min-xcode: "14"
