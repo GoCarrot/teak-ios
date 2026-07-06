@@ -216,10 +216,10 @@ workflows:
           filters:
             tags:
               ignore: /.*/
-      # Runs the race tripwires under TSan on every commit. Expected red while U1/U2 are open
-      # (they assert an as-yet-unfixed invariant) — that red is the tracking signal, not a
-      # regression. Intentionally not a dependency of tag_build, so the known reds don't freeze
-      # the release/tag-promote flow.
+      # Runs the race tripwires under TSan on every commit. Expected red while the guarded defects
+      # are open — two tripwires assert an as-yet-unfixed invariant and fail by design, and that red
+      # is the tracking signal, not a regression. Intentionally not a dependency of tag_build, so
+      # the known reds don't freeze the release/tag-promote flow.
       - test_race:
           context:
             - iOS-Build

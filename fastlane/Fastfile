@@ -17,53 +17,23 @@ platform :ios do
 
   desc "Run the race-detection tripwires under ThreadSanitizer (per-commit)"
   lane :test_race do
-    tripwires = 'AutomatedTests/RaceTripwireTests'
-    # The watchdog tripwire parks two threads on a forced deadlock, so it runs in its own process to
-    # keep it from starving the shared queue for the other tripwires.
-    watchdog = 'AutomatedTests/RaceTripwireTests/testForcedLockInversionIsCaughtByWatchdog'
-    derived = 'test_output/race/derived'
-
     # TSan options for the simulator test process, via the SIMCTL_CHILD_ prefix:
     #   halt_on_error=0 — report every race and keep running, so one tripwire tripping TSan can't
     #                     abort the process before the others report.
     #   suppressions    — vendored code only (see Automated/tsan-suppressions.txt).
     ENV['SIMCTL_CHILD_TSAN_OPTIONS'] = "halt_on_error=0 suppressions=#{File.expand_path('Automated/tsan-suppressions.txt')}"
 
-    # Build once under TSan, then test in two processes.
+    # Runs the tripwires under TSan. Some assert an as-yet-unfixed invariant and fail by design; a
+    # red run is the signal that a guarded defect is still open. scan writes the JUnit report before
+    # it raises on failure, so the result is always stored and the lane exits nonzero for CI.
     scan(
       workspace: 'Automated/Automated.xcworkspace',
       scheme: 'Automated',
       thread_sanitizer: true,
-      build_for_testing: true,
-      derived_data_path: derived
+      only_testing: ['AutomatedTests/RaceTripwireTests'],
+      output_directory: 'test_output/race',
+      output_files: 'race.xml',
+      output_types: 'junit'
     )
-
-    reported_failure = false
-    [
-      {only: [tripwires], skip: [watchdog], out: 'race.xml'},
-      {only: [watchdog], skip: [], out: 'race-watchdog.xml'}
-    ].each do |run|
-      begin
-        scan(
-          workspace: 'Automated/Automated.xcworkspace',
-          scheme: 'Automated',
-          thread_sanitizer: true,
-          test_without_building: true,
-          derived_data_path: derived,
-          only_testing: run[:only],
-          skip_testing: run[:skip],
-          output_directory: 'test_output/race',
-          output_files: run[:out],
-          output_types: 'junit'
-        )
-      rescue StandardError => e
-        # A red tripwire is the signal that a guarded defect is still open. Keep going so every
-        # tripwire reports, then fail the lane at the end so the nightly surfaces the result.
-        reported_failure = true
-        UI.important("race tripwire reported a failure (expected while a guarded defect is open): #{e.message}")
-      end
-    end
-
-    UI.user_error!('race tripwires reported failures — see test_output/race') if reported_failure
   end
 end
