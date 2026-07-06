@@ -60,7 +60,11 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
-@property (strong, nonatomic) dispatch_block_t reportDurationBlock;
+// reportDurationBlock is created and stored under @synchronized(self) in the currentState
+// handler, but its background-queue body reads it lock-free to check for cancellation while
+// resetReportDurationBlock cancels and frees it under the lock. atomic accessors keep that
+// lock-free read from retaining a pointer the setter is releasing out from under it.
+@property (strong, atomic) dispatch_block_t reportDurationBlock;
 @property (nonatomic) BOOL reportDurationSent;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
 @property (strong, nonatomic) NSString* serverSessionId;
@@ -855,13 +859,21 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       if(self.serverSessionId != nil) {
         [self resetReportDurationBlock];
         __weak typeof(self) weakSelf = self;
-        self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        dispatch_block_t reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
           __strong typeof(self) blockSelf = weakSelf;
           [blockSelf beginBackgroundUpdateTask];
 
-          // Make sure we're not canceled
+          // Make sure the current reportDurationBlock hasn't been canceled. This body captures
+          // weakSelf (it can't reference itself), so it tests whatever reportDurationBlock holds
+          // now — under a rapid Expiring re-transition that may be a newer block than this one.
+          // This body runs outside @synchronized(self), so a concurrent resetReportDurationBlock
+          // can cancel and nil reportDurationBlock at any moment. Reading it once into a strong
+          // local is load-bearing: it retains the block across dispatch_block_testcancel so the
+          // testcancel can't race the setter's release, and it removes the nil-window a second
+          // read would open (testcancel(nil) crashes). Do not re-read the property here.
           // In testing we encountered an issue where serverSessionId was nil here, but not nil earlier.
-          if (blockSelf.reportDurationBlock != nil && !dispatch_block_testcancel(blockSelf.reportDurationBlock) && blockSelf.serverSessionId != nil) {
+          dispatch_block_t canceledCheckBlock = blockSelf.reportDurationBlock;
+          if (canceledCheckBlock != nil && !dispatch_block_testcancel(canceledCheckBlock) && blockSelf.serverSessionId != nil) {
             blockSelf.reportDurationSent = YES;
             blockSelf.sessionVectorClock++;
 
@@ -883,7 +895,8 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
           [blockSelf endBackgroundUpdateTask];
         });
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
+        self.reportDurationBlock = reportDurationBlock;
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), reportDurationBlock);
       }
     } else if (newValue == [TeakSession Expired]) {
     }

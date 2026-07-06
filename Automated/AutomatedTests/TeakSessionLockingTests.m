@@ -3,12 +3,19 @@
 #import "TeakSession.h"
 #import <objc/runtime.h>
 
-// TeakSession.currentState and previousState are read in the currentSessionMutex lock
-// domain (the class methods) but written under @synchronized(self), so they must be
-// declared `atomic` to keep a cross-domain read from tearing. A behavioral race test
-// isn't feasible — on ARM64 aligned pointer reads don't actually tear, so the race is
-// formal (UB / TSan-detectable) rather than observable. These tests instead pin the
-// property declarations to atomic via the Objective-C runtime, and fail if either reverts.
+// Several TeakSession properties are accessed across lock boundaries and must stay `atomic`:
+//
+//   - currentState / previousState are read in the currentSessionMutex lock domain (the class
+//     methods) but written under @synchronized(self), so atomic keeps a cross-domain read from
+//     tearing.
+//   - reportDurationBlock is created and freed (reset) under @synchronized(self), but its
+//     background-queue body reads it lock-free to check for cancellation. atomic keeps that
+//     read from retaining a pointer the setter is releasing out from under it (a use-after-free
+//     seen in production as an EXC_BAD_ACCESS in dispatch_block_testcancel).
+//
+// A behavioral race test isn't feasible — on ARM64 aligned pointer reads don't actually tear, so
+// the race is formal (UB / TSan-detectable) rather than observable. These tests instead pin the
+// property declarations to atomic via the Objective-C runtime, and fail if any reverts.
 @interface TeakSessionLockingTests : XCTestCase
 @end
 
@@ -32,6 +39,11 @@
 - (void)testPreviousStateIsAtomic {
   XCTAssertFalse([self isNonatomicProperty:"previousState"],
                  @"TeakSession.previousState must stay atomic — same cross-lock-domain access as currentState");
+}
+
+- (void)testReportDurationBlockIsAtomic {
+  XCTAssertFalse([self isNonatomicProperty:"reportDurationBlock"],
+                 @"TeakSession.reportDurationBlock must stay atomic — its background-queue body reads it outside @synchronized(self) while resetReportDurationBlock cancels and frees it under the lock");
 }
 
 @end
