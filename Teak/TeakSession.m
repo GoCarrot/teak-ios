@@ -61,9 +61,9 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @property (nonatomic) BOOL userIdentificationSent;
 // reportDurationBlock is created and stored under @synchronized(self) in the currentState
-// handler, but its background-queue body reads it lock-free to test its own cancellation
-// while resetReportDurationBlock cancels and frees it under the lock. atomic accessors keep
-// that lock-free read from retaining a pointer the setter is releasing out from under it.
+// handler, but its background-queue body reads it lock-free to check for cancellation while
+// resetReportDurationBlock cancels and frees it under the lock. atomic accessors keep that
+// lock-free read from retaining a pointer the setter is releasing out from under it.
 @property (strong, atomic) dispatch_block_t reportDurationBlock;
 @property (nonatomic) BOOL reportDurationSent;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
@@ -863,7 +863,9 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           __strong typeof(self) blockSelf = weakSelf;
           [blockSelf beginBackgroundUpdateTask];
 
-          // Make sure we're not canceled.
+          // Make sure the current reportDurationBlock hasn't been canceled. This body captures
+          // weakSelf (it can't reference itself), so it tests whatever reportDurationBlock holds
+          // now — under a rapid Expiring re-transition that may be a newer block than this one.
           // This body runs outside @synchronized(self), so a concurrent resetReportDurationBlock
           // can cancel and nil reportDurationBlock at any moment. Reading it once into a strong
           // local is load-bearing: it retains the block across dispatch_block_testcancel so the

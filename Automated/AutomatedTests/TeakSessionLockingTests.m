@@ -9,7 +9,7 @@
 //     methods) but written under @synchronized(self), so atomic keeps a cross-domain read from
 //     tearing.
 //   - reportDurationBlock is created and freed (reset) under @synchronized(self), but its
-//     background-queue body reads it lock-free to test its own cancellation. atomic keeps that
+//     background-queue body reads it lock-free to check for cancellation. atomic keeps that
 //     read from retaining a pointer the setter is releasing out from under it (a use-after-free
 //     seen in production as an EXC_BAD_ACCESS in dispatch_block_testcancel).
 //
