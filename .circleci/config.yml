@@ -208,22 +208,19 @@ workflows:
           context:
             - iOS-Build
 
-  nightly-race:
-    triggers:
-      - schedule:
-          cron: "0 0 * * 1-5"
-          filters:
-            branches:
-              only:
-                - 4.3-stable
-    jobs:
-      - test_race:
-          context:
-            - iOS-Build
-
   un-tagged-build:
     jobs:
       - test:
+          context:
+            - iOS-Build
+          filters:
+            tags:
+              ignore: /.*/
+      # Runs the race tripwires under TSan on every commit. Expected red while U1/U2 are open
+      # (they assert an as-yet-unfixed invariant) — that red is the tracking signal, not a
+      # regression. Intentionally not a dependency of tag_build, so the known reds don't freeze
+      # the release/tag-promote flow.
+      - test_race:
           context:
             - iOS-Build
           filters:

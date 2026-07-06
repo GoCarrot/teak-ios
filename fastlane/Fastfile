@@ -5,9 +5,9 @@ platform :ios do
   lane :test do
     scan(
       workspace: 'Automated/Automated.xcworkspace',
-      # RaceTripwireTests are the ThreadSanitizer nightly tripwires — several assert an as-yet-unfixed
-      # invariant and fail by design, so they are excluded here to keep the per-commit run green. The
-      # nightly `test_race` lane runs them.
+      # RaceTripwireTests are the ThreadSanitizer race tripwires — several assert an as-yet-unfixed
+      # invariant and fail by design. They are excluded from this fast lane so it stays a quick green
+      # signal; the `test_race` lane runs them under TSan on every commit.
       skip_testing: ['AutomatedTests/RaceTripwireTests'],
       output_directory: 'test_output/automated',
       output_files: 'results.xml',
@@ -15,7 +15,7 @@ platform :ios do
     )
   end
 
-  desc "Run the race-detection tripwires under ThreadSanitizer (nightly on 4.3-stable)"
+  desc "Run the race-detection tripwires under ThreadSanitizer (per-commit)"
   lane :test_race do
     tripwires = 'AutomatedTests/RaceTripwireTests'
     # The watchdog tripwire parks two threads on a forced deadlock, so it runs in its own process to
