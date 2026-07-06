@@ -23,9 +23,11 @@ platform :ios do
     watchdog = 'AutomatedTests/RaceTripwireTests/testForcedLockInversionIsCaughtByWatchdog'
     derived = 'test_output/race/derived'
 
-    # Suppressions apply to vendored code only (see Automated/tsan-suppressions.txt). Passed to the
-    # simulator test process via the SIMCTL_CHILD_ prefix.
-    ENV['SIMCTL_CHILD_TSAN_OPTIONS'] = "suppressions=#{File.expand_path('Automated/tsan-suppressions.txt')}"
+    # TSan options for the simulator test process, via the SIMCTL_CHILD_ prefix:
+    #   halt_on_error=0 — report every race and keep running, so one tripwire tripping TSan can't
+    #                     abort the process before the others report.
+    #   suppressions    — vendored code only (see Automated/tsan-suppressions.txt).
+    ENV['SIMCTL_CHILD_TSAN_OPTIONS'] = "halt_on_error=0 suppressions=#{File.expand_path('Automated/tsan-suppressions.txt')}"
 
     # Build once under TSan, then test in two processes.
     scan(
