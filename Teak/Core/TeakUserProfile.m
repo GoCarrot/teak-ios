@@ -32,35 +32,40 @@
 }
 
 - (void)setAttribute:(id)value forKey:(NSString*)key inDictionary:(NSMutableDictionary*)dictionary {
-  // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
-  if (dictionary[key] != nil) {
+  // The nil-guard, firstSetTime stamp, equality test, and write all run on the serial
+  // operationQueue so the dictionary is only ever touched from one queue. Reading the
+  // dict on the caller's queue while the writer mutates it here is a use-after-free.
+  dispatch_async([Teak operationQueue], ^{
+    // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
+    if (dictionary[key] == nil) {
+      return;
+    }
+
     if (self.firstSetTime == nil) {
       self.firstSetTime = [NSDate date];
     }
 
-    dispatch_async([Teak operationQueue], ^{
-      BOOL safeNotEquals = YES;
-      @try {
-        safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
-      } @finally {
+    BOOL safeNotEquals = YES;
+    @try {
+      safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
+    } @finally {
+    }
+
+    if (safeNotEquals) {
+      if (self.scheduledBlock != nil) {
+        dispatch_block_cancel(self.scheduledBlock);
       }
 
-      if (safeNotEquals) {
-        if (self.scheduledBlock != nil) {
-          dispatch_block_cancel(self.scheduledBlock);
-        }
+      dictionary[key] = value;
 
-        dictionary[key] = value;
+      self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        [self send];
+      });
 
-        self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-          [self send];
-        });
-
-        dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
-        dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
-      }
-    });
-  }
+      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
+      dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
+    }
+  });
 }
 
 - (void)send {
