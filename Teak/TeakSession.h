@@ -27,10 +27,10 @@ typedef void (^UserIdReadyBlock)(TeakSession* _Nonnull);
 @property (strong, nonatomic, readonly) NSString* _Nonnull sessionId;
 @property (strong, atomic, readonly) TeakState* _Nonnull currentState;
 @property (strong, atomic, readonly) TeakUserProfile* _Nonnull userProfile;
-@property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull emailStatus;
-@property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull pushStatus;
-@property (strong, nonatomic, readonly) TeakChannelStatus* _Nonnull smsStatus;
-@property (strong, nonatomic, readonly) NSDictionary* _Nullable additionalData;
+@property (strong, atomic, readonly) TeakChannelStatus* _Nonnull emailStatus;
+@property (strong, atomic, readonly) TeakChannelStatus* _Nonnull pushStatus;
+@property (strong, atomic, readonly) TeakChannelStatus* _Nonnull smsStatus;
+@property (strong, atomic, readonly) NSDictionary* _Nullable additionalData;
 
 DeclareTeakState(Created);
 DeclareTeakState(Configured);

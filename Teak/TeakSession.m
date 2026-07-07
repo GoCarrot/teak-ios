@@ -44,9 +44,13 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, atomic) NSString* countryCode;
 @property (strong, nonatomic) dispatch_queue_t heartbeatQueue;
 @property (strong, nonatomic) dispatch_source_t heartbeat;
-@property (strong, nonatomic) TeakLaunchDataOperation* launchDataOperation;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic) TeakLaunchDataOperation* launchDataOperation;
 @property (nonatomic) BOOL launchAttributionProcessed;
-@property (strong, nonatomic) NSString* facebookAccessToken;
+// facebookAccessToken is reassigned lock-free in -handleEvent: (arbitrary thread, e.g. the
+// Facebook SDK's own callback) while sendUserIdentifier reads it under @synchronized(self) — that
+// lock doesn't cover the writer, so it's the same hazard as countryCode above.
+@property (strong, atomic) NSString* facebookAccessToken;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
 @property (strong, nonatomic, readwrite) NSString* facebookId;
@@ -55,11 +59,13 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 
-@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
-@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
-@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
 
-@property (strong, nonatomic, readwrite) NSDictionary* additionalData;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic, readwrite) NSDictionary* additionalData;
 
 // Same cross-thread reassignment race as countryCode above.
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
@@ -283,12 +289,19 @@ DefineTeakState(Expired, (@[]));
 
     if (!self.appConfiguration.sdk5Behaviors) {
       if (dataCollectionConfiguration.enableFacebookAccessToken) {
-        if (self.facebookAccessToken == nil) {
-          self.facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
+        // Single read: facebookAccessToken is atomic but can still be reassigned between two
+        // reads (handleEvent: writes it lock-free off this method's thread), so the nil-check and
+        // the payload use below must see the same value as the lazy-init above. Without this, a
+        // reassignment to nil between the two live reads would insert nil into payload, which
+        // throws on NSMutableDictionary.
+        NSString* facebookAccessToken = self.facebookAccessToken;
+        if (facebookAccessToken == nil) {
+          facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
+          self.facebookAccessToken = facebookAccessToken;
         }
 
-        if (self.facebookAccessToken != nil) {
-          payload[@"access_token"] = self.facebookAccessToken;
+        if (facebookAccessToken != nil) {
+          payload[@"access_token"] = facebookAccessToken;
         }
       }
     }
@@ -298,9 +311,12 @@ DefineTeakState(Expired, (@[]));
     }
 
     // Then add the attribution, then send request
-    // The launchDataOperation is a dependency for this operation, so it should always be ready
-    if (self.launchDataOperation && self.launchDataOperation.isFinished) {
-      [payload addEntriesFromDictionary:[self.launchDataOperation.result sessionAttribution]];
+    // The launchDataOperation is a dependency for this operation, so it should always be ready.
+    // Single read: launchDataOperation is atomic but can still be reassigned between reads, so the
+    // nil-check, .isFinished, and .result use below must all see the same value.
+    TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
+    if (launchDataOperation && launchDataOperation.isFinished) {
+      [payload addEntriesFromDictionary:[launchDataOperation.result sessionAttribution]];
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
@@ -476,18 +492,24 @@ DefineTeakState(Expired, (@[]));
 
 - (NSOperation*)identifyUserOperation {
   NSOperation* identifyUserOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(sendUserIdentifier) object:nil];
-  if (self.launchDataOperation) {
-    [identifyUserOperation addDependency:self.launchDataOperation];
+  // Single read: launchDataOperation is atomic but can still be reassigned between the nil-check
+  // and the dependency add below.
+  TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
+  if (launchDataOperation) {
+    [identifyUserOperation addDependency:launchDataOperation];
   }
   return identifyUserOperation;
 }
 
 - (void)processAttributionAndDispatchEvents {
-  if (self.launchDataOperation == nil || !self.launchDataOperation.finished || self.launchAttributionProcessed) return;
+  // Single read: launchDataOperation is atomic but can still be reassigned between reads, so the
+  // nil-check, .finished check, and .result use below must all see the same value.
+  TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
+  if (launchDataOperation == nil || !launchDataOperation.finished || self.launchAttributionProcessed) return;
   self.launchAttributionProcessed = YES;
 
   // Grab the resolved launch data (it should never be nil, but let's still check)
-  TeakLaunchData* launchData = self.launchDataOperation.result;
+  TeakLaunchData* launchData = launchDataOperation.result;
   if (launchData == nil) return;
 
   if ([launchData isKindOfClass:[TeakAttributedLaunchData class]]) {
