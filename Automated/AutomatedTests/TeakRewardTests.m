@@ -33,11 +33,10 @@ extern TeakSession* currentSession;
   [super tearDown];
 }
 
-// Regression guard for C-974/C-976: onCompleteWithReward must already be set by the
-// time rewardForRewardId:onComplete: returns — assigned before whenUserIdIsReadyRun:
-// is even called, so there is no window for a fast network reply to beat the
-// assignment (the old +rewardForRewardId: + post-hoc `.onComplete =` pattern had
-// exactly that window).
+// onCompleteWithReward must already be set by the time rewardForRewardId:onComplete:
+// returns — assigned before whenUserIdIsReadyRun: is even called, so there is no
+// window for a fast network reply to beat the assignment (the old +rewardForRewardId:
+// + post-hoc `.onComplete =` pattern had exactly that window).
 - (void)testOnCompleteWithRewardIsAssignedBeforeAnyDispatch {
   __block BOOL fired = NO;
   TeakReward* reward = [TeakReward rewardForRewardId:@"reward-1"
@@ -70,13 +69,10 @@ extern TeakSession* currentSession;
   XCTAssertEqual(reward.rewardStatus, kTeakRewardStatusUnknown);
 }
 
-// The deprecated single-arg factory is kept for source/binary compatibility (TeakReward.h
+// The single-arg factory is kept for source/binary compatibility (TeakReward.h
 // is a shipped public header) and must keep working exactly as before.
-- (void)testDeprecatedRewardForRewardIdStillConstructsAReward {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+- (void)testLegacyRewardForRewardIdStillConstructsAReward {
   TeakReward* reward = [TeakReward rewardForRewardId:@"reward-1"];
-#pragma clang diagnostic pop
 
   XCTAssertNotNil(reward);
   XCTAssertFalse(reward.completed);

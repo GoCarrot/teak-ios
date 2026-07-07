@@ -37,7 +37,7 @@
   ret.completed = NO;
   ret.rewardStatus = kTeakRewardStatusUnknown;
   // Assigned synchronously, before the request below is even dispatched, so there is
-  // no window for the network reply to beat this assignment (C-974/C-976).
+  // no window for the network reply to beat this assignment.
   ret.onCompleteWithReward = onComplete;
 
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
@@ -91,15 +91,14 @@
 
                                                     ret.completed = YES;
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                                                    if (ret.onComplete != nil) {
-                                                      ret.onComplete();
+                                                    RewardCompleted legacyCompletion = ret.onComplete;
+                                                    if (legacyCompletion != nil) {
+                                                      legacyCompletion();
                                                     }
-#pragma clang diagnostic pop
 
-                                                    if (ret.onCompleteWithReward != nil) {
-                                                      ret.onCompleteWithReward(ret);
+                                                    RewardCompletedWithReward completionWithReward = ret.onCompleteWithReward;
+                                                    if (completionWithReward != nil) {
+                                                      completionWithReward(ret);
                                                     }
                                                   }];
     [request send];

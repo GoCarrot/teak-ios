@@ -259,6 +259,8 @@ static NSMutableArray* keepAliveBareSessions;
   [self raceBlockA:^{
     for (int i = 0; i < N; i++) {
       NSString* tag = [[NSString alloc] initWithFormat:@"race-loglistener-value-%d", i];
+      // Capturing tag is load-bearing: a captureless block literal is __NSGlobalBlock__
+      // (static, never heap-copied, never freed) and wouldn't reproduce the UAF at all.
       teak.logListener = ^(NSString* event, NSString* level, NSDictionary* eventData) {
         (void)tag;
       };
