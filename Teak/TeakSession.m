@@ -37,7 +37,11 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, atomic) TeakState* previousState;
 @property (strong, nonatomic) NSDate* startDate;
 @property (strong, nonatomic) NSDate* endDate;
-@property (strong, nonatomic) NSString* countryCode;
+// countryCode/userProfile/serverSessionId are reassigned in the identify-reply request callback
+// (below) while read cross-thread by the heartbeat queue and the duration-report background block.
+// atomic accessors hand those readers a retained snapshot so a concurrent reassignment can't free
+// the value out from under them (nonatomic strong reassignment releases the prior object mid-read).
+@property (strong, atomic) NSString* countryCode;
 @property (strong, nonatomic) dispatch_queue_t heartbeatQueue;
 @property (strong, nonatomic) dispatch_source_t heartbeat;
 @property (strong, nonatomic) TeakLaunchDataOperation* launchDataOperation;
@@ -57,7 +61,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @property (strong, nonatomic, readwrite) NSDictionary* additionalData;
 
-@property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
 // reportDurationBlock is created and stored under @synchronized(self) in the currentState
@@ -67,7 +72,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, atomic) dispatch_block_t reportDurationBlock;
 @property (nonatomic) BOOL reportDurationSent;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
-@property (strong, nonatomic) NSString* serverSessionId;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic) NSString* serverSessionId;
 @property int sessionVectorClock;
 @end
 
@@ -359,6 +365,9 @@ DefineTeakState(Expired, (@[]));
 }
 
 - (void)sendHeartbeat {
+  // Single read: countryCode is atomic but can still be reassigned between two reads, so the
+  // nil-check and the use below must see the same value.
+  NSString* countryCode = self.countryCode;
   NSString* urlString = [NSString stringWithFormat:
                                       @"https://%@/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
                                       kTeakHostname,
@@ -367,7 +376,7 @@ DefineTeakState(Expired, (@[]));
                                       TeakURLEscapedString([Teak sharedInstance].sdkVersion),
                                       TeakURLEscapedString(self.deviceConfiguration.platformString),
                                       TeakURLEscapedString(self.appConfiguration.appVersion),
-                                      self.countryCode == nil ? @"" : [NSString stringWithFormat:@"&country_code=%@", self.countryCode],
+                                      countryCode == nil ? @"" : [NSString stringWithFormat:@"&country_code=%@", countryCode],
                                       arc4random()];
 
   NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
@@ -823,8 +832,10 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         if ([self resetReportDurationBlock]) {
           // The report duration got sent, so send a resume
           self.sessionVectorClock++;
+          // Single read: same nil-check-then-use hazard as sendHeartbeat's countryCode above.
+          NSString* serverSessionId = self.serverSessionId;
           NSDictionary* payload = @{
-            @"session_id" : self.serverSessionId == nil ? @"null" : TeakURLEscapedString(self.serverSessionId),
+            @"session_id" : serverSessionId == nil ? @"null" : TeakURLEscapedString(serverSessionId),
             @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
           };
 
@@ -846,12 +857,14 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       self.heartbeat = nil;
       self.heartbeatQueue = nil;
 
-      // Send user profile out now
-      if (self.userProfile != nil) {
-        __weak typeof(self) weakSelf = self;
+      // Send user profile out now. Single read: capture the profile that's live now rather than
+      // re-reading self.userProfile when the async block runs, which could be a different (or nil)
+      // value by then. No weakSelf/blockSelf needed — userProfile.session strongly retains this
+      // session (TeakRequest+Internal), so self can't be deallocated while userProfile is live.
+      TeakUserProfile* userProfile = self.userProfile;
+      if (userProfile != nil) {
         dispatch_async([Teak operationQueue], ^{
-          __strong typeof(self) blockSelf = weakSelf;
-          [blockSelf.userProfile send];
+          [userProfile send];
         });
       }
 
@@ -871,15 +884,19 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           // local is load-bearing: it retains the block across dispatch_block_testcancel so the
           // testcancel can't race the setter's release, and it removes the nil-window a second
           // read would open (testcancel(nil) crashes). Do not re-read the property here.
-          // In testing we encountered an issue where serverSessionId was nil here, but not nil earlier.
+          //
+          // serverSessionId is under the same hazard: the identify-reply callback can reassign it
+          // on another queue at any moment, so the nil-check and the later use below must see the
+          // same value — single-read it here too, rather than re-reading blockSelf.serverSessionId.
           dispatch_block_t canceledCheckBlock = blockSelf.reportDurationBlock;
-          if (canceledCheckBlock != nil && !dispatch_block_testcancel(canceledCheckBlock) && blockSelf.serverSessionId != nil) {
+          NSString* serverSessionId = blockSelf.serverSessionId;
+          if (canceledCheckBlock != nil && !dispatch_block_testcancel(canceledCheckBlock) && serverSessionId != nil) {
             blockSelf.reportDurationSent = YES;
             blockSelf.sessionVectorClock++;
 
             // Send request for "if you don't hear back from me, this session ended now"
             NSDictionary* payload = @{
-              @"session_id" : TeakURLEscapedString(blockSelf.serverSessionId),
+              @"session_id" : TeakURLEscapedString(serverSessionId),
               @"session_duration_ms" : [NSNumber numberWithLong:[blockSelf.endDate timeIntervalSinceDate:blockSelf.startDate] * 1000],
               @"session_vector_clock": [NSNumber numberWithLong:blockSelf.sessionVectorClock]
             };
