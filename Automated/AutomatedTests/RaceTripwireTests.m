@@ -607,7 +607,8 @@ static NSMutableArray* keepAliveBareSessions;
 // TSan sees it. This is a mutable-container race (the §2 sweet spot), NOT the objc_storeStrong-blind
 // nonatomic-strong class, so a green TSan run here genuinely means safe. Off TSan, the same
 // mid-enumeration mutation is what Foundation's enumeration guard traps as an NSGenericException in
-// production. Green now, red on revert (measured deterministic: 20/20 reverts red, all with the TSan report).
+// production. Green now, red on revert: 20/20 reverts red, all with the TSan report — effectively
+// deterministic, since it's a structural mutate-while-enumerate collision, not a probabilistic sampling window.
 //
 // What the guard needs is mutate-while-enumerate *pressure*, not registry *size*. A distinct route
 // per iteration would grow the registry unbounded, and every reader pass compiles a fresh regex per

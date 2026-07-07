@@ -55,7 +55,8 @@ makes TSan fire. Open it as a starting point for a container-race test.
 The mutate-vs-*enumerate* shape is caught just as reliably as two setters, and this was measured:
 `testTeakLinkRouteRegistryIsSerializedUnderConcurrency` races the registry's `setObject:forKey:`
 against a concurrent `countByEnumeratingWithState:`; reverting its `@synchronized` fired `race on
-NSMutableDictionary` on 20/20 separate-process runs (deterministic). Both sides are instrumented
+NSMutableDictionary` on 20/20 separate-process runs — effectively deterministic (a structural collision,
+not a probabilistic sampling window). Both sides are instrumented
 Foundation, so TSan pairs them — even though the write lands deep in CoreFoundation's dictionary
 machinery. (Foundation's own "mutated while being enumerated" `NSGenericException` guard is the same
 bug's off-TSan face — the production crash — but on the TSan lane the race report is what surfaces
