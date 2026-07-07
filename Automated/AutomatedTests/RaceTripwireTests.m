@@ -102,7 +102,7 @@ extern NSString* const currentSessionMutex;
 // The macro-generated currentState KVO handler. A bare-alloc session never registers the observer
 // (-init does), so the lock-order guard invokes the real handler directly to exercise its body.
 - (void)_TeakSession_currentState_ChangedFrom:(id)oldValue to:(id)newValue;
-@property (nonatomic) volatile atomic_int sessionVectorClock;
+@property (nonatomic) atomic_int sessionVectorClock;
 - (int)incrementSessionVectorClock;
 - (int)markReportDurationSentAndIncrementSessionVectorClock;
 @end

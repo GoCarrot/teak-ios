@@ -107,11 +107,11 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // -incrementSessionVectorClock/-markReportDurationSentAndIncrementSessionVectorClock below, which
 // use atomic_fetch_add. reportDurationSent never participates in a read-modify-write of its own
 // prior value, so plain atomic load/store fully covers it.
-@property (nonatomic) volatile atomic_bool reportDurationSent;
+@property (nonatomic) atomic_bool reportDurationSent;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
 // Same cross-thread reassignment race as countryCode above.
 @property (strong, atomic) NSString* serverSessionId;
-@property (nonatomic) volatile atomic_int sessionVectorClock;
+@property (nonatomic) atomic_int sessionVectorClock;
 
 // Set once, under deviceConfigurationObserverMutex, when this session's observers on the shared
 // deviceConfiguration are removed, so the removal happens exactly once whether it comes from session
