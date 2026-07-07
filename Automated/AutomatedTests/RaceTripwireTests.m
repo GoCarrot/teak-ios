@@ -18,6 +18,9 @@
 @import OCHamcrest;
 @import OCMockito;
 
+// The current-session global (external linkage), driven directly by the replacement guard below.
+extern TeakSession* currentSession;
+
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
 // kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
@@ -78,6 +81,9 @@
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
+@property (nonatomic) BOOL deviceConfigurationObserversDetached;
+- (void)detachDeviceConfigurationObservers;
++ (void)logoutReusingCurrentSession:(BOOL)reuseSession;
 @end
 
 // pushToken/liveActivityPushToStartToken/advertisingIdentifier/notificationDisplayEnabled are
@@ -116,9 +122,42 @@
 @end
 
 @interface RaceTripwireTests : XCTestCase
+// Real init'd sessions created by the observer-lifecycle guards, flushed in -tearDown (see there).
+@property (nonatomic, strong) NSMutableArray<TeakSession*>* createdSessions;
 @end
 
 @implementation RaceTripwireTests
+
+// The observer-lifecycle guards below drive real init'd sessions, which read
+// TeakConfiguration.configuration; seed the singleton once (guarded — another test class may have
+// configured it already). The other tests in this class don't depend on it.
++ (void)setUp {
+  [super setUp];
+  @try {
+    [TeakConfiguration configureForAppId:@"test-app" andSecret:@"test-secret"];
+  } @catch (NSException* exception) {
+    // Already initialized by another test — fine.
+  }
+}
+
+- (void)setUp {
+  [super setUp];
+  self.createdSessions = [NSMutableArray array];
+}
+
+- (void)tearDown {
+  // The observer-lifecycle guards drive real init'd sessions; -init retains each in the strong
+  // TeakEventHandlerSet, so they never -dealloc to self-detach. Detach every one here so none lingers
+  // as a live deviceConfiguration KVO observer — otherwise a later test mutating
+  // deviceConfiguration.advertisingIdentifier/pushToken would fire the stale observation block into a
+  // spent session. Detach is idempotent, so re-detaching an already-detached session no-ops.
+  for (TeakSession* session in self.createdSessions) {
+    [session detachDeviceConfigurationObservers];
+  }
+  [self.createdSessions removeAllObjects];
+  currentSession = nil;
+  [super tearDown];
+}
 
 // Spin-barrier rendezvous: both blocks arrive at the barrier, then bust out within nanoseconds of
 // each other, so short loops still overlap for their full duration. A single-signal gate would let
@@ -573,6 +612,64 @@ static NSMutableArray* keepAliveBareSessions;
                 (void)[TeakLink routeNamesAndDescriptions].count;
               }
             }];
+}
+
+// --- Cross-session deviceConfiguration KVO observer-lifecycle guards ---
+//
+// Every session registers KVO observers on the process-shared deviceConfiguration in -init, and
+// those must be removed exactly once. The fix serializes every add and remove on the shared object
+// under one dedicated leaf lock (deviceConfigurationObserverMutex, held directly in -init and in
+// detach), removes them deterministically at session replacement rather than from a background
+// -dealloc, and makes the removal idempotent so -dealloc's fallback can't double-remove. The
+// cross-thread add/remove race itself has no reliable in-process crash signal (RACE_TESTING.md §5),
+// so these two guards pin the structural invariants deterministically (clean assertions, not a crash
+// repro): idempotent removal, and the removal actually happening at replacement rather than being
+// left to a background dealloc.
+
+// Idempotent removal. -init registered the observers, so the first detach removes them and the
+// second must no-op; without the flag guard the second removeObserver throws "not registered as an
+// observer". Drives a real init'd session — a bare [TeakSession alloc] has nil deviceConfiguration,
+// so removeObserver silently no-ops and the test would false-green. Revert (drop the flag) → red.
+- (void)testDetachDeviceConfigurationObserversIsIdempotent {
+  TeakSession* session = [[TeakSession alloc] init];
+  [self.createdSessions addObject:session];
+  [session detachDeviceConfigurationObservers];
+  XCTAssertNoThrow([session detachDeviceConfigurationObservers],
+                   @"second detach must no-op, not double-remove the deviceConfiguration observers");
+}
+
+// Replacement detaches the outgoing session deterministically, rather than leaving its removeObserver
+// to a background -dealloc that races a new session's addObserver. After a logout
+// swaps the current session, the outgoing one must be flagged detached. Revert (drop the detach call
+// in logoutReusingCurrentSession) → the flag stays NO → red.
+- (void)testReplacementDetachesOutgoingSession {
+  TeakSession* outgoing = [[TeakSession alloc] init];
+  [self.createdSessions addObject:outgoing];
+  currentSession = outgoing;
+
+  [TeakSession logoutReusingCurrentSession:NO];
+  [self.createdSessions addObject:currentSession];  // logout's internally-created replacement session
+
+  XCTAssertTrue(outgoing.deviceConfigurationObserversDetached,
+                @"logout must detach the outgoing session's deviceConfiguration observers");
+}
+
+// Concurrent detach must stay safe — the dedicated observer lock + flag serialize callers so exactly one thread
+// does the removeObserver and the rest no-op. Green-stable with the fix (concurrent detach is
+// genuinely safe, so this never crashes on a healthy tree); revert either the lock or the flag and
+// two threads removeObserver the same keypath at once → throw/crash. Best-effort in that it exercises
+// the concurrent path but isn't a deterministic signal for the broader KVO observationInfo
+// corruption the fix prevents (RACE_TESTING.md §5).
+- (void)testDetachDeviceConfigurationObserversIsConcurrencySafe {
+  TeakSession* session = [[TeakSession alloc] init];
+  [self.createdSessions addObject:session];
+  [self raceBlockA:^{
+    for (int i = 0; i < 500; i++) [session detachDeviceConfigurationObservers];
+  }
+            blockB:^{
+              for (int i = 0; i < 500; i++) [session detachDeviceConfigurationObservers];
+            }];
+  XCTAssertTrue(session.deviceConfigurationObserversDetached);
 }
 
 @end
