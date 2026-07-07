@@ -88,6 +88,13 @@ Building one that's trustworthy (a green must mean "no bug," not "I missed the w
 - **Iterate hard** — hundreds of thousands of iterations. At 500k the `serverSessionId` probe
   crashed 10/10 runs; tune the count up until the crash is effectively deterministic.
 
+The skeleton above is validated against CFString-backed pointees (`NSString`). For a plain-object
+pointee, a shallow property/ivar read can false-green — freed memory gets reused by a same-shaped
+allocation quickly enough that the read lands on something that still looks "valid." Touch the isa
+instead (e.g. `NSStringFromClass([obj class]).length`) to force a class-table lookup that reliably
+traps on freed/reused memory, and expect to need a higher iteration count — roughly 10x — to
+reproduce as deterministically as the CFString case.
+
 Minimal skeleton (drop into an XCTest case; `raceBlockA:blockB:` is the spin-barrier helper in
 `RaceTripwireTests.m`):
 
