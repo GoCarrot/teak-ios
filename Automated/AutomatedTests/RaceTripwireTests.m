@@ -5,6 +5,7 @@
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLog.h"
+#import "TeakPushState.h"
 #import "TeakRaven.h"
 #import "TeakSession.h"
 #import "TeakUserProfile.h"
@@ -17,7 +18,7 @@
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
 // kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
-// userProfile) that carry signal on their own, and a ThreadSanitizer-only serialization guard (the
+// userProfile/stateChain) that carry signal on their own, and a ThreadSanitizer-only serialization guard (the
 // attribute-dict test) that needs the sanitizer to see the race at all. Both run every commit, just
 // on different lanes: the `test` lane skips this whole class to keep the fast per-commit signal
 // quick — the crash repros are too slow (up to 2M iterations) for it, and the serialization test
@@ -62,6 +63,13 @@
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
+@end
+
+// stateChain is private (declared only in TeakPushState.m's class extension). Re-declared here
+// for full read-write access, per the project convention of redeclaring internal properties in
+// the test file rather than importing Teak+Internal.h (which doesn't expose it either).
+@interface TeakPushState (RaceTripwire)
+@property (strong, atomic) NSArray* stateChain;
 @end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
@@ -253,6 +261,34 @@ static NSMutableArray* keepAliveBareSessions;
               for (int i = 0; i < 8000; i++) {
                 TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:raven message:@"test" additions:nil];
                 (void)report;
+              }
+            }];
+}
+
+// TeakPushState.stateChain is written under @synchronized(self) in updateCurrentState: but read
+// lock-free by cachedPushState and serializedStateChain. COW discipline means the writer already
+// swaps in a whole new array rather than mutating in place — but the old array is still freed on
+// swap, so a nonatomic-strong reassignment on one thread races a read+retain on another, same as
+// serverSessionId/countryCode/userProfile above. The array itself is a plain object (not a
+// CFString), and its element (a single string) is short-lived per iteration too, so — like
+// userProfile — a shallow read (e.g. .count alone) risks a same-shaped-allocation false green;
+// isa-touch via NSStringFromClass plus .count, at userProfile's higher iteration count, reproduces
+// reliably. Uses a bare `[TeakPushState alloc]` (no -init) since the test only drives the
+// stateChain accessor — -init would register a TeakEvent handler and spin up an operation queue
+// neither of which this repro needs.
+- (void)testStateChainIsAtomicUnderConcurrency {
+  TeakPushState* pushState = [TeakPushState alloc];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      pushState.stateChain = @[ [[NSString alloc] initWithFormat:@"race-statechain-value-%d", i] ];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSArray* chain = pushState.stateChain;
+                (void)NSStringFromClass([chain class]).length;
+                (void)chain.count;
               }
             }];
 }
