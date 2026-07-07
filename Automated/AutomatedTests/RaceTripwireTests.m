@@ -208,10 +208,11 @@ static NSMutableArray* keepAliveBareSessions;
 // TeakRaven's payloadTemplate at initForRaven: — a plain top-level dictionaryWithDictionary: copy,
 // which leaves nested mutable values (the "user" dict) as the SAME object referenced by both the
 // live template and the report. Thread A drives the real UserIdentified mutation path
-// (handleEvent:), which writes into that "user" dict on every call; thread B reads from the
-// report's copy of it, the same access send performs while JSON-serializing the payload. Fixed,
-// the report holds its own copy of "user" and the two threads touch different objects, so TSan
-// stays silent. Reverting the fix re-aliases them and TSan reports a race on the dictionary.
+// (handleEvent:), which writes into that "user" dict on every call; thread B reads directly from
+// the report's copy of it via objectForKey: — a stand-in for send's NSJSONSerialization read,
+// which doesn't trip TSan's dictionary interceptor here, but pins the same aliasing invariant.
+// Fixed, the report holds its own copy of "user" and the two threads touch different objects, so
+// TSan stays silent. Reverting the fix re-aliases them and TSan reports a race on the dictionary.
 - (void)testRavenReportDoesNotShareUserDict {
   TeakRaven* raven = [self makeRaven];
   TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:raven message:@"test" additions:nil];
