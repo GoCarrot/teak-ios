@@ -483,6 +483,12 @@ void TeakSignalHandler(int signal) {
       self.raven = raven;
       self.payload = [NSMutableDictionary dictionaryWithDictionary:self.raven.payloadTemplate];
 
+      // dictionaryWithDictionary: is shallow, so without this the "user" entry stays the
+      // very same NSMutableDictionary that raven's handleEvent: keeps mutating on every
+      // UserIdentified for the rest of the raven's life. Give the report its own copy so
+      // that mutation and this report's JSON serialization never touch the same object.
+      self.payload[@"user"] = [self.payload[@"user"] mutableCopy];
+
       CFUUIDRef theUUID = CFUUIDCreate(NULL);
       CFStringRef string = CFUUIDCreateString(NULL, theUUID);
       CFRelease(theUUID);

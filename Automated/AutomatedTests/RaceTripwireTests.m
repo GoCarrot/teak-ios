@@ -1,9 +1,18 @@
 #import <XCTest/XCTest.h>
 #import <stdatomic.h>
 
+#import "TeakAppConfiguration.h"
+#import "TeakConfiguration.h"
+#import "TeakDeviceConfiguration.h"
+#import "TeakLog.h"
+#import "TeakRaven.h"
 #import "TeakSession.h"
 #import "TeakUserProfile.h"
+#import "UserIdEvent.h"
 #import <Teak/Teak.h>
+
+@import OCHamcrest;
+@import OCMockito;
 
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
@@ -20,6 +29,25 @@
 
 @interface Teak (RaceTripwire)
 + (dispatch_queue_t)operationQueue;
+@end
+
+// Re-expose internal Teak properties needed to build a real TeakRaven (mirrors TeakRavenTests.m).
+@interface Teak ()
+@property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
+@property (strong, nonatomic) TeakLog* _Nonnull log;
+@end
+
+// TeakRavenReport is a private class declared only inside TeakRaven.m; re-declare its shape here so
+// the tripwire can drive the real initializer and inspect the resulting payload.
+@interface TeakRavenReport : NSObject
+@property (strong, nonatomic) NSMutableDictionary* payload;
+- (id)initForRaven:(nonnull TeakRaven*)raven message:(nonnull NSString*)message additions:(NSDictionary*)additions;
+@end
+
+// userId is read-only in the public header; re-expose as read-write so the tripwire can construct
+// UserIdEvent instances directly, the same way TeakRaven's own handleEvent: receives them.
+@interface UserIdEvent ()
+@property (strong, nonatomic, readwrite) NSString* _Nonnull userId;
 @end
 
 @interface TeakUserProfile (RaceTripwire)
@@ -148,6 +176,56 @@ static NSMutableArray* keepAliveBareSessions;
                 TeakUserProfile* p = session.userProfile;
                 (void)NSStringFromClass([p class]).length;
                 (void)p.stringAttributes.count;
+              }
+            }];
+}
+
+// Builds a real TeakRaven the same way TeakRavenTests.m does: a fully-stubbed Teak mock so
+// payloadTemplate construction runs to completion without touching the network.
+- (TeakRaven*)makeRaven {
+  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
+  [given([deviceConfig deviceId]) willReturn:@"test-device-id"];
+
+  TeakAppConfiguration* appConfig = mock([TeakAppConfiguration class]);
+  [given([appConfig appId]) willReturn:@"test-app-id"];
+  [given([appConfig appVersion]) willReturn:@"1"];
+  [given([appConfig appVersionName]) willReturn:@"1.0.0"];
+  [given([appConfig isProduction]) willReturn:@NO];
+
+  TeakConfiguration* config = mock([TeakConfiguration class]);
+  [given([config deviceConfiguration]) willReturn:deviceConfig];
+  [given([config appConfiguration]) willReturn:appConfig];
+
+  Teak* teakMock = mock([Teak class]);
+  [given([teakMock sdkVersion]) willReturn:@"4.3.13-test"];
+  [given([teakMock configuration]) willReturn:config];
+  [given([teakMock log]) willReturn:[[TeakLog alloc] initForTeak:teakMock withAppId:@"test"]];
+
+  return [TeakRaven ravenForTeak:teakMock];
+}
+
+// Raven-report shared-dict regression guard (ThreadSanitizer). TeakRavenReport shallow-copies
+// TeakRaven's payloadTemplate at initForRaven: — a plain top-level dictionaryWithDictionary: copy,
+// which leaves nested mutable values (the "user" dict) as the SAME object referenced by both the
+// live template and the report. Thread A drives the real UserIdentified mutation path
+// (handleEvent:), which writes into that "user" dict on every call; thread B reads from the
+// report's copy of it, the same access send performs while JSON-serializing the payload. Fixed,
+// the report holds its own copy of "user" and the two threads touch different objects, so TSan
+// stays silent. Reverting the fix re-aliases them and TSan reports a race on the dictionary.
+- (void)testRavenReportDoesNotShareUserDict {
+  TeakRaven* raven = [self makeRaven];
+  TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:raven message:@"test" additions:nil];
+
+  [self raceBlockA:^{
+    for (int i = 0; i < 8000; i++) {
+      UserIdEvent* event = [[UserIdEvent alloc] initWithType:UserIdentified];
+      event.userId = [NSString stringWithFormat:@"user-%d", i];
+      [raven handleEvent:event];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < 8000; i++) {
+                (void)[report.payload[@"user"] objectForKey:@"device_id"];
               }
             }];
 }
