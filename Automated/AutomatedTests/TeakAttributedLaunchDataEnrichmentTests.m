@@ -39,8 +39,8 @@
 
 /// When there's no pre-existing attribution, updatedWithDeepLink: with a URL that
 /// carries teak_* params must populate the attribution fields on the RETURNED
-/// object, and must leave the receiver untouched (C-973: the receiver may already
-/// be published/read from another queue by the time this runs).
+/// object, and must leave the receiver untouched — the receiver may already be
+/// published/read from another queue by the time this runs.
 - (void)testUpdateDeepLinkPopulatesAttributionWhenOldIsNil {
   NSURL* bareUrl = [NSURL URLWithString:@"teaktest-app://menu"];
   TeakAttributedLaunchData* data = [[TeakAttributedLaunchData alloc] initWithUrl:bareUrl andShortLink:nil];
@@ -61,7 +61,7 @@
   XCTAssertEqualObjects(updated.optOutCategory, @"promos");
   XCTAssertEqualObjects(updated.deepLink, enrichedUrl);
 
-  // Regression guard for C-973: the receiver must remain exactly as constructed.
+  // Regression guard: the receiver must remain exactly as constructed.
   XCTAssertNil(data.scheduleId);
   XCTAssertNil(data.creativeId);
   XCTAssertNil(data.rewardId);

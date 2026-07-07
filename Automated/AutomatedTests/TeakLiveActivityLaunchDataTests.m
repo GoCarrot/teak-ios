@@ -150,7 +150,7 @@ static NSString* const kSystemActivityId = @"D3CBB9AF-7292-4FD9-B22D-DEAC3D033BD
 /// launch data operation, and the enriched fields surface in both sessionAttribution
 /// (already-identified sessions) and to_h (TeakPostLaunchSummary userInfo). The
 /// replacement operation runs synchronously (no I/O involved), and the original
-/// operation/result must be left untouched (C-973).
+/// operation/result must be left untouched.
 - (void)testUpdateDeepLinkEnrichesAttributedFieldsAndPreservesSystemActivityId {
   TeakLaunchDataOperation* op = [TeakLaunchDataOperation fromLiveActivityTap:kSystemActivityId];
   NSOperationQueue* queue = [[NSOperationQueue alloc] init];
@@ -178,7 +178,7 @@ static NSString* const kSystemActivityId = @"D3CBB9AF-7292-4FD9-B22D-DEAC3D033BD
   XCTAssertEqualObjects(dict[@"teakCreativeId"], @"42");
   XCTAssertEqualObjects(dict[@"teakRewardId"], @"99");
 
-  // Regression guard for C-973: the original operation's result must be untouched.
+  // Regression guard: the original operation's result must be untouched.
   TeakLiveActivityLaunchData* originalData = (TeakLiveActivityLaunchData*)op.result;
   XCTAssertEqualObjects(originalData.systemActivityId, kSystemActivityId);
   NSDictionary* originalAttribution = [originalData sessionAttribution];
