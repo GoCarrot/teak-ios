@@ -254,6 +254,89 @@ static NSMutableArray<NSArray*>* raceTest_sentBatchSnapshots;
   XCTAssertEqual(transmitted.count, (NSUInteger)2, @"both payloads must be present in what was actually transmitted -- a dropped one means the cancel+append race reopened");
 }
 
+// Complementary to the append-wins ordering above: the opposite outcome,
+// where -sendNow wins the race and fully completes before
+// -addRequestIntoBatch: gets a chance to append. cancel() then correctly
+// returns NO, and the payload must not be dropped -- it re-routes into a
+// fresh batch via +batchRequestWithSession: instead. This is the literal "no
+// silent drop" guarantee for that branch, forced with the same
+// pause-after-cancel hook as the test above, this time armed on sendNow's own
+// internal -cancel call: while it's paused (already decided to proceed with
+// the send, but not yet done so), a concurrent -addRequestIntoBatch: call for
+// the same batch blocks on the batch's instance lock -- both hold it for
+// their entire operation, so append #2 can't even start evaluating its own
+// cancel() until sendNow's paused thread releases. Only once the pause
+// resolves and sendNow finishes (setting .sent) does append #2 get the lock,
+// see the batch already sent, and take the reroute path.
+- (void)testAddRequestIntoBatchReroutesPayloadWhenSendNowWinsRace {
+  TeakSession* session = [self makeMockSession];
+
+  // currentBatchForSession:'s backing store is a function-local static shared
+  // across every test in this file (see the S2 test below) -- force whatever
+  // it's currently holding to a sent state so the reroute this test drives is
+  // guaranteed to construct a fresh batch, independent of test run order.
+  [[TeakTrackEventBatchedRequest currentBatchForSession:session] prepareAndSend];
+  [raceTest_sentBatchSnapshots removeAllObjects];
+
+  TeakTrackEventBatchedRequest* batch = [[TeakTrackEventBatchedRequest alloc] initWithSession:session];
+
+  [TeakTrackEventBatchedRequest addRequestIntoBatch:batch
+                                         withSession:session
+                                         forEndpoint:@"/me/events"
+                                         withPayload:@{@"action_type" : @"race", @"object_type" : @"first"}
+                                         andCallback:nil];
+  XCTAssertFalse(batch.sent, @"first append should only schedule, not send immediately");
+
+  __block TeakBatchedRequest* result;
+  __block BOOL callbackInvoked = NO;
+  XCTestExpectation* sendNowDone = [self expectationWithDescription:@"sendNow completed"];
+  XCTestExpectation* appendDone = [self expectationWithDescription:@"append #2 completed"];
+
+  [TeakBatchedRequest raceTest_armPauseAfterNextCancel];
+
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    [batch sendNow];
+    [sendNowDone fulfill];
+  });
+
+  long cancelHappened = dispatch_semaphore_wait(raceTest_cancelHappenedSem, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)));
+  XCTAssertEqual(cancelHappened, 0L, @"sendNow's -cancel should have run and signalled by now");
+
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    result = [TeakTrackEventBatchedRequest addRequestIntoBatch:batch
+                                                     withSession:session
+                                                     forEndpoint:@"/me/events"
+                                                     withPayload:@{@"action_type" : @"race", @"object_type" : @"second"}
+                                                     andCallback:^(NSDictionary* reply) {
+                                                       callbackInvoked = YES;
+                                                     }];
+    [appendDone fulfill];
+  });
+
+  // append #2 needs the same instance lock sendNow is holding while paused --
+  // it must still be blocked (not even returned) a moment later. Red here
+  // (result already set) means the two are NOT mutually exclusive.
+  usleep(200000);
+  XCTAssertNil(result, @"append #2 must stay blocked on the batch's lock while sendNow is atomically in-flight");
+
+  dispatch_semaphore_signal(raceTest_proceedSem);
+
+  [self waitForExpectations:@[sendNowDone, appendDone] timeout:5.0];
+
+  XCTAssertTrue(batch.sent, @"sendNow should have completed the send");
+  XCTAssertNotNil(result, @"payload must land somewhere, not be silently dropped when sendNow wins the race");
+  XCTAssertNotEqual(result, (TeakBatchedRequest*)batch, @"the already-sent batch cannot accept the new payload -- a fresh batch must be returned");
+  XCTAssertFalse(result.sent, @"the fresh, rerouted batch should only schedule, not send immediately");
+
+  [result sendNow];
+  result.callback(@{});
+
+  XCTAssertEqual(raceTest_sentBatchSnapshots.count, (NSUInteger)2, @"both the original send and the rerouted payload's batch should transmit, exactly once each");
+  NSArray* reroutedTransmitted = raceTest_sentBatchSnapshots.lastObject;
+  XCTAssertEqual(reroutedTransmitted.count, (NSUInteger)1, @"the rerouted payload must be present, alone, in what was actually transmitted");
+  XCTAssertTrue(callbackInvoked, @"the callback registered on the rerouted call must still fire");
+}
+
 #pragma mark - S2: currentBatchForSession:'s .sent read must be serialized against -prepareAndSend's write
 
 // .sent is written under the instance lock (-prepareAndSend) but was read
