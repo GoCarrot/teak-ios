@@ -617,13 +617,14 @@ static NSMutableArray* keepAliveBareSessions;
 // --- Cross-session deviceConfiguration KVO observer-lifecycle guards ---
 //
 // Every session registers KVO observers on the process-shared deviceConfiguration in -init, and
-// those must be removed exactly once. The fix removes them deterministically at session replacement
-// under currentSessionMutex — the same lock every -init addObserver holds — so all add/remove on the
-// shared object are serialized, and makes the removal idempotent so -dealloc's fallback can't
-// double-remove. The cross-thread add/remove race itself has no reliable in-process crash signal
-// (RACE_TESTING.md §5), so these two guards pin the structural invariants deterministically (clean
-// assertions, not a crash repro): idempotent removal, and the removal actually happening at
-// replacement rather than being left to a background dealloc.
+// those must be removed exactly once. The fix serializes every add and remove on the shared object
+// under one dedicated leaf lock (deviceConfigurationObserverMutex, held directly in -init and in
+// detach), removes them deterministically at session replacement rather than from a background
+// -dealloc, and makes the removal idempotent so -dealloc's fallback can't double-remove. The
+// cross-thread add/remove race itself has no reliable in-process crash signal (RACE_TESTING.md §5),
+// so these two guards pin the structural invariants deterministically (clean assertions, not a crash
+// repro): idempotent removal, and the removal actually happening at replacement rather than being
+// left to a background dealloc.
 
 // Idempotent removal. -init registered the observers, so the first detach removes them and the
 // second must no-op; without the flag guard the second removeObserver throws "not registered as an
@@ -637,8 +638,8 @@ static NSMutableArray* keepAliveBareSessions;
                    @"second detach must no-op, not double-remove the deviceConfiguration observers");
 }
 
-// Replacement detaches the outgoing session deterministically, under the mutex, rather than leaving
-// its removeObserver to a background -dealloc that races a new session's addObserver. After a logout
+// Replacement detaches the outgoing session deterministically, rather than leaving its removeObserver
+// to a background -dealloc that races a new session's addObserver. After a logout
 // swaps the current session, the outgoing one must be flagged detached. Revert (drop the detach call
 // in logoutReusingCurrentSession) → the flag stays NO → red.
 - (void)testReplacementDetachesOutgoingSession {
