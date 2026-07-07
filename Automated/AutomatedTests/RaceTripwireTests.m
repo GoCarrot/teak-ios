@@ -2,6 +2,7 @@
 #import <stdatomic.h>
 
 #import "TeakAppConfiguration.h"
+#import "TeakChannelStatus.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLog.h"
@@ -16,13 +17,19 @@
 
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
-// kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
-// userProfile) that carry signal on their own, and a ThreadSanitizer-only serialization guard (the
-// attribute-dict test) that needs the sanitizer to see the race at all. Both run every commit, just
-// on different lanes: the `test` lane skips this whole class to keep the fast per-commit signal
-// quick — the crash repros are too slow (up to 2M iterations) for it, and the serialization test
-// needs TSan anyway. The `test_race` lane runs all of them, every commit, with ThreadSanitizer
-// attached for the one test that needs it, and additionally gates tagged-build releases.
+// kinds of guard live here: deterministic CF-over-release crash repros (the nonatomic-strong,
+// freeable-pointee TeakSession properties — serverSessionId/countryCode/userProfile/
+// facebookAccessToken/additionalData/emailStatus/pushStatus/smsStatus) that carry signal on their
+// own, and a ThreadSanitizer-only serialization guard (the attribute-dict test) that needs the
+// sanitizer to see the race at all. Both run every commit, just on different lanes: the `test`
+// lane skips this whole class to keep the fast per-commit signal quick — the crash repros are too
+// slow (up to 2M iterations) for it, and the serialization test needs TSan anyway. The `test_race`
+// lane runs all of them, every commit, with ThreadSanitizer attached for the one test that needs
+// it, and additionally gates tagged-build releases.
+//
+// launchDataOperation is atomic+capture-to-local too (see TeakSession.m), but its pointee never
+// frees — see the comment near testAdditionalDataIsAtomicUnderConcurrency below — so it's pinned
+// as a static atomic-declaration assertion in TeakSessionLockingTests.m instead.
 //
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which
 // race class, and why some classes (e.g. lock-inversion deadlocks) get no in-process guard here.
@@ -54,14 +61,19 @@
 @property (strong, nonatomic) NSMutableDictionary* stringAttributes;
 @end
 
-// countryCode/serverSessionId are private (declared only in TeakSession.m's class extension);
-// userProfile is public but readonly there. Re-declared here for full read-write access, per the
-// project convention of redeclaring internal properties in the test file rather than importing
-// Teak+Internal.h.
+// countryCode/serverSessionId/facebookAccessToken are private (declared only in TeakSession.m's
+// class extension); userProfile/additionalData/emailStatus/pushStatus/smsStatus are public but
+// readonly there. Re-declared here for full read-write access, per the project convention of
+// redeclaring internal properties in the test file rather than importing Teak+Internal.h.
 @interface TeakSession (RaceTripwire)
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
+@property (strong, atomic) NSString* facebookAccessToken;
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
+@property (strong, atomic, readwrite) NSDictionary* additionalData;
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
 @end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
@@ -176,6 +188,106 @@ static NSMutableArray* keepAliveBareSessions;
                 TeakUserProfile* p = session.userProfile;
                 (void)NSStringFromClass([p class]).length;
                 (void)p.stringAttributes.count;
+              }
+            }];
+}
+
+// facebookAccessToken is reassigned lock-free in -handleEvent: (the Facebook SDK's own callback,
+// an arbitrary thread) while sendUserIdentifier reads it under @synchronized(self) — that lock
+// doesn't cover the writer. Same CFString-backed repro as countryCode/serverSessionId above.
+- (void)testFacebookAccessTokenIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.facebookAccessToken = [[NSString alloc] initWithFormat:@"race-facebookaccesstoken-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = session.facebookAccessToken;
+                (void)s.length;
+              }
+            }];
+}
+
+// launchDataOperation has no dynamic crash repro here: TeakLaunchDataOperation is an
+// NSInvocationOperation subclass that targets itself in its own initializer, and
+// -[NSInvocationOperation retainArguments] retains that target — every instance is a permanent
+// operation→invocation→operation retain cycle that ARC can't break, so the pointee never frees
+// and there's no dealloc-during-read window to catch. It's pinned as a static atomic-declaration
+// assertion in TeakSessionLockingTests.m instead (same treatment as currentState/previousState).
+
+// additionalData's pointee is an NSDictionary, not a CFString. A single non-empty entry forces a
+// real heap-allocated dictionary — an empty dictionary literal returns a shared singleton that
+// never deallocates and would false-green this test.
+- (void)testAdditionalDataIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.additionalData = @{@"seed" : [[NSString alloc] initWithFormat:@"race-additionaldata-value-%d", i]};
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSDictionary* d = session.additionalData;
+                (void)NSStringFromClass([d class]).length;
+                (void)d.count;
+              }
+            }];
+}
+
+// emailStatus/pushStatus/smsStatus are plain TeakChannelStatus objects — same isa-touch technique
+// as userProfile above. +unknown is a dispatch_once singleton that never deallocates; -[TeakChannelStatus
+// initWithDictionary:] with a recognized state string gives a genuine fresh alloc on every call instead.
+- (void)testEmailStatusIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.emailStatus = [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                TeakChannelStatus* status = session.emailStatus;
+                (void)NSStringFromClass([status class]).length;
+                (void)status.state.length;
+              }
+            }];
+}
+
+- (void)testPushStatusIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.pushStatus = [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                TeakChannelStatus* status = session.pushStatus;
+                (void)NSStringFromClass([status class]).length;
+                (void)status.state.length;
+              }
+            }];
+}
+
+- (void)testSmsStatusIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.smsStatus = [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                TeakChannelStatus* status = session.smsStatus;
+                (void)NSStringFromClass([status class]).length;
+                (void)status.state.length;
               }
             }];
 }
