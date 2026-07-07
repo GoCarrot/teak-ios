@@ -650,10 +650,10 @@ static NSMutableArray* keepAliveBareSessions;
   [self.createdSessions addObject:currentSession];  // logout's internally-created replacement session
 
   XCTAssertTrue(outgoing.deviceConfigurationObserversDetached,
-                @"logout must detach the outgoing session's deviceConfiguration observers under the mutex");
+                @"logout must detach the outgoing session's deviceConfiguration observers");
 }
 
-// Concurrent detach must stay safe — the detach token + flag serialize callers so exactly one thread
+// Concurrent detach must stay safe — the dedicated observer lock + flag serialize callers so exactly one thread
 // does the removeObserver and the rest no-op. Green-stable with the fix (concurrent detach is
 // genuinely safe, so this never crashes on a healthy tree); revert either the lock or the flag and
 // two threads removeObserver the same keypath at once → throw/crash. Best-effort in that it exercises
