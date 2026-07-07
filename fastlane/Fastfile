@@ -29,7 +29,7 @@ platform :ios do
       workspace: 'Automated/Automated.xcworkspace',
       scheme: 'Automated',
       thread_sanitizer: true,
-      only_testing: ['AutomatedTests/RaceTripwireTests'],
+      only_testing: ['AutomatedTests/RaceTripwireTests', 'AutomatedTests/TeakBatchedRequestRaceTests'],
       output_directory: 'test_output/race',
       output_files: 'race.xml',
       output_types: 'junit'
