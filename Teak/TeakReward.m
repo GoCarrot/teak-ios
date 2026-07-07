@@ -9,6 +9,7 @@
 @property (atomic, readwrite) BOOL completed;
 @property (nonatomic, readwrite) int rewardStatus;
 @property (strong, nonatomic, readwrite) NSDictionary* json;
+@property (nonatomic, copy) RewardCompletedWithReward onCompleteWithReward;
 
 @end
 
@@ -23,6 +24,10 @@
 }
 
 + (TeakReward*)rewardForRewardId:(NSString*)teakRewardId {
+  return [self rewardForRewardId:teakRewardId onComplete:nil];
+}
+
++ (TeakReward*)rewardForRewardId:(NSString*)teakRewardId onComplete:(RewardCompletedWithReward)onComplete {
   if (teakRewardId == nil || teakRewardId.length == 0) {
     TeakLog_e(@"reward.error", @"teakRewardId must not be nil or empty");
     return nil;
@@ -31,6 +36,9 @@
   TeakReward* ret = [[TeakReward alloc] init];
   ret.completed = NO;
   ret.rewardStatus = kTeakRewardStatusUnknown;
+  // Assigned synchronously, before the request below is even dispatched, so there is
+  // no window for the network reply to beat this assignment (C-974/C-976).
+  ret.onCompleteWithReward = onComplete;
 
   [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
     NSString* urlString = [NSString stringWithFormat:@"/%@/clicks", teakRewardId];
@@ -83,8 +91,15 @@
 
                                                     ret.completed = YES;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
                                                     if (ret.onComplete != nil) {
                                                       ret.onComplete();
+                                                    }
+#pragma clang diagnostic pop
+
+                                                    if (ret.onCompleteWithReward != nil) {
+                                                      ret.onCompleteWithReward(ret);
                                                     }
                                                   }];
     [request send];

@@ -781,23 +781,19 @@ DefineTeakState(Expired, (@[]));
 + (void)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
   if (launchData.rewardId == nil) return;
 
-  TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId];
-  if (reward == nil) return;
+  [TeakReward rewardForRewardId:launchData.rewardId
+                     onComplete:^(TeakReward* reward) {
+                       if (reward.json != nil) {
+                         NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
+                         [userInfo addEntriesFromDictionary:reward.json];
 
-  __weak TeakReward* tempWeakReward = reward;
-  reward.onComplete = ^() {
-    __strong TeakReward* blockReward = tempWeakReward;
-    if (blockReward.json != nil) {
-      NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
-      [userInfo addEntriesFromDictionary:blockReward.json];
-
-      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                            object:session
-                                                          userInfo:userInfo];
-      }];
-    }
-  };
+                         [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+                           [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                               object:session
+                                                                             userInfo:userInfo];
+                         }];
+                       }
+                     }];
 }
 
 + (void)checkLaunchDataForNotificationAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
