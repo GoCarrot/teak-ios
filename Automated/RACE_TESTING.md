@@ -83,6 +83,28 @@ thousands of iterations produced **zero** TSan output, even though the code is u
 > whose release lives in libobjc. Never read a green TSan as proof that a freeable-pointer property
 > is race-free.
 
+**A related but distinct case: TSan partially sees it, and the report rate tracks the crash rate.**
+Not every nonatomic-strong write is fully invisible to TSan — it depends on what's on each side of
+the race. `+[TeakTrackEventBatchedRequest currentBatchForSession:]` returned a `static` strong
+variable outside the `@synchronized` block that guards it — a plain function-local static, not a
+synthesized property getter. Here TSan *does* sometimes report the race, but "sometimes" is doing
+real work: measured against the reverted code, the TSan-report rate and the crash rate were the same
+(~90% per 8-thread/20000-iteration round, drawn from the identical set of runs). A single TSan run,
+or even a handful, is not a reliable "is this fixed" signal either way — treat a report the same as a
+crash (strong evidence of a real bug), but don't read its *absence* as proof there isn't one.
+
+When the crash rate is already high enough per attempt, amplify reliability with independent rounds
+instead of building a dynamic crash-repro harness (§3): measure the per-round red rate `p`
+empirically (15-20+ samples — 4-6 swings too widely to pin down), pick the smallest `M` clearing your
+reliability target via `aggregate = 1-(1-p)^M`, then **validate the actual shipped M-round design end
+to end**. The formula assumes independent rounds, but in-process rounds share heap layout and
+scheduler state and could in principle correlate — don't trust the math alone; run ~20 reverted and
+~20 fixed invocations of the real test and confirm the observed rates hold. Document `p`, `M`, and
+the resulting aggregate directly in the test's source comment — a probabilistic guard is only honest
+if the reliability it claims is visible next to the code, not buried in a PR thread. Live example:
+`testCurrentBatchForSessionSentReadIsSerializedUnderConcurrency` in
+`Automated/AutomatedTests/TeakBatchedRequestRaceTests.m`.
+
 ## 3. The dynamic crash repro (for the class TSan can't see)
 
 The nonatomic-strong UAF has no TSan signal, but it is not undetectable: CoreFoundation's
@@ -214,6 +236,7 @@ check still applies: drop the flag or the detach call and watch the structural a
 |---|---|---|---|
 | Mutable container (dict/array) | ThreadSanitizer | `race on NSMutableDictionary` | `userProfile` string-attributes dict |
 | nonatomic-strong, freeable pointee | Dynamic crash repro (CF over-release trap) | `SIGTRAP` in `_CFRelease` | `TeakSession.serverSessionId` |
+| static/ivar strong pointer, return outside lock | ThreadSanitizer (partial) + measured rounds multiplier | race report **or** crash, rate ≈ crash rate | `TeakTrackEventBatchedRequest.currentBatch` |
 | Immortal scalar/pointer | Static atomic-declaration assertion | assertion red | state-machine fields |
 | Cross-object KVO add/remove (shared observee) | Structural assertion (idempotent removal + detached-at-replacement) | assertion red | `TeakSession` deviceConfiguration observers |
 | Scalar read-modify-write (`foo++` from >1 thread) | Ticket-set/final-count assertion | duplicate/missing ticket or wrong final count | `TeakSession.sessionVectorClock` |
