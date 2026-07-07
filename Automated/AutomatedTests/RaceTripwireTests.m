@@ -9,10 +9,11 @@
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
 // kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
 // userProfile) that carry signal on their own, and a ThreadSanitizer-only serialization guard (the
-// attribute-dict test) that needs the sanitizer to see the race at all. The fast per-commit `test`
-// lane skips the whole class — the crash repros are too slow (up to 2M iterations) for a quick
-// per-commit signal, and the serialization test needs TSan anyway; the dedicated `test_race` lane
-// runs all of them, with ThreadSanitizer attached for the one test that needs it.
+// attribute-dict test) that needs the sanitizer to see the race at all. Both run every commit, just
+// on different lanes: the `test` lane skips this whole class to keep the fast per-commit signal
+// quick — the crash repros are too slow (up to 2M iterations) for it, and the serialization test
+// needs TSan anyway. The `test_race` lane runs all of them, every commit, with ThreadSanitizer
+// attached for the one test that needs it, and additionally gates tagged-build releases.
 //
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which
 // race class, and why some classes (e.g. lock-inversion deadlocks) get no in-process guard here.
