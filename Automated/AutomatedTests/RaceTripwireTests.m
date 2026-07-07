@@ -245,6 +245,38 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
+// logListener's pointee is a block — a plain object once it captures data and escapes to the heap,
+// freeable like any other Objective-C object. Host apps can reassign it from any thread at any time
+// (it's the public "active log listener" property) while every SDK log call reads and invokes it on
+// its own thread — the same nonatomic-strong freeable-pointee shape as userProfile below. Touching
+// the isa via NSStringFromClass forces the same reliable class-table-lookup trap that userProfile
+// needed; invoking the block is an additional dereference through its own invoke pointer. Confirmed
+// both ways: crashes reliably with logListener reverted to nonatomic (and/or TeakLog.m's read
+// reverted to calling the getter twice), clean with atomic + single-read capture restored.
+- (void)testLogListenerIsAtomicUnderConcurrency {
+  Teak* teak = [[Teak alloc] init];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      NSString* tag = [[NSString alloc] initWithFormat:@"race-loglistener-value-%d", i];
+      // Capturing tag is load-bearing: a captureless block literal is __NSGlobalBlock__
+      // (static, never heap-copied, never freed) and wouldn't reproduce the UAF at all.
+      teak.logListener = ^(NSString* event, NSString* level, NSDictionary* eventData) {
+        (void)tag;
+      };
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                TeakLogListener listener = teak.logListener;
+                if (listener) {
+                  (void)NSStringFromClass([listener class]).length;
+                  listener(@"race", @"INFO", nil);
+                }
+              }
+            }];
+}
+
 // userProfile's pointee is a plain object, not a CFString — reading .stringAttributes.count alone
 // wasn't a reliable enough dereference to reproduce (freed memory quickly reused by the next
 // same-shaped allocation reads back as "valid"); touching the isa via NSStringFromClass forces a

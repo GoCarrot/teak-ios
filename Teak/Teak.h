@@ -169,7 +169,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 /**
  * The active log listener
  */
-@property (copy, nonatomic) TeakLogListener _Nullable logListener;
+@property (copy, atomic) TeakLogListener _Nullable logListener;
 
 /**
  * Set up Teak in a single function call.
