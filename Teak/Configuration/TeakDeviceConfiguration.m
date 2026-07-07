@@ -17,11 +17,17 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 @interface TeakDeviceConfiguration ()
 @property (strong, nonatomic, readwrite) NSString* deviceId;
 @property (strong, nonatomic, readwrite) NSString* deviceModel;
-@property (strong, nonatomic, readwrite) NSString* pushToken;
-@property (strong, nonatomic, readwrite) NSString* liveActivityPushToStartToken;
+// pushToken/liveActivityPushToStartToken are reassigned from handleEvent on the event-processing
+// queue; advertisingIdentifier is reassigned from getAdvertisingInformation (init, the LifecycleActivate
+// event queue, and a main-queue retry); notificationDisplayEnabled is reassigned from the pushState
+// operation queue's completion block. All four are read cross-thread by TeakSession's operation queue
+// while building the identify payload. atomic accessors hand those readers a retained snapshot so a
+// concurrent reassignment can't free the value out from under them.
+@property (strong, atomic, readwrite) NSString* pushToken;
+@property (strong, atomic, readwrite) NSString* liveActivityPushToStartToken;
 @property (strong, nonatomic, readwrite) NSString* platformString;
-@property (strong, nonatomic, readwrite) NSString* advertisingIdentifier;
-@property (strong, nonatomic, readwrite) NSString* notificationDisplayEnabled;
+@property (strong, atomic, readwrite) NSString* advertisingIdentifier;
+@property (strong, atomic, readwrite) NSString* notificationDisplayEnabled;
 @property (nonatomic, readwrite) BOOL limitAdTracking;
 @property (nonatomic, readwrite) unsigned long long phyiscalMemoryInBytes;
 @property (nonatomic, readwrite) NSUInteger numberOfCores;
@@ -145,16 +151,19 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 }
 
 - (NSDictionary*)to_h {
+  // Single read: pushToken is atomic but reassignable cross-thread, so both uses below must see
+  // the same value.
+  NSString* pushToken = self.pushToken;
   return @{
     @"deviceId" : self.deviceId,
     @"deviceModel" : self.deviceModel,
-    @"pushToken" : self.pushToken,
+    @"pushToken" : pushToken,
     @"platformString" : self.platformString,
     @"advertisingIdentifier" : self.advertisingIdentifier,
     @"limitAdTracking" : [NSNumber numberWithBool:self.limitAdTracking],
     @"notificationDisplayEnabled" : self.notificationDisplayEnabled,
     @"pushRegistration" : @{
-      @"apns_push_key" : TeakValueOrNSNull(self.pushToken),
+      @"apns_push_key" : TeakValueOrNSNull(pushToken),
       @"live_activity_push_to_start_key" : TeakValueOrNSNull(self.liveActivityPushToStartToken)
     }
   };
