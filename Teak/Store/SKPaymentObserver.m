@@ -5,7 +5,7 @@
 
 #define _(_id) TeakValueOrNSNull(_id)
 
-NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.productRequestActiveRequestsMutex";
+static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.productRequestActiveRequestsMutex";
 
 @interface SKPaymentObserver () <SKPaymentTransactionObserver, TeakEventHandler>
 @property (nonatomic) NSTimeInterval paymentStart;
