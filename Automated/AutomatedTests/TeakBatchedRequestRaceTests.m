@@ -32,6 +32,7 @@ extern NSDictionary* TeakVersionDict;
 - (BOOL)cancel;
 - (void)sendNow;
 - (void)prepareAndSend;
+- (void)reallyActuallySend;
 
 + (nullable TeakBatchedRequest*)addRequestIntoBatch:(nonnull TeakBatchedRequest*)batchedRequest
                                          withSession:(nonnull TeakSession*)session
