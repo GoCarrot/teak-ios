@@ -17,12 +17,14 @@
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
 // kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
-// userProfile) that carry signal on their own, and a ThreadSanitizer-only serialization guard (the
-// attribute-dict test) that needs the sanitizer to see the race at all. Both run every commit, just
-// on different lanes: the `test` lane skips this whole class to keep the fast per-commit signal
-// quick — the crash repros are too slow (up to 2M iterations) for it, and the serialization test
-// needs TSan anyway. The `test_race` lane runs all of them, every commit, with ThreadSanitizer
-// attached for the one test that needs it, and additionally gates tagged-build releases.
+// userProfile, and TeakDeviceConfiguration's pushToken/liveActivityPushToStartToken/
+// advertisingIdentifier/notificationDisplayEnabled) that carry signal on their own, and a
+// ThreadSanitizer-only serialization guard (the attribute-dict test) that needs the sanitizer to see
+// the race at all. Both run every commit, just on different lanes: the `test` lane skips this whole
+// class to keep the fast per-commit signal quick — the crash repros are too slow (up to 2M
+// iterations) for it, and the serialization test needs TSan anyway. The `test_race` lane runs all of
+// them, every commit, with ThreadSanitizer attached for the one test that needs it, and additionally
+// gates tagged-build releases.
 //
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which
 // race class, and why some classes (e.g. lock-inversion deadlocks) get no in-process guard here.
@@ -62,6 +64,16 @@
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
+@end
+
+// pushToken/liveActivityPushToStartToken/advertisingIdentifier/notificationDisplayEnabled are
+// public but readonly on TeakDeviceConfiguration. Re-declared here for full read-write access,
+// same convention as TeakSession above.
+@interface TeakDeviceConfiguration (RaceTripwire)
+@property (strong, atomic, readwrite) NSString* pushToken;
+@property (strong, atomic, readwrite) NSString* liveActivityPushToStartToken;
+@property (strong, atomic, readwrite) NSString* advertisingIdentifier;
+@property (strong, atomic, readwrite) NSString* notificationDisplayEnabled;
 @end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
@@ -253,6 +265,78 @@ static NSMutableArray* keepAliveBareSessions;
               for (int i = 0; i < 8000; i++) {
                 TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:raven message:@"test" additions:nil];
                 (void)report;
+              }
+            }];
+}
+
+// TeakDeviceConfiguration strong-property use-after-free repro (CF over-release trap). pushToken/
+// liveActivityPushToStartToken are reassigned from handleEvent on the event-processing queue;
+// advertisingIdentifier from getAdvertisingInformation (init, the LifecycleActivate event queue, and
+// a main-queue retry); notificationDisplayEnabled from the pushState operation queue's completion
+// block. All four are read cross-thread by TeakSession's operation queue while building the identify
+// payload (TeakSession.m's sendUserIdentifier/dispatchUserDataEvent). Same technique as the
+// TeakSession properties above — all four are plain NSStrings, so no isa-touch needed. Green now
+// (atomic).
+- (void)testPushTokenIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.pushToken = [[NSString alloc] initWithFormat:@"race-pushtoken-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.pushToken;
+                (void)s.length;
+              }
+            }];
+}
+
+- (void)testLiveActivityPushToStartTokenIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.liveActivityPushToStartToken = [[NSString alloc] initWithFormat:@"race-liveactivitytoken-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.liveActivityPushToStartToken;
+                (void)s.length;
+              }
+            }];
+}
+
+- (void)testAdvertisingIdentifierIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.advertisingIdentifier = [[NSString alloc] initWithFormat:@"race-advertisingid-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.advertisingIdentifier;
+                (void)s.length;
+              }
+            }];
+}
+
+- (void)testNotificationDisplayEnabledIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.notificationDisplayEnabled = [[NSString alloc] initWithFormat:@"race-notificationdisplay-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.notificationDisplayEnabled;
+                (void)s.length;
               }
             }];
 }
