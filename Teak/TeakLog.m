@@ -187,8 +187,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   }
 
   // Log to the log listener
-  if (self.teak.logListener) {
-    self.teak.logListener(eventType, logLevel, payload);
+  TeakLogListener logListener = self.teak.logListener;
+  if (logListener) {
+    logListener(eventType, logLevel, payload);
   }
 
   // Log remotely
