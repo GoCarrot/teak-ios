@@ -1,6 +1,7 @@
 #import <XCTest/XCTest.h>
 #import <stdatomic.h>
 
+#import "TeakSession.h"
 #import "TeakUserProfile.h"
 #import <Teak/Teak.h>
 
@@ -19,6 +20,16 @@
 
 @interface TeakUserProfile (RaceTripwire)
 @property (strong, nonatomic) NSMutableDictionary* stringAttributes;
+@end
+
+// countryCode/serverSessionId are private (declared only in TeakSession.m's class extension);
+// userProfile is public but readonly there. Re-declared here for full read-write access, per the
+// project convention of redeclaring internal properties in the test file rather than importing
+// Teak+Internal.h.
+@interface TeakSession (RaceTripwire)
+@property (strong, atomic) NSString* countryCode;
+@property (strong, atomic) NSString* serverSessionId;
+@property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 @end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
@@ -52,6 +63,89 @@
   dispatch_group_async(group, q, ^{ rendezvous(); b(); });
   dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
   free(ready);
+}
+
+// TeakSession's designated initializer (-init) registers KVO observers and an event handler that
+// -dealloc unconditionally unregisters; skipping -init and then letting the instance deinit would
+// itself crash (NSRangeException from removeObserver:forKeyPath: on a path never added). These
+// tests only drive the atomic property accessors, not a fully wired-up session, so they construct
+// a bare `[TeakSession alloc]` (no -init) and hold it in this array for the rest of the process's
+// lifetime rather than let it deinit.
+static NSMutableArray* keepAliveBareSessions;
+
+- (TeakSession*)bareSessionKeptAlive {
+  if (keepAliveBareSessions == nil) {
+    keepAliveBareSessions = [NSMutableArray array];
+  }
+  TeakSession* session = [TeakSession alloc];
+  [keepAliveBareSessions addObject:session];
+  return session;
+}
+
+// Session strong-property use-after-free repro (CF over-release trap). countryCode, userProfile,
+// and serverSessionId are reassigned in the identify-reply request callback while read cross-thread
+// by the heartbeat queue and the duration-report background block. A nonatomic strong reassignment
+// on one thread races a read+retain on another, retaining a pointer that's being freed underneath
+// it. See Automated/RACE_TESTING.md §3 for the technique this drives: fresh, distinct >15-char
+// heap-allocated values on the writer side (short NSStrings become tagged pointers that never
+// free, giving a false green), a spin-barrier so both threads race for their full duration, and a
+// dereference (not just a pointer bind) on the reader side so a use-after-free lands inside the
+// freed object. Green now (atomic).
+- (void)testServerSessionIdIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.serverSessionId = [[NSString alloc] initWithFormat:@"race-serversessionid-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = session.serverSessionId;
+                (void)s.length;
+              }
+            }];
+}
+
+- (void)testCountryCodeIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.countryCode = [[NSString alloc] initWithFormat:@"race-countrycode-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = session.countryCode;
+                (void)s.length;
+              }
+            }];
+}
+
+// userProfile's pointee is a plain object, not a CFString — reading .stringAttributes.count alone
+// wasn't a reliable enough dereference to reproduce (freed memory quickly reused by the next
+// same-shaped allocation reads back as "valid"); touching the isa via NSStringFromClass forces a
+// class-table lookup that reliably traps on the freed/reused pointer, at a higher iteration count
+// than the two NSString properties above needed. Confirmed both ways: crashes reliably with
+// userProfile reverted to nonatomic, clean with atomic restored.
+- (void)testUserProfileIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      RaceGuardUserProfile* profile = [[RaceGuardUserProfile alloc] init];
+      profile.stringAttributes = [@{@"seed" : [[NSString alloc] initWithFormat:@"race-userprofile-value-%d", i]} mutableCopy];
+      session.userProfile = profile;
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                TeakUserProfile* p = session.userProfile;
+                (void)NSStringFromClass([p class]).length;
+                (void)p.stringAttributes.count;
+              }
+            }];
 }
 
 // Attribute-dict serialization regression guard (ThreadSanitizer). Two threads drive the real setter
