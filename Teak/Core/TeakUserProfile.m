@@ -65,24 +65,31 @@
 }
 
 - (void)send {
-  // No scheduledBlock means no pending update
-  if (self.scheduledBlock != nil) {
-    dispatch_block_cancel(self.scheduledBlock);
-    self.scheduledBlock = nil;
+  // TeakRequest's retry ladder can re-invoke -send from dispatch_get_main_queue() after a
+  // delay (socket-error and server-retry branches); if a new attribute has re-armed
+  // scheduledBlock in that window, this would read stringAttributes/numberAttributes off
+  // the serial operationQueue that setAttribute:forKey:inDictionary: mutates them on. Hop
+  // onto that same queue so this read is never concurrent with that write.
+  dispatch_async([Teak operationQueue], ^{
+    // No scheduledBlock means no pending update
+    if (self.scheduledBlock != nil) {
+      dispatch_block_cancel(self.scheduledBlock);
+      self.scheduledBlock = nil;
 
-    NSMutableDictionary* payload = [self.payload mutableCopy];
-    [payload addEntriesFromDictionary:@{
-      @"string_attributes" : [self.stringAttributes copy],
-      @"number_attributes" : [self.numberAttributes copy],
-      @"context" : [self.context copy],
-      @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
-    }];
-    self.payload = payload;
+      NSMutableDictionary* payload = [self.payload mutableCopy];
+      [payload addEntriesFromDictionary:@{
+        @"string_attributes" : [self.stringAttributes copy],
+        @"number_attributes" : [self.numberAttributes copy],
+        @"context" : [self.context copy],
+        @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
+      }];
+      self.payload = payload;
 
-    [super send];
+      [super send];
 
-    self.firstSetTime = nil;
-  }
+      self.firstSetTime = nil;
+    }
+  });
 }
 
 @end
