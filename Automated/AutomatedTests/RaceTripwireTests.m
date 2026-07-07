@@ -231,6 +231,32 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
+// Construction-read regression guard (ThreadSanitizer). initForRaven:'s copy-read of "user" used
+// to run concurrently with handleEvent:'s in-place mutation of the SAME payloadTemplate sub-dict —
+// a much smaller window than the lifetime-aliasing race above, but the same container-race class.
+// Thread A drives the real mutation path; thread B repeatedly constructs fresh reports, exercising
+// the real copy-read on every call. Fixed (userContext published as an atomic immutable snapshot),
+// the read is a lock-free getter grab that never touches a dict another thread is mutating, so
+// TSan stays silent. Reverting to the shared-mutable-dict design re-opens the window and TSan
+// reports a race on the dictionary.
+- (void)testRavenReportConstructionDoesNotRaceUserIdMutation {
+  TeakRaven* raven = [self makeRaven];
+
+  [self raceBlockA:^{
+    for (int i = 0; i < 8000; i++) {
+      UserIdEvent* event = [[UserIdEvent alloc] initWithType:UserIdentified];
+      event.userId = [NSString stringWithFormat:@"user-%d", i];
+      [raven handleEvent:event];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < 8000; i++) {
+                TeakRavenReport* report = [[TeakRavenReport alloc] initForRaven:raven message:@"test" additions:nil];
+                (void)report;
+              }
+            }];
+}
+
 // Attribute-dict serialization regression guard (ThreadSanitizer). Two threads drive the real setter
 // concurrently with changing values on the same key, so each call performs the guarded read AND the
 // dictionary write. The fix hops every access onto the serial operationQueue, so TSan stays silent
