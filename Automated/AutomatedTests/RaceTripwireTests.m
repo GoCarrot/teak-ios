@@ -628,19 +628,35 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
-// TeakLink route-registry serialization regression guard (ThreadSanitizer). registerRoute writes the
-// static route dictionary from any host thread with no threading contract, while handleDeepLink and
+// TeakLink route-registry serialization regression guard. registerRoute writes the static route
+// dictionary from any host thread with no threading contract, while handleDeepLink and
 // routeNamesAndDescriptions enumerate it — the real contention window is a host registering routes
-// lazily post-launch while the launch deep link resolves concurrently on the op queue. Each writer
-// iteration registers a distinct route (a real key insertion, not a same-key overwrite) while the
-// reader iterates the real handleDeepLink: and routeNamesAndDescriptions methods. The fix wraps the
-// write and a copy-then-enumerate snapshot of the read in @synchronized on the registry; remove
-// either side and TSan reports a race on the dictionary. Green now, red on revert.
+// lazily post-launch while the launch deep link resolves concurrently on the op queue. The fix wraps
+// the write and a copy-then-enumerate snapshot of the read in @synchronized on the registry; reverting
+// it lets the reader fast-enumerate the live dictionary while the writer mutates it. On the test_race
+// lane this reliably fires `ThreadSanitizer: race on NSMutableDictionary` — the reader's
+// countByEnumeratingWithState: against the writer's setObject:forKey:, both instrumented Foundation, so
+// TSan sees it. This is a mutable-container race (the §2 sweet spot), NOT the objc_storeStrong-blind
+// nonatomic-strong class, so a green TSan run here genuinely means safe. Off TSan, the same
+// mid-enumeration mutation is what Foundation's enumeration guard traps as an NSGenericException in
+// production. Green now, red on revert: 20/20 reverts red, all with the TSan report — effectively
+// deterministic, since it's a structural mutate-while-enumerate collision, not a probabilistic sampling window.
+//
+// What the guard needs is mutate-while-enumerate *pressure*, not registry *size*. A distinct route
+// per iteration would grow the registry unbounded, and every reader pass compiles a fresh regex per
+// entry (handleDeepLink) — so an N-iteration reader over an N-entry registry is O(N²), which is why
+// the distinct-route form ran ~192s. Rotating a small fixed key set (route-%d over K) keeps the
+// registry bounded, so each reader pass stays O(K); re-registering an existing route still calls
+// setValue:forKey:, which bumps the dictionary's mutation counter and collides with a concurrent
+// enumeration exactly as a fresh insertion would (verified: an overwrite mid-enumeration throws the
+// same NSGenericException). Decoupling pressure from size keeps the guard fast while preserving the
+// exact collision it pins.
 - (void)testTeakLinkRouteRegistryIsSerializedUnderConcurrency {
-  const int N = 4000;
+  const int N = 2000;
+  const int K = 16;  // bound the registry: each reader pass is O(K) regex compiles, not O(N)
   [self raceBlockA:^{
     for (int i = 0; i < N; i++) {
-      [TeakLink registerRoute:[NSString stringWithFormat:@"/race-tripwire/route-%d", i]
+      [TeakLink registerRoute:[NSString stringWithFormat:@"/race-tripwire/route-%d", i % K]
                           name:@"race-tripwire"
                    description:@"race tripwire probe route"
                          block:^(NSDictionary* params){
