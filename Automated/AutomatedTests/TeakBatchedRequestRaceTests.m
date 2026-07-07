@@ -265,23 +265,59 @@ static NSMutableArray<NSArray*>* raceTest_sentBatchSnapshots;
 // outside those methods, which no production caller ever performs (.sent is
 // a private, nonatomic property; every real access already holds the
 // instance lock) and would race regardless of this fix. Green with the read
-// properly nested under the instance lock, red (TSan race report) if that
-// nesting is reverted.
+// properly nested under the instance lock, red (TSan race report or crash)
+// if that nesting is reverted.
+//
+// This also happens to be the only local repro we have for a second,
+// previously-unknown bug in the same method: `return currentBatch;` sits
+// OUTSIDE the @synchronized block, so the implicit ARC retain on return can
+// race a concurrent reassignment and retain-past-zero a freed instance. That
+// bug is pre-existing (not introduced by the .sent-locking fix above) and is
+// fixed by snapshotting the return value under the lock.
+//
+// Reliability: 8 concurrent threads (= physical performance-core count --
+// the largest safe without a busy-spin rendezvous oversubscribing the
+// machine under TSan overhead) x N=20000 iterations/thread reds at p=0.90
+// per round (18/20 independent single-round samples against the reverted
+// code; Wilson 95% CI lower bound ~0.70). ROUNDS=5 independent rounds in one
+// test method -> aggregate red-rate = 1-(1-p)^ROUNDS: 99.76% at the
+// conservative 0.70 floor, 99.999% at the measured 0.90 point estimate --
+// clears a >=99% target either way. halt_on_error=0 (see the test_race lane)
+// means a TSan report alone doesn't abort the process, but this bug's
+// downstream retain-past-zero crashes shortly after regardless, so one red
+// round is enough; a crash ends the test outright and a non-crashing report
+// still fails the run via Xcode's own TSan/XCTest integration.
 - (void)testCurrentBatchForSessionSentReadIsSerializedUnderConcurrency {
   TeakSession* session = [self makeMockSession];
-  const int N = 8000;
+  const int THREADS = 8;
+  const int N = 20000;
+  const int ROUNDS = 5;
 
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      TeakTrackEventBatchedRequest* batch = [TeakTrackEventBatchedRequest currentBatchForSession:session];
-      [batch prepareAndSend];
+  for (int round = 0; round < ROUNDS; round++) {
+    dispatch_queue_t q = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+    dispatch_group_t group = dispatch_group_create();
+    for (int t = 0; t < THREADS; t++) {
+      BOOL constructor = (t % 2 == 0);
+      dispatch_group_async(group, q, ^{
+        for (int i = 0; i < N; i++) {
+          TeakTrackEventBatchedRequest* batch = [TeakTrackEventBatchedRequest currentBatchForSession:session];
+          if (constructor) {
+            [batch prepareAndSend];
+          }
+        }
+      });
     }
+    dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
+
+    // currentBatchForSession:'s backing store is a function-local static --
+    // not reachable from outside the method it's declared in, even from
+    // elsewhere in this file -- so it can't be reset directly between
+    // rounds. Force the round's live batch to .sent=YES instead, so the next
+    // round's first call reliably takes the construct path fresh rather than
+    // depending on whichever thread happened to touch it last.
+    TeakTrackEventBatchedRequest* trailingBatch = [TeakTrackEventBatchedRequest currentBatchForSession:session];
+    [trailingBatch prepareAndSend];
   }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                [TeakTrackEventBatchedRequest currentBatchForSession:session];
-              }
-            }];
 }
 
 #pragma mark - S4: the reply callback loop must be serialized against addRequestIntoBatch:'s append

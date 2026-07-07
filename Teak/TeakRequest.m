@@ -468,6 +468,7 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 
 + (TeakTrackEventBatchedRequest*)currentBatchForSession:(TeakSession*)session {
   static TeakTrackEventBatchedRequest* currentBatch = nil;
+  TeakTrackEventBatchedRequest* result;
   @synchronized(TeakTrackEventBatchedRequestMutex) {
     // .sent is written under the instance lock (-prepareAndSend), so it must be
     // read under that same lock here too -- otherwise this class-mutex-only
@@ -482,8 +483,12 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
     if (needsNewBatch) {
       currentBatch = [[TeakTrackEventBatchedRequest alloc] initWithSession:session];
     }
+    // Snapshot the return value here, still under the lock -- returning
+    // `currentBatch` directly after this block closes would re-read the
+    // static var unsynchronized, racing a concurrent call's locked write.
+    result = currentBatch;
   }
-  return currentBatch;
+  return result;
 }
 
 - (void)prepareAndSend {
