@@ -32,6 +32,15 @@ extern bool AmIBeingDebugged(void);
 @property (strong, nonatomic) NSString* sentryKey;
 @property (strong, nonatomic) NSString* sentrySecret;
 @property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
+
+// Published as an immutable snapshot on every UserIdentified event (see handleEvent:) instead of
+// mutated in place, so a concurrent reader (report construction, possibly on a signal handler's
+// thread) always gets a fully-formed dict via an atomic getter rather than racing a mutation.
+// copy freezes each new snapshot at assignment. The getter isn't strictly async-signal-safe
+// (objc_getProperty takes a striped lock under the hood), but it's no worse than the rest of
+// this best-effort crash reporter, and it can't self-deadlock the way a mutex or GCD queue
+// could if a crash landed mid-mutation on the same thread that's reporting it.
+@property (atomic, copy) NSDictionary* userContext;
 @property (nonatomic) BOOL isSdkRaven;
 
 @property (strong, nonatomic) NSArray* runLoopModes;
@@ -275,6 +284,7 @@ void TeakSignalHandler(int signal) {
       if (runId != nil) {
         tags[@"run_id"] = runId;
       }
+      self.userContext = @{@"device_id" : teak.configuration.deviceConfiguration.deviceId};
       self.payloadTemplate = [NSMutableDictionary dictionaryWithDictionary:@{
         @"logger" : @"teak",
         @"platform" : @"objc",
@@ -284,9 +294,6 @@ void TeakSignalHandler(int signal) {
           @"name" : @"teak",
           @"version" : TeakSentryVersion
         },
-        @"user" : [[NSMutableDictionary alloc] initWithDictionary:@{
-          @"device_id" : teak.configuration.deviceConfiguration.deviceId
-        }],
         @"contexts" : @{
           @"os" : @{
             @"name" : @"iOS",
@@ -455,8 +462,9 @@ void TeakSignalHandler(int signal) {
 
 - (void)handleEvent:(TeakEvent* _Nonnull)event {
   if (event.type == UserIdentified) {
-    NSMutableDictionary* user = [self.payloadTemplate objectForKey:@"user"];
-    [user setValue:((UserIdEvent*)event).userId forKey:@"id"];
+    NSMutableDictionary* user = [self.userContext mutableCopy];
+    user[@"id"] = ((UserIdEvent*)event).userId;
+    self.userContext = user;
   } else if (event.type == RemoteConfigurationReady) {
     TeakRemoteConfiguration* remoteConfiguration = ((RemoteConfigurationEvent*)event).remoteConfiguration;
     if (self.isSdkRaven) {
@@ -482,6 +490,11 @@ void TeakSignalHandler(int signal) {
       self.timestamp = [[NSDate alloc] init];
       self.raven = raven;
       self.payload = [NSMutableDictionary dictionaryWithDictionary:self.raven.payloadTemplate];
+
+      // userContext is published as an immutable snapshot (see handleEvent:), never mutated
+      // in place, so grabbing it here — even on a signal handler's thread — can't land on a
+      // dict some other thread is still writing to.
+      self.payload[@"user"] = self.raven.userContext;
 
       CFUUIDRef theUUID = CFUUIDCreate(NULL);
       CFStringRef string = CFUUIDCreateString(NULL, theUUID);
