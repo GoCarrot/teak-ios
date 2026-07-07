@@ -732,9 +732,20 @@ DefineTeakState(Expired, (@[]));
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
 
-      [oldSession detachDeviceConfigurationObservers];
-      [oldSession setState:[TeakSession Expiring]];
-      [oldSession setState:[TeakSession Expired]];
+      // Hold the outgoing session's own monitor across its teardown. The two -setState: calls each
+      // self-synchronize individually, but only locking the session across the pair keeps a concurrent
+      // @synchronized(self) -setState: from interleaving a legal Expiring->Configured between Expiring
+      // and Expired; the following Expired would then be rejected (Configured has no Expired successor),
+      // leaving the outgoing session stuck un-expired. On this path the interleave is not reachable
+      // today — the outgoing session is never in Created here, so its hostname observer (the only
+      // producer of -setState:Configured) is already detached — so this is defense-parity: kept
+      // symmetric with +logoutReusingCurrentSession:'s identical teardown so the asymmetry can't
+      // become a latent bug if that observer lifecycle ever changes.
+      @synchronized(oldSession) {
+        [oldSession detachDeviceConfigurationObservers];
+        [oldSession setState:[TeakSession Expiring]];
+        [oldSession setState:[TeakSession Expired]];
+      }
     }
 
     // Assign launch data
