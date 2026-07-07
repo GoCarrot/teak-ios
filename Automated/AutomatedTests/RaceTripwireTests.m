@@ -21,25 +21,32 @@
 // The current-session global (external linkage), driven directly by the replacement guard below.
 extern TeakSession* currentSession;
 
+// The lifecycle class methods' lock (Path A of the AB-BA guard below). External linkage, so the
+// test can hold it directly to model a lifecycle transition that took the mutex.
+extern NSString* const currentSessionMutex;
+
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
-// detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
+// detector can observe, so a red run means a real regression — the fix it guards was reverted. Three
 // kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
 // userProfile/stateChain/facebookAccessToken/additionalData/emailStatus/pushStatus/smsStatus, and
 // TeakDeviceConfiguration's pushToken/liveActivityPushToStartToken/advertisingIdentifier/
-// notificationDisplayEnabled) that carry signal on their own, and ThreadSanitizer-only serialization
+// notificationDisplayEnabled) that carry signal on their own, ThreadSanitizer-only serialization
 // guards (the attribute-dict test and the ProductRequest active-requests test) that need the
-// sanitizer to see the race at all. Both kinds run every commit, just on different lanes: the `test`
-// lane skips this whole class to keep the fast per-commit signal quick — the crash repros are too
-// slow (up to 2M iterations) for it, and the serialization tests need TSan anyway. The `test_race`
-// lane runs all of them, every commit, with ThreadSanitizer attached for the tests that need it, and
-// additionally gates tagged-build releases.
+// sanitizer to see the race at all, and a lock-inversion deadlock guard (the UserIdentified-transition
+// test) that forces an AB-BA interleaving and catches the hang with a watchdog rather than any
+// data-race signal. All run every commit, just on different lanes: the `test` lane skips this whole
+// class to keep the fast per-commit signal quick — the crash repros are too slow (up to 2M
+// iterations) for it, and the serialization tests need TSan anyway. The `test_race` lane runs all of
+// them, every commit, with ThreadSanitizer attached for the tests that need it, and additionally
+// gates tagged-build releases.
 //
 // launchDataOperation is atomic+capture-to-local too (see TeakSession.m), but its pointee never
 // frees — see the comment near testAdditionalDataIsAtomicUnderConcurrency below — so it's pinned
 // as a static atomic-declaration assertion in TeakSessionLockingTests.m instead.
 //
-// See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which
-// race class, and why some classes (e.g. lock-inversion deadlocks) get no in-process guard here.
+// See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which race
+// class, and why some classes (e.g. lock-inversion deadlocks) carry no in-process data-race signal
+// and get a watchdog or structural guard instead.
 
 @interface Teak (RaceTripwire)
 + (dispatch_queue_t)operationQueue;
@@ -84,6 +91,9 @@ extern TeakSession* currentSession;
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 - (void)detachDeviceConfigurationObservers;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
+// The macro-generated currentState KVO handler. A bare-alloc session never registers the observer
+// (-init does), so the lock-order guard invokes the real handler directly to exercise its body.
+- (void)_TeakSession_currentState_ChangedFrom:(id)oldValue to:(id)newValue;
 @end
 
 // pushToken/liveActivityPushToStartToken/advertisingIdentifier/notificationDisplayEnabled are
@@ -670,6 +680,56 @@ static NSMutableArray* keepAliveBareSessions;
               for (int i = 0; i < 500; i++) [session detachDeviceConfigurationObservers];
             }];
   XCTAssertTrue(session.deviceConfigurationObserversDetached);
+}
+
+// Lock-order-inversion deadlock guard (forced AB-BA + watchdog). The currentState KVO handler runs
+// under @synchronized(self); its UserIdentified branch used to acquire currentSessionMutex there —
+// to drain the whenUserIdIsReadyRun queue and dispatch launch attribution — while the lifecycle
+// class methods (applicationDidBecomeActive/WillResignActive/didLaunchWithData) take
+// currentSessionMutex *then* the session self-lock. Independent event sources (host lifecycle vs
+// identify reply) overlapping = AB-BA deadlock: the app backgrounds as the reply lands, one thread
+// holds the mutex wanting self, the other holds self wanting the mutex, and every later lifecycle
+// call hangs on the mutex. The fix hops that mutex work off the self-lock, so the handler never
+// holds self while acquiring currentSessionMutex.
+//
+// The rendezvous forces the exact interleaving on the REAL handler: thread A takes
+// currentSessionMutex then wants the self-lock; thread B holds the self-lock then runs the handler,
+// which reaches for currentSessionMutex. A 5s watchdog turns a deadlock into a fast failure rather
+// than a hung suite. Green with the fix; revert the fix (mutex work back under the self-lock) and it
+// deadlocks here.
+- (void)testUserIdentifiedTransitionDoesNotInvertAgainstLifecycleMutex {
+  TeakSession* session = [self bareSessionKeptAlive];
+
+  dispatch_semaphore_t aHasMutex = dispatch_semaphore_create(0);
+  dispatch_semaphore_t bHasSelf = dispatch_semaphore_create(0);
+  dispatch_queue_t q = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+  dispatch_group_t group = dispatch_group_create();
+
+  // Thread A — a lifecycle class method: currentSessionMutex, then the session self-lock.
+  dispatch_group_async(group, q, ^{
+    @synchronized(currentSessionMutex) {
+      dispatch_semaphore_signal(aHasMutex);
+      dispatch_semaphore_wait(bHasSelf, DISPATCH_TIME_FOREVER);
+      @synchronized(session) {
+      }
+    }
+  });
+
+  // Thread B — inside the identify-reply transition: self-lock held, then the real KVO handler,
+  // which (unfixed) reaches for currentSessionMutex. Both threads hold their first lock before
+  // either crosses, so an unfixed handler deadlocks deterministically.
+  dispatch_group_async(group, q, ^{
+    @synchronized(session) {
+      dispatch_semaphore_wait(aHasMutex, DISPATCH_TIME_FOREVER);
+      dispatch_semaphore_signal(bHasSelf);
+      [session _TeakSession_currentState_ChangedFrom:[TeakSession IdentifyingUser]
+                                                  to:[TeakSession UserIdentified]];
+    }
+  });
+
+  long timedOut = dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC));
+  XCTAssertEqual(timedOut, 0,
+                 @"AB-BA lock-order inversion: the currentState UserIdentified handler took currentSessionMutex while holding the session self-lock, deadlocking against a lifecycle mutex→self path");
 }
 
 @end

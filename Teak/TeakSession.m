@@ -560,17 +560,11 @@ DefineTeakState(Expired, (@[]));
   return identifyUserOperation;
 }
 
-- (void)processAttributionAndDispatchEvents {
-  // Single read: launchDataOperation is atomic but can still be reassigned between reads, so the
-  // nil-check, .finished check, and .result use below must all see the same value.
-  TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
-  if (launchDataOperation == nil || !launchDataOperation.finished || self.launchAttributionProcessed) return;
-  self.launchAttributionProcessed = YES;
-
-  // Grab the resolved launch data (it should never be nil, but let's still check)
-  TeakLaunchData* launchData = launchDataOperation.result;
-  if (launchData == nil) return;
-
+// Dispatches a resolved launch's attribution: reward, notification, deep link, and the app-launch
+// summary. Every hop acquires currentSessionMutex (via whenUserIdIsReadyRun / the TeakLink
+// operation), so this runs with the session self-lock released — the currentState KVO handler does
+// the one-shot guard + launchData capture under @synchronized(self), then dispatches here off it.
+- (void)dispatchLaunchAttributionEvents:(nonnull TeakLaunchData*)launchData {
   if ([launchData isKindOfClass:[TeakAttributedLaunchData class]]) {
     TeakAttributedLaunchData* attributedLaunchData = (TeakAttributedLaunchData*)launchData;
 
@@ -912,19 +906,39 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         dispatch_resume(self.heartbeat);
       }
 
-      // Process WhenUserIdIsReadyRun queue
-      @synchronized(currentSessionMutex) {
-        NSMutableArray* blocks = [TeakSession whenUserIdIsReadyRunBlocks];
-        for (UserIdReadyBlock block in blocks) {
-          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            block(self);
-          });
-        }
-        [blocks removeAllObjects];
+      // Resolve the one-shot launch attribution under the self-lock: capture launch data for the
+      // single transition that wins the guard; later transitions get nil and only drain the queue.
+      // Single read: launchDataOperation is atomic but can still be reassigned between reads, so the
+      // nil-check, .finished check, and .result use must all see the same value.
+      TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
+      TeakLaunchData* attributionLaunchData = nil;
+      if (launchDataOperation != nil && launchDataOperation.finished && !self.launchAttributionProcessed) {
+        self.launchAttributionProcessed = YES;
+        attributionLaunchData = launchDataOperation.result;
       }
 
-      // Process deep links and/or rewards
-      [self processAttributionAndDispatchEvents];
+      // Draining the whenUserIdIsReadyRun queue and dispatching launch attribution both acquire
+      // currentSessionMutex. Taking it here, under the session self-lock, inverts against the
+      // lifecycle class methods (currentSessionMutex → self-lock) and deadlocks when a lifecycle
+      // transition overlaps this identify-reply transition. Hop off the self-lock first so
+      // currentSessionMutex is only ever acquired with the self-lock released.
+      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Process WhenUserIdIsReadyRun queue
+        @synchronized(currentSessionMutex) {
+          NSMutableArray* blocks = [TeakSession whenUserIdIsReadyRunBlocks];
+          for (UserIdReadyBlock block in blocks) {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+              block(self);
+            });
+          }
+          [blocks removeAllObjects];
+        }
+
+        // Process deep links and/or rewards
+        if (attributionLaunchData != nil) {
+          [self dispatchLaunchAttributionEvents:attributionLaunchData];
+        }
+      });
 
       // Send the server a "hey nevermind that" message if needed
       if (oldValue == [TeakSession Expiring]) {
