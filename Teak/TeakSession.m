@@ -23,9 +23,12 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 // Dedicated leaf lock serializing every addObserver/removeObserver on the process-shared
 // deviceConfiguration singleton. Held directly across -init's three addObserver calls and
 // -detachDeviceConfigurationObservers' three removeObserver calls, so add/remove serialization is
-// verifiable by reading this one lock's use sites — it does not rest on -init happening to run under
-// any other lock. KVO add/remove is not thread-safe: a concurrent add on one session and remove on
-// another corrupts the shared object's per-object observation info.
+// verifiable by reading this one lock's use sites — not by tracing which callers happen to hold
+// another lock. KVO add/remove is not thread-safe (concurrent add/remove on the shared object corrupts
+// its per-object observation info), so all of it must be serialized. Every live add/remove site also
+// runs under currentSessionMutex today, so this token is belt-and-suspenders for them; its job is to
+// make the serialization a local, grep-verifiable fact, and it becomes the sole guard once -dealloc's
+// removeObserver goes live (see -detachDeviceConfigurationObservers).
 //
 // A dedicated token, NOT @synchronized(self): self is entangled with currentSessionMutex (the class
 // methods acquire currentSessionMutex and call into self-synchronized session code, and the
@@ -461,9 +464,9 @@ DefineTeakState(Expired, (@[]));
     self.pushStatus = [TeakChannelStatus unknown];
     self.smsStatus = [TeakChannelStatus unknown];
 
-    // Serialize the shared-deviceConfiguration adds through the dedicated observer lock so they can't
-    // race another session's concurrent remove. currentState below is observed on self (per-session),
-    // so it stays outside the lock and is torn down in -dealloc.
+    // Serialize the shared-deviceConfiguration adds through the dedicated observer lock, ordering them
+    // against every remove on the same object under one grep-verifiable lock. currentState below is
+    // observed on self (per-session), so it stays outside the lock and is torn down in -dealloc.
     @synchronized(deviceConfigurationObserverMutex) {
       RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
       RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
@@ -494,9 +497,11 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  // Fallback for a session that was never replaced (only the last session, torn down at process
-  // exit); every replaced session was already detached at replacement time, so the flag makes this a
-  // no-op there.
+  // Currently inert: a session retains itself through the shared event-handler registry and is
+  // released only here in -dealloc, so that cycle keeps -dealloc from running in practice — every
+  // session is detached at replacement instead. Kept because it goes live the moment that leak is
+  // fixed and sessions become mortal: then this is the sole detach for the last, never-replaced
+  // session, and the idempotence flag keeps it a no-op for any session already detached at replacement.
   [self detachDeviceConfigurationObservers];
   UnRegisterKeyValueObserverFor(self, currentState);
 
@@ -510,10 +515,13 @@ DefineTeakState(Expired, (@[]));
 // handled here; a session's other observers (its own currentState and its per-session
 // remoteConfiguration) are not shared across sessions, so they stay in -dealloc.
 //
-// Left to -dealloc alone, removeObserver would run on whatever background queue releases the session
-// last and could race a newer session's addObserver on that same object, corrupting KVO's per-object
-// observation info. The flag makes removal idempotent so -dealloc's fallback call can't double-remove
-// (which throws "not registered as an observer").
+// Called at each session replacement so removal is deterministic and bounded: sessions are immortal
+// (see -dealloc), so left to -dealloc alone these observers would never be removed and the shared
+// object's observer list would grow for the life of the process. Detaching here also forecloses the
+// race the leak fix would otherwise activate — once -dealloc runs, its removeObserver would run off
+// currentSessionMutex and could race a newer session's addObserver on this same object. The flag makes
+// removal idempotent so the -dealloc fallback can't double-remove (which throws "not registered as an
+// observer").
 - (void)detachDeviceConfigurationObservers {
   @synchronized(deviceConfigurationObserverMutex) {
     if (self.deviceConfigurationObserversDetached) return;
