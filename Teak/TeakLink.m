@@ -15,6 +15,7 @@ NSString* const TeakLinkIncomingUrlPathKey = @"__incoming_path";
 - (nullable TeakLink*)initWithName:(NSString*)name description:(NSString*)description argumentOrder:(NSArray*)argumentOrder block:(TeakLinkBlock)block route:(NSString*)route;
 
 + (nonnull NSMutableDictionary*)deepLinkRegistration;
++ (nonnull NSDictionary*)deepLinkRegistrationSnapshot;
 
 @end
 
@@ -105,13 +106,16 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
   return dict;
 }
 
++ (nonnull NSDictionary*)deepLinkRegistrationSnapshot {
+  @synchronized([TeakLink deepLinkRegistration]) {
+    return [[TeakLink deepLinkRegistration] copy];
+  }
+}
+
 + (BOOL)handleDeepLink:(NSURL*)deepLink {
   if (deepLink == nil || deepLink.path == nil) return NO;
 
-  NSDictionary* deepLinkPatterns;
-  @synchronized([TeakLink deepLinkRegistration]) {
-    deepLinkPatterns = [[TeakLink deepLinkRegistration] copy];
-  }
+  NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistrationSnapshot];
   for (NSString* key in deepLinkPatterns) {
     NSError* error = nil;
     NSRegularExpression* regExp = [NSRegularExpression regularExpressionWithPattern:key options:0 error:&error];
@@ -171,10 +175,7 @@ BOOL TeakLink_HandleDeepLink(NSURL* deepLink) {
 
 + (nonnull NSArray*)routeNamesAndDescriptions {
   NSMutableArray* namesAndDescriptions = [[NSMutableArray alloc] init];
-  NSDictionary* deepLinkPatterns;
-  @synchronized([TeakLink deepLinkRegistration]) {
-    deepLinkPatterns = [[TeakLink deepLinkRegistration] copy];
-  }
+  NSDictionary* deepLinkPatterns = [TeakLink deepLinkRegistrationSnapshot];
   for (NSString* key in deepLinkPatterns) {
     TeakLink* link = deepLinkPatterns[key];
     if (link.name != nil && link.name.length > 0) {
