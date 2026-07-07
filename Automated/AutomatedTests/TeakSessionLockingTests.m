@@ -12,10 +12,15 @@
 //     background-queue body reads it lock-free to check for cancellation. atomic keeps that
 //     read from retaining a pointer the setter is releasing out from under it (a use-after-free
 //     seen in production as an EXC_BAD_ACCESS in dispatch_block_testcancel).
+//   - countryCode / userProfile / serverSessionId are reassigned in the identify-reply request
+//     callback while read cross-thread by the heartbeat queue and the duration-report background
+//     block. See RaceTripwireTests.m for the dynamic use-after-free repro backing these three.
 //
-// A behavioral race test isn't feasible — on ARM64 aligned pointer reads don't actually tear, so
-// the race is formal (UB / TSan-detectable) rather than observable. These tests instead pin the
-// property declarations to atomic via the Objective-C runtime, and fail if any reverts.
+// A behavioral race test for currentState/previousState/reportDurationBlock isn't feasible — on
+// ARM64 aligned pointer reads don't actually tear, so the race is formal (UB / TSan-detectable)
+// rather than observable, and these tests instead pin the declarations to atomic via the
+// Objective-C runtime, failing if any reverts. countryCode/userProfile/serverSessionId get the
+// same static pin here as a cheap permanent guard, on top of the dynamic repro.
 @interface TeakSessionLockingTests : XCTestCase
 @end
 
@@ -44,6 +49,21 @@
 - (void)testReportDurationBlockIsAtomic {
   XCTAssertFalse([self isNonatomicProperty:"reportDurationBlock"],
                  @"TeakSession.reportDurationBlock must stay atomic — its background-queue body reads it outside @synchronized(self) while resetReportDurationBlock cancels and frees it under the lock");
+}
+
+- (void)testCountryCodeIsAtomic {
+  XCTAssertFalse([self isNonatomicProperty:"countryCode"],
+                 @"TeakSession.countryCode must stay atomic — reassigned in the identify-reply callback while sendHeartbeat reads it on the heartbeat queue");
+}
+
+- (void)testUserProfileIsAtomic {
+  XCTAssertFalse([self isNonatomicProperty:"userProfile"],
+                 @"TeakSession.userProfile must stay atomic — reassigned in the identify-reply callback while read and sent on the operation queue");
+}
+
+- (void)testServerSessionIdIsAtomic {
+  XCTAssertFalse([self isNonatomicProperty:"serverSessionId"],
+                 @"TeakSession.serverSessionId must stay atomic — reassigned in the identify-reply callback while read by the duration-report background block");
 }
 
 @end
