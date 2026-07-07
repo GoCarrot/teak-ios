@@ -35,9 +35,11 @@ extern bool AmIBeingDebugged(void);
 
 // Published as an immutable snapshot on every UserIdentified event (see handleEvent:) instead of
 // mutated in place, so a concurrent reader (report construction, possibly on a signal handler's
-// thread) always gets a fully-formed dict via a lock-free atomic getter rather than racing a
-// mutation. copy freezes each new snapshot at assignment; atomic makes the getter itself safe to
-// call from a crash/signal context, unlike a mutex or GCD queue.
+// thread) always gets a fully-formed dict via an atomic getter rather than racing a mutation.
+// copy freezes each new snapshot at assignment. The getter isn't strictly async-signal-safe
+// (objc_getProperty takes a striped lock under the hood), but it's no worse than the rest of
+// this best-effort crash reporter, and it can't self-deadlock the way a mutex or GCD queue
+// could if a crash landed mid-mutation on the same thread that's reporting it.
 @property (atomic, copy) NSDictionary* userContext;
 @property (nonatomic) BOOL isSdkRaven;
 
@@ -490,9 +492,8 @@ void TeakSignalHandler(int signal) {
       self.payload = [NSMutableDictionary dictionaryWithDictionary:self.raven.payloadTemplate];
 
       // userContext is published as an immutable snapshot (see handleEvent:), never mutated
-      // in place, so grabbing it here is a lock-free atomic read — safe even when this runs on
-      // a signal handler's thread — and the result can never be shared with a dict some other
-      // thread is still writing to.
+      // in place, so grabbing it here — even on a signal handler's thread — can't land on a
+      // dict some other thread is still writing to.
       self.payload[@"user"] = self.raven.userContext;
 
       CFUUIDRef theUUID = CFUUIDCreate(NULL);
