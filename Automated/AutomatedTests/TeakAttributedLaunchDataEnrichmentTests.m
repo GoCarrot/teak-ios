@@ -37,11 +37,10 @@
 
 #pragma mark - Bare attributed launch data (no pre-existing attribution)
 
-/// When there's no pre-existing attribution, a later updateDeepLink: with a URL
-/// that carries teak_* params must actually populate the attribution fields.
-/// Before the initWithUrl:andShortLink: fix, newLaunchData was built via the
-/// parent's initWithUrl: (no query parsing), so NewIfNotOld(nil, nil) always
-/// returned nil and the enrichment merge was a no-op.
+/// When there's no pre-existing attribution, updatedWithDeepLink: with a URL that
+/// carries teak_* params must populate the attribution fields on the RETURNED
+/// object, and must leave the receiver untouched (C-973: the receiver may already
+/// be published/read from another queue by the time this runs).
 - (void)testUpdateDeepLinkPopulatesAttributionWhenOldIsNil {
   NSURL* bareUrl = [NSURL URLWithString:@"teaktest-app://menu"];
   TeakAttributedLaunchData* data = [[TeakAttributedLaunchData alloc] initWithUrl:bareUrl andShortLink:nil];
@@ -50,31 +49,46 @@
   XCTAssertNil(data.rewardId);
 
   NSURL* enrichedUrl = [NSURL URLWithString:@"teaktest-app://chest?teak_schedule_id=7&teak_schedule_name=daily&teak_creative_id=42&teak_creative_name=banner&teak_reward_id=99&teak_channel_name=push&teak_opt_out_category=promos"];
-  [data updateDeepLink:enrichedUrl];
+  TeakAttributedLaunchData* updated = (TeakAttributedLaunchData*)[data updatedWithDeepLink:enrichedUrl];
 
-  XCTAssertEqualObjects(data.scheduleId, @"7");
-  XCTAssertEqualObjects(data.scheduleName, @"daily");
-  XCTAssertEqualObjects(data.creativeId, @"42");
-  XCTAssertEqualObjects(data.creativeName, @"banner");
-  XCTAssertEqualObjects(data.rewardId, @"99");
-  XCTAssertEqualObjects(data.channelName, @"push");
-  XCTAssertEqualObjects(data.optOutCategory, @"promos");
-  XCTAssertEqualObjects(data.deepLink, enrichedUrl);
+  XCTAssertTrue(updated != data, @"updatedWithDeepLink: must return a fresh object, not mutate the receiver");
+  XCTAssertEqualObjects(updated.scheduleId, @"7");
+  XCTAssertEqualObjects(updated.scheduleName, @"daily");
+  XCTAssertEqualObjects(updated.creativeId, @"42");
+  XCTAssertEqualObjects(updated.creativeName, @"banner");
+  XCTAssertEqualObjects(updated.rewardId, @"99");
+  XCTAssertEqualObjects(updated.channelName, @"push");
+  XCTAssertEqualObjects(updated.optOutCategory, @"promos");
+  XCTAssertEqualObjects(updated.deepLink, enrichedUrl);
+
+  // Regression guard for C-973: the receiver must remain exactly as constructed.
+  XCTAssertNil(data.scheduleId);
+  XCTAssertNil(data.creativeId);
+  XCTAssertNil(data.rewardId);
+  XCTAssertNil(data.channelName);
+  XCTAssertNil(data.optOutCategory);
+  XCTAssertEqualObjects(data.deepLink, bareUrl);
 }
 
 /// to_h must surface the enriched fields too, since TeakPostLaunchSummary uses
-/// this dict as its userInfo. Previously blocked by the same newLaunchData bug.
+/// this dict as its userInfo — read off the returned object, not the receiver.
 - (void)testUpdateDeepLinkEnrichmentFlowsIntoToH {
   NSURL* bareUrl = [NSURL URLWithString:@"teaktest-app://menu"];
   TeakAttributedLaunchData* data = [[TeakAttributedLaunchData alloc] initWithUrl:bareUrl andShortLink:nil];
 
   NSURL* enrichedUrl = [NSURL URLWithString:@"teaktest-app://chest?teak_schedule_id=7&teak_creative_id=42&teak_reward_id=99"];
-  [data updateDeepLink:enrichedUrl];
+  TeakAttributedLaunchData* updated = (TeakAttributedLaunchData*)[data updatedWithDeepLink:enrichedUrl];
 
-  NSDictionary* dict = [data to_h];
+  NSDictionary* dict = [updated to_h];
   XCTAssertEqualObjects(dict[@"teakScheduleId"], @"7");
   XCTAssertEqualObjects(dict[@"teakCreativeId"], @"42");
   XCTAssertEqualObjects(dict[@"teakRewardId"], @"99");
+
+  // The receiver's own to_h must be unaffected by the enrichment.
+  NSDictionary* originalDict = [data to_h];
+  XCTAssertEqualObjects(originalDict[@"teakScheduleId"], [NSNull null]);
+  XCTAssertEqualObjects(originalDict[@"teakCreativeId"], [NSNull null]);
+  XCTAssertEqualObjects(originalDict[@"teakRewardId"], [NSNull null]);
 }
 
 #pragma mark - Pre-existing attribution (behavior preservation)
@@ -87,12 +101,16 @@
   XCTAssertEqualObjects(data.scheduleId, @"ORIGINAL");
 
   NSURL* enrichedUrl = [NSURL URLWithString:@"teaktest-app://chest?teak_schedule_id=ENRICHED&teak_creative_id=ENRICHED_CREATIVE&teak_reward_id=ENRICHED_REWARD"];
-  [data updateDeepLink:enrichedUrl];
+  TeakAttributedLaunchData* updated = (TeakAttributedLaunchData*)[data updatedWithDeepLink:enrichedUrl];
 
-  XCTAssertEqualObjects(data.scheduleId, @"ORIGINAL", @"old non-nil attribution must win over enriched URL values");
-  XCTAssertEqualObjects(data.creativeId, @"ORIGINAL_CREATIVE");
-  XCTAssertEqualObjects(data.rewardId, @"ORIGINAL_REWARD");
-  XCTAssertEqualObjects(data.deepLink, enrichedUrl, @"deepLink itself should still update");
+  XCTAssertEqualObjects(updated.scheduleId, @"ORIGINAL", @"old non-nil attribution must win over enriched URL values");
+  XCTAssertEqualObjects(updated.creativeId, @"ORIGINAL_CREATIVE");
+  XCTAssertEqualObjects(updated.rewardId, @"ORIGINAL_REWARD");
+  XCTAssertEqualObjects(updated.deepLink, enrichedUrl, @"deepLink itself should still update");
+
+  // The receiver's own deepLink must not have changed.
+  XCTAssertEqualObjects(data.deepLink, originalUrl);
+  XCTAssertEqualObjects(data.scheduleId, @"ORIGINAL");
 }
 
 /// A mix: old has some slots, new fills in the rest.
@@ -103,10 +121,13 @@
   XCTAssertNil(data.creativeId);
 
   NSURL* enrichedUrl = [NSURL URLWithString:@"teaktest-app://chest?teak_schedule_id=ENRICHED_SCHEDULE&teak_creative_id=NEW_CREATIVE"];
-  [data updateDeepLink:enrichedUrl];
+  TeakAttributedLaunchData* updated = (TeakAttributedLaunchData*)[data updatedWithDeepLink:enrichedUrl];
 
-  XCTAssertEqualObjects(data.scheduleId, @"ORIGINAL_SCHEDULE", @"slot with old value preserves it");
-  XCTAssertEqualObjects(data.creativeId, @"NEW_CREATIVE", @"slot that was nil gets filled by enriched URL");
+  XCTAssertEqualObjects(updated.scheduleId, @"ORIGINAL_SCHEDULE", @"slot with old value preserves it");
+  XCTAssertEqualObjects(updated.creativeId, @"NEW_CREATIVE", @"slot that was nil gets filled by enriched URL");
+
+  // The receiver never gets the new creativeId — it was never mutated.
+  XCTAssertNil(data.creativeId);
 }
 
 @end

@@ -18,7 +18,6 @@
 
 - (NSDictionary*)sessionAttribution;
 - (NSDictionary*)to_h;
-- (void)updateDeepLink:(NSURL*)updatedDeepLink;
 @end
 
 @interface TeakAttributedLaunchData : TeakLaunchData
@@ -32,14 +31,17 @@
 @property (copy, nonatomic, readonly) NSString* optOutCategory;
 
 - (NSDictionary*)sessionAttribution;
-- (void)updateDeepLink:(NSURL*)updatedDeepLink;
+
+// Returns a new, fully-independent launch data object with deep-link attribution
+// merged in — never mutates the receiver, which may already be published/read
+// from other queues (see TeakLaunchDataOperation's updateDeepLink:withLaunchLink:).
+- (TeakLaunchData*)updatedWithDeepLink:(NSURL*)updatedDeepLink;
 @end
 
 @interface TeakNotificationLaunchData : TeakAttributedLaunchData
 @property (copy, nonatomic, readonly) NSString* sourceSendId;
 
 - (NSDictionary*)sessionAttribution;
-- (void)updateDeepLink:(NSURL*)updatedDeepLink;
 @end
 
 @interface TeakRewardlinkLaunchData : TeakAttributedLaunchData

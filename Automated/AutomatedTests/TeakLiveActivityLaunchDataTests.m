@@ -148,7 +148,9 @@ static NSString* const kSystemActivityId = @"D3CBB9AF-7292-4FD9-B22D-DEAC3D033BD
 /// Simulates the users.json reply path: server responds with a `deep_link` carrying
 /// teak_* query params, TeakSession calls updateDeepLink:withLaunchLink: on our
 /// launch data operation, and the enriched fields surface in both sessionAttribution
-/// (already-identified sessions) and to_h (TeakPostLaunchSummary userInfo).
+/// (already-identified sessions) and to_h (TeakPostLaunchSummary userInfo). The
+/// replacement operation runs synchronously (no I/O involved), and the original
+/// operation/result must be left untouched (C-973).
 - (void)testUpdateDeepLinkEnrichesAttributedFieldsAndPreservesSystemActivityId {
   TeakLaunchDataOperation* op = [TeakLaunchDataOperation fromLiveActivityTap:kSystemActivityId];
   NSOperationQueue* queue = [[NSOperationQueue alloc] init];
@@ -156,9 +158,12 @@ static NSString* const kSystemActivityId = @"D3CBB9AF-7292-4FD9-B22D-DEAC3D033BD
   [queue waitUntilAllOperationsAreFinished];
 
   NSURL* enrichedDeepLink = [NSURL URLWithString:@"teaktest-app://chest?teak_schedule_id=7&teak_creative_id=42&teak_reward_id=99"];
-  [op updateDeepLink:enrichedDeepLink withLaunchLink:nil];
+  TeakLaunchDataOperation* updatedOp = [op updateDeepLink:enrichedDeepLink withLaunchLink:nil];
 
-  TeakLiveActivityLaunchData* data = (TeakLiveActivityLaunchData*)op.result;
+  XCTAssertTrue(updatedOp != op, @"updateDeepLink:withLaunchLink: must return a fresh operation, not mutate the original");
+  XCTAssertTrue(updatedOp.finished, @"the replacement operation wraps an already-computed object and runs synchronously");
+
+  TeakLiveActivityLaunchData* data = (TeakLiveActivityLaunchData*)updatedOp.result;
   XCTAssertEqualObjects(data.systemActivityId, kSystemActivityId, @"updateDeepLink: must not clobber systemActivityId");
 
   NSDictionary* attribution = [data sessionAttribution];
@@ -172,6 +177,12 @@ static NSString* const kSystemActivityId = @"D3CBB9AF-7292-4FD9-B22D-DEAC3D033BD
   XCTAssertEqualObjects(dict[@"teakScheduleId"], @"7");
   XCTAssertEqualObjects(dict[@"teakCreativeId"], @"42");
   XCTAssertEqualObjects(dict[@"teakRewardId"], @"99");
+
+  // Regression guard for C-973: the original operation's result must be untouched.
+  TeakLiveActivityLaunchData* originalData = (TeakLiveActivityLaunchData*)op.result;
+  XCTAssertEqualObjects(originalData.systemActivityId, kSystemActivityId);
+  NSDictionary* originalAttribution = [originalData sessionAttribution];
+  XCTAssertNil(originalAttribution[@"teak_schedule_id"], @"the original launch data must not see the enrichment");
 }
 
 - (void)testFromUserActivityHandlesBrowsingWeb {

@@ -147,15 +147,17 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 - (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink withLaunchLink:(NSURL*)launchLink {
   TeakLaunchData* launchData = self.result;
   if ([launchData isKindOfClass:TeakAttributedLaunchData.class]) {
-    [launchData updateDeepLink:updatedDeepLink];
-    return self;
+    launchData = [(TeakAttributedLaunchData*)launchData updatedWithDeepLink:updatedDeepLink];
+  } else {
+    launchData = [TeakLaunchDataOperation launchDataFromUrl:updatedDeepLink withShortlink:launchLink];
   }
 
-  // Create a new launch data operation and queue it (it uses the returnLaunchData: path)
-  launchData = [TeakLaunchDataOperation launchDataFromUrl:updatedDeepLink
-                                            withShortlink:launchLink];
+  // Run synchronously rather than via the shared operationQueue: this just wraps an
+  // already-computed object (no I/O), and callers (e.g. TeakSession's
+  // processAttributionAndDispatchEvents) check .finished immediately after this call
+  // returns, in the same call stack as the reassignment below.
   TeakLaunchDataOperation* launchDataOperation = [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
-  [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
+  [launchDataOperation start];
   return launchDataOperation;
 }
 
@@ -289,10 +291,6 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return dictionary;
 }
 
-- (void)updateDeepLink:(NSURL*)updatedDeepLink {
-  // Empty on purpose
-}
-
 @end
 
 @implementation TeakAttributedLaunchData
@@ -391,17 +389,8 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return dictionary;
 }
 
-- (void)updateDeepLink:(NSURL*)updatedDeepLink {
-  TeakAttributedLaunchData* updatedLaunchData = [[TeakAttributedLaunchData alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
-  self.scheduleName = updatedLaunchData.scheduleName;
-  self.scheduleId = updatedLaunchData.scheduleId;
-  self.creativeName = updatedLaunchData.creativeName;
-  self.creativeId = updatedLaunchData.creativeId;
-  self.rewardId = updatedLaunchData.rewardId;
-  self.channelName = updatedLaunchData.channelName;
-  self.deepLink = updatedLaunchData.deepLink;
-  self.optOutCategory = updatedLaunchData.optOutCategory;
-  self.deepLinkUrlQuery = updatedLaunchData.deepLinkUrlQuery;
+- (TeakLaunchData*)updatedWithDeepLink:(NSURL*)updatedDeepLink {
+  return [[[self class] alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
 }
 
 @end
@@ -444,13 +433,6 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return dictionary;
 }
 
-- (void)updateDeepLink:(NSURL*)updatedDeepLink {
-  [super updateDeepLink:updatedDeepLink];
-
-  TeakNotificationLaunchData* updatedLaunchData = [[TeakNotificationLaunchData alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
-  self.sourceSendId = updatedLaunchData.sourceSendId;
-}
-
 @end
 
 @implementation TeakRewardlinkLaunchData
@@ -471,6 +453,14 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   self = [super initWithUrl:nil andShortLink:nil];
   if (self) {
     self.systemActivityId = systemActivityId;
+  }
+  return self;
+}
+
+- (id)initWithAttributedLaunchData:(TeakLiveActivityLaunchData*)oldLaunchData andUpdatedDeepLink:(NSURL*)updatedDeepLink {
+  self = [super initWithAttributedLaunchData:oldLaunchData andUpdatedDeepLink:updatedDeepLink];
+  if (self) {
+    self.systemActivityId = oldLaunchData.systemActivityId;
   }
   return self;
 }
