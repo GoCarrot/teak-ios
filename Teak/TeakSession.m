@@ -20,6 +20,14 @@ NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 
+// Leaf lock serializing -detachDeviceConfigurationObservers. Deliberately NOT the session's own
+// monitor: detach runs under currentSessionMutex at every replacement site, so taking
+// @synchronized(self) there would add a currentSessionMutex→self ordering edge. The currentState
+// KVO handler holds @synchronized(self) and then drains under currentSessionMutex (self→mutex), so
+// that counter-edge would close an AB-BA deadlock cycle. This dedicated token acquires nothing else
+// while held, so it can't be one side of that cycle.
+static NSString* const deviceConfigurationObserverDetachMutex = @"io.teak.sdk.deviceConfigurationObserverDetachMutex";
+
 NSString* const TeakOptedIn = @"opted_in";
 NSString* const TeakOptedOut = @"opted_out";
 NSString* const TeakAvailable = @"available";
@@ -82,8 +90,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, atomic) NSString* serverSessionId;
 @property int sessionVectorClock;
 
-// Set once, under @synchronized(self), when this session's observers on the shared
-// deviceConfiguration are removed, so the removal happens exactly once whether it comes from
+// Set once, under deviceConfigurationObserverDetachMutex, when this session's observers on the
+// shared deviceConfiguration are removed, so the removal happens exactly once whether it comes from
 // session replacement or -dealloc. See -detachDeviceConfigurationObservers.
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 @end
@@ -490,8 +498,11 @@ DefineTeakState(Expired, (@[]));
 // queue releases the session last and could race a newer session's addObserver on that same object,
 // corrupting KVO's per-object observation info. The flag makes it idempotent so -dealloc's fallback
 // call can't double-remove (which throws "not registered as an observer").
+//
+// Serialized on deviceConfigurationObserverDetachMutex, not @synchronized(self): see that token's
+// declaration — locking self here (under currentSessionMutex) would close an AB-BA deadlock cycle.
 - (void)detachDeviceConfigurationObservers {
-  @synchronized(self) {
+  @synchronized(deviceConfigurationObserverDetachMutex) {
     if (self.deviceConfigurationObserversDetached) return;
     self.deviceConfigurationObserversDetached = YES;
 
