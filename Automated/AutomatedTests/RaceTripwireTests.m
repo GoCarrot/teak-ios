@@ -102,6 +102,9 @@ extern NSString* const currentSessionMutex;
 // The macro-generated currentState KVO handler. A bare-alloc session never registers the observer
 // (-init does), so the lock-order guard invokes the real handler directly to exercise its body.
 - (void)_TeakSession_currentState_ChangedFrom:(id)oldValue to:(id)newValue;
+@property (nonatomic) volatile atomic_int sessionVectorClock;
+- (int)incrementSessionVectorClock;
+- (int)markReportDurationSentAndIncrementSessionVectorClock;
 @end
 
 // pushToken/liveActivityPushToStartToken/advertisingIdentifier/notificationDisplayEnabled are
@@ -408,6 +411,39 @@ static NSMutableArray* keepAliveBareSessions;
                 (void)status.state.length;
               }
             }];
+}
+
+// sessionVectorClock lost-update repro (scalar read-modify-write, see RACE_TESTING.md §3a/§1's
+// fourth class). Unlike the UAF tests above, the pointee here can't be freed and the aligned
+// load/store can't tear — the danger is the `++` itself: two threads can read the same
+// pre-increment value and each write back the same post-increment value, silently dropping an
+// update. Both real increment helpers are driven concurrently (the KVO-observer resume path and
+// the duration-report background block both call one of these two), and every value each thread's
+// call *returns* is collected into that thread's own set. No lost/duplicate update means the union
+// of both sets has exactly one entry per call, and the field's final value equals the total call
+// count. Reverting either helper to a bare `self.sessionVectorClock++` on the same atomic-typed
+// property still drops tickets reliably at this iteration count.
+- (void)testSessionVectorClockDoesNotLoseIncrementsUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 200000;
+  NSMutableSet<NSNumber*>* ticketsA = [NSMutableSet setWithCapacity:N];
+  NSMutableSet<NSNumber*>* ticketsB = [NSMutableSet setWithCapacity:N];
+
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      [ticketsA addObject:@([session incrementSessionVectorClock])];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                [ticketsB addObject:@([session markReportDurationSentAndIncrementSessionVectorClock])];
+              }
+            }];
+
+  NSMutableSet<NSNumber*>* allTickets = [ticketsA mutableCopy];
+  [allTickets unionSet:ticketsB];
+  XCTAssertEqual(allTickets.count, (NSUInteger)(2 * N), @"every increment should return a unique ticket — a duplicate means a lost update");
+  XCTAssertEqual(session.sessionVectorClock, 2 * N, @"final count should equal the total number of increments across both threads");
 }
 
 // Builds a real TeakRaven the same way TeakRavenTests.m does: a fully-stubbed Teak mock so

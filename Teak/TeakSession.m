@@ -15,6 +15,8 @@
 #import "TeakHelpers.h"
 #import "TeakKVOHelpers.h"
 
+#import <stdatomic.h>
+
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
 TeakSession* currentSession;
@@ -96,11 +98,20 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // resetReportDurationBlock cancels and frees it under the lock. atomic accessors keep that
 // lock-free read from retaining a pointer the setter is releasing out from under it.
 @property (strong, atomic) dispatch_block_t reportDurationBlock;
-@property (nonatomic) BOOL reportDurationSent;
+// reportDurationSent/sessionVectorClock are C11 atomics, not ObjC `atomic` properties: the
+// duration-report background block writes both lock-free (see the block body below), while
+// sessionVectorClock is also incremented from the currentState observer's @synchronized(self).
+// A plain assignment (identify-reply reset-to-0, init) is already a safe atomic store on this
+// type. sessionVectorClock's `++` is a compound read-modify-write that neither a plain store nor
+// an ObjC `atomic` property qualifier makes safe on its own — every increment site goes through
+// -incrementSessionVectorClock/-markReportDurationSentAndIncrementSessionVectorClock below, which
+// use atomic_fetch_add. reportDurationSent never participates in a read-modify-write of its own
+// prior value, so plain atomic load/store fully covers it.
+@property (nonatomic) volatile atomic_bool reportDurationSent;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
 // Same cross-thread reassignment race as countryCode above.
 @property (strong, atomic) NSString* serverSessionId;
-@property int sessionVectorClock;
+@property (nonatomic) volatile atomic_int sessionVectorClock;
 
 // Set once, under deviceConfigurationObserverMutex, when this session's observers on the shared
 // deviceConfiguration are removed, so the removal happens exactly once whether it comes from session
@@ -940,13 +951,15 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       if (oldValue == [TeakSession Expiring]) {
         // Cancel any pending duration report
         if ([self resetReportDurationBlock]) {
-          // The report duration got sent, so send a resume
-          self.sessionVectorClock++;
+          // The report duration got sent, so send a resume. sessionVectorClock++ is a
+          // read-modify-write the duration-report block's own increment can race with, so it
+          // goes through the atomic-fetch-add helper rather than the property's `++` sugar.
+          int vectorClock = [self incrementSessionVectorClock];
           // Single read: same nil-check-then-use hazard as sendHeartbeat's countryCode above.
           NSString* serverSessionId = self.serverSessionId;
           NSDictionary* payload = @{
             @"session_id" : serverSessionId == nil ? @"null" : TeakURLEscapedString(serverSessionId),
-            @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
+            @"session_vector_clock": [NSNumber numberWithLong:vectorClock]
           };
 
           TeakRequest* request = [TeakRequest requestWithSession:self
@@ -1001,14 +1014,16 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           dispatch_block_t canceledCheckBlock = blockSelf.reportDurationBlock;
           NSString* serverSessionId = blockSelf.serverSessionId;
           if (canceledCheckBlock != nil && !dispatch_block_testcancel(canceledCheckBlock) && serverSessionId != nil) {
-            blockSelf.reportDurationSent = YES;
-            blockSelf.sessionVectorClock++;
+            // reportDurationSent/sessionVectorClock are atomic-typed (see the class extension), so
+            // this store and fetch-add are each safe against the KVO observer's resume-path
+            // increment on another thread without taking any lock here.
+            int vectorClock = [blockSelf markReportDurationSentAndIncrementSessionVectorClock];
 
             // Send request for "if you don't hear back from me, this session ended now"
             NSDictionary* payload = @{
               @"session_id" : TeakURLEscapedString(serverSessionId),
               @"session_duration_ms" : [NSNumber numberWithLong:[blockSelf.endDate timeIntervalSinceDate:blockSelf.startDate] * 1000],
-              @"session_vector_clock": [NSNumber numberWithLong:blockSelf.sessionVectorClock]
+              @"session_vector_clock": [NSNumber numberWithLong:vectorClock]
             };
 
             TeakRequest* request = [TeakRequest requestWithSession:blockSelf
@@ -1028,6 +1043,25 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
     } else if (newValue == [TeakSession Expired]) {
     }
   }
+}
+
+// sessionVectorClock++ is a read-modify-write; the KVO observer's resume-path increment and the
+// duration-report background block's increment can run concurrently on two different threads, so
+// a plain atomic property (safe for single loads/stores, not for compound RMW) isn't enough. Every
+// increment site goes through this or -markReportDurationSentAndIncrementSessionVectorClock, both
+// of which use atomic_fetch_add on the underlying atomic_int. Returns the new (post-increment)
+// value so callers don't need a second, separately-racy read of the property for their payload.
+- (int)incrementSessionVectorClock {
+  return atomic_fetch_add(&_sessionVectorClock, 1) + 1;
+}
+
+// Same atomicity requirement as -incrementSessionVectorClock, for the one call site that also
+// needs to mark the duration report sent in the same breath. reportDurationSent itself never
+// participates in a read-modify-write of its own prior value (resetReportDurationBlock's reset to
+// NO is unconditional), so it doesn't need fetch-add — a plain atomic store below is sufficient.
+- (int)markReportDurationSentAndIncrementSessionVectorClock {
+  self.reportDurationSent = YES;
+  return atomic_fetch_add(&_sessionVectorClock, 1) + 1;
 }
 
 - (BOOL)resetReportDurationBlock {

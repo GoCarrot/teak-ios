@@ -6,7 +6,7 @@ racing, so start by classifying that.
 
 ## 1. Classify the shared state first
 
-The detector that will actually fire depends on what's being shared. Three cases cover almost
+The detector that will actually fire depends on what's being shared. Four cases cover almost
 everything here:
 
 - **Immortal scalar or pointer** — the slot is written concurrently but the pointee is never freed
@@ -22,6 +22,12 @@ everything here:
   (e.g. the `userProfile` string-attributes dict). The container's internal backing buffer
   reallocates on mutation, so a concurrent access touches freed/moved memory. Atomicity of the
   pointer to the container does nothing here; the access itself must be serialized.
+- **Scalar under a compound read-modify-write** — a counter incremented (`self.foo++`) from more
+  than one thread (e.g. `TeakSession.sessionVectorClock`). The pointee can't be freed and the
+  aligned load/store can't tear, so this isn't the UAF case — but a plain atomic property is still
+  not enough, because the increment is a separate atomic get then a separate atomic set, and two
+  threads can race between them and drop an update. The fix is a true atomic RMW (`atomic_fetch_add`
+  on an `_Atomic`-qualified scalar); see §3a for the detector.
 
 The class tells you which tool below will fire — and, just as important, which will stay silent
 while the bug is still there.
@@ -140,6 +146,27 @@ production code regardless of whether init ran.
 Then apply the **revert check**: run it against the unfixed property and watch it crash; apply the
 fix (§4) and watch the crash vanish. Red→green.
 
+## 3a. The lost-update counter repro (scalar read-modify-write)
+
+The scalar-RMW case from §1 doesn't fit either detector above: no crash to trap (the pointee can't
+be freed), and TSan is commonly blind to it for the same reason it's blind to the nonatomic-strong
+UAF — the increment's load and store typically resolve through the same kind of uninstrumented
+runtime call. The repro instead drives the real increment method from two threads and asserts an
+invariant that only holds if every single increment landed:
+
+- **Ticket-set uniqueness** — have each thread collect the value its own increment call *returns*
+  into its own set, union the two sets after both finish, and assert the union's size equals the
+  total number of calls. A lost update surfaces as a missing or duplicate ticket.
+- **Final-count check** — assert the field's value once both threads are done equals the total
+  number of increments made across both.
+
+`testSessionVectorClockDoesNotLoseIncrementsUnderConcurrency` in `RaceTripwireTests.m` does both,
+driving `TeakSession`'s real `-incrementSessionVectorClock` /
+`-markReportDurationSentAndIncrementSessionVectorClock` (each an `atomic_fetch_add` on the same
+underlying `atomic_int`). No crash needed — reverting either method to a bare
+`self.sessionVectorClock++` on the same atomic-typed property still reliably drops tickets at a few
+hundred thousand iterations, same revert-check bar as everything else in this doc.
+
 ## 4. Why `atomic` fixes the nonatomic-strong UAF
 
 Declaring the property `atomic` (strong) routes reads through `objc_getProperty`, which **retains
@@ -189,6 +216,7 @@ check still applies: drop the flag or the detach call and watch the structural a
 | nonatomic-strong, freeable pointee | Dynamic crash repro (CF over-release trap) | `SIGTRAP` in `_CFRelease` | `TeakSession.serverSessionId` |
 | Immortal scalar/pointer | Static atomic-declaration assertion | assertion red | state-machine fields |
 | Cross-object KVO add/remove (shared observee) | Structural assertion (idempotent removal + detached-at-replacement) | assertion red | `TeakSession` deviceConfiguration observers |
+| Scalar read-modify-write (`foo++` from >1 thread) | Ticket-set/final-count assertion | duplicate/missing ticket or wrong final count | `TeakSession.sessionVectorClock` |
 | Deadlock / dropped-order | No in-process race signal | case-by-case: watchdog, barrier, structural | — |
 
 Whatever the technique, it isn't a guard until you've run the **revert check** and watched it fail.
