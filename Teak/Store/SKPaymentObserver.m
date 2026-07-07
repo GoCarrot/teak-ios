@@ -5,6 +5,8 @@
 
 #define _(_id) TeakValueOrNSNull(_id)
 
+static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.productRequestActiveRequestsMutex";
+
 @interface SKPaymentObserver () <SKPaymentTransactionObserver, TeakEventHandler>
 @property (nonatomic) NSTimeInterval paymentStart;
 
@@ -157,13 +159,25 @@
   return array;
 }
 
++ (void)addActiveProductRequest:(ProductRequest*)request {
+  @synchronized(ProductRequestActiveRequestsMutex) {
+    [[ProductRequest activeProductRequests] addObject:request];
+  }
+}
+
++ (void)removeActiveProductRequest:(ProductRequest*)request {
+  @synchronized(ProductRequestActiveRequestsMutex) {
+    [[ProductRequest activeProductRequests] removeObject:request];
+  }
+}
+
 + (ProductRequest*)productRequestForSku:(NSString*)sku callback:(ProductRequestCallback)callback {
   ProductRequest* ret = [[ProductRequest alloc] init];
   ret.callback = callback;
   ret.productsRequest = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:sku]];
   ret.productsRequest.delegate = ret;
   [ret.productsRequest start];
-  [[ProductRequest activeProductRequests] addObject:ret];
+  [ProductRequest addActiveProductRequest:ret];
   return ret;
 }
 
@@ -189,7 +203,7 @@
   } else {
     self.callback(@{}, nil);
   }
-  [[ProductRequest activeProductRequests] removeObject:self];
+  [ProductRequest removeActiveProductRequest:self];
 }
 
 - (NSString*)description {

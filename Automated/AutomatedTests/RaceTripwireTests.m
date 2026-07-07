@@ -1,6 +1,7 @@
 #import <XCTest/XCTest.h>
 #import <stdatomic.h>
 
+#import "SKPaymentObserver.h"
 #import "TeakAppConfiguration.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
@@ -19,12 +20,13 @@
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
 // kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
-// userProfile/stateChain) that carry signal on their own, and a ThreadSanitizer-only serialization guard (the
-// attribute-dict test) that needs the sanitizer to see the race at all. Both run every commit, just
-// on different lanes: the `test` lane skips this whole class to keep the fast per-commit signal
-// quick — the crash repros are too slow (up to 2M iterations) for it, and the serialization test
-// needs TSan anyway. The `test_race` lane runs all of them, every commit, with ThreadSanitizer
-// attached for the one test that needs it, and additionally gates tagged-build releases.
+// userProfile/stateChain) that carry signal on their own, and ThreadSanitizer-only serialization
+// guards (the attribute-dict test and the ProductRequest active-requests test) that need the
+// sanitizer to see the race at all. Both kinds run every commit, just on different lanes: the `test`
+// lane skips this whole class to keep the fast per-commit signal quick — the crash repros are too
+// slow (up to 2M iterations) for it, and the serialization tests need TSan anyway. The `test_race`
+// lane runs all of them, every commit, with ThreadSanitizer attached for the tests that need it, and
+// additionally gates tagged-build releases.
 //
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which
 // race class, and why some classes (e.g. lock-inversion deadlocks) get no in-process guard here.
@@ -64,6 +66,14 @@
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
+@end
+
+// addActiveProductRequest:/removeActiveProductRequest: are private (declared only in
+// SKPaymentObserver.m). Re-declared here so the test can drive the real synchronized mutation
+// methods directly, rather than reconstructing the array access by hand.
+@interface ProductRequest (RaceTripwire)
++ (void)addActiveProductRequest:(ProductRequest*)request;
++ (void)removeActiveProductRequest:(ProductRequest*)request;
 @end
 
 // stateChain is private (declared only in TeakPushState.m's class extension). Re-declared here
@@ -313,6 +323,34 @@ static NSMutableArray* keepAliveBareSessions;
   // Drain the queued setter blocks so none outlive the test.
   dispatch_sync([Teak operationQueue], ^{
   });
+}
+
+// ProductRequest active-requests serialization guard (ThreadSanitizer). +activeProductRequests backs
+// a write-only keep-alive array: addObject: runs on the StoreKit payment-queue thread
+// (+productRequestForSku:callback:) while removeObject: runs on the SKProductsRequest delegate thread
+// (-productsRequest:didReceiveResponse:). Thread A adds fresh requests while thread B removes a
+// pre-seeded batch, landing both mutations on the shared NSMutableArray at once. The fix wraps both
+// call sites in @synchronized(ProductRequestActiveRequestsMutex), so TSan stays silent; removing that
+// synchronization reports a race on the array. Green now, red on revert.
+- (void)testProductRequestActiveRequestsIsSerializedUnderConcurrency {
+  const int N = 8000;
+  NSMutableArray* preSeeded = [NSMutableArray array];
+  for (int i = 0; i < N; i++) {
+    ProductRequest* request = [[ProductRequest alloc] init];
+    [preSeeded addObject:request];
+    [ProductRequest addActiveProductRequest:request];
+  }
+
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      [ProductRequest addActiveProductRequest:[[ProductRequest alloc] init]];
+    }
+  }
+            blockB:^{
+              for (ProductRequest* request in preSeeded) {
+                [ProductRequest removeActiveProductRequest:request];
+              }
+            }];
 }
 
 // TeakLink route-registry serialization regression guard (ThreadSanitizer). registerRoute writes the
