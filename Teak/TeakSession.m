@@ -249,8 +249,11 @@ DefineTeakState(Expired, (@[]));
 
     // Always send if ad tracking is limited, send empty string if it is limited (by either the game, or the OS)
     payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:!dataCollectionConfiguration.enableIDFA];
-    if ([self.deviceConfiguration.advertisingIdentifier length] > 0 && dataCollectionConfiguration.enableIDFA) {
-      payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
+    // Single read: advertisingIdentifier is atomic but reassignable cross-thread, so the length
+    // check and the use below must see the same value.
+    NSString* advertisingIdentifier = self.deviceConfiguration.advertisingIdentifier;
+    if ([advertisingIdentifier length] > 0 && dataCollectionConfiguration.enableIDFA) {
+      payload[@"ios_ad_id"] = advertisingIdentifier;
     } else {
       payload[@"ios_ad_id"] = @"";
     }
@@ -269,15 +272,19 @@ DefineTeakState(Expired, (@[]));
       payload[@"email"] = self.email;
     }
 
-    if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
-      payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
+    // Single read: same cross-thread reassignment hazard as advertisingIdentifier above.
+    NSString* pushToken = self.deviceConfiguration.pushToken;
+    if ([pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+      payload[@"apns_push_key"] = pushToken;
       [payload addEntriesFromDictionary:[[Teak sharedInstance].pushState to_h]];
     } else {
       payload[@"apns_push_key"] = @"";
     }
 
-    if ([self.deviceConfiguration.liveActivityPushToStartToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
-      payload[@"live_activity_push_to_start_key"] = self.deviceConfiguration.liveActivityPushToStartToken;
+    // Single read: same hazard as pushToken/advertisingIdentifier above.
+    NSString* liveActivityPushToStartToken = self.deviceConfiguration.liveActivityPushToStartToken;
+    if ([liveActivityPushToStartToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+      payload[@"live_activity_push_to_start_key"] = liveActivityPushToStartToken;
     }
 
     if (!self.appConfiguration.sdk5Behaviors) {
@@ -968,9 +975,11 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
     TeakDataCollectionConfiguration* dataCollectionConfiguration = [[TeakConfiguration configuration] dataCollectionConfiguration];
 
     NSDictionary* pushRegistration = (NSDictionary*)[NSNull null];
-    if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+    // Single read: same cross-thread reassignment hazard as sendUserIdentifier's pushToken.
+    NSString* pushToken = self.deviceConfiguration.pushToken;
+    if ([pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
       pushRegistration = @{
-        @"apns" : self.deviceConfiguration.pushToken
+        @"apns" : pushToken
       };
     }
     [UserDataEvent userDataReceived:self.additionalData

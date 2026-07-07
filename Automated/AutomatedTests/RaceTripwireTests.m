@@ -1,11 +1,14 @@
 #import <XCTest/XCTest.h>
 #import <stdatomic.h>
 
+#import "SKPaymentObserver.h"
 #import "TeakAppConfiguration.h"
 #import "TeakChannelStatus.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakLink.h"
 #import "TeakLog.h"
+#import "TeakPushState.h"
 #import "TeakRaven.h"
 #import "TeakSession.h"
 #import "TeakUserProfile.h"
@@ -17,15 +20,16 @@
 
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Two
-// kinds of guard live here: deterministic CF-over-release crash repros (the nonatomic-strong,
-// freeable-pointee TeakSession properties — serverSessionId/countryCode/userProfile/
-// facebookAccessToken/additionalData/emailStatus/pushStatus/smsStatus) that carry signal on their
-// own, and a ThreadSanitizer-only serialization guard (the attribute-dict test) that needs the
-// sanitizer to see the race at all. Both run every commit, just on different lanes: the `test`
+// kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
+// userProfile/stateChain/facebookAccessToken/additionalData/emailStatus/pushStatus/smsStatus, and
+// TeakDeviceConfiguration's pushToken/liveActivityPushToStartToken/advertisingIdentifier/
+// notificationDisplayEnabled) that carry signal on their own, and ThreadSanitizer-only serialization
+// guards (the attribute-dict test and the ProductRequest active-requests test) that need the
+// sanitizer to see the race at all. Both kinds run every commit, just on different lanes: the `test`
 // lane skips this whole class to keep the fast per-commit signal quick — the crash repros are too
-// slow (up to 2M iterations) for it, and the serialization test needs TSan anyway. The `test_race`
-// lane runs all of them, every commit, with ThreadSanitizer attached for the one test that needs
-// it, and additionally gates tagged-build releases.
+// slow (up to 2M iterations) for it, and the serialization tests need TSan anyway. The `test_race`
+// lane runs all of them, every commit, with ThreadSanitizer attached for the tests that need it, and
+// additionally gates tagged-build releases.
 //
 // launchDataOperation is atomic+capture-to-local too (see TeakSession.m), but its pointee never
 // frees — see the comment near testAdditionalDataIsAtomicUnderConcurrency below — so it's pinned
@@ -74,6 +78,31 @@
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
+@end
+
+// pushToken/liveActivityPushToStartToken/advertisingIdentifier/notificationDisplayEnabled are
+// public but readonly on TeakDeviceConfiguration. Re-declared here for full read-write access,
+// same convention as TeakSession above.
+@interface TeakDeviceConfiguration (RaceTripwire)
+@property (strong, atomic, readwrite) NSString* pushToken;
+@property (strong, atomic, readwrite) NSString* liveActivityPushToStartToken;
+@property (strong, atomic, readwrite) NSString* advertisingIdentifier;
+@property (strong, atomic, readwrite) NSString* notificationDisplayEnabled;
+@end
+
+// addActiveProductRequest:/removeActiveProductRequest: are private (declared only in
+// SKPaymentObserver.m). Re-declared here so the test can drive the real synchronized mutation
+// methods directly, rather than reconstructing the array access by hand.
+@interface ProductRequest (RaceTripwire)
++ (void)addActiveProductRequest:(ProductRequest*)request;
++ (void)removeActiveProductRequest:(ProductRequest*)request;
+@end
+
+// stateChain is private (declared only in TeakPushState.m's class extension). Re-declared here
+// for full read-write access, per the project convention of redeclaring internal properties in
+// the test file rather than importing Teak+Internal.h (which doesn't expose it either).
+@interface TeakPushState (RaceTripwire)
+@property (strong, atomic) NSArray* stateChain;
 @end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
@@ -369,6 +398,106 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
+// TeakDeviceConfiguration strong-property use-after-free repro (CF over-release trap). pushToken/
+// liveActivityPushToStartToken are reassigned from handleEvent on the event-processing queue;
+// advertisingIdentifier from getAdvertisingInformation (init, the LifecycleActivate event queue, and
+// a main-queue retry); notificationDisplayEnabled from the pushState operation queue's completion
+// block. All four are read cross-thread by TeakSession's operation queue while building the identify
+// payload (TeakSession.m's sendUserIdentifier/dispatchUserDataEvent). Same technique as the
+// TeakSession properties above — all four are plain NSStrings, so no isa-touch needed. Green now
+// (atomic).
+- (void)testPushTokenIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.pushToken = [[NSString alloc] initWithFormat:@"race-pushtoken-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.pushToken;
+                (void)s.length;
+              }
+            }];
+}
+
+- (void)testLiveActivityPushToStartTokenIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.liveActivityPushToStartToken = [[NSString alloc] initWithFormat:@"race-liveactivitytoken-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.liveActivityPushToStartToken;
+                (void)s.length;
+              }
+            }];
+}
+
+- (void)testAdvertisingIdentifierIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.advertisingIdentifier = [[NSString alloc] initWithFormat:@"race-advertisingid-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.advertisingIdentifier;
+                (void)s.length;
+              }
+            }];
+}
+
+- (void)testNotificationDisplayEnabledIsAtomicUnderConcurrency {
+  TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
+  const int N = 200000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      config.notificationDisplayEnabled = [[NSString alloc] initWithFormat:@"race-notificationdisplay-value-%d", i];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSString* s = config.notificationDisplayEnabled;
+                (void)s.length;
+              }
+            }];
+}
+
+// TeakPushState.stateChain is written under @synchronized(self) in updateCurrentState: but read
+// lock-free by cachedPushState and serializedStateChain. COW discipline means the writer already
+// swaps in a whole new array rather than mutating in place — but the old array is still freed on
+// swap, so a nonatomic-strong reassignment on one thread races a read+retain on another, same as
+// serverSessionId/countryCode/userProfile above. The array itself is a plain object (not a
+// CFString), and its element (a single string) is short-lived per iteration too, so — like
+// userProfile — a shallow read (e.g. .count alone) risks a same-shaped-allocation false green;
+// isa-touch via NSStringFromClass plus .count, at userProfile's higher iteration count, reproduces
+// reliably. Uses a bare `[TeakPushState alloc]` (no -init) since the test only drives the
+// stateChain accessor — -init would register a TeakEvent handler and spin up an operation queue
+// neither of which this repro needs.
+- (void)testStateChainIsAtomicUnderConcurrency {
+  TeakPushState* pushState = [TeakPushState alloc];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      pushState.stateChain = @[ [[NSString alloc] initWithFormat:@"race-statechain-value-%d", i] ];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSArray* chain = pushState.stateChain;
+                (void)NSStringFromClass([chain class]).length;
+                (void)chain.count;
+              }
+            }];
+}
+
 // Attribute-dict serialization regression guard (ThreadSanitizer). Two threads drive the real setter
 // concurrently with changing values on the same key, so each call performs the guarded read AND the
 // dictionary write. The fix hops every access onto the serial operationQueue, so TSan stays silent
@@ -388,6 +517,62 @@ static NSMutableArray* keepAliveBareSessions;
   // Drain the queued setter blocks so none outlive the test.
   dispatch_sync([Teak operationQueue], ^{
   });
+}
+
+// ProductRequest active-requests serialization guard (ThreadSanitizer). +activeProductRequests backs
+// a write-only keep-alive array: addObject: runs on the StoreKit payment-queue thread
+// (+productRequestForSku:callback:) while removeObject: runs on the SKProductsRequest delegate thread
+// (-productsRequest:didReceiveResponse:). Thread A adds fresh requests while thread B removes a
+// pre-seeded batch, landing both mutations on the shared NSMutableArray at once. The fix wraps both
+// call sites in @synchronized(ProductRequestActiveRequestsMutex), so TSan stays silent; removing that
+// synchronization reports a race on the array. Green now, red on revert.
+- (void)testProductRequestActiveRequestsIsSerializedUnderConcurrency {
+  const int N = 8000;
+  NSMutableArray* preSeeded = [NSMutableArray array];
+  for (int i = 0; i < N; i++) {
+    ProductRequest* request = [[ProductRequest alloc] init];
+    [preSeeded addObject:request];
+    [ProductRequest addActiveProductRequest:request];
+  }
+
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      [ProductRequest addActiveProductRequest:[[ProductRequest alloc] init]];
+    }
+  }
+            blockB:^{
+              for (ProductRequest* request in preSeeded) {
+                [ProductRequest removeActiveProductRequest:request];
+              }
+            }];
+}
+
+// TeakLink route-registry serialization regression guard (ThreadSanitizer). registerRoute writes the
+// static route dictionary from any host thread with no threading contract, while handleDeepLink and
+// routeNamesAndDescriptions enumerate it — the real contention window is a host registering routes
+// lazily post-launch while the launch deep link resolves concurrently on the op queue. Each writer
+// iteration registers a distinct route (a real key insertion, not a same-key overwrite) while the
+// reader iterates the real handleDeepLink: and routeNamesAndDescriptions methods. The fix wraps the
+// write and a copy-then-enumerate snapshot of the read in @synchronized on the registry; remove
+// either side and TSan reports a race on the dictionary. Green now, red on revert.
+- (void)testTeakLinkRouteRegistryIsSerializedUnderConcurrency {
+  const int N = 4000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      [TeakLink registerRoute:[NSString stringWithFormat:@"/race-tripwire/route-%d", i]
+                          name:@"race-tripwire"
+                   description:@"race tripwire probe route"
+                         block:^(NSDictionary* params){
+                         }];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSURL* url = [NSURL URLWithString:[NSString stringWithFormat:@"race-tripwire://race-tripwire/probe-%d", i]];
+                [TeakLink handleDeepLink:url];
+                (void)[TeakLink routeNamesAndDescriptions].count;
+              }
+            }];
 }
 
 @end
