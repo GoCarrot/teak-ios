@@ -73,6 +73,14 @@ extern NSString* const currentSessionMutex;
 
 @interface TeakUserProfile (RaceTripwire)
 @property (strong, nonatomic) NSMutableDictionary* stringAttributes;
+@property (strong, nonatomic) NSMutableDictionary* numberAttributes;
+@property (strong, nonatomic) NSString* context;
+@end
+
+// blackhole is readonly in the public header, readwrite in TeakRequest+Internal.h; re-exposed here
+// per the project convention so the tripwire can suppress the real network send.
+@interface TeakRequest (RaceTripwire)
+@property (nonatomic, readwrite) BOOL blackhole;
 @end
 
 // countryCode/serverSessionId/facebookAccessToken are private (declared only in TeakSession.m's
@@ -778,6 +786,36 @@ static NSMutableArray* keepAliveBareSessions;
   long timedOut = dispatch_group_wait(group, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC));
   XCTAssertEqual(timedOut, 0,
                  @"AB-BA lock-order inversion: the currentState UserIdentified handler took currentSessionMutex while holding the session self-lock, deadlocking against a lifecycle mutex→self path");
+}
+
+// -send serialization regression guard (ThreadSanitizer). -send reads/copies the same
+// stringAttributes/numberAttributes dict the test above proves is write-serialized onto
+// operationQueue — but TeakRequest's retry ladder (TeakRequest.m's socket-error and
+// server-retry branches) can invoke -send directly on dispatch_get_main_queue() after a
+// delay, landing there if a new attribute has re-armed scheduledBlock in that window.
+// Thread A drives the real setter (a write, on operationQueue per the fix above); thread B
+// calls -send directly off-queue, standing in for the retry ladder's off-queue
+// re-invocation. The fix hops -send's whole body onto operationQueue too, so TSan stays
+// silent; reverting that hop puts the caller-queue read back in a race with the
+// operationQueue write and TSan reports it. Green now, red on revert.
+- (void)testUserProfileSendDefersDictReadToSerialQueueUnderConcurrency {
+  TeakUserProfile* profile = [[TeakUserProfile alloc] init];
+  profile.blackhole = YES;
+  profile.stringAttributes = [@{@"level" : @"seed"} mutableCopy];
+  profile.numberAttributes = [NSMutableDictionary dictionary];
+  profile.context = @"test";
+
+  [self raceBlockA:^{
+    for (int i = 0; i < 8000; i++) [profile setStringAttribute:[NSString stringWithFormat:@"a-%d", i] forKey:@"level"];
+  }
+            blockB:^{
+              for (int i = 0; i < 8000; i++) [profile send];
+            }];
+
+  // Drain the queued blocks (both the setter's scheduled sends and -send's own hop) so none
+  // outlive the test.
+  dispatch_sync([Teak operationQueue], ^{
+  });
 }
 
 @end
