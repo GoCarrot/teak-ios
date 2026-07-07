@@ -161,6 +161,14 @@ to detect and no crash) among them. Those need a different approach — a watchd
 forced-interleaving barrier, or a static/structural assertion — chosen when the fix is tackled,
 rather than a copy of the crash-repro pattern above.
 
+Cross-object KVO observer add/remove is another: two sessions add/removing themselves as observers
+of the shared `deviceConfiguration` corrupts KVO's per-object observation info, which crashes
+somewhere later and nondeterministically, not at the racing site. The fix serializes all add/remove
+under one lock; the guard is structural — assert the removal is idempotent and that replacement
+deterministically detaches the outgoing session (see `RaceTripwireTests`), rather than trying to
+trap the corruption. The revert check still applies: drop the flag or the detach call and watch the
+structural assertions go red.
+
 ## 6. Quick reference
 
 | Shared state | Detector | Signal | Example source |
@@ -168,6 +176,7 @@ rather than a copy of the crash-repro pattern above.
 | Mutable container (dict/array) | ThreadSanitizer | `race on NSMutableDictionary` | `userProfile` string-attributes dict |
 | nonatomic-strong, freeable pointee | Dynamic crash repro (CF over-release trap) | `SIGTRAP` in `_CFRelease` | `TeakSession.serverSessionId` |
 | Immortal scalar/pointer | Static atomic-declaration assertion | assertion red | state-machine fields |
+| Cross-object KVO add/remove (shared observee) | Structural assertion (idempotent removal + detached-at-replacement) | assertion red | `TeakSession` deviceConfiguration observers |
 | Deadlock / dropped-order | No in-process race signal | case-by-case: watchdog, barrier, structural | — |
 
 Whatever the technique, it isn't a guard until you've run the **revert check** and watched it fail.

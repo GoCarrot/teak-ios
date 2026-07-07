@@ -81,6 +81,11 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // Same cross-thread reassignment race as countryCode above.
 @property (strong, atomic) NSString* serverSessionId;
 @property int sessionVectorClock;
+
+// Set once, under @synchronized(self), when this session's observers on the shared
+// deviceConfiguration are removed, so the removal happens exactly once whether it comes from
+// session replacement or -dealloc. See -detachDeviceConfigurationObservers.
+@property (nonatomic) BOOL deviceConfigurationObserversDetached;
 @end
 
 @implementation TeakSession
@@ -467,12 +472,33 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
-  UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
-  UnRegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
+  // Fallback for a session that was never replaced (only the last session, torn down at process
+  // exit); every replaced session was already detached under the mutex, so this is a no-op there.
+  [self detachDeviceConfigurationObservers];
   UnRegisterKeyValueObserverFor(self, currentState);
 
   [TeakEvent removeEventHandler:self];
+}
+
+// Remove this session's observers on the shared deviceConfiguration singleton. Only the
+// deviceConfiguration observers are handled here — a session's other observers (its own currentState
+// and its per-session remoteConfiguration) are not shared across sessions, so they stay in -dealloc.
+//
+// Every session's -init adds these observers under @synchronized(currentSessionMutex); this removal
+// is called from the same lock domain at session-replacement time, so all add/remove on the shared
+// object are serialized. Left to -dealloc alone, the removeObserver would run on whatever background
+// queue releases the session last and could race a newer session's addObserver on that same object,
+// corrupting KVO's per-object observation info. The flag makes it idempotent so -dealloc's fallback
+// call can't double-remove (which throws "not registered as an observer").
+- (void)detachDeviceConfigurationObservers {
+  @synchronized(self) {
+    if (self.deviceConfigurationObserversDetached) return;
+    self.deviceConfigurationObserversDetached = YES;
+
+    UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
+    UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
+    UnRegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
+  }
 }
 
 - (void)handleEvent:(TeakEvent*)event {
@@ -566,19 +592,21 @@ DefineTeakState(Expired, (@[]));
 
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession {
   @synchronized(currentSessionMutex) {
-    @synchronized(currentSession) {
-      TeakSession* newSession = nil;
-      if (reuseSession) {
-        newSession = [[TeakSession alloc] initWithSession:currentSession];
-      } else {
-        newSession = [[TeakSession alloc] init];
-      }
-
-      [currentSession setState:[TeakSession Expiring]];
-      [currentSession setState:[TeakSession Expired]];
-
-      currentSession = newSession;
+    TeakSession* newSession = nil;
+    if (reuseSession) {
+      newSession = [[TeakSession alloc] initWithSession:currentSession];
+    } else {
+      newSession = [[TeakSession alloc] init];
     }
+
+    // Drop the outgoing session's shared-deviceConfiguration observers here, under the mutex,
+    // instead of leaving them to its background -dealloc. See -detachDeviceConfigurationObservers.
+    [currentSession detachDeviceConfigurationObservers];
+
+    [currentSession setState:[TeakSession Expiring]];
+    [currentSession setState:[TeakSession Expired]];
+
+    currentSession = newSession;
   }
 }
 
@@ -658,6 +686,7 @@ DefineTeakState(Expired, (@[]));
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
 
+      [oldSession detachDeviceConfigurationObservers];
       [oldSession setState:[TeakSession Expiring]];
       [oldSession setState:[TeakSession Expired]];
     }
@@ -679,6 +708,7 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
+      [oldSession detachDeviceConfigurationObservers];
     }
     return currentSession;
   }
