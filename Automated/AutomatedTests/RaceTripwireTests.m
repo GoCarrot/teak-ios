@@ -4,6 +4,7 @@
 #import "TeakAppConfiguration.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakLink.h"
 #import "TeakLog.h"
 #import "TeakPushState.h"
 #import "TeakRaven.h"
@@ -312,6 +313,34 @@ static NSMutableArray* keepAliveBareSessions;
   // Drain the queued setter blocks so none outlive the test.
   dispatch_sync([Teak operationQueue], ^{
   });
+}
+
+// TeakLink route-registry serialization regression guard (ThreadSanitizer). registerRoute writes the
+// static route dictionary from any host thread with no threading contract, while handleDeepLink and
+// routeNamesAndDescriptions enumerate it — the real contention window is a host registering routes
+// lazily post-launch while the launch deep link resolves concurrently on the op queue. Each writer
+// iteration registers a distinct route (a real key insertion, not a same-key overwrite) while the
+// reader iterates the real handleDeepLink: and routeNamesAndDescriptions methods. The fix wraps the
+// write and a copy-then-enumerate snapshot of the read in @synchronized on the registry; remove
+// either side and TSan reports a race on the dictionary. Green now, red on revert.
+- (void)testTeakLinkRouteRegistryIsSerializedUnderConcurrency {
+  const int N = 4000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      [TeakLink registerRoute:[NSString stringWithFormat:@"/race-tripwire/route-%d", i]
+                          name:@"race-tripwire"
+                   description:@"race tripwire probe route"
+                         block:^(NSDictionary* params){
+                         }];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                NSURL* url = [NSURL URLWithString:[NSString stringWithFormat:@"race-tripwire://race-tripwire/probe-%d", i]];
+                [TeakLink handleDeepLink:url];
+                (void)[TeakLink routeNamesAndDescriptions].count;
+              }
+            }];
 }
 
 @end
