@@ -1061,7 +1061,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 // NO is unconditional), so it doesn't need fetch-add — a plain atomic store below is sufficient.
 - (int)markReportDurationSentAndIncrementSessionVectorClock {
   self.reportDurationSent = YES;
-  return atomic_fetch_add(&_sessionVectorClock, 1) + 1;
+  return [self incrementSessionVectorClock];
 }
 
 - (BOOL)resetReportDurationBlock {
