@@ -89,10 +89,13 @@ the race. `+[TeakTrackEventBatchedRequest currentBatchForSession:]` returned a `
 variable outside the `@synchronized` block that guards it — a plain function-local static, not a
 synthesized property getter. Here TSan *does* sometimes report the race, but "sometimes" is doing
 real work: measured against the reverted code, the TSan-report rate and the crash rate track each
-other, drawn from the identical set of runs (~0.95 per 8-thread round at the test's shipped N; see the
-test's own source comment for the validated per-round and end-to-end rates). A single TSan run, or
-even a handful, is not a reliable "is this fixed" signal either way — treat a report the same as a
-crash (strong evidence of a real bug), but don't read its *absence* as proof there isn't one.
+other, drawn from the identical set of runs (~0.95 per fresh-process 8-thread round at the test's
+shipped N=250). An earlier ~0.90 figure here was an in-process pooled-rounds average — later rounds
+run weaker as the heap warms, which is exactly why the shipped multi-round design is validated
+end-to-end rather than trusted from the `1-(1-p)^M` formula (see the test's own source comment for
+those validated rates). A single TSan run, or even a handful, is not a reliable "is this fixed" signal
+either way — treat a report the same as a crash (strong evidence of a real bug), but don't read its
+*absence* as proof there isn't one.
 
 When the crash rate is already high enough per attempt, amplify reliability with independent rounds
 instead of building a dynamic crash-repro harness (§3): measure the per-round red rate `p`
