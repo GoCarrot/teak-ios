@@ -19,7 +19,7 @@
 @implementation SKPaymentObserverTests
 
 // Verifies purchase_time uses en_US_POSIX so Arabic-locale devices don't produce
-// Eastern-Arabic numerals the server can't parse (C-302 / ArgumentError: mon out of range).
+// Eastern-Arabic numerals the server can't parse (ArgumentError: mon out of range).
 - (void)testPurchaseTimeDateFormatterProducesLocaleIndependentOutput {
   NSDate* date = [NSDate dateWithTimeIntervalSince1970:1705319445]; // 2024-01-15T11:50:45 UTC
   NSString* formatted = [[SKPaymentObserver transactionDateFormatter] stringFromDate:date];

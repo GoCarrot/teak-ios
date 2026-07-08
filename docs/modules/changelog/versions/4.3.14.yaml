@@ -3,5 +3,4 @@ enhancement:
 bug:
   - "Fixed purchase and event timestamps being rejected by the server on devices set to certain non-Western locales (e.g. Arabic)."
   - "Fixed reward attribution being dropped when a Teak link resolved without an iOS path, or when link resolution failed."
-  - "Network requests are now retried when the OS drops an idle connection, instead of failing silently."
   - "Thread-safety hardening across the SDK: fixed a class of rare multi-threaded crashes, a potential deadlock, and dropped analytics and reward events under concurrent access."
