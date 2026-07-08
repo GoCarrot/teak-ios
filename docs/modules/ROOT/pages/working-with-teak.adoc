@@ -25,7 +25,7 @@ Your game probably has a user ID to store progress, coin balances, and other use
 * [x] Ideally the same ID that is used in your game's backend.
 * [x] Send it as early as possible in the game's lifecycle.
 
-Having a consistent ID between your game makes customer support easier, and makes life easier for your analytics team.
+Having a consistent ID between your game and Teak makes customer support easier, and makes life easier for your analytics team.
 ====
 
 === Player Configuration
@@ -118,7 +118,7 @@ Teak.sharedInstance()?.logout()
 Whenever your game should grant a reward to a player Teak will let you know by posting a notification to the default notification center with the name `Notification.Name(TeakOnReward)`
 
 Teak does not provide any in-game UI to inform a player if they received a reward or not. You should
-add a an observor for the `Notification.Name(TeakOnReward)` notification which detects if the reward was granted or
+add an observer for the `Notification.Name(TeakOnReward)` notification which detects if the reward was granted or
 denied, and informs the player what happened.
 
 This callback will be concurrent with the xref:server-api::page$rewards/endpoint.adoc[Teak Reward Endpoint, window=_blank] server to server call.
@@ -144,7 +144,7 @@ NotificationCenter.default.addObserver(forName: Notification.Name(TeakOnReward),
     case "not_for_you":
         print("This reward is restricted to a different player")
     case "invalid_post":
-        print("The reward id was not recognized"
+        print("The reward id was not recognized")
     default:
         print("Unknown status")
     }
@@ -162,7 +162,7 @@ To use push notifications you are required to ask the player if you can send the
 ----
 // ...
 Teak.requestNotificationPermissions({accepted, error in
-    print("User accepted notifications: \(accepted)");
+    print("User accepted notifications: \(accepted)")
 })
 ----
 
@@ -350,7 +350,7 @@ To set a string property, use::
 .Example
 [source,swift]
 ----
-Teak.setStringProperty("last_slot", value: "amazing_slot_name");
+Teak.setStringProperty("last_slot", value: "amazing_slot_name")
 ----
 
 String Player Properties can store up to 16,384 unicode characters (including emoji).
