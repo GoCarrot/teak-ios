@@ -154,6 +154,14 @@ extern NSString* const currentSessionMutex;
 // configured it already). The other tests in this class don't depend on it.
 + (void)setUp {
   [super setUp];
+
+  // Echo the TSAN_OPTIONS this process actually sees, read back from inside the test host rather
+  // than trusted from what the Fastfile lane intended to set — a forwarding-prefix regression
+  // (e.g. TEST_RUNNER_ silently reverting to a prefix xcodebuild doesn't forward) should show up
+  // here immediately instead of being rediscovered the hard way.
+  const char* tsanOptions = getenv("TSAN_OPTIONS");
+  NSLog(@"[test_race] effective TSAN_OPTIONS: %@", tsanOptions ? @(tsanOptions) : @"(unset)");
+
   @try {
     [TeakConfiguration configureForAppId:@"test-app" andSecret:@"test-secret"];
   } @catch (NSException* exception) {

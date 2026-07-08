@@ -17,10 +17,19 @@ platform :ios do
 
   desc "Run the race-detection regression guard under ThreadSanitizer (per-commit)"
   lane :test_race do
-    # TSan options for the simulator test process, via the SIMCTL_CHILD_ prefix:
+    # TSan options for the xctest host process. TEST_RUNNER_ (not SIMCTL_CHILD_) is required here:
+    # xcodebuild strips the TEST_RUNNER_ prefix and injects the remainder into the test host's own
+    # environment, while SIMCTL_CHILD_ only reaches processes simctl itself launches — the xctest host
+    # isn't one of them, so a value set via SIMCTL_CHILD_ silently never arrives (see RaceTripwireTests
+    # +setUp for the in-process readback that proves this one does).
     #   halt_on_error=0 — report every race and keep running, rather than aborting on the first.
     #   suppressions    — vendored code only (see Automated/tsan-suppressions.txt).
-    ENV['SIMCTL_CHILD_TSAN_OPTIONS'] = "halt_on_error=0 suppressions=#{File.expand_path('Automated/tsan-suppressions.txt')}"
+    # Anchored on __dir__ (this Fastfile's own directory), not Dir.pwd — fastlane runs lane bodies with
+    # cwd set to fastlane/, so a bare relative path here resolved to fastlane/Automated/... and silently
+    # never existed. That was masked as long as the value never reached the test host at all; forwarding
+    # it correctly is what surfaced TSan's "failed to read suppressions file" abort.
+    suppressions_path = File.expand_path('../Automated/tsan-suppressions.txt', __dir__)
+    ENV['TEST_RUNNER_TSAN_OPTIONS'] = "halt_on_error=0 suppressions=#{suppressions_path}"
 
     # Runs the race regression guard under TSan. Green in normal operation; a red run means a real
     # regression — a guarded fix was reverted, or a new race landed. scan writes the JUnit report
