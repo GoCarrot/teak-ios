@@ -88,9 +88,10 @@ Not every nonatomic-strong write is fully invisible to TSan — it depends on wh
 the race. `+[TeakTrackEventBatchedRequest currentBatchForSession:]` returned a `static` strong
 variable outside the `@synchronized` block that guards it — a plain function-local static, not a
 synthesized property getter. Here TSan *does* sometimes report the race, but "sometimes" is doing
-real work: measured against the reverted code, the TSan-report rate and the crash rate were the same
-(~90% per 8-thread/20000-iteration round, drawn from the identical set of runs). A single TSan run,
-or even a handful, is not a reliable "is this fixed" signal either way — treat a report the same as a
+real work: measured against the reverted code, the TSan-report rate and the crash rate track each
+other, drawn from the identical set of runs (~0.95 per 8-thread round at the test's shipped N; see the
+test's own source comment for the validated per-round and end-to-end rates). A single TSan run, or
+even a handful, is not a reliable "is this fixed" signal either way — treat a report the same as a
 crash (strong evidence of a real bug), but don't read its *absence* as proof there isn't one.
 
 When the crash rate is already high enough per attempt, amplify reliability with independent rounds
