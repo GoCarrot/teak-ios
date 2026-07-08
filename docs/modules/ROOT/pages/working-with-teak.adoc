@@ -105,7 +105,7 @@ By default, Teak automatically re-registers for remote notifications at every ap
 
 == Logging Out
 
-When a player logs out of your game, tell Teak with <<logout>> so it stops associating this device with that player until the next `Teak.login()` call.
+When a player logs out of your game, tell Teak with <<logout>>. This is a client-side call: it doesn't clear the device's association with the player, but it does stop Teak from associating any further events -- like a notification click -- with that player until you call `Teak.login()` again.
 
 .Example
 [source,swift]
@@ -271,7 +271,7 @@ TeakNotification.cancelAll()
 
 == Application Badge Count
 
-Teak does not manage your app icon's badge automatically. Set it yourself with <<setApplicationBadgeNumber:>> when your unread count changes.
+A dashboard notification can only set your app icon's badge to 0 or 1. To show an arbitrary count -- for example, an in-game unread count -- set it yourself with <<setApplicationBadgeNumber:>>.
 
 .Example
 [source,swift]
@@ -282,11 +282,11 @@ Teak.sharedInstance()?.setApplicationBadgeNumber(5)
 [#notification_channels_and_opt_out_preferences]
 == Notification Channels and Opt-Out Preferences
 
-Teak can reach players over several channels: mobile push, email, and SMS. Each channel, and each category within a channel, has an opt-in state. You can read a player's current preferences and update them from your game, for example to build an in-game notification-settings screen. These are the player's per-channel delivery preferences -- distinct from the data-collection opt-outs on `TeakUserConfiguration` (see <<disabling_automatic_data_collection,Disabling Automatic Data Collection>>).
+Teak can reach players over several channels: mobile push and email. Each channel, and each category within a channel, has an opt-in state. You can read a player's current preferences and update them from your game, for example to build an in-game notification-settings screen. These are the player's per-channel delivery preferences -- distinct from the data-collection opt-outs on `TeakUserConfiguration` (see <<disabling_automatic_data_collection,Disabling Automatic Data Collection>>).
 
 === Reading Opt-Out Preferences
 
-A player's channel preferences arrive in the `TeakUserData` notification, which Teak posts when player data becomes available or changes. Observe it and read the per-channel status from the notification's `userInfo`. Each of `pushStatus`, `emailStatus`, and `smsStatus` is a dictionary whose `state` is one of `opt_out`, `available`, `opt_in`, `absent`, or `unknown`.
+A player's channel preferences arrive in the `TeakUserData` notification, which Teak posts after your game calls <<login:withConfiguration:>>. Observe it and read the per-channel status from the notification's `userInfo`. Each of `pushStatus` and `emailStatus` is a dictionary whose `state` is one of `opt_out`, `available`, `opt_in`, `absent`, or `unknown`.
 
 .Example
 [source,swift]
@@ -300,7 +300,7 @@ NotificationCenter.default.addObserver(forName: Notification.Name(TeakUserData),
 
 === Updating Opt-Out Preferences
 
-Update an entire channel with <<setState:forChannel:>>, or a single category within a channel with <<setState:forChannel:andCategory:>>. The channel is one of `TeakChannelTypeMobilePush`, `TeakChannelTypeEmail`, or `TeakChannelTypeSms`.
+Update an entire channel with <<setState:forChannel:>>, or a single category within a channel with <<setState:forChannel:andCategory:>>. The channel is one of `TeakChannelTypeMobilePush` or `TeakChannelTypeEmail`.
 
 NOTE: When setting state from the SDK, you may only assign `TeakChannelStateOptOut` or `TeakChannelStateAvailable`.
 
