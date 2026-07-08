@@ -288,6 +288,36 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
+// TeakReward.onComplete is the same host-settable block-UAF shape as logListener above: a public,
+// host-settable nonatomic-strong property whose pointee (the block) is a plain freeable object once
+// it captures data and escapes to the heap. The reward-click reply callback (TeakReward.m) reads it
+// into a single local before invoking, so this guards the property's atomicity itself, not a
+// check-then-call double-read. Confirmed both ways: crashes reliably with onComplete reverted to
+// nonatomic, clean with atomic restored.
+- (void)testOnCompleteIsAtomicUnderConcurrency {
+  TeakReward* reward = [[TeakReward alloc] init];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      NSString* tag = [[NSString alloc] initWithFormat:@"race-oncomplete-value-%d", i];
+      // Capturing tag is load-bearing: a captureless block literal is __NSGlobalBlock__
+      // (static, never heap-copied, never freed) and wouldn't reproduce the UAF at all.
+      reward.onComplete = ^{
+        (void)tag;
+      };
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                RewardCompleted completion = reward.onComplete;
+                if (completion) {
+                  (void)NSStringFromClass([completion class]).length;
+                  completion();
+                }
+              }
+            }];
+}
+
 // userProfile's pointee is a plain object, not a CFString — reading .stringAttributes.count alone
 // wasn't a reliable enough dereference to reproduce (freed memory quickly reused by the next
 // same-shaped allocation reads back as "valid"); touching the isa via NSStringFromClass forces a
