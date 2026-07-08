@@ -155,7 +155,7 @@ NotificationCenter.default.addObserver(forName: Notification.Name(TeakOnReward),
 
 == Request Notification Permissions
 
-To use push notifications you are required to ask the player if you can send them notifications. Do that with the <<registerForNotificaitons:>> call.
+To use push notifications you are required to ask the player if you can send them notifications. Do that with the <<requestNotificationPermissions:>> call.
 
 .Permissions Example
 [source,swift]
@@ -434,7 +434,7 @@ A Deep Link route may be added to any notification or email in the xref:ROOT:use
 
 Each time your game launches Teak will post a notification with all of the attribution data it has for the launch, if available, to the default notification center with the name `Notification.Name(TeakPostLaunchSummary)`
 
-This callback will be called after your game calls <<login:with:>>, and is primarily intended to assist in reporting session attribution to other analytics systems.
+This callback will be called after your game calls <<login:withConfiguration:>>, and is primarily intended to assist in reporting session attribution to other analytics systems.
 
 .Example PostLaunchSummary Listener
 [source,swift]
