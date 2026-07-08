@@ -361,20 +361,24 @@ static NSMutableArray<NSArray*>* raceTest_sentBatchSnapshots;
 //
 // Reliability: 8 concurrent threads (= physical performance-core count --
 // the largest safe without a busy-spin rendezvous oversubscribing the
-// machine under TSan overhead) x N=20000 iterations/thread reds at p=0.90
-// per round (18/20 independent single-round samples against the reverted
-// code; Wilson 95% CI lower bound ~0.70). ROUNDS=5 independent rounds in one
-// test method -> aggregate red-rate = 1-(1-p)^ROUNDS: 99.76% at the
-// conservative 0.70 floor, 99.999% at the measured 0.90 point estimate --
-// clears a >=99% target either way. halt_on_error=0 (see the test_race lane)
-// means a TSan report alone doesn't abort the process, but this bug's
-// downstream retain-past-zero crashes shortly after regardless, so one red
-// round is enough; a crash ends the test outright and a non-crashing report
-// still fails the run via Xcode's own TSan/XCTest integration.
+// machine under TSan overhead) x N=250 iterations/thread, ROUNDS=5. The two
+// sub-races differ in strength: the unsynchronized .sent read is a plain
+// cross-lock BOOL access that reds on any thread overlap (deterministic at
+// this N), while the return-path retain reds ~0.95 per round. ROUNDS runs the
+// whole race five independent times in one method, so the weaker half's
+// aggregate clears well past 99.9%. Validated end-to-end, fresh-process x50 at
+// exactly this (N, ROUNDS): reverting either sub-fix alone reds 50/50, the
+// fixed code is green 50/50 with zero false-reds. N sits well above the
+// single-thread overlap floor, so a faster or fewer-core CI box keeps the same
+// margin; the method runs in ~2s (was ~118s at N=20000). halt_on_error=0 (see
+// the test_race lane) means a TSan report alone doesn't abort the process, but
+// the return-path bug's retain-past-zero crashes shortly after regardless; a
+// crash ends the test outright and a non-crashing report still fails the run
+// via Xcode's own TSan/XCTest integration.
 - (void)testCurrentBatchForSessionSentReadIsSerializedUnderConcurrency {
   TeakSession* session = [self makeMockSession];
   const int THREADS = 8;
-  const int N = 20000;
+  const int N = 250;
   const int ROUNDS = 5;
 
   for (int round = 0; round < ROUNDS; round++) {
@@ -412,10 +416,19 @@ static NSMutableArray<NSArray*>* raceTest_sentBatchSnapshots;
 // catch. Drives the real -addRequestIntoBatch: append path concurrently with
 // the real reply callback block (batch.callback, the exact block
 // -initWithSession: installs) instead of a hand-rolled loop over the array.
+//
+// Reliability: a mutate-while-enumerate reds on any overlap of the two blocks,
+// so it's deterministic well below this N (50/50 red at N=100, no rounds
+// needed). N=1000 sits an order of magnitude above that overlap floor so a
+// faster or fewer-core CI box keeps the margin. Validated end-to-end,
+// fresh-process x50 at N=1000: reverting the snapshot-copy fix reds 50/50 (a
+// TSan NSMutableArray report and/or a mutated-while-enumerated crash), the
+// fixed code is green 50/50 with zero false-reds. Runs in ~0.4s (was ~16s at
+// N=8000).
 - (void)testReplyCallbackIterationIsSerializedAgainstAppend {
   TeakSession* session = [self makeMockSession];
   TeakTrackEventBatchedRequest* batch = [[TeakTrackEventBatchedRequest alloc] initWithSession:session];
-  const int N = 8000;
+  const int N = 1000;
 
   [self raceBlockA:^{
     for (int i = 0; i < N; i++) {
