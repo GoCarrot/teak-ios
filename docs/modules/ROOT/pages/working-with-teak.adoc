@@ -46,7 +46,7 @@ Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
 
 === User Configuration
 
-In addition to email and Facebook id, ``TeakUserConfiguration`` carries per-user data collection opt-outs:
+In addition to email and Facebook id, ``TeakUserConfiguration`` carries per-user data collection opt-outs, set at login time. These are distinct from a player's channel opt-in/out preferences -- see <<notification_channels_and_opt_out_preferences,Notification Channels and Opt-Out Preferences>>.
 
 // This table is hand-written, not doxygen2adoc-generated: only Teak.h and TeakNotification.h
 // are in the Doxyfile INPUT, and doxygen2adoc's "parts" mechanism only emits embeddable partials
@@ -103,6 +103,16 @@ By default, Teak automatically re-registers for remote notifications at every ap
 <true/>
 ----
 
+== Logging Out
+
+When a player logs out of your game, tell Teak with <<logout>>. This is a client-side call: it doesn't clear the device's association with the player, but it does stop Teak from associating any further events -- like a notification click -- with that player until you call `Teak.login()` again.
+
+.Example
+[source,swift]
+----
+Teak.sharedInstance()?.logout()
+----
+
 == Rewards
 
 Whenever your game should grant a reward to a player Teak will let you know by posting a notification to the default notification center with the name `Notification.Name(TeakOnReward)`
@@ -145,7 +155,7 @@ NotificationCenter.default.addObserver(forName: Notification.Name(TeakOnReward),
 
 == Request Notification Permissions
 
-To use push notifications you are required to ask the player if you can send them notifications. Do that with the <<registerForNotificaitons:>> call.
+To use push notifications you are required to ask the player if you can send them notifications. Do that with the <<requestNotificationPermissions:>> call.
 
 .Permissions Example
 [source,swift]
@@ -165,6 +175,8 @@ You can still make this call even if the player cannot be prompted for permissio
 You can schedule a notification to be delivered for the current player by using ``<<scheduleNotificationForCreative:secondsFromNow:personalizationData:>>``. The optional ``personalizationData`` dictionary is sent along for templating the notification's content on the dashboard.
 
 This corresponds to a xref:ROOT:user-guide:page$scheduling.adoc#_local[Local Schedule, window=_blank] on the dashboard -- see xref:ROOT:user-guide:page$custom-tags.adoc#_local_notification_tags[Local Notification Tags, window=_blank] for how the ``personalizationData`` keys you send become template tags in the Message.
+
+NOTE: Don't use client-scheduled notifications for new-player or lapsing-player flows -- have your marketing team set up a xref:ROOT:user-guide:page$scheduling.adoc#_triggered[Triggered Schedule, window=_blank] for those instead.
 
 .Example (Objective-C)
 [source,objc]
@@ -257,6 +269,51 @@ Using ``<<cancelAll>>`` will cancel all of the notifications which were schedule
 TeakNotification.cancelAll()
 ----
 
+== Application Badge Count
+
+A dashboard notification can only set your app icon's badge to 0 or 1. To show an arbitrary count -- for example, an in-game unread count -- set it yourself with <<setApplicationBadgeNumber:>>.
+
+.Example
+[source,swift]
+----
+Teak.sharedInstance()?.setApplicationBadgeNumber(5)
+----
+
+[#notification_channels_and_opt_out_preferences]
+== Notification Channels and Opt-Out Preferences
+
+Teak can reach players over several channels: mobile push and email. Each channel, and each category within a channel, has an opt-in state. You can read a player's current preferences and update them from your game, for example to build an in-game notification-settings screen. These are the player's per-channel delivery preferences -- distinct from the data-collection opt-outs on `TeakUserConfiguration` (see <<disabling_automatic_data_collection,Disabling Automatic Data Collection>>).
+
+=== Reading Opt-Out Preferences
+
+A player's channel preferences arrive in the `TeakUserData` notification, which Teak posts after your game calls <<login:withConfiguration:>>. Observe it and read the per-channel status from the notification's `userInfo`. Each of `pushStatus` and `emailStatus` is a dictionary whose `state` is one of `opt_out`, `available`, `opt_in`, `absent`, or `unknown`.
+
+.Example
+[source,swift]
+----
+NotificationCenter.default.addObserver(forName: Notification.Name(TeakUserData), object: nil, queue: nil, using:{notification in
+    if let pushStatus = notification.userInfo?["pushStatus"] as? [String: Any] {
+        print("Push opt-in state: \(pushStatus["state"] ?? "unknown")")
+    }
+})
+----
+
+=== Updating Opt-Out Preferences
+
+Update an entire channel with <<setState:forChannel:>>, or a single category within a channel with <<setState:forChannel:andCategory:>>. The channel is one of `TeakChannelTypeMobilePush` or `TeakChannelTypeEmail`.
+
+NOTE: When setting state from the SDK, you may only assign `TeakChannelStateOptOut` or `TeakChannelStateAvailable`.
+
+.Example
+[source,swift]
+----
+// Opt the player out of marketing emails.
+Teak.sharedInstance()?.setState(TeakChannelStateOptOut, forChannel: TeakChannelTypeEmail)
+
+// Make a specific push category available to the player again.
+Teak.sharedInstance()?.setState(TeakChannelStateAvailable, forChannel: TeakChannelTypeMobilePush, andCategory: "daily_reminders")
+----
+
 == Player Properties
 
 xref:ROOT:user-guide:page$player-properties.adoc[Player Properties, window=_blank] are strings or numbers associated with each player of your game in Teak. Player Properties have several uses, including:
@@ -297,6 +354,26 @@ Teak.setStringProperty("last_slot", value: "amazing_slot_name");
 ----
 
 String Player Properties can store up to 16,384 unicode characters (including emoji).
+
+== Custom Analytics Events
+
+You can send custom analytics events to Teak to track player behavior. Teak models an event as an action taken on a type of object, optionally with a specific instance of that object.
+
+Use <<trackEventWithActionId:forObjectTypeId:andObjectInstanceId:>> to record an event:
+
+.Example
+[source,swift]
+----
+Teak.sharedInstance()?.trackEvent(withActionId: "level_complete", forObjectTypeId: "level", andObjectInstanceId: "10")
+----
+
+To keep a running count for an event, use <<incrementEventWithActionId:forObjectTypeId:andObjectInstanceId:count:>>:
+
+.Example
+[source,swift]
+----
+Teak.sharedInstance()?.incrementEvent(withActionId: "coins_spent", forObjectTypeId: "store", andObjectInstanceId: "gems", count: 50)
+----
 
 == Deep Links
 
@@ -357,7 +434,7 @@ A Deep Link route may be added to any notification or email in the xref:ROOT:use
 
 Each time your game launches Teak will post a notification with all of the attribution data it has for the launch, if available, to the default notification center with the name `Notification.Name(TeakPostLaunchSummary)`
 
-This callback will be called after your game calls <<login:with:>>, and is primarily intended to assist in reporting session attribution to other analytics systems.
+This callback will be called after your game calls <<login:withConfiguration:>>, and is primarily intended to assist in reporting session attribution to other analytics systems.
 
 .Example PostLaunchSummary Listener
 [source,swift]
@@ -372,4 +449,16 @@ NotificationCenter.default.addObserver(forName: Notification.Name(TeakPostLaunch
     print("Launch came from a click on \(notification.userInfo!["teakCreativeName"] as! String)")
     print("Launch was \(notification.userInfo!["teakRewardId"] as! NSObject == NSNull() ? "not" : "") rewarded")
 })
+----
+
+== Debugging with a Log Listener
+
+Teak emits internal log events as it runs. You can observe them by assigning a `logListener` block, which is useful for debugging your integration or forwarding Teak's diagnostics into your own logging system.
+
+.Example
+[source,swift]
+----
+Teak.sharedInstance()?.logListener = { event, level, eventData in
+    print("Teak \(level): \(event) \(eventData ?? [:])")
+}
 ----
