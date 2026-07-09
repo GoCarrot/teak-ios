@@ -83,6 +83,27 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return [[TeakLaunchData alloc] initWithUrl:url];
 }
 
+// Classify a resolved universal link. When the server omits iOSPath, resolvedUrl is
+// nil and we fall back to the original launch link so reward/notification attribution
+// carried on the link itself isn't lost — mirroring teak-android's launchDataFromUriPair,
+// which classifies the original launch link when AndroidPath is absent. Distinct from
+// launchDataFromUrl:withShortlink: above: that one drops the short link (launchUrl=nil)
+// for reward links, whereas here the short link is retained as launchUrl.
++ (TeakLaunchData*)launchDataFromResolvedUrl:(NSURL*)resolvedUrl shortLink:(NSURL*)shortLink {
+  NSURL* attributionUrl = NewIfNotOld(resolvedUrl, shortLink);
+  NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(attributionUrl);
+  if (query[@"teak_rewardlink_id"]) {
+    // If it has a 'teak_rewardlink_id' then it's a reward link
+    return [[TeakRewardlinkLaunchData alloc] initWithUrl:attributionUrl andShortLink:shortLink];
+  } else if (query[@"teak_notif_id"]) {
+    // If it has a 'teak_notif_id' then it's a notification
+    return [[TeakNotificationLaunchData alloc] initWithUrl:attributionUrl];
+  }
+
+  // Otherwise this is not a Teak attributed launch
+  return [[TeakLaunchData alloc] initWithUrl:shortLink];
+}
+
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url {
   TeakLaunchData* launchData = [TeakLaunchDataOperation launchDataFromUrl:url withShortlink:nil];
   return [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
@@ -126,41 +147,32 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 - (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink withLaunchLink:(NSURL*)launchLink {
   TeakLaunchData* launchData = self.result;
   if ([launchData isKindOfClass:TeakAttributedLaunchData.class]) {
-    [launchData updateDeepLink:updatedDeepLink];
-    return self;
+    launchData = [(TeakAttributedLaunchData*)launchData updatedWithDeepLink:updatedDeepLink];
+  } else {
+    launchData = [TeakLaunchDataOperation launchDataFromUrl:updatedDeepLink withShortlink:launchLink];
   }
 
-  // Create a new launch data operation and queue it (it uses the returnLaunchData: path)
-  launchData = [TeakLaunchDataOperation launchDataFromUrl:updatedDeepLink
-                                            withShortlink:launchLink];
+  // Run synchronously rather than via the shared operationQueue: this just wraps an
+  // already-computed object (no I/O), and callers (e.g. TeakSession's
+  // processAttributionAndDispatchEvents) check .finished immediately after this call
+  // returns, in the same call stack as the reassignment below.
   TeakLaunchDataOperation* launchDataOperation = [[TeakLaunchDataOperation alloc] initWithLaunchData:launchData];
-  [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
+  [launchDataOperation start];
   return launchDataOperation;
 }
 
 // This will get run as an NSInvocationOperation
 - (TeakLaunchData*)resolveUniversalLink:(NSURL*)url {
   // Resolve the universal link, wait for the NSURLSession to complete (or timeout)
-  // then run super, which will use the updated contents.
+  // then classify the result.
   dispatch_semaphore_t sema = dispatch_semaphore_create(0);
   [self resolveUniversalLink:url retryCount:0 thenSignal:sema];
   dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
 
-  // NOTE: This is different logic for what goes into the unattributed
-  // launch case from launchDataFromUrl:andShortLink:
-
-  // Process the resolved link
-  NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(self.resolvedLaunchUrl);
-  if (query[@"teak_rewardlink_id"]) {
-    // If it has a 'teak_rewardlink_id' then it's a reward link
-    return [[TeakRewardlinkLaunchData alloc] initWithUrl:self.resolvedLaunchUrl andShortLink:url];
-  } else if (query[@"teak_notif_id"]) {
-    // If it has a 'teak_notif_id' then it's a notification
-    return [[TeakNotificationLaunchData alloc] initWithUrl:self.resolvedLaunchUrl];
-  }
-
-  // Otherwise this is not a Teak attributed launch
-  return [[TeakLaunchData alloc] initWithUrl:url];
+  // resolvedLaunchUrl is set only when the server returned an iOSPath; when it's
+  // absent (or the request failed) the classifier falls back to the original launch
+  // link so reward/notification attribution on the link itself isn't lost.
+  return [TeakLaunchDataOperation launchDataFromResolvedUrl:self.resolvedLaunchUrl shortLink:url];
 }
 
 - (void)resolveUniversalLink:(NSURL*)url retryCount:(int)retryCount thenSignal:(dispatch_semaphore_t)sema {
@@ -219,6 +231,18 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
                      }
 
                      TeakLog_i(@"deep_link.request.resolve", self.resolvedLaunchUrl.absoluteString);
+                   } else if (reply.count > 0) {
+                     // A resolved link is expected to carry an iOSPath; a well-formed
+                     // response that omits it (e.g. an Android-only link) is anomalous,
+                     // so report it with the URL and body to surface which links omit
+                     // the key. Attribution still survives via the original launch link
+                     // in launchDataFromResolvedUrl:shortLink:. The count gate skips an
+                     // empty body, mirroring Android's teakData.length() > 0. (A malformed
+                     // body parses to error != nil and is handled in the else below.)
+                     TeakLog_e(@"deep_link.no_ios_path", @{
+                       @"url" : url.absoluteString,
+                       @"response" : [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
+                     });
                    }
                  } else {
                    TeakLog_e(@"deep_link.json.error", @{
@@ -265,10 +289,6 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   NSMutableDictionary* dictionary = [[NSMutableDictionary alloc] init];
   dictionary[@"launch_link"] = TeakValueOrNSNull(self.launchUrl.absoluteString);
   return dictionary;
-}
-
-- (void)updateDeepLink:(NSURL*)updatedDeepLink {
-  // Empty on purpose
 }
 
 @end
@@ -369,17 +389,8 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return dictionary;
 }
 
-- (void)updateDeepLink:(NSURL*)updatedDeepLink {
-  TeakAttributedLaunchData* updatedLaunchData = [[TeakAttributedLaunchData alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
-  self.scheduleName = updatedLaunchData.scheduleName;
-  self.scheduleId = updatedLaunchData.scheduleId;
-  self.creativeName = updatedLaunchData.creativeName;
-  self.creativeId = updatedLaunchData.creativeId;
-  self.rewardId = updatedLaunchData.rewardId;
-  self.channelName = updatedLaunchData.channelName;
-  self.deepLink = updatedLaunchData.deepLink;
-  self.optOutCategory = updatedLaunchData.optOutCategory;
-  self.deepLinkUrlQuery = updatedLaunchData.deepLinkUrlQuery;
+- (TeakLaunchData*)updatedWithDeepLink:(NSURL*)updatedDeepLink {
+  return [[[self class] alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
 }
 
 @end
@@ -422,13 +433,6 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return dictionary;
 }
 
-- (void)updateDeepLink:(NSURL*)updatedDeepLink {
-  [super updateDeepLink:updatedDeepLink];
-
-  TeakNotificationLaunchData* updatedLaunchData = [[TeakNotificationLaunchData alloc] initWithAttributedLaunchData:self andUpdatedDeepLink:updatedDeepLink];
-  self.sourceSendId = updatedLaunchData.sourceSendId;
-}
-
 @end
 
 @implementation TeakRewardlinkLaunchData
@@ -449,6 +453,14 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   self = [super initWithUrl:nil andShortLink:nil];
   if (self) {
     self.systemActivityId = systemActivityId;
+  }
+  return self;
+}
+
+- (id)initWithAttributedLaunchData:(TeakLiveActivityLaunchData*)oldLaunchData andUpdatedDeepLink:(NSURL*)updatedDeepLink {
+  self = [super initWithAttributedLaunchData:oldLaunchData andUpdatedDeepLink:updatedDeepLink];
+  if (self) {
+    self.systemActivityId = oldLaunchData.systemActivityId;
   }
   return self;
 }

@@ -11,6 +11,17 @@
 #import "TeakKVOHelpers.h"
 
 #include <CommonCrypto/CommonHMAC.h>
+#include <sys/errno.h>
+
+// Delay before retrying a request that failed with a socket-closed transport
+// error. Matches TeakLog.m's TeakLogSender delayInSeconds, which retries the
+// same underlying OS behavior on its own NSURLSession — tune both together.
+static const NSTimeInterval TeakRequestSocketErrorRetryDelay = 1.5;
+
+// How many times a socket-closed transport error gets retried. The stop
+// policy lives here so the call site doesn't need to know the limit —
+// raising it later is a one-line change.
+const NSUInteger TeakRequestMaxSocketRetries = 1;
 
 #define _(_id) TeakValueOrNSNull(_id)
 
@@ -167,6 +178,23 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return @"Configuration Error";
 }
 
++ (BOOL)isRetryableSocketError:(NSError*)error {
+  if (error == nil) return NO;
+  if ([error.domain isEqualToString:NSPOSIXErrorDomain] && error.code == ECONNABORTED) return YES;
+
+  NSError* underlying = error.userInfo[NSUnderlyingErrorKey];
+  if ([underlying isKindOfClass:[NSError class]] &&
+      [underlying.domain isEqualToString:NSPOSIXErrorDomain] && underlying.code == ECONNABORTED) {
+    return YES;
+  }
+
+  return NO;
+}
+
++ (BOOL)shouldRetrySocketError:(NSError*)error retryCount:(NSUInteger)retryCount {
+  return [TeakRequest isRetryableSocketError:error] && retryCount < TeakRequestMaxSocketRetries;
+}
+
 + (NSMutableDictionary*)requestsInFlight {
   static NSMutableDictionary* dict = nil;
   static dispatch_once_t onceToken;
@@ -209,6 +237,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     self.batch = [[TeakBatchConfiguration alloc] init];
     self.blackhole = NO;
     self.method = method;
+    self.socketErrorRetryCount = 0;
 
     @try {
       // Assign configuration
@@ -322,8 +351,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
-  TeakUnused(error);
-
   teak_try {
     NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
 
@@ -350,7 +377,23 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
-        if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
+        BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
+
+        if ([TeakRequest shouldRetrySocketError:error retryCount:self.socketErrorRetryCount]) {
+          // The OS can close a pooled connection's socket while the app is
+          // backgrounded and fail to reopen it on the next request; retry
+          // once after a short delay rather than surfacing an empty reply.
+          // Checked ahead of the server-configured retry ladder below since
+          // it's a distinct failure class (transport, not HTTP) — a request
+          // with configured retry times still gets this one stacked on top.
+          self.socketErrorRetryCount++;
+          TeakLog_i(@"request.retry.socket_error", [self to_h]);
+
+          dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
+          dispatch_after(delayTime, dispatch_get_main_queue(), ^{
+            [self send];
+          });
+        } else if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
           // Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
@@ -363,6 +406,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
             [self send];
           });
         } else {
+          if (isSocketError) {
+            TeakLog_e(@"request.retry.socket_error.exhausted", [self to_h]);
+          }
+
           // Check to see if the response has a 'report_client_error' key
           if (payload[@"report_client_error"] != nil &&
               payload[@"report_client_error"] != [NSNull null]) {
@@ -404,8 +451,14 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
                     withPayload:@{}
                          method:TeakRequest_POST
                        callback:^(NSDictionary* reply) {
-                         // Trigger any callbacks
-                         for (TeakRequestResponse callback in self.callbacks) {
+                         // Snapshot under the same lock -addRequestIntoBatch: appends
+                         // callbacks under, then invoke outside the lock so an
+                         // arbitrary host-app callback can't deadlock against it.
+                         NSArray* callbacksSnapshot;
+                         @synchronized(self) {
+                           callbacksSnapshot = [self.callbacks copy];
+                         }
+                         for (TeakRequestResponse callback in callbacksSnapshot) {
                            callback(reply);
                          }
                        }
@@ -415,12 +468,27 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 
 + (TeakTrackEventBatchedRequest*)currentBatchForSession:(TeakSession*)session {
   static TeakTrackEventBatchedRequest* currentBatch = nil;
+  TeakTrackEventBatchedRequest* result;
   @synchronized(TeakTrackEventBatchedRequestMutex) {
-    if (currentBatch == nil || currentBatch.sent) {
+    // .sent is written under the instance lock (-prepareAndSend), so it must be
+    // read under that same lock here too -- otherwise this class-mutex-only
+    // read can go stale against a concurrent send and hand out an
+    // already-sent batch.
+    BOOL needsNewBatch = currentBatch == nil;
+    if (!needsNewBatch) {
+      @synchronized(currentBatch) {
+        needsNewBatch = currentBatch.sent;
+      }
+    }
+    if (needsNewBatch) {
       currentBatch = [[TeakTrackEventBatchedRequest alloc] initWithSession:session];
     }
+    // Snapshot the return value here, still under the lock -- returning
+    // `currentBatch` directly after this block closes would re-read the
+    // static var unsynchronized, racing a concurrent call's locked write.
+    result = currentBatch;
   }
-  return currentBatch;
+  return result;
 }
 
 - (void)prepareAndSend {
@@ -500,88 +568,109 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
 }
 
 - (void)sendNow {
-  if ([self cancel]) {
-    [self prepareAndSend];
+  @synchronized(self) {
+    if ([self cancel]) {
+      [self prepareAndSend];
+    }
   }
 }
 
 + (nullable TeakBatchedRequest*)addRequestIntoBatch:(nonnull TeakBatchedRequest*)batchedRequest withSession:(TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload andCallback:(nullable TeakRequestResponse)callback {
   if (payload == nil || endpoint == nil || batchedRequest == nil) return batchedRequest;
 
-  if (![batchedRequest cancel]) {
-    // Future-Pat, don't forget about this reassignment and move the @synchronized
-    batchedRequest = [batchedRequest.class batchRequestWithSession:session
-                                                       forEndpoint:endpoint
-                                                       withPayload:payload
-                                                       andCallback:callback];
-    if (batchedRequest == nil) return nil;
+  // -cancel and the append below run as one atomic step under this lock. A
+  // KVO-driven sendNow (see currentState below) cancels+sends under this same
+  // lock; if it ran between a standalone -cancel call and a later, separate
+  // @synchronized block here, it could transmit the batch before this payload
+  // was appended -- silently dropping it. didAppend stays false (and nothing
+  // below runs) when the batch turns out to already be sent, so this thread
+  // never holds this lock while also reaching for the currentBatchForSession:
+  // class mutex -- see the didAppend branch below for why that ordering matters.
+  BOOL didAppend = NO;
+  @synchronized(batchedRequest) {
+    didAppend = [batchedRequest cancel];
+    if (didAppend) {
+      // Check for black-holed requests
+      if (batchedRequest.blackhole) {
+        return batchedRequest;
+      }
+
+      if (callback != nil) {
+        [batchedRequest.callbacks addObject:[callback copy]];
+      }
+
+      // If this is a TrackEvent batch, see if the payload can be folded in to an
+      // existing payload item.
+      BOOL payloadAddedViaIncrement = NO;
+      if ([@"/me/events" isEqualToString:endpoint]) {
+        for (NSUInteger i = 0; i < batchedRequest.batchContents.count; i++) {
+          // If the payloads are equal, smash them together
+          NSDictionary* batchEntry = batchedRequest.batchContents[i];
+          if ([TeakTrackEventBatchedRequest payload:payload isEqualToPayload:batchEntry]) {
+            NSMutableDictionary* summedEntry = [batchEntry mutableCopy];
+
+            summedEntry[@"duration"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"duration"], payload[@"duration"]);
+            summedEntry[@"count"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"count"], payload[@"count"]);
+            if ([summedEntry[@"sum_of_squares"] isKindOfClass:[TeakMPInt class]]) {
+              [summedEntry[@"sum_of_squares"] sumWith:payload[@"sum_of_squares"]];
+            }
+
+            [batchedRequest.batchContents replaceObjectAtIndex:i
+                                                    withObject:summedEntry];
+            payloadAddedViaIncrement = YES;
+            break;
+          }
+        }
+      }
+
+      // It couldn't be folded in, so append it
+      if (!payloadAddedViaIncrement) {
+        [batchedRequest.batchContents addObject:payload];
+      }
+
+      // If we've hit the limit, or delay time is 0.0, send now; otherwise schedule
+      if (batchedRequest.batchContents.count >= batchedRequest.batch.count || batchedRequest.batch.time == 0.0f) {
+        [batchedRequest prepareAndSend];
+      } else {
+        batchedRequest.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+          [batchedRequest prepareAndSend];
+        });
+
+        dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.batch.time * NSEC_PER_SEC);
+        dispatch_after(delayTime, dispatch_get_main_queue(), batchedRequest.scheduledBlock);
+
+        // If this is the first request added to the batch, set up the first add time
+        if (batchedRequest.firstAddTime == nil) {
+          batchedRequest.firstAddTime = [NSDate date];
+
+          // If the batch configuration specifies a maximum wait time, schedule
+          if (batchedRequest.batch.maximumWaitTime > 0.0f) {
+            // We can't use batchedRequest.scheduledBlock because there is no difference between
+            // the blocks when cancel is called.
+            dispatch_time_t maxDelayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.batch.maximumWaitTime * NSEC_PER_SEC);
+            dispatch_after(maxDelayTime, dispatch_get_main_queue(), dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+                             [batchedRequest prepareAndSend];
+                           }));
+          }
+        }
+      }
+    }
   }
 
-  @synchronized(batchedRequest) {
-    // Check for black-holed requests
-    if (batchedRequest.blackhole) {
-      return batchedRequest;
-    }
-
-    if (callback != nil) {
-      [batchedRequest.callbacks addObject:[callback copy]];
-    }
-
-    // If this is a TrackEvent batch, see if the payload can be folded in to an
-    // existing payload item.
-    BOOL payloadAddedViaIncrement = NO;
-    if ([@"/me/events" isEqualToString:endpoint]) {
-      for (NSUInteger i = 0; i < batchedRequest.batchContents.count; i++) {
-        // If the payloads are equal, smash them together
-        NSDictionary* batchEntry = batchedRequest.batchContents[i];
-        if ([TeakTrackEventBatchedRequest payload:payload isEqualToPayload:batchEntry]) {
-          NSMutableDictionary* summedEntry = [batchEntry mutableCopy];
-
-          summedEntry[@"duration"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"duration"], payload[@"duration"]);
-          summedEntry[@"count"] = NSNumber_UnsignedLongLong_SafeSumOrExisting(summedEntry[@"count"], payload[@"count"]);
-          if ([summedEntry[@"sum_of_squares"] isKindOfClass:[TeakMPInt class]]) {
-            [summedEntry[@"sum_of_squares"] sumWith:payload[@"sum_of_squares"]];
-          }
-
-          [batchedRequest.batchContents replaceObjectAtIndex:i
-                                                  withObject:summedEntry];
-          payloadAddedViaIncrement = YES;
-          break;
-        }
-      }
-    }
-
-    // It couldn't be folded in, so append it
-    if (!payloadAddedViaIncrement) {
-      [batchedRequest.batchContents addObject:payload];
-    }
-
-    // If we've hit the limit, or delay time is 0.0, send now; otherwise schedule
-    if (batchedRequest.batchContents.count >= batchedRequest.batch.count || batchedRequest.batch.time == 0.0f) {
-      [batchedRequest prepareAndSend];
-    } else {
-      batchedRequest.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-        [batchedRequest prepareAndSend];
-      });
-
-      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.batch.time * NSEC_PER_SEC);
-      dispatch_after(delayTime, dispatch_get_main_queue(), batchedRequest.scheduledBlock);
-
-      // If this is the first request added to the batch, set up the first add time
-      if (batchedRequest.firstAddTime == nil) {
-        batchedRequest.firstAddTime = [NSDate date];
-
-        // If the batch configuration specifies a maximum wait time, schedule
-        if (batchedRequest.batch.maximumWaitTime > 0.0f) {
-          // We can't use batchedRequest.scheduledBlock because there is no difference between
-          // the blocks when cancel is called.
-          dispatch_time_t maxDelayTime = dispatch_time(DISPATCH_TIME_NOW, batchedRequest.batch.maximumWaitTime * NSEC_PER_SEC);
-          dispatch_after(maxDelayTime, dispatch_get_main_queue(), dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-                           [batchedRequest prepareAndSend];
-                         }));
-        }
-      }
-    }
+  if (!didAppend) {
+    // batchedRequest was already sent -- e.g. cancel lost a race with a
+    // concurrent sendNow, or currentBatchForSession: handed out a stale
+    // reference -- so it can no longer accept this payload. Fetch a fresh
+    // batch and append into it instead of dropping the payload. This runs
+    // with batchedRequest's lock already released: batchRequestWithSession:
+    // reaches into currentBatchForSession:'s class mutex, and taking that
+    // mutex while still holding an instance lock here would invert the lock
+    // order against currentBatchForSession:'s own (mutex, then instance lock)
+    // nesting, deadlocking against a concurrent call on the same batch.
+    return [batchedRequest.class batchRequestWithSession:session
+                                              forEndpoint:endpoint
+                                              withPayload:payload
+                                              andCallback:callback];
   }
 
   return batchedRequest;

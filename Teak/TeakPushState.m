@@ -94,7 +94,7 @@ extern UNNotificationSettings* UNNotificationCenterSettingsSync(void);
 
 @interface TeakPushState ()
 
-@property (strong, nonatomic) NSArray* stateChain;
+@property (strong, atomic) NSArray* stateChain;
 @property (strong, nonatomic) NSOperationQueue* operationQueue;
 
 - (TeakPushStateChainEntry*)determineCurrentPushStateBlocking;

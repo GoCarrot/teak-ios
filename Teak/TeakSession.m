@@ -15,10 +15,32 @@
 #import "TeakHelpers.h"
 #import "TeakKVOHelpers.h"
 
+#import <stdatomic.h>
+
 NSTimeInterval TeakSameSessionDeltaSeconds = 120.0;
 
 TeakSession* currentSession;
 NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
+
+// Dedicated leaf lock serializing every addObserver/removeObserver on the process-shared
+// deviceConfiguration singleton. Held directly across -init's three addObserver calls and
+// -detachDeviceConfigurationObservers' three removeObserver calls, so add/remove serialization is
+// verifiable by reading this one lock's use sites — not by tracing which callers happen to hold
+// another lock. KVO add/remove is not thread-safe (concurrent add/remove on the shared object corrupts
+// its per-object observation info), so all of it must be serialized. Every live add/remove site also
+// runs under currentSessionMutex today, so this token is belt-and-suspenders for them; its job is to
+// make the serialization a local, grep-verifiable fact, and it becomes the sole guard once -dealloc's
+// removeObserver goes live (see -detachDeviceConfigurationObservers).
+//
+// A dedicated token, NOT @synchronized(self): self is entangled with currentSessionMutex (the class
+// methods acquire currentSessionMutex and call into self-synchronized session code, and the
+// currentState KVO handler runs under @synchronized(self)). Routing KVO add/remove through self —
+// which runs under currentSessionMutex at every replacement site — would couple it to that
+// self↔currentSessionMutex ordering. A dedicated token stays out of it, and it is a true leaf: the
+// only work done while it is held is addObserver/removeObserver (options New|Old, never Initial),
+// which fire no synchronous observeValueForKeyPath:, so nothing that takes self or currentSessionMutex
+// runs under it.
+static NSString* const deviceConfigurationObserverMutex = @"io.teak.sdk.deviceConfigurationObserverMutex";
 
 NSString* const TeakOptedIn = @"opted_in";
 NSString* const TeakOptedOut = @"opted_out";
@@ -28,16 +50,29 @@ extern BOOL TeakLink_HandleDeepLink(NSURL* deepLink);
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @interface TeakSession ()
-@property (strong, nonatomic, readwrite) TeakState* currentState;
-@property (strong, nonatomic) TeakState* previousState;
+// currentState/previousState are atomic: these state-machine fields are read in the
+// currentSessionMutex lock domain (the class methods) but written under @synchronized(self)
+// in -setState:. previousState is additionally written lock-free in the -sendUserIdentifier
+// request callback, so that read is otherwise wholly unsynchronized. atomic accessors
+// prevent a torn read across those boundaries.
+@property (strong, atomic, readwrite) TeakState* currentState;
+@property (strong, atomic) TeakState* previousState;
 @property (strong, nonatomic) NSDate* startDate;
 @property (strong, nonatomic) NSDate* endDate;
-@property (strong, nonatomic) NSString* countryCode;
+// countryCode/userProfile/serverSessionId are reassigned in the identify-reply request callback
+// (below) while read cross-thread by the heartbeat queue and the duration-report background block.
+// atomic accessors hand those readers a retained snapshot so a concurrent reassignment can't free
+// the value out from under them (nonatomic strong reassignment releases the prior object mid-read).
+@property (strong, atomic) NSString* countryCode;
 @property (strong, nonatomic) dispatch_queue_t heartbeatQueue;
 @property (strong, nonatomic) dispatch_source_t heartbeat;
-@property (strong, nonatomic) TeakLaunchDataOperation* launchDataOperation;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic) TeakLaunchDataOperation* launchDataOperation;
 @property (nonatomic) BOOL launchAttributionProcessed;
-@property (strong, nonatomic) NSString* facebookAccessToken;
+// facebookAccessToken is reassigned lock-free in -handleEvent: (arbitrary thread, e.g. the
+// Facebook SDK's own callback) while sendUserIdentifier reads it under @synchronized(self) — that
+// lock doesn't cover the writer, so it's the same hazard as countryCode above.
+@property (strong, atomic) NSString* facebookAccessToken;
 
 @property (strong, nonatomic, readwrite) NSString* userId;
 @property (strong, nonatomic, readwrite) NSString* facebookId;
@@ -46,20 +81,42 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, nonatomic, readwrite) TeakDeviceConfiguration* deviceConfiguration;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 
-@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
-@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
-@property (strong, nonatomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
+@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
 
-@property (strong, nonatomic, readwrite) NSDictionary* additionalData;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic, readwrite) NSDictionary* additionalData;
 
-@property (strong, nonatomic, readwrite) TeakUserProfile* userProfile;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
-@property (strong, nonatomic) dispatch_block_t reportDurationBlock;
-@property (nonatomic) BOOL reportDurationSent;
+// reportDurationBlock is created and stored under @synchronized(self) in the currentState
+// handler, but its background-queue body reads it lock-free to check for cancellation while
+// resetReportDurationBlock cancels and frees it under the lock. atomic accessors keep that
+// lock-free read from retaining a pointer the setter is releasing out from under it.
+@property (strong, atomic) dispatch_block_t reportDurationBlock;
+// reportDurationSent/sessionVectorClock are C11 atomics, not ObjC `atomic` properties: the
+// duration-report background block writes both lock-free (see the block body below), while
+// sessionVectorClock is also incremented from the currentState observer's @synchronized(self).
+// A plain assignment (identify-reply reset-to-0, init) is already a safe atomic store on this
+// type. sessionVectorClock's `++` is a compound read-modify-write that neither a plain store nor
+// an ObjC `atomic` property qualifier makes safe on its own — every increment site goes through
+// -incrementSessionVectorClock/-markReportDurationSentAndIncrementSessionVectorClock below, which
+// use atomic_fetch_add. reportDurationSent never participates in a read-modify-write of its own
+// prior value, so plain atomic load/store fully covers it.
+@property (nonatomic) atomic_bool reportDurationSent;
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
-@property (strong, nonatomic) NSString* serverSessionId;
-@property int sessionVectorClock;
+// Same cross-thread reassignment race as countryCode above.
+@property (strong, atomic) NSString* serverSessionId;
+@property (nonatomic) atomic_int sessionVectorClock;
+
+// Set once, under deviceConfigurationObserverMutex, when this session's observers on the shared
+// deviceConfiguration are removed, so the removal happens exactly once whether it comes from session
+// replacement or -dealloc. See -detachDeviceConfigurationObservers.
+@property (nonatomic) BOOL deviceConfigurationObserversDetached;
 @end
 
 @implementation TeakSession
@@ -228,8 +285,11 @@ DefineTeakState(Expired, (@[]));
 
     // Always send if ad tracking is limited, send empty string if it is limited (by either the game, or the OS)
     payload[@"ios_limit_ad_tracking"] = [NSNumber numberWithBool:!dataCollectionConfiguration.enableIDFA];
-    if ([self.deviceConfiguration.advertisingIdentifier length] > 0 && dataCollectionConfiguration.enableIDFA) {
-      payload[@"ios_ad_id"] = self.deviceConfiguration.advertisingIdentifier;
+    // Single read: advertisingIdentifier is atomic but reassignable cross-thread, so the length
+    // check and the use below must see the same value.
+    NSString* advertisingIdentifier = self.deviceConfiguration.advertisingIdentifier;
+    if ([advertisingIdentifier length] > 0 && dataCollectionConfiguration.enableIDFA) {
+      payload[@"ios_ad_id"] = advertisingIdentifier;
     } else {
       payload[@"ios_ad_id"] = @"";
     }
@@ -248,25 +308,36 @@ DefineTeakState(Expired, (@[]));
       payload[@"email"] = self.email;
     }
 
-    if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
-      payload[@"apns_push_key"] = self.deviceConfiguration.pushToken;
+    // Single read: same cross-thread reassignment hazard as advertisingIdentifier above.
+    NSString* pushToken = self.deviceConfiguration.pushToken;
+    if ([pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+      payload[@"apns_push_key"] = pushToken;
       [payload addEntriesFromDictionary:[[Teak sharedInstance].pushState to_h]];
     } else {
       payload[@"apns_push_key"] = @"";
     }
 
-    if ([self.deviceConfiguration.liveActivityPushToStartToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
-      payload[@"live_activity_push_to_start_key"] = self.deviceConfiguration.liveActivityPushToStartToken;
+    // Single read: same hazard as pushToken/advertisingIdentifier above.
+    NSString* liveActivityPushToStartToken = self.deviceConfiguration.liveActivityPushToStartToken;
+    if ([liveActivityPushToStartToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+      payload[@"live_activity_push_to_start_key"] = liveActivityPushToStartToken;
     }
 
     if (!self.appConfiguration.sdk5Behaviors) {
       if (dataCollectionConfiguration.enableFacebookAccessToken) {
-        if (self.facebookAccessToken == nil) {
-          self.facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
+        // Single read: facebookAccessToken is atomic but can still be reassigned between two
+        // reads (handleEvent: writes it lock-free off this method's thread), so the nil-check and
+        // the payload use below must see the same value as the lazy-init above. Without this, a
+        // reassignment to nil between the two live reads would insert nil into payload, which
+        // throws on NSMutableDictionary.
+        NSString* facebookAccessToken = self.facebookAccessToken;
+        if (facebookAccessToken == nil) {
+          facebookAccessToken = [FacebookAccessTokenEvent currentUserToken];
+          self.facebookAccessToken = facebookAccessToken;
         }
 
-        if (self.facebookAccessToken != nil) {
-          payload[@"access_token"] = self.facebookAccessToken;
+        if (facebookAccessToken != nil) {
+          payload[@"access_token"] = facebookAccessToken;
         }
       }
     }
@@ -276,9 +347,12 @@ DefineTeakState(Expired, (@[]));
     }
 
     // Then add the attribution, then send request
-    // The launchDataOperation is a dependency for this operation, so it should always be ready
-    if (self.launchDataOperation && self.launchDataOperation.isFinished) {
-      [payload addEntriesFromDictionary:[self.launchDataOperation.result sessionAttribution]];
+    // The launchDataOperation is a dependency for this operation, so it should always be ready.
+    // Single read: launchDataOperation is atomic but can still be reassigned between reads, so the
+    // nil-check, .isFinished, and .result use below must all see the same value.
+    TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
+    if (launchDataOperation && launchDataOperation.isFinished) {
+      [payload addEntriesFromDictionary:[launchDataOperation.result sessionAttribution]];
     }
 
     TeakLog_i(@"session.identify_user", @{@"userId" : self.userId, @"timezone" : [NSString stringWithFormat:@"%f", timeZoneOffset], @"locale" : [[NSLocale preferredLanguages] objectAtIndex:0]});
@@ -307,10 +381,11 @@ DefineTeakState(Expired, (@[]));
                                                     if (reply[@"deep_link"]) {
                                                       NSString* deepLink = reply[@"deep_link"];
                                                       NSURL* url = [NSURL URLWithString:deepLink];
-                                                      if (url && blockSelf.launchDataOperation != nil) {
+                                                      TeakLaunchDataOperation* launchDataOperation = blockSelf.launchDataOperation;
+                                                      if (url && launchDataOperation != nil) {
                                                         NSString* payloadLaunchLink = payload[@"launch_link"];
                                                         NSURL* launchLink = payloadLaunchLink == nil || payloadLaunchLink == ((NSString*)[NSNull null]) ? nil : [NSURL URLWithString:payloadLaunchLink];
-                                                        blockSelf.launchDataOperation = [blockSelf.launchDataOperation updateDeepLink:url withLaunchLink:launchLink];
+                                                        blockSelf.launchDataOperation = [launchDataOperation updateDeepLink:url withLaunchLink:launchLink];
                                                       }
                                                       TeakLog_i(@"deep_link.processed", deepLink);
                                                     }
@@ -350,6 +425,9 @@ DefineTeakState(Expired, (@[]));
 }
 
 - (void)sendHeartbeat {
+  // Single read: countryCode is atomic but can still be reassigned between two reads, so the
+  // nil-check and the use below must see the same value.
+  NSString* countryCode = self.countryCode;
   NSString* urlString = [NSString stringWithFormat:
                                       @"https://%@/ping?game_id=%@&api_key=%@&sdk_version=%@&sdk_platform=%@&app_version=%@%@&buster=%08x",
                                       kTeakHostname,
@@ -358,7 +436,7 @@ DefineTeakState(Expired, (@[]));
                                       TeakURLEscapedString([Teak sharedInstance].sdkVersion),
                                       TeakURLEscapedString(self.deviceConfiguration.platformString),
                                       TeakURLEscapedString(self.appConfiguration.appVersion),
-                                      self.countryCode == nil ? @"" : [NSString stringWithFormat:@"&country_code=%@", self.countryCode],
+                                      countryCode == nil ? @"" : [NSString stringWithFormat:@"&country_code=%@", countryCode],
                                       arc4random()];
 
   NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:urlString]
@@ -398,9 +476,14 @@ DefineTeakState(Expired, (@[]));
     self.pushStatus = [TeakChannelStatus unknown];
     self.smsStatus = [TeakChannelStatus unknown];
 
-    RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
-    RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
-    RegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
+    // Serialize the shared-deviceConfiguration adds through the dedicated observer lock, ordering them
+    // against every remove on the same object under one grep-verifiable lock. currentState below is
+    // observed on self (per-session), so it stays outside the lock and is torn down in -dealloc.
+    @synchronized(deviceConfigurationObserverMutex) {
+      RegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
+      RegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
+      RegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
+    }
     RegisterKeyValueObserverFor(self, currentState);
 
     [TeakEvent addEventHandler:self];
@@ -426,12 +509,40 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
-  UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
-  UnRegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
+  // Currently inert: a session retains itself through the shared event-handler registry and is
+  // released only here in -dealloc, so that cycle keeps -dealloc from running in practice — every
+  // session is detached at replacement instead. Kept because it goes live the moment that leak is
+  // fixed and sessions become mortal: then this is the sole detach for the last, never-replaced
+  // session, and the idempotence flag keeps it a no-op for any session already detached at replacement.
+  [self detachDeviceConfigurationObservers];
   UnRegisterKeyValueObserverFor(self, currentState);
 
   [TeakEvent removeEventHandler:self];
+}
+
+// Remove this session's observers on the shared deviceConfiguration singleton, serialized on
+// deviceConfigurationObserverMutex — the same lock -init holds while adding them, so every add and
+// remove on the shared object is mutually serialized (see that lock's declaration for why it's a
+// dedicated leaf token rather than @synchronized(self)). Only the deviceConfiguration observers are
+// handled here; a session's other observers (its own currentState and its per-session
+// remoteConfiguration) are not shared across sessions, so they stay in -dealloc.
+//
+// Called at each session replacement so removal is deterministic and bounded: sessions are immortal
+// (see -dealloc), so left to -dealloc alone these observers would never be removed and the shared
+// object's observer list would grow for the life of the process. Detaching here also forecloses the
+// race the leak fix would otherwise activate — once -dealloc runs, its removeObserver would run off
+// currentSessionMutex and could race a newer session's addObserver on this same object. The flag makes
+// removal idempotent so the -dealloc fallback can't double-remove (which throws "not registered as an
+// observer").
+- (void)detachDeviceConfigurationObservers {
+  @synchronized(deviceConfigurationObserverMutex) {
+    if (self.deviceConfigurationObserversDetached) return;
+    self.deviceConfigurationObserversDetached = YES;
+
+    UnRegisterKeyValueObserverFor(self.deviceConfiguration, advertisingIdentifier);
+    UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
+    UnRegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
+  }
 }
 
 - (void)handleEvent:(TeakEvent*)event {
@@ -451,20 +562,20 @@ DefineTeakState(Expired, (@[]));
 
 - (NSOperation*)identifyUserOperation {
   NSOperation* identifyUserOperation = [[NSInvocationOperation alloc] initWithTarget:self selector:@selector(sendUserIdentifier) object:nil];
-  if (self.launchDataOperation) {
-    [identifyUserOperation addDependency:self.launchDataOperation];
+  // Single read: launchDataOperation is atomic but can still be reassigned between the nil-check
+  // and the dependency add below.
+  TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
+  if (launchDataOperation) {
+    [identifyUserOperation addDependency:launchDataOperation];
   }
   return identifyUserOperation;
 }
 
-- (void)processAttributionAndDispatchEvents {
-  if (self.launchDataOperation == nil || !self.launchDataOperation.finished || self.launchAttributionProcessed) return;
-  self.launchAttributionProcessed = YES;
-
-  // Grab the resolved launch data (it should never be nil, but let's still check)
-  TeakLaunchData* launchData = self.launchDataOperation.result;
-  if (launchData == nil) return;
-
+// Dispatches a resolved launch's attribution: reward, notification, deep link, and the app-launch
+// summary. Every hop acquires currentSessionMutex (via whenUserIdIsReadyRun / the TeakLink
+// operation), so this runs with the session self-lock released — the currentState KVO handler does
+// the one-shot guard + launchData capture under @synchronized(self), then dispatches here off it.
+- (void)dispatchLaunchAttributionEvents:(nonnull TeakLaunchData*)launchData {
   if ([launchData isKindOfClass:[TeakAttributedLaunchData class]]) {
     TeakAttributedLaunchData* attributedLaunchData = (TeakAttributedLaunchData*)launchData;
 
@@ -519,6 +630,12 @@ DefineTeakState(Expired, (@[]));
 
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession {
   @synchronized(currentSessionMutex) {
+    // Hold the outgoing session's own monitor across its teardown. The two -setState: calls below each
+    // self-synchronize individually, but only locking the session across the pair keeps another
+    // thread's @synchronized(self) work — e.g. an in-flight hostname KVO callback firing
+    // -setState:Configured — from interleaving between Expiring and Expired. Expiring→Configured is a
+    // legal transition; the following Expired would then be rejected (Configured has no Expired
+    // successor), leaving the outgoing session stuck un-expired.
     @synchronized(currentSession) {
       TeakSession* newSession = nil;
       if (reuseSession) {
@@ -526,6 +643,10 @@ DefineTeakState(Expired, (@[]));
       } else {
         newSession = [[TeakSession alloc] init];
       }
+
+      // Drop the outgoing session's shared-deviceConfiguration observers here instead of leaving them
+      // to its background -dealloc. See -detachDeviceConfigurationObservers.
+      [currentSession detachDeviceConfigurationObservers];
 
       [currentSession setState:[TeakSession Expiring]];
       [currentSession setState:[TeakSession Expired]];
@@ -611,8 +732,20 @@ DefineTeakState(Expired, (@[]));
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
 
-      [oldSession setState:[TeakSession Expiring]];
-      [oldSession setState:[TeakSession Expired]];
+      // Hold the outgoing session's own monitor across its teardown. The two -setState: calls each
+      // self-synchronize individually, but only locking the session across the pair keeps a concurrent
+      // @synchronized(self) -setState: from interleaving a legal Expiring->Configured between Expiring
+      // and Expired; the following Expired would then be rejected (Configured has no Expired successor),
+      // leaving the outgoing session stuck un-expired. On this path the interleave is not reachable
+      // today — the outgoing session is never in Created here, so its hostname observer (the only
+      // producer of -setState:Configured) is already detached — so this is defense-parity: kept
+      // symmetric with +logoutReusingCurrentSession:'s identical teardown so the asymmetry can't
+      // become a latent bug if that observer lifecycle ever changes.
+      @synchronized(oldSession) {
+        [oldSession detachDeviceConfigurationObservers];
+        [oldSession setState:[TeakSession Expiring]];
+        [oldSession setState:[TeakSession Expired]];
+      }
     }
 
     // Assign launch data
@@ -632,6 +765,7 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
+      [oldSession detachDeviceConfigurationObservers];
     }
     return currentSession;
   }
@@ -669,23 +803,19 @@ DefineTeakState(Expired, (@[]));
 + (void)checkLaunchDataForRewardAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
   if (launchData.rewardId == nil) return;
 
-  TeakReward* reward = [TeakReward rewardForRewardId:launchData.rewardId];
-  if (reward == nil) return;
+  [TeakReward rewardForRewardId:launchData.rewardId
+                     onComplete:^(TeakReward* reward) {
+                       if (reward.json != nil) {
+                         NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
+                         [userInfo addEntriesFromDictionary:reward.json];
 
-  __weak TeakReward* tempWeakReward = reward;
-  reward.onComplete = ^() {
-    __strong TeakReward* blockReward = tempWeakReward;
-    if (blockReward.json != nil) {
-      NSMutableDictionary* userInfo = [[NSMutableDictionary alloc] initWithDictionary:[launchData to_h]];
-      [userInfo addEntriesFromDictionary:blockReward.json];
-
-      [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
-        [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
-                                                            object:session
-                                                          userInfo:userInfo];
-      }];
-    }
-  };
+                         [TeakSession whenUserIdIsReadyRun:^(TeakSession* session) {
+                           [[NSNotificationCenter defaultCenter] postNotificationName:TeakOnReward
+                                                                               object:session
+                                                                             userInfo:userInfo];
+                         }];
+                       }
+                     }];
 }
 
 + (void)checkLaunchDataForNotificationAndDispatchEvents:(nonnull TeakAttributedLaunchData*)launchData {
@@ -794,29 +924,53 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         dispatch_resume(self.heartbeat);
       }
 
-      // Process WhenUserIdIsReadyRun queue
-      @synchronized(currentSessionMutex) {
-        NSMutableArray* blocks = [TeakSession whenUserIdIsReadyRunBlocks];
-        for (UserIdReadyBlock block in blocks) {
-          dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-            block(self);
-          });
-        }
-        [blocks removeAllObjects];
+      // Resolve the one-shot launch attribution under the self-lock: capture launch data for the
+      // single transition that wins the guard; later transitions get nil and only drain the queue.
+      // Single read: launchDataOperation is atomic but can still be reassigned between reads, so the
+      // nil-check, .finished check, and .result use must all see the same value.
+      TeakLaunchDataOperation* launchDataOperation = self.launchDataOperation;
+      TeakLaunchData* attributionLaunchData = nil;
+      if (launchDataOperation != nil && launchDataOperation.finished && !self.launchAttributionProcessed) {
+        self.launchAttributionProcessed = YES;
+        attributionLaunchData = launchDataOperation.result;
       }
 
-      // Process deep links and/or rewards
-      [self processAttributionAndDispatchEvents];
+      // Draining the whenUserIdIsReadyRun queue and dispatching launch attribution both acquire
+      // currentSessionMutex. Taking it here, under the session self-lock, inverts against the
+      // lifecycle class methods (currentSessionMutex → self-lock) and deadlocks when a lifecycle
+      // transition overlaps this identify-reply transition. Hop off the self-lock first so
+      // currentSessionMutex is only ever acquired with the self-lock released.
+      dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        // Process WhenUserIdIsReadyRun queue
+        @synchronized(currentSessionMutex) {
+          NSMutableArray* blocks = [TeakSession whenUserIdIsReadyRunBlocks];
+          for (UserIdReadyBlock block in blocks) {
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+              block(self);
+            });
+          }
+          [blocks removeAllObjects];
+        }
+
+        // Process deep links and/or rewards
+        if (attributionLaunchData != nil) {
+          [self dispatchLaunchAttributionEvents:attributionLaunchData];
+        }
+      });
 
       // Send the server a "hey nevermind that" message if needed
       if (oldValue == [TeakSession Expiring]) {
         // Cancel any pending duration report
         if ([self resetReportDurationBlock]) {
-          // The report duration got sent, so send a resume
-          self.sessionVectorClock++;
+          // The report duration got sent, so send a resume. sessionVectorClock++ is a
+          // read-modify-write the duration-report block's own increment can race with, so it
+          // goes through the atomic-fetch-add helper rather than the property's `++` sugar.
+          int vectorClock = [self incrementSessionVectorClock];
+          // Single read: same nil-check-then-use hazard as sendHeartbeat's countryCode above.
+          NSString* serverSessionId = self.serverSessionId;
           NSDictionary* payload = @{
-            @"session_id" : self.serverSessionId == nil ? @"null" : TeakURLEscapedString(self.serverSessionId),
-            @"session_vector_clock": [NSNumber numberWithLong:self.sessionVectorClock]
+            @"session_id" : serverSessionId == nil ? @"null" : TeakURLEscapedString(serverSessionId),
+            @"session_vector_clock": [NSNumber numberWithLong:vectorClock]
           };
 
           TeakRequest* request = [TeakRequest requestWithSession:self
@@ -837,12 +991,14 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       self.heartbeat = nil;
       self.heartbeatQueue = nil;
 
-      // Send user profile out now
-      if (self.userProfile != nil) {
-        __weak typeof(self) weakSelf = self;
+      // Send user profile out now. Single read: capture the profile that's live now rather than
+      // re-reading self.userProfile when the async block runs, which could be a different (or nil)
+      // value by then. No weakSelf/blockSelf needed — userProfile.session strongly retains this
+      // session (TeakRequest+Internal), so self can't be deallocated while userProfile is live.
+      TeakUserProfile* userProfile = self.userProfile;
+      if (userProfile != nil) {
         dispatch_async([Teak operationQueue], ^{
-          __strong typeof(self) blockSelf = weakSelf;
-          [blockSelf.userProfile send];
+          [userProfile send];
         });
       }
 
@@ -850,21 +1006,35 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       if(self.serverSessionId != nil) {
         [self resetReportDurationBlock];
         __weak typeof(self) weakSelf = self;
-        self.reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        dispatch_block_t reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
           __strong typeof(self) blockSelf = weakSelf;
           [blockSelf beginBackgroundUpdateTask];
 
-          // Make sure we're not canceled
-          // In testing we encountered an issue where serverSessionId was nil here, but not nil earlier.
-          if (blockSelf.reportDurationBlock != nil && !dispatch_block_testcancel(blockSelf.reportDurationBlock) && blockSelf.serverSessionId != nil) {
-            blockSelf.reportDurationSent = YES;
-            blockSelf.sessionVectorClock++;
+          // Make sure the current reportDurationBlock hasn't been canceled. This body captures
+          // weakSelf (it can't reference itself), so it tests whatever reportDurationBlock holds
+          // now — under a rapid Expiring re-transition that may be a newer block than this one.
+          // This body runs outside @synchronized(self), so a concurrent resetReportDurationBlock
+          // can cancel and nil reportDurationBlock at any moment. Reading it once into a strong
+          // local is load-bearing: it retains the block across dispatch_block_testcancel so the
+          // testcancel can't race the setter's release, and it removes the nil-window a second
+          // read would open (testcancel(nil) crashes). Do not re-read the property here.
+          //
+          // serverSessionId is under the same hazard: the identify-reply callback can reassign it
+          // on another queue at any moment, so the nil-check and the later use below must see the
+          // same value — single-read it here too, rather than re-reading blockSelf.serverSessionId.
+          dispatch_block_t canceledCheckBlock = blockSelf.reportDurationBlock;
+          NSString* serverSessionId = blockSelf.serverSessionId;
+          if (canceledCheckBlock != nil && !dispatch_block_testcancel(canceledCheckBlock) && serverSessionId != nil) {
+            // reportDurationSent/sessionVectorClock are atomic-typed (see the class extension), so
+            // this store and fetch-add are each safe against the KVO observer's resume-path
+            // increment on another thread without taking any lock here.
+            int vectorClock = [blockSelf markReportDurationSentAndIncrementSessionVectorClock];
 
             // Send request for "if you don't hear back from me, this session ended now"
             NSDictionary* payload = @{
-              @"session_id" : TeakURLEscapedString(blockSelf.serverSessionId),
+              @"session_id" : TeakURLEscapedString(serverSessionId),
               @"session_duration_ms" : [NSNumber numberWithLong:[blockSelf.endDate timeIntervalSinceDate:blockSelf.startDate] * 1000],
-              @"session_vector_clock": [NSNumber numberWithLong:blockSelf.sessionVectorClock]
+              @"session_vector_clock": [NSNumber numberWithLong:vectorClock]
             };
 
             TeakRequest* request = [TeakRequest requestWithSession:blockSelf
@@ -878,11 +1048,31 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 
           [blockSelf endBackgroundUpdateTask];
         });
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), self.reportDurationBlock);
+        self.reportDurationBlock = reportDurationBlock;
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), reportDurationBlock);
       }
     } else if (newValue == [TeakSession Expired]) {
     }
   }
+}
+
+// sessionVectorClock++ is a read-modify-write; the KVO observer's resume-path increment and the
+// duration-report background block's increment can run concurrently on two different threads, so
+// a plain atomic property (safe for single loads/stores, not for compound RMW) isn't enough. Every
+// increment site goes through this or -markReportDurationSentAndIncrementSessionVectorClock, both
+// of which use atomic_fetch_add on the underlying atomic_int. Returns the new (post-increment)
+// value so callers don't need a second, separately-racy read of the property for their payload.
+- (int)incrementSessionVectorClock {
+  return atomic_fetch_add(&_sessionVectorClock, 1) + 1;
+}
+
+// Same atomicity requirement as -incrementSessionVectorClock, for the one call site that also
+// needs to mark the duration report sent in the same breath. reportDurationSent itself never
+// participates in a read-modify-write of its own prior value (resetReportDurationBlock's reset to
+// NO is unconditional), so it doesn't need fetch-add — a plain atomic store below is sufficient.
+- (int)markReportDurationSentAndIncrementSessionVectorClock {
+  self.reportDurationSent = YES;
+  return [self incrementSessionVectorClock];
 }
 
 - (BOOL)resetReportDurationBlock {
@@ -911,9 +1101,11 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
     TeakDataCollectionConfiguration* dataCollectionConfiguration = [[TeakConfiguration configuration] dataCollectionConfiguration];
 
     NSDictionary* pushRegistration = (NSDictionary*)[NSNull null];
-    if ([self.deviceConfiguration.pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
+    // Single read: same cross-thread reassignment hazard as sendUserIdentifier's pushToken.
+    NSString* pushToken = self.deviceConfiguration.pushToken;
+    if ([pushToken length] > 0 && dataCollectionConfiguration.enablePushKey) {
       pushRegistration = @{
-        @"apns" : self.deviceConfiguration.pushToken
+        @"apns" : pushToken
       };
     }
     [UserDataEvent userDataReceived:self.additionalData

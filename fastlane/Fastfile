@@ -9,8 +9,47 @@ platform :ios do
   lane :test do
     scan(
       workspace: 'Automated/Automated.xcworkspace',
+      # RaceTripwireTests is the ThreadSanitizer race regression guard — it carries signal only under
+      # a sanitizer, so it's excluded from this fast (non-TSan) lane to keep it a quick green signal;
+      # the `test_race` lane runs it under TSan on every commit.
+      skip_testing: ['AutomatedTests/RaceTripwireTests'],
       output_directory: 'test_output/automated',
       output_files: 'results.xml',
+      output_types: 'junit'
+    )
+  end
+
+  desc "Run the race-detection regression guard under ThreadSanitizer (per-commit)"
+  lane :test_race do
+    # TSan options for the xctest host process. TEST_RUNNER_ (not SIMCTL_CHILD_) is required here:
+    # xcodebuild strips the TEST_RUNNER_ prefix and injects the remainder into the test host's own
+    # environment, while SIMCTL_CHILD_ only reaches processes simctl itself launches — the xctest host
+    # isn't one of them, so a value set via SIMCTL_CHILD_ silently never arrives (see RaceTripwireTests
+    # +setUp for the in-process readback that proves this one does).
+    #   halt_on_error=1 — abort on the first race rather than reporting and continuing. Required, not
+    #   just a preference: under halt_on_error=0 a TSan race report does NOT fail the XCTest case or the
+    #   lane on its own — a report-only guard (no crash, no assertion) can regress silently while the
+    #   lane stays green. =1 turns every detected race into a hard abort, which XCTest always reds. This
+    #   is a per-commit regression gate, so fail-fast on any race beats enumerating every race before
+    #   stopping — don't flip this back to =0 without re-solving that gap.
+    #   suppressions — vendored code only (see Automated/tsan-suppressions.txt).
+    # Anchored on __dir__ (this Fastfile's own directory), not Dir.pwd — fastlane runs lane bodies with
+    # cwd set to fastlane/, so a bare relative path here resolved to fastlane/Automated/... and silently
+    # never existed. That was masked as long as the value never reached the test host at all; forwarding
+    # it correctly is what surfaced TSan's "failed to read suppressions file" abort.
+    suppressions_path = File.expand_path('../Automated/tsan-suppressions.txt', __dir__)
+    ENV['TEST_RUNNER_TSAN_OPTIONS'] = "halt_on_error=1 suppressions=#{suppressions_path}"
+
+    # Runs the race regression guard under TSan. Green in normal operation; a red run means a real
+    # regression — a guarded fix was reverted, or a new race landed. scan writes the JUnit report
+    # before it raises on failure, so the result is always stored and the lane exits nonzero for CI.
+    scan(
+      workspace: 'Automated/Automated.xcworkspace',
+      scheme: 'Automated',
+      thread_sanitizer: true,
+      only_testing: ['AutomatedTests/RaceTripwireTests', 'AutomatedTests/TeakBatchedRequestRaceTests'],
+      output_directory: 'test_output/race',
+      output_files: 'race.xml',
       output_types: 'junit'
     )
   end

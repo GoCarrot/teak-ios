@@ -22,6 +22,28 @@ jobs:
           command: bundle exec fastlane test
       - store_test_results:
           path: test_output/automated
+  test_race:
+    parameters:
+      xcode-version:
+        type: string
+        default: "14.3.1"
+    macos:
+      xcode: << parameters.xcode-version >>
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios_setup
+      # A red run means a guarded defect is still open: the lane exits nonzero and fails the job.
+      # store_* run `when: always` so the results and artifacts still upload on that red.
+      - run:
+          name: Run Race Tripwires (ThreadSanitizer)
+          command: bundle exec fastlane test_race
+      - store_test_results:
+          path: test_output/race
+          when: always
+      - store_artifacts:
+          path: test_output/race
+          when: always
   build:
     parameters:
       xcode-version:
@@ -189,6 +211,16 @@ workflows:
           filters:
             tags:
               ignore: /.*/
+      # Runs the race regression guard under TSan on every commit. Green in normal operation; a red
+      # means a real regression — the fix it guards was reverted, or a new race landed. Non-gating
+      # here (not a dependency of tag_build), so it doesn't block promote-tag creation; the release
+      # gate lives in the tagged-build workflow below, where a red run blocks the deploy.
+      - test_race:
+          context:
+            - iOS-Build
+          filters:
+            tags:
+              ignore: /.*/
       - build:
           context:
             - iOS-Build
@@ -221,12 +253,24 @@ workflows:
               ignore: /.*/
             tags:
               only: /.*/
+      # Release gate: the race guard must be green before a version deploys. A red run — a reverted
+      # fix or a new race — blocks deploy_versioned (and the whole deploy chain below), so a version
+      # can't ship while a guarded race is open.
+      - test_race:
+          context:
+            - iOS-Build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
       - deploy_versioned:
           context:
             - AWS-OIDC-Role
           requires:
             - test
             - build
+            - test_race
           filters:
             branches:
               ignore: /.*/
@@ -237,6 +281,7 @@ workflows:
           requires:
             - test
             - build
+            - test_race
           filters:
             branches:
               ignore: /.*/

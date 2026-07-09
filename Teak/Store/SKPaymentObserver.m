@@ -5,6 +5,8 @@
 
 #define _(_id) TeakValueOrNSNull(_id)
 
+static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.productRequestActiveRequestsMutex";
+
 @interface SKPaymentObserver () <SKPaymentTransactionObserver, TeakEventHandler>
 @property (nonatomic) NSTimeInterval paymentStart;
 
@@ -17,6 +19,15 @@
 @end
 
 @implementation SKPaymentObserver
+
++ (NSDateFormatter*)transactionDateFormatter {
+  NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
+  [formatter setLocale:[NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"]];
+  [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
+  [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZ"];
+  return formatter;
+}
+
 - (id)init {
   self = [super init];
   if (self) {
@@ -42,9 +53,7 @@
     TeakLog_i(@"transaction.purchased", @{@"purchase_duration" : _(purchaseDuration)});
 
     teak_log_breadcrumb(@"Building date formatter");
-    NSDateFormatter* formatter = [[NSDateFormatter alloc] init];
-    [formatter setTimeZone:[NSTimeZone timeZoneWithName:@"UTC"]];
-    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ssZ"];
+    NSDateFormatter* formatter = [SKPaymentObserver transactionDateFormatter];
 
     teak_log_breadcrumb(@"Getting info from App Store receipt");
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
@@ -150,13 +159,25 @@
   return array;
 }
 
++ (void)addActiveProductRequest:(ProductRequest*)request {
+  @synchronized(ProductRequestActiveRequestsMutex) {
+    [[ProductRequest activeProductRequests] addObject:request];
+  }
+}
+
++ (void)removeActiveProductRequest:(ProductRequest*)request {
+  @synchronized(ProductRequestActiveRequestsMutex) {
+    [[ProductRequest activeProductRequests] removeObject:request];
+  }
+}
+
 + (ProductRequest*)productRequestForSku:(NSString*)sku callback:(ProductRequestCallback)callback {
   ProductRequest* ret = [[ProductRequest alloc] init];
   ret.callback = callback;
   ret.productsRequest = [[SKProductsRequest alloc] initWithProductIdentifiers:[NSSet setWithObject:sku]];
   ret.productsRequest.delegate = ret;
   [ret.productsRequest start];
-  [[ProductRequest activeProductRequests] addObject:ret];
+  [ProductRequest addActiveProductRequest:ret];
   return ret;
 }
 
@@ -182,7 +203,7 @@
   } else {
     self.callback(@{}, nil);
   }
-  [[ProductRequest activeProductRequests] removeObject:self];
+  [ProductRequest removeActiveProductRequest:self];
 }
 
 - (NSString*)description {
