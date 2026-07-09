@@ -169,7 +169,7 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 /**
  * The active log listener
  */
-@property (copy, nonatomic) TeakLogListener _Nullable logListener;
+@property (copy, atomic) TeakLogListener _Nullable logListener;
 
 /**
  * Set up Teak in a single function call.
@@ -348,7 +348,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 - (void)identifyUser:(nonnull NSString*)userId withOptOutList:(nonnull NSArray*)optOut andEmail:(nullable NSString*)email __deprecated_msg("Use identifyUser:withConfiguration: instead");
 
 /**
- * Tell Teak how to identify the current user, with data collection opt-out.
+ * Tell Teak how to identify the current user, with an optional email, Facebook id, and data
+ * collection opt-outs.
  *
  * This will also begin tracking and reporting of a session, and track a daily active user.
  *
@@ -359,8 +360,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * 	extern void TeakIdentifyUser(const char* userId,
  * 	                             const char* userConfigurationJson);
  *
- * @param userIdentifier              The string Teak should use to identify the current user.
- * @param userConfiguration       Additional configuration for the current user.
+ * @param userIdentifier      The string Teak should use to identify the current user.
+ * @param userConfiguration   See TeakUserConfiguration.
  */
 - (void)identifyUser:(nonnull NSString*)userIdentifier withConfiguration:(nonnull TeakUserConfiguration*)userConfiguration;
 

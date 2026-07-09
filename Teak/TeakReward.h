@@ -13,11 +13,15 @@ typedef enum : int {
 
 typedef void (^RewardCompleted)(void);
 
+@class TeakReward;
+typedef void (^RewardCompletedWithReward)(TeakReward* _Nonnull reward);
+
 @interface TeakReward : NSObject
 @property (atomic, readonly) BOOL completed;
 @property (nonatomic, readonly) int rewardStatus;
 @property (strong, nonatomic, readonly) NSDictionary* _Nonnull json;
-@property (nonatomic, copy) RewardCompleted _Nullable onComplete;
+@property (atomic, copy) RewardCompleted _Nullable onComplete;
 
 + (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId;
++ (nullable TeakReward*)rewardForRewardId:(nonnull NSString*)teakRewardId onComplete:(nullable RewardCompletedWithReward)onComplete;
 @end

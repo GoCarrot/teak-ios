@@ -187,8 +187,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
   }
 
   // Log to the log listener
-  if (self.teak.logListener) {
-    self.teak.logListener(eventType, logLevel, payload);
+  TeakLogListener logListener = self.teak.logListener;
+  if (logListener) {
+    logListener(eventType, logLevel, payload);
   }
 
   // Log remotely
@@ -246,6 +247,9 @@ __attribute__((overloadable)) void TeakLog_i(NSString* eventType, NSString* mess
         completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
           // When there is an error with the NSPOSIXErrorDomain domain, and the code is 53
           // this is iOS 12 coming back from the background and failing network requests.
+          // TeakRequest.m's response:payload:withError: retries the same failure on its
+          // own NSURLSession with the same delay (TeakRequestSocketErrorRetryDelay) — the
+          // sessions are separate so this isn't shared, but tune both together.
           if (error && error.domain == NSPOSIXErrorDomain && error.code == 53 && reason == nil) {
             __weak typeof(self) weakSelf = self;
             double delayInSeconds = 1.5;

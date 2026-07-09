@@ -32,56 +32,64 @@
 }
 
 - (void)setAttribute:(id)value forKey:(NSString*)key inDictionary:(NSMutableDictionary*)dictionary {
-  // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
-  if (dictionary[key] != nil) {
+  // The nil-guard, firstSetTime stamp, equality test, and write all run on the serial
+  // operationQueue so the dictionary is only ever touched from one queue. Reading the
+  // dict on the caller's queue while the writer mutates it here is a use-after-free.
+  dispatch_async([Teak operationQueue], ^{
+    // Future-Pat: *only* check vs nil here, not NSNull. NSNull is fine.
+    if (dictionary[key] == nil) {
+      return;
+    }
+
     if (self.firstSetTime == nil) {
       self.firstSetTime = [NSDate date];
     }
 
-    dispatch_async([Teak operationQueue], ^{
-      BOOL safeNotEquals = YES;
-      @try {
-        safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
-      } @finally {
+    BOOL safeNotEquals = dictionary[key] == [NSNull null] || ![dictionary[key] isEqual:value];
+
+    if (safeNotEquals) {
+      if (self.scheduledBlock != nil) {
+        dispatch_block_cancel(self.scheduledBlock);
       }
 
-      if (safeNotEquals) {
-        if (self.scheduledBlock != nil) {
-          dispatch_block_cancel(self.scheduledBlock);
-        }
+      dictionary[key] = value;
 
-        dictionary[key] = value;
+      self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        [self send];
+      });
 
-        self.scheduledBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-          [self send];
-        });
-
-        dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
-        dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
-      }
-    });
-  }
+      dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, self.batch.time * NSEC_PER_SEC);
+      dispatch_after(delayTime, [Teak operationQueue], self.scheduledBlock);
+    }
+  });
 }
 
 - (void)send {
-  // No scheduledBlock means no pending update
-  if (self.scheduledBlock != nil) {
-    dispatch_block_cancel(self.scheduledBlock);
-    self.scheduledBlock = nil;
+  // TeakRequest's retry ladder can re-invoke -send from dispatch_get_main_queue() after a
+  // delay (socket-error and server-retry branches); if a new attribute has re-armed
+  // scheduledBlock in that window, this would read stringAttributes/numberAttributes off
+  // the serial operationQueue that setAttribute:forKey:inDictionary: mutates them on. Hop
+  // onto that same queue so this read is never concurrent with that write.
+  dispatch_async([Teak operationQueue], ^{
+    // No scheduledBlock means no pending update
+    if (self.scheduledBlock != nil) {
+      dispatch_block_cancel(self.scheduledBlock);
+      self.scheduledBlock = nil;
 
-    NSMutableDictionary* payload = [self.payload mutableCopy];
-    [payload addEntriesFromDictionary:@{
-      @"string_attributes" : [self.stringAttributes copy],
-      @"number_attributes" : [self.numberAttributes copy],
-      @"context" : [self.context copy],
-      @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
-    }];
-    self.payload = payload;
+      NSMutableDictionary* payload = [self.payload mutableCopy];
+      [payload addEntriesFromDictionary:@{
+        @"string_attributes" : [self.stringAttributes copy],
+        @"number_attributes" : [self.numberAttributes copy],
+        @"context" : [self.context copy],
+        @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
+      }];
+      self.payload = payload;
 
-    [super send];
+      [super send];
 
-    self.firstSetTime = nil;
-  }
+      self.firstSetTime = nil;
+    }
+  });
 }
 
 @end
