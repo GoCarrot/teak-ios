@@ -239,7 +239,7 @@ OperationQueue().addOperation(whenDone)
 
 === Scheduling a Notification for Other Players
 
-Use ``<<scheduleNotificationForCreative:secondsFromNow:forUserIds:>>`` to schedule a notification for other players -- for example, telling a friend they've been sent a gift.
+Use ``<<scheduleNotificationForCreative:secondsFromNow:forUserIds:>>`` to schedule a notification for other players -- for example, telling a friend they've been sent a gift. The creative must already exist on the dashboard; this call won't create one.
 
 .Example (Objective-C)
 [source,objc]
