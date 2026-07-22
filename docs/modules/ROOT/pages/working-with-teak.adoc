@@ -257,7 +257,7 @@ let notif = TeakNotification.scheduleNotification(forCreative: "my_creative_id",
                                                     forUserIds: ["user1", "user2"])
 ----
 
-This returns a ``TeakNotification`` that completes asynchronously -- check ``notif.completed`` before reading ``notif.status``. Because this schedules one notification per target user, ``notif.teakNotifId`` is a JSON-encoded array of ids rather than a single id.
+This returns a ``TeakNotification`` that completes asynchronously -- check ``notif.completed`` before reading ``notif.status``. ``notif.teakNotifId`` is a JSON-encoded array of scheduled-notification ids rather than a single id.
 
 === Canceling a Scheduled Notification
 
