@@ -27,7 +27,7 @@ Process:
 1. Read the issue $2#$1 thoroughly — body, comments, labels, milestones, and any blocking relationships. `gh issue view $1 --comments` is the minimum (plain `gh issue view` skips comments, which often carry the actual scope). If your project provides a `github-management` skill, use it for richer output. Then read any relevant code.
 2. Post your implementation plan in $6 and **wait** for lead-pm's approval before coding
 3. When done, open a *draft* PR and post the link in $6. Two project-specific rules for this repo:
-   - **Base branch**: always `--base 4.3-stable` for SDK 4.3.13 work — teak-ios defaults to `develop`, which is wrong for this milestone.
+   - **Base branch**: target the branch for the release this work belongs to — `develop` for mainline work, the relevant `N.N-stable` branch (e.g. `4.3-stable`) for a maintenance release. teak-ios defaults to `develop`; override explicitly when the work targets a maintenance branch.
    - **Closing reference**: issues are tracked in Linear, not GitHub, so `Closes #C-NNN` references nothing and won't auto-link. Instead, put the Linear issue URL (https://linear.app/teakio/issue/$1) in the PR body for human navigation. The `c-NNN` token already in your branch name is what Linear uses to auto-link the PR to the issue — no closing keyword needed.
 4. Prefix all GitHub comments with [$5]
 5. Defer to lead-pm for marking the PR ready and tagging reviewers. If you spot something that belongs in a follow-up issue, **raise it in $6** — lead-pm decides, and the APM files it. Do not `gh issue create` yourself.
