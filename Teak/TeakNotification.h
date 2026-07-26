@@ -11,9 +11,9 @@
 /**
  * Schedule a notification for this user at a time in the future.
  *
- * @param creativeId                      The identifier of the notification in the Teak dashboard (will create if not found).
+ * @param creativeId                      The identifier of the notification in the Teak dashboard, this must already exist.
  * @param delay                                 The delay in seconds from now to send the notification.
- * @param personalizationData Optional dictionary of addiontal information which can be used for templating.
+ * @param personalizationData Optional dictionary of additional information which can be used for templating.
  */
 + (nullable TeakOperation*)scheduleNotificationForCreative:(nonnull NSString*)creativeId secondsFromNow:(int64_t)delay personalizationData:(nullable NSDictionary*)personalizationData;
 
