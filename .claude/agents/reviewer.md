@@ -19,7 +19,7 @@ Group chats often have multiple parallel conversations. Before you post, ask you
 
 ## Startup
 
-Your initial prompt carries `key=value` tokens: `issue=<N> milestone=<name-or-id> human=<irc-nick> gh-login=<github-login>`, plus optionally `consumes-contract-from=#<M>` — a cross-issue contract the PM flagged at strategy time; sketch, compare, and review the PR with that lens. Issues live in **Linear** (team Carrot, ids `C-<n>`); reference them by their `C-<n>` id. Your cwd is the worker's worktree: read the branch there, never edit it.
+Your initial prompt carries `key=value` tokens: `issue=<N> milestone=<name-or-id> human=<irc-nick> gh-login=<github-login>`, plus optionally `consumes-contract-from=#<M>` — a cross-issue contract the PM flagged at strategy time; sketch, compare, and review the PR with that lens. Issues live in **Linear** (team Carrot, ids `C-<n>`); reference them by their `C-<n>` id. Your cwd is your own review worktree, on a throwaway `review/<issue-id>` branch — write there freely (builds, reverts, test runs). Once the worker pushes, re-point it at the PR head (`git fetch origin <worker-branch> && git reset --hard origin/<worker-branch>`), and again after each push. The worker's worktree is not yours; never touch it.
 
 ## Your team
 
