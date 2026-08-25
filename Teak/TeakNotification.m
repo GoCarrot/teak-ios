@@ -231,7 +231,7 @@
                                                       NSError* error = nil;
                                                       NSData* jsonData = [NSJSONSerialization dataWithJSONObject:reply[@"ids"] options:0 error:&error];
                                                       if (error) {
-                                                        TeakLog_e(@"notification.cancel_all.error.json", @{@"value" : reply[@"ids"], @"error" : error});
+                                                        TeakLog_e(@"notification.schedule.error.json", @{@"value" : reply[@"ids"], @"error" : error});
                                                         ret.teakNotifId = @"[]";
                                                       } else {
                                                         ret.teakNotifId = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
