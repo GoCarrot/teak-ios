@@ -3,6 +3,9 @@ set -e
 
 # script/worktree — Create a git worktree with full local dev setup
 #
+# Canonical copy lives in GoCarrot/teak-hq — port changes from there, not
+# from another repo's copy.
+#
 # Usage:
 #   script/worktree <branch> [--from <base>] [path]
 #
@@ -165,14 +168,15 @@ rake_setup=""
 if [ -f "$worktree_path/Gemfile" ]; then
   echo "Installing Ruby dependencies..."
   if [ -f "$worktree_path/.ruby-version" ]; then
+    ruby_version="$(sed 's/^ruby-//' "$worktree_path/.ruby-version")"
     if which rbenv > /dev/null; then
-      (cd "$worktree_path" && rbenv install --skip-existing "$(cat .ruby-version | cut -d- -f2)" && rbenv rehash)
+      (cd "$worktree_path" && rbenv install --skip-existing "$ruby_version" && rbenv rehash)
       ruby_exec() { (cd "$worktree_path" && rbenv exec "$@"); }
     elif which rvm > /dev/null; then
-      (cd "$worktree_path" && rvm install "$(cat .ruby-version | cut -d- -f2)")
+      (cd "$worktree_path" && rvm install "$ruby_version")
       # --create is a no-op when the gemset already exists, so this doubles as
       # first-call gemset creation without a separate setup step.
-      ruby_exec() { (cd "$worktree_path" && rvm --create "$(cat .ruby-version | cut -d- -f2)@$(cat .ruby-gemset)" "do" "$@"); }
+      ruby_exec() { (cd "$worktree_path" && rvm --create "$ruby_version@$(cat .ruby-gemset)" "do" "$@"); }
     else
       echo "Refusing: .ruby-version is pinned but neither rbenv nor rvm is available -- a bare bundle install would run under an arbitrary Ruby" >&2
       exit 1
@@ -180,7 +184,8 @@ if [ -f "$worktree_path/Gemfile" ]; then
     ruby_exec bundle install
   else
     # No pin in this repo (e.g. a rake-only SDK); bundle under ambient Ruby.
-    (cd "$worktree_path" && bundle install)
+    ruby_exec() { (cd "$worktree_path" && "$@"); }
+    ruby_exec bundle install
   fi
 
   # Repos with a worktree:setup task delegate repo-specific steps (asset
