@@ -60,9 +60,7 @@ jobs:
           command: ./deployment_target_check.rb
       - run:
           name: Build Teak SDK
-          command: |
-            bundle exec fastlane match --readonly
-            ./compile_xc_framework
+          command: ./compile_xc_framework
       - persist_to_workspace:
           root: .
           paths:
