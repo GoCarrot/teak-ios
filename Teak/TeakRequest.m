@@ -204,15 +204,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return dict;
 }
 
-+ (BOOL)endpointDeduplicatesByRequestId:(nonnull NSString*)endpoint {
-  static NSSet* endpoints = nil;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    endpoints = [NSSet setWithArray:@[ @"/me/live_activities", @"/me/live_activity_updates", @"/me/cancel_all_live_activity_updates" ]];
-  });
-  return [endpoints containsObject:endpoint];
-}
-
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback {
   return [TeakRequest requestWithSession:session forHostname:kTeakHostname withEndpoint:endpoint withPayload:payload method:method callback:callback];
 }
@@ -296,15 +287,14 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
 
+        // The server dedupes on request_id where it supports it. Retries resend
+        // this same request object, so they carry the same id.
+        payloadWithCommon[@"request_id"] = self.requestId;
+
         // Future-Pat: save the transmission bytes
         if (!self.session.appConfiguration.isProduction) {
           payloadWithCommon[@"debug"] = [NSNumber numberWithBool:YES];
         }
-      }
-      // Live Activity endpoints are deduplicated server-side by request_id.
-      // Retries resend this same request object, so they carry the same id.
-      if ([TeakRequest endpointDeduplicatesByRequestId:endpoint]) {
-        payloadWithCommon[@"request_id"] = self.requestId;
       }
       self.payload = payloadWithCommon;
     } @catch (NSException* exception) {

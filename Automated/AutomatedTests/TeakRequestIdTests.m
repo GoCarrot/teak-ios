@@ -58,8 +58,8 @@ extern NSDictionary* TeakVersionDict;
                                 callback:nil];
 }
 
-- (void)testLiveActivityEndpointsCarryRequestId {
-  for (NSString* endpoint in @[ @"/me/live_activities", @"/me/live_activity_updates", @"/me/cancel_all_live_activity_updates" ]) {
+- (void)testEndpointsCarryRequestId {
+  for (NSString* endpoint in @[ @"/me/live_activities", @"/me/live_activity_updates", @"/me/cancel_all_live_activity_updates", @"/me/channel_state" ]) {
     TeakRequest* request = [self requestForEndpoint:endpoint];
     XCTAssertNotNil(request, @"%@", endpoint);
     XCTAssertNotNil(request.requestId, @"%@", endpoint);
@@ -71,12 +71,6 @@ extern NSDictionary* TeakVersionDict;
   TeakRequest* a = [self requestForEndpoint:@"/me/live_activities"];
   TeakRequest* b = [self requestForEndpoint:@"/me/live_activities"];
   XCTAssertNotEqualObjects(a.payload[@"request_id"], b.payload[@"request_id"]);
-}
-
-- (void)testOtherEndpointsDoNotCarryRequestId {
-  TeakRequest* request = [self requestForEndpoint:@"/me/channel_state"];
-  XCTAssertNotNil(request);
-  XCTAssertNil(request.payload[@"request_id"]);
 }
 
 @end
