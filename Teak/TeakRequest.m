@@ -287,6 +287,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
 
+        // The server dedupes on request_id where it supports it. Retries resend
+        // this same request object, so they carry the same id.
+        payloadWithCommon[@"request_id"] = self.requestId;
+
         // Future-Pat: save the transmission bytes
         if (!self.session.appConfiguration.isProduction) {
           payloadWithCommon[@"debug"] = [NSNumber numberWithBool:YES];
