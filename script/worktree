@@ -10,7 +10,7 @@ set -e
 #   script/worktree <branch> [--from <base>] [path]
 #
 # Examples:
-#   script/worktree feat/my-feature                        # branch off HEAD
+#   script/worktree feat/my-feature                        # off HEAD, or tracking origin/<branch> if it's there
 #   script/worktree feat/my-feature --from develop         # fetch & branch off develop
 #   script/worktree fix/bug-123 --from develop ~/custom    # explicit path + base
 
@@ -68,22 +68,50 @@ if [ -n "$base" ]; then
   start_point="origin/$base"
 fi
 
-echo ""
-echo "Creating worktree:"
-echo "  Path:   $worktree_path"
-echo "  Branch: $branch"
-if [ -n "$base" ]; then
-  echo "  Base:   $start_point"
-fi
-echo ""
-
 if git show-ref --verify --quiet "refs/heads/$branch"; then
   target_ref="refs/heads/$branch"
   branch_exists=1
 else
-  target_ref="${start_point:-HEAD}"
   branch_exists=0
+  if [ -z "$start_point" ]; then
+    # No local branch and no --from: if the branch is on origin, build from it
+    # (tracking) rather than silently forking a same-named branch off HEAD.
+    # ls-remote asks origin directly: 0 = there, 2 = absent, else the lookup
+    # itself failed (offline, auth) -- refuse rather than fall back to HEAD.
+    # A local origin/<branch> ref can't answer this: it may be stale.
+    set +e
+    git ls-remote --exit-code --heads origin "refs/heads/$branch" > /dev/null
+    remote_status=$?
+    set -e
+    case "$remote_status" in
+      0)
+        echo "Fetching origin/$branch..."
+        git fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch"
+        start_point="origin/$branch"
+        track_remote=1
+        ;;
+      2) ;;
+      *)
+        echo "Refusing: could not check origin for $branch (ls-remote exit $remote_status) -- not branching off HEAD in case it exists there" >&2
+        exit 1
+        ;;
+    esac
+  fi
+  target_ref="${start_point:-HEAD}"
 fi
+
+echo ""
+echo "Creating worktree:"
+echo "  Path:   $worktree_path"
+echo "  Branch: $branch"
+if [ "$branch_exists" = 1 ]; then
+  echo "  Base:   $target_ref (existing local branch)"
+elif [ "${track_remote:-}" = 1 ]; then
+  echo "  Base:   $start_point (existing remote branch)"
+elif [ -n "$base" ]; then
+  echo "  Base:   $start_point"
+fi
+echo ""
 
 # --- Guard + hook wiring ---
 #
@@ -100,6 +128,9 @@ if [ -d "$main_tree/.githooks" ]; then
   # HEAD, same as `git worktree add` uses below.
   if ! git cat-file -e "$target_ref:.githooks/reference-transaction" 2>/dev/null; then
     echo "Refusing: $target_ref does not have .githooks/reference-transaction -- the new worktree would be unguarded even though core.hooksPath is wired" >&2
+    if [ "${track_remote:-}" = 1 ]; then
+      echo "  (merge the default branch into $branch and push, then retry)" >&2
+    fi
     exit 1
   fi
 
@@ -120,7 +151,9 @@ fi
 if [ "$branch_exists" = 1 ]; then
   git worktree add "$worktree_path" "$branch"
 else
-  if [ -n "$start_point" ]; then
+  if [ "${track_remote:-}" = 1 ]; then
+    git worktree add --track -b "$branch" "$worktree_path" "$start_point"
+  elif [ -n "$start_point" ]; then
     git worktree add -b "$branch" "$worktree_path" "$start_point"
   else
     git worktree add -b "$branch" "$worktree_path"
