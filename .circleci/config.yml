@@ -317,13 +317,17 @@ commands:
           name: Ruby Setup
           command: |
             want=$(sed 's/^ruby-//' .ruby-version)
-            if ! ruby -v | grep -q "^ruby ${want} "; then
+            if ! ruby -v 2>/dev/null | grep -q "^ruby ${want} "; then
+              brew update --quiet || true
               if command -v rbenv >/dev/null; then
                 brew upgrade ruby-build || true
                 rbenv install -s "${want}"
+                echo "export RBENV_VERSION=${want}" >> "$BASH_ENV"
                 echo 'eval "$(rbenv init -)"' >> "$BASH_ENV"
+                export RBENV_VERSION="${want}"
                 eval "$(rbenv init -)"
               else
+                brew upgrade ruby-install || brew install ruby-install
                 ruby-install --no-reinstall ruby "${want}"
                 echo "source /opt/homebrew/share/chruby/chruby.sh; chruby ruby-${want}" >> "$BASH_ENV"
                 source /opt/homebrew/share/chruby/chruby.sh
