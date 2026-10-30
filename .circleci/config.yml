@@ -156,6 +156,7 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     steps:
       - checkout
+      - ruby_setup
       - run: git fetch --tags
       - run:
           name: Publish to CocoaPods trunk
@@ -307,6 +308,30 @@ workflows:
               only: /.*/
 
 commands:
+  # Installs the Ruby named in .ruby-version when the image doesn't ship it, then
+  # fails the job unless that is the Ruby actually running.
+  ruby_setup:
+    description: "Run the Ruby pinned in .ruby-version"
+    steps:
+      - run:
+          name: Ruby Setup
+          command: |
+            want=$(sed 's/^ruby-//' .ruby-version)
+            if ! ruby -v | grep -q "^ruby ${want} "; then
+              if command -v rbenv >/dev/null; then
+                brew upgrade ruby-build || true
+                rbenv install -s "${want}"
+                echo 'eval "$(rbenv init -)"' >> "$BASH_ENV"
+                eval "$(rbenv init -)"
+              else
+                ruby-install --no-reinstall ruby "${want}"
+                echo "source /opt/homebrew/share/chruby/chruby.sh; chruby ruby-${want}" >> "$BASH_ENV"
+                source /opt/homebrew/share/chruby/chruby.sh
+                chruby "ruby-${want}"
+              fi
+            fi
+            ruby -v
+            ruby -v | grep -q "^ruby ${want} "
   #
   # Common setup
   #
@@ -314,11 +339,12 @@ commands:
     description: "iOS Common Setup"
     steps:
       - checkout
+      - ruby_setup
       - run:
           name: Fetch Tags
           command: git fetch --tags
       - restore_cache:
-          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Ruby Gems
           command: |
@@ -330,7 +356,7 @@ commands:
             - ~/Library/Caches/Homebrew
             - vendor/bundle
             - Sample/vendor/bundle
-          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
