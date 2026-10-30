@@ -322,10 +322,11 @@ commands:
               if command -v rbenv >/dev/null; then
                 brew upgrade ruby-build || true
                 rbenv install -s "${want}"
-                echo "export RBENV_VERSION=${want}" >> "$BASH_ENV"
-                echo 'eval "$(rbenv init -)"' >> "$BASH_ENV"
-                export RBENV_VERSION="${want}"
-                eval "$(rbenv init -)"
+                # Shims on PATH rather than `rbenv init` in BASH_ENV, which forks
+                # rbenv from every shell startup and recurses.
+                shims="$(rbenv root)/shims"
+                echo "export RBENV_VERSION=${want}; export PATH=${shims}:\$PATH" >> "$BASH_ENV"
+                export RBENV_VERSION="${want}" PATH="${shims}:${PATH}"
               else
                 brew upgrade ruby-install || brew install ruby-install
                 ruby-install --no-reinstall ruby "${want}"
