@@ -321,7 +321,7 @@ commands:
         default: "14.3.1"
     steps:
       - restore_cache:
-          key: v1-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
+          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
       - run:
           name: Ruby Setup
           command: |
@@ -334,7 +334,10 @@ commands:
             else
               brew update --quiet || true
               brew upgrade ruby-build || true
-              rbenv install -s "${want}"
+              # Link the image's own openssl: ruby-build would otherwise link the newest
+              # brew openssl, which a cache-restored Ruby won't find on a fresh image.
+              brew list openssl@3 >/dev/null 2>&1 || brew install openssl@3
+              RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@3)" rbenv install -s "${want}"
               mkdir -p "${cache}"
               cp -R "${versions}/${want}" "${cache}/${want}"
             fi
@@ -349,7 +352,7 @@ commands:
       - save_cache:
           paths:
             - ~/ruby-cache
-          key: v1-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
+          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
   #
   # Common setup
   #
