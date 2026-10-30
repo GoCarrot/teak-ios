@@ -341,14 +341,14 @@ commands:
               mkdir -p "${cache}"
               cp -R "${versions}/${want}" "${cache}/${want}"
             fi
-            # Shims on PATH rather than `rbenv init` in BASH_ENV, which forks
-            # rbenv from every shell startup and recurses.
+            # Later steps pick this Ruby up through BASH_ENV.
             shims="$(rbenv root)/shims"
             echo "export RBENV_VERSION=${want}; export PATH=${shims}:\$PATH" >> "$BASH_ENV"
             export RBENV_VERSION="${want}" PATH="${shims}:${PATH}"
             rbenv rehash
             ruby -v
             ruby -v | grep -q "^ruby ${want} "
+            ruby -ropenssl -ryaml -e 1
       - save_cache:
           paths:
             - ~/ruby-cache
