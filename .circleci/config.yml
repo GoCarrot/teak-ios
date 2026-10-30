@@ -16,7 +16,8 @@ jobs:
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup
+      - ios_setup:
+          xcode-version: << parameters.xcode-version >>
       - run:
           name: Run Tests
           command: bundle exec fastlane test
@@ -32,7 +33,8 @@ jobs:
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup
+      - ios_setup:
+          xcode-version: << parameters.xcode-version >>
       # A red run means a guarded defect is still open: the lane exits nonzero and fails the job.
       # store_* run `when: always` so the results and artifacts still upload on that red.
       - run:
@@ -54,7 +56,8 @@ jobs:
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup
+      - ios_setup:
+          xcode-version: << parameters.xcode-version >>
       - run:
           name: Ensure IPHONEOS_DEPLOYMENT_TARGET is 9.0
           command: ./deployment_target_check.rb
@@ -156,6 +159,7 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     steps:
       - checkout
+      - ruby_setup
       - run: git fetch --tags
       - run:
           name: Publish to CocoaPods trunk
@@ -307,18 +311,66 @@ workflows:
               only: /.*/
 
 commands:
+  # Runs the Ruby named in .ruby-version. The image's rbenv doesn't have it, so it is built
+  # once per image and cached; the job fails unless that is the Ruby actually running.
+  ruby_setup:
+    description: "Run the Ruby pinned in .ruby-version"
+    parameters:
+      xcode-version:
+        type: string
+        default: "14.3.1"
+    steps:
+      - restore_cache:
+          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
+      - run:
+          name: Ruby Setup
+          command: |
+            want=$(sed 's/^ruby-//' .ruby-version)
+            versions="$(rbenv root)/versions"
+            cache="$HOME/ruby-cache"
+            if [ -d "${cache}/${want}" ]; then
+              mkdir -p "${versions}"
+              cp -R "${cache}/${want}" "${versions}/${want}"
+            else
+              brew update --quiet || true
+              brew upgrade ruby-build || true
+              # Link the image's own openssl: ruby-build would otherwise link the newest
+              # brew openssl, which a cache-restored Ruby won't find on a fresh image.
+              brew list openssl@3 >/dev/null 2>&1 || brew install openssl@3
+              RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@3)" rbenv install -s "${want}"
+              mkdir -p "${cache}"
+              cp -R "${versions}/${want}" "${cache}/${want}"
+            fi
+            # Later steps pick this Ruby up through BASH_ENV.
+            shims="$(rbenv root)/shims"
+            echo "export RBENV_VERSION=${want}; export PATH=${shims}:\$PATH" >> "$BASH_ENV"
+            export RBENV_VERSION="${want}" PATH="${shims}:${PATH}"
+            rbenv rehash
+            ruby -v
+            ruby -v | grep -q "^ruby ${want} "
+            ruby -ropenssl -ryaml -e 1
+      - save_cache:
+          paths:
+            - ~/ruby-cache
+          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
   #
   # Common setup
   #
   ios_setup:
     description: "iOS Common Setup"
+    parameters:
+      xcode-version:
+        type: string
+        default: "14.3.1"
     steps:
       - checkout
+      - ruby_setup:
+          xcode-version: << parameters.xcode-version >>
       - run:
           name: Fetch Tags
           command: git fetch --tags
       - restore_cache:
-          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Ruby Gems
           command: |
@@ -330,7 +382,7 @@ commands:
             - ~/Library/Caches/Homebrew
             - vendor/bundle
             - Sample/vendor/bundle
-          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
