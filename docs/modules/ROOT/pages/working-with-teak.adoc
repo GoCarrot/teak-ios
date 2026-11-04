@@ -123,6 +123,8 @@ denied, and informs the player what happened.
 
 This callback will be concurrent with the xref:server-api::page$rewards/endpoint.adoc[Teak Reward Endpoint, window=_blank] server to server call.
 
+Reward values are `NSNumber` and may be fractional for games that have fractional rewards enabled. Fractional values arrive as doubles, so long or high-precision values can lose precision.
+
 .Example Reward Listener
 [source,swift]
 ----
@@ -131,6 +133,7 @@ NotificationCenter.default.addObserver(forName: Notification.Name(TeakOnReward),
     let rewardId = notification.userInfo!["teakRewardId"] as! String
     switch rewardStatus {
     case "grant_reward":
+        // e.g. {"coins": 50, "gems": 2.5}
         let reward = notification.userInfo!["reward"]! as! Dictionary<String, NSNumber>
         print("Reward with id \(rewardId) Granted! \(reward)")
     case "already_clicked":
