@@ -10,7 +10,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "14.3.1"
+        default: "16.4.0"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: m4pro.medium
@@ -26,7 +26,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "14.3.1"
+        default: "16.4.0"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: m4pro.medium
@@ -48,7 +48,7 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "14.3.1"
+        default: "16.4.0"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: m4pro.medium
@@ -151,7 +151,7 @@ jobs:
 
   publish_pod:
     macos:
-      xcode: "14.3.1"
+      xcode: "16.4.0"
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:

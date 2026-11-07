@@ -1,0 +1,2 @@
+enhancement:
+  - "The SDK is now built with Xcode 16.4. The minimum supported iOS version is unchanged."
