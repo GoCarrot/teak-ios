@@ -8,10 +8,10 @@
 //   - currentState / previousState are read in the currentSessionMutex lock domain (the class
 //     methods) but written under @synchronized(self), so atomic keeps a cross-domain read from
 //     tearing.
-//   - reportDurationBlock is created and freed (reset) under @synchronized(self), but its
-//     background-queue body reads it lock-free to check for cancellation. atomic keeps that
-//     read from retaining a pointer the setter is releasing out from under it (a use-after-free
-//     seen in production as an EXC_BAD_ACCESS in dispatch_block_testcancel).
+//   - reportDurationBlock is stored under @synchronized(self), but its background-queue body
+//     reads it under reportDurationMutex only to check for cancellation. atomic keeps that read
+//     from retaining a pointer the store is releasing out from under it (a use-after-free seen in
+//     production as an EXC_BAD_ACCESS in dispatch_block_testcancel).
 //   - countryCode / userProfile / serverSessionId are reassigned in the identify-reply request
 //     callback while read cross-thread by the heartbeat queue and the duration-report background
 //     block. See RaceTripwireTests.m for the dynamic use-after-free repro backing these three.
@@ -54,7 +54,7 @@
 
 - (void)testReportDurationBlockIsAtomic {
   XCTAssertFalse([self isNonatomicProperty:"reportDurationBlock"],
-                 @"TeakSession.reportDurationBlock must stay atomic — its background-queue body reads it outside @synchronized(self) while resetReportDurationBlock cancels and frees it under the lock");
+                 @"TeakSession.reportDurationBlock must stay atomic — it's stored under @synchronized(self) while the background-queue body reads it under reportDurationMutex only");
 }
 
 - (void)testCountryCodeIsAtomic {

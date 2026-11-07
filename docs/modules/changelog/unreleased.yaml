@@ -3,3 +3,4 @@ enhancement:
 bug:
   - "``openSettingsAppToThisAppsSettings`` now opens Settings.app in apps built with the iOS 18 SDK and later. It previously did nothing in those apps."
   - "Fixed a crash when resolving a Teak link whose response was not UTF-8 encoded and had no iOS path."
+  - "Fixed a session sometimes being reported as ended when the app returned to the foreground just as it was backgrounding."
