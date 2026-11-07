@@ -17,7 +17,7 @@ typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 @interface TeakRetryConfiguration : NSObject
 @property (nonatomic) float jitter;
 @property (strong, nonatomic) NSArray* _Nonnull times;
-@property (nonatomic) NSUInteger retryIndex;
+@property (atomic) NSUInteger retryIndex;
 @end
 
 @interface TeakRequest : NSObject

@@ -310,6 +310,20 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)send {
+  // A fresh logical send gets a fresh retry budget. Long-lived requests (the
+  // per-session TeakUserProfile) send more than once, and counters left over
+  // from an earlier send would silently disable retries for every later one.
+  self.socketErrorRetryCount = 0;
+  self.retry.retryIndex = 0;
+  [self transmit];
+}
+
+// Puts the request on the wire. Retries come through here (via -retryTransmit)
+// rather than -send, because subclasses override -send to decide *when* a
+// logical send starts (TeakUserProfile gates on a pending update, a batch is
+// a no-op until it is flushed) and those gates must not swallow a retry of a
+// request that has already been built.
+- (void)transmit {
   if (self.blackhole) return;
 
   teak_try {
@@ -329,6 +343,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     teak_log_breadcrumb(@"request.send.sent");
   }
   teak_catch_report;
+}
+
+- (void)retryTransmit {
+  [self transmit];
 }
 
 - (NSDictionary*)to_h {
@@ -391,19 +409,23 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self send];
+            [self retryTransmit];
           });
-        } else if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
+        } else if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
+          // Only a 5xx reply climbs the ladder. A nil response (timeout, connection
+          // lost mid-transfer) may still have reached the server, and re-POSTing
+          // would double-count non-idempotent requests like /me/events batches.
           // Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
           if (delay < 0.0f) delay = 0.0f;
 
           self.retry.retryIndex++;
+          TeakLog_i(@"request.retry.server_error", [self to_h]);
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self send];
+            [self retryTransmit];
           });
         } else {
           if (isSocketError) {
