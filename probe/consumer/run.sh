@@ -53,6 +53,7 @@ xcrun simctl push "$UDID" io.teak.probe.consumer "$OUT/push.json" && echo "push 
 sleep 10
 xcrun simctl launch "$UDID" io.teak.probe.consumer > /dev/null 2>&1
 sleep 8
+sleep 30
 kill $LOGPID 2>/dev/null
 
 echo "== probe markers"
@@ -66,6 +67,8 @@ grep -q 'notification.registration.success' "$LOG/console.txt" && echo "push reg
 for m in applicationDidBecomeActive applicationWillResignActive; do
   grep -q "\"callback\":\"$m:\"" "$LOG/console.txt" && echo "teak lifecycle $m: seen" || { echo "teak lifecycle $m: MISSING"; fail=1; }
 done
+grep -ho 'PROBE: openSettings -> [01]' "$LOG/console.txt" | head -1 | sed 's/^/teak /'
+grep -q 'BUG IN CLIENT OF UIKIT' "$LOG/device-log.txt" && grep -h 'BUG IN CLIENT OF UIKIT' "$LOG/device-log.txt" | head -2 | cut -c1-300
 if [ "$MODE" = scene ]; then grep -q 'PROBE: sceneDidBecomeActive' "$LOG/console.txt" "$LOG/device-log.txt" && echo "scene: OK" || { echo "scene: no marker"; fail=1; }; fi
 xcrun simctl shutdown "$UDID"; xcrun simctl delete "$UDID"
 exit $fail
