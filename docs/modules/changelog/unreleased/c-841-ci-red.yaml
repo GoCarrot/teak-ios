@@ -1,0 +1,2 @@
+bugs:
+  - Deliberately invalid category to prove changelog_check fails CI
