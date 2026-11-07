@@ -16,6 +16,7 @@ nav: docs/modules/api/nav.adoc
 
 changelog:
   input: docs/modules/changelog/versions/
+  unreleased: docs/modules/changelog/unreleased/
   output: docs/modules/changelog/partials/
   index: docs/modules/changelog/pages/changelog.adoc
 
