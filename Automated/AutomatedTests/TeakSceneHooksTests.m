@@ -1,4 +1,5 @@
 #import <XCTest/XCTest.h>
+#import <objc/message.h>
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
 
@@ -10,8 +11,16 @@
 extern Teak* _teakSharedInstance;
 
 @interface TeakSceneHooks (Discovery)
-+ (void)installForAppDelegateClass:(Class)appDelegateClass;
++ (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity;
 @end
+
+@interface Teak (SceneHooksTesting)
+- (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation;
+@end
+
+extern void TeakLifecycleDidBecomeActive(UIApplication* application);
+extern void TeakLifecycleWillResignActive(UIApplication* application);
+extern void TeakLifecycleInstall(void);
 
 // Every test builds its own classes at runtime: hooks are permanent, so classes can't be shared between tests.
 static Class MakeClass(NSString* prefix, Class superclass) {
@@ -26,6 +35,7 @@ static Class MakeClass(NSString* prefix, Class superclass) {
 static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSString*, NSNumber*>* calls, NSString* key) {
   IMP imp = imp_implementationWithBlock(^(id _self, UIScene* scene, NSSet* contexts) {
     calls[key] = @(calls[key].integerValue + 1);
+    calls[[key stringByAppendingString:@".contexts"]] = @(calls[[key stringByAppendingString:@".contexts"]].integerValue + contexts.count);
   });
   class_addMethod(klass, @selector(scene:openURLContexts:), imp, "v@:@@");
 }
@@ -44,6 +54,7 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   _teak = mock([Teak class]);
   _teakSharedInstance = _teak;
   _calls = [[NSMutableDictionary alloc] init];
+  [TeakSceneHooks installForAppDelegateClass:nil hostHandlesUserActivity:NO];
 }
 
 - (void)tearDown {
@@ -79,7 +90,7 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   });
   class_addMethod(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), configIMP, "@@:@@@");
 
-  [TeakSceneHooks installForAppDelegateClass:appDelegateClass];
+  [TeakSceneHooks installForAppDelegateClass:appDelegateClass hostHandlesUserActivity:NO];
 
   // Nothing is hooked until UIKit asks the app delegate which configuration to use.
   NSURL* before = [NSURL URLWithString:@"teak1234://before"];
@@ -170,7 +181,57 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   [verifyCount(_teak, times(1)) application:anything() openURL:baseURL sourceApplication:anything() annotation:anything()];
 }
 
+// B overrides scene:openURLContexts: and calls super into A; both hooked.
+- (void)testOverrideCallingSuperRunsEachHostOnceAndTeakOnce {
+  Class base = MakeClass(@"SuperBaseSceneDelegate", [UIResponder class]);
+  AddRecordingOpenURLContexts(base, _calls, @"base");
+  Class sub = MakeClass(@"SuperSubSceneDelegate", base);
+  NSMutableDictionary<NSString*, NSNumber*>* calls = _calls;
+  IMP subIMP = imp_implementationWithBlock(^(id _self, UIScene* scene, NSSet* contexts) {
+    calls[@"sub"] = @(calls[@"sub"].integerValue + 1);
+    struct objc_super sup = {_self, base};
+    ((void (*)(struct objc_super*, SEL, UIScene*, NSSet*))objc_msgSendSuper)(&sup, @selector(scene:openURLContexts:), scene, contexts);
+  });
+  class_addMethod(sub, @selector(scene:openURLContexts:), subIMP, "v@:@@");
+
+  [TeakSceneHooks swizzleInto:base];
+  [TeakSceneHooks swizzleInto:sub];
+
+  NSURL* url = [NSURL URLWithString:@"teak1234://super"];
+  [self openURL:url on:[[sub alloc] init]];
+  XCTAssertEqual(_calls[@"sub"].integerValue, 1);
+  XCTAssertEqual(_calls[@"base"].integerValue, 1);
+  [verifyCount(_teak, times(1)) application:anything() openURL:url sourceApplication:anything() annotation:anything()];
+}
+
+- (void)testContinueUserActivityNotAddedWhenHostAppDelegateHandlesIt {
+  [TeakSceneHooks installForAppDelegateClass:nil hostHandlesUserActivity:YES];
+  Class klass = MakeClass(@"HostActivitySceneDelegate", [UIResponder class]);
+  [TeakSceneHooks swizzleInto:klass];
+
+  XCTAssertFalse([klass instancesRespondToSelector:@selector(scene:continueUserActivity:)]);
+  XCTAssertTrue([klass instancesRespondToSelector:@selector(scene:openURLContexts:)]);
+}
+
 #pragma mark - Routing
+
+- (void)testTeakHandledContextsAreWithheldFromUIKitHost {
+  Class klass = MakeClass(@"WithholdSceneDelegate", [UIResponder class]);
+  AddRecordingOpenURLContexts(klass, _calls, @"host");
+  [TeakSceneHooks swizzleInto:klass];
+
+  NSURL* teakURL = [NSURL URLWithString:@"teak1234://teak-route"];
+  NSURL* hostURL = [NSURL URLWithString:@"teak1234://host-route"];
+  [given([_teak application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()]) willReturnBool:YES];
+  id sceneDelegate = [[klass alloc] init];
+
+  [sceneDelegate scene:mock([UIScene class]) openURLContexts:[self contextsForURLs:@[ teakURL, hostURL ]]];
+  XCTAssertEqual(_calls[@"host"].integerValue, 1);
+  XCTAssertEqual(_calls[@"host.contexts"].integerValue, 1, @"only the context Teak didn't handle reaches the host");
+
+  [self openURL:teakURL on:sceneDelegate];
+  XCTAssertEqual(_calls[@"host"].integerValue, 1, @"host isn't called when Teak handled every context");
+}
 
 - (void)testWillConnectRoutesEveryLaunchURLAndActivity {
   Class klass = MakeClass(@"LaunchSceneDelegate", [UIResponder class]);
@@ -188,6 +249,39 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   [verifyCount(_teak, times(1)) application:anything() openURL:one sourceApplication:anything() annotation:anything()];
   [verifyCount(_teak, times(1)) application:anything() openURL:two sourceApplication:anything() annotation:anything()];
   [verifyCount(_teak, times(1)) application:anything() continueUserActivity:activity restorationHandler:anything()];
+}
+
+#pragma mark - Lifecycle
+
+- (Teak*)freshTeak {
+  _teak = mock([Teak class]);
+  _teakSharedInstance = _teak;
+  return _teak;
+}
+
+- (void)testLifecycleRunsOncePerTransitionAcrossDelegateAndNotification {
+  TeakLifecycleInstall();
+  TeakLifecycleWillResignActive(nil);
+
+  // Scene apps: only the notification arrives.
+  Teak* teak = [self freshTeak];
+  [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationDidBecomeActiveNotification object:nil];
+  [verifyCount(teak, times(1)) applicationDidBecomeActive:anything()];
+
+  teak = [self freshTeak];
+  [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationWillResignActiveNotification object:nil];
+  [verifyCount(teak, times(1)) applicationWillResignActive:anything()];
+
+  // App delegate apps: the delegate hook arrives first, then the notification.
+  teak = [self freshTeak];
+  TeakLifecycleDidBecomeActive(nil);
+  [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationDidBecomeActiveNotification object:nil];
+  [verifyCount(teak, times(1)) applicationDidBecomeActive:anything()];
+
+  teak = [self freshTeak];
+  TeakLifecycleWillResignActive(nil);
+  [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationWillResignActiveNotification object:nil];
+  [verifyCount(teak, times(1)) applicationWillResignActive:anything()];
 }
 
 @end
