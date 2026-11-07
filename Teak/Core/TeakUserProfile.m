@@ -64,12 +64,10 @@
   });
 }
 
+// Starts a send only when an attribute change is pending. Retries go through -retryTransmit.
 - (void)send {
-  // TeakRequest's retry ladder can re-invoke -send from dispatch_get_main_queue() after a
-  // delay (socket-error and server-retry branches); if a new attribute has re-armed
-  // scheduledBlock in that window, this would read stringAttributes/numberAttributes off
-  // the serial operationQueue that setAttribute:forKey:inDictionary: mutates them on. Hop
-  // onto that same queue so this read is never concurrent with that write.
+  // Hop onto the serial operationQueue that setAttribute:forKey:inDictionary: mutates the
+  // attribute dictionaries on, so these reads are never concurrent with those writes.
   dispatch_async([Teak operationQueue], ^{
     // No scheduledBlock means no pending update
     if (self.scheduledBlock != nil) {
@@ -89,6 +87,15 @@
 
       self.firstSetTime = nil;
     }
+  });
+}
+
+// Retries fire on the main queue. -transmit reads self.payload, which -send reassigns on the
+// operationQueue, so hop onto it to keep the read serialized with that write. Resends the
+// payload built by the last -send; nothing is rebuilt or re-armed.
+- (void)retryTransmit {
+  dispatch_async([Teak operationQueue], ^{
+    [self transmit];
   });
 }
 
