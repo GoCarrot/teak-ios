@@ -86,7 +86,6 @@ jobs:
       - image: cimg/base:current
     steps:
       - checkout
-      - ruby_setup
       - run: git fetch --tags
       - aws-cli/install
       - attach_workspace:
@@ -160,6 +159,7 @@ jobs:
     shell: /bin/bash --login -eo pipefail
     steps:
       - checkout
+      - ruby_setup
       - run: git fetch --tags
       - run:
           name: Publish to CocoaPods trunk
