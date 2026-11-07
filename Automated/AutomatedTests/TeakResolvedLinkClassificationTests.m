@@ -12,6 +12,7 @@
 // iOSPath (nil when omitted); shortLink is the original universal/launch link.
 @interface TeakLaunchDataOperation (Testing)
 + (TeakLaunchData*)launchDataFromResolvedUrl:(NSURL*)resolvedUrl shortLink:(NSURL*)shortLink;
++ (NSDictionary*)noIosPathLogDataForUrl:(NSURL*)url responseData:(NSData*)data;
 @end
 
 @interface TeakResolvedLinkClassificationTests : XCTestCase
@@ -99,6 +100,33 @@
 
   XCTAssertFalse([data isKindOfClass:[TeakAttributedLaunchData class]]);
   XCTAssertEqualObjects(data.launchUrl.absoluteString, shortLink.absoluteString);
+}
+
+#pragma mark - no_ios_path log payload
+
+/// UTF-16 JSON is valid JSON but not valid UTF-8, so the body can't be decoded as a
+/// string. The payload must still build (no nil in the dictionary) and log as NSNull.
+- (void)testNoIosPathLogPayloadSurvivesNonUtf8Body {
+  NSURL* url = [NSURL URLWithString:@"https://test.jckpt.com/x"];
+  NSData* body = [@"{\"foo\":\"bar\"}" dataUsingEncoding:NSUTF16StringEncoding];
+
+  NSDictionary* payload = nil;
+  XCTAssertNoThrow(payload = [TeakLaunchDataOperation noIosPathLogDataForUrl:url responseData:body]);
+
+  XCTAssertEqualObjects(payload[@"url"], url.absoluteString);
+  XCTAssertEqualObjects(payload[@"response"], [NSNull null]);
+}
+
+/// A UTF-8 body is logged verbatim.
+- (void)testNoIosPathLogPayloadKeepsUtf8Body {
+  NSURL* url = [NSURL URLWithString:@"https://test.jckpt.com/x"];
+  NSString* json = @"{\"foo\":\"bar\"}";
+  NSData* body = [json dataUsingEncoding:NSUTF8StringEncoding];
+
+  NSDictionary* payload = [TeakLaunchDataOperation noIosPathLogDataForUrl:url responseData:body];
+
+  XCTAssertEqualObjects(payload[@"url"], url.absoluteString);
+  XCTAssertEqualObjects(payload[@"response"], json);
 }
 
 @end
