@@ -69,3 +69,10 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 #pragma clang diagnostic pop
 
 @end
+
+@interface TeakSceneHooks (Discovery)
++ (void)installForAppDelegateClass:(nullable Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity;
+@end
+
+void TeakLifecycleDidBecomeActive(UIApplication* _Nullable application);
+void TeakLifecycleWillResignActive(UIApplication* _Nullable application);

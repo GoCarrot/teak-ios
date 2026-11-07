@@ -4,13 +4,7 @@
 #import <Teak/Teak.h>
 #import "Teak+Internal.h"
 
-// Scene delegate hooks.
-//
-// Each hooked class gets its own hook IMP that captures that class's original implementation, so
-// several hooked classes (UIKit + SwiftUI, a subclass and its superclass) or the same class hooked
-// twice never mix up which original to call. A subclass that only inherits a hooked method isn't
-// hooked again. When an override calls super into another hooked class, Teak only handles the call
-// at the outermost hook.
+// Scene delegate hooks. Each hooked class gets its own hook IMP capturing that class's original.
 //
 // scene:openURLContexts: is added when the delegate lacks it: in scene apps, UIKit does not fall back
 // to the app delegate's application:openURL:options: (measured on iOS 18.6). Whether UIKit falls back
@@ -23,31 +17,21 @@
 // SwiftUI.AppSceneDelegate keeps getting every context, so SwiftUI apps still see onOpenURL for
 // Teak links.
 
-extern void TeakLifecycleDidBecomeActive(UIApplication* application);
-extern void TeakLifecycleWillResignActive(UIApplication* application);
-
-@interface TeakSceneHooks (Discovery)
-+ (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity;
-@end
-
 typedef UISceneConfiguration* (*TeakConfigurationIMP)(id, SEL, UIApplication*, UISceneSession*, UISceneConnectionOptions*);
 typedef void (*TeakWillConnectIMP)(id, SEL, UIScene*, UISceneSession*, UISceneConnectionOptions*);
 typedef void (*TeakOpenURLContextsIMP)(id, SEL, UIScene*, NSSet<UIOpenURLContext*>*);
 typedef void (*TeakContinueUserActivityIMP)(id, SEL, UIScene*, NSUserActivity*);
-typedef IMP (*TeakHookFactory)(Class klass, SEL sel, IMP original);
+typedef IMP (*TeakHookFactory)(SEL sel, IMP original, BOOL option);
 
 @implementation TeakSceneHooks
 
 static NSObject* sHookLock = nil;
-static NSMutableSet<NSString*>* sHookedClassSelectors = nil; // "<class pointer>|<selector>"
 static NSMutableSet<NSValue*>* sTeakHookIMPs = nil;
-static BOOL sAddContinueUserActivity = YES;
 
 static void TeakSceneHooksInitRegistry(void) {
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
     sHookLock = [[NSObject alloc] init];
-    sHookedClassSelectors = [[NSMutableSet alloc] init];
     sTeakHookIMPs = [[NSMutableSet alloc] init];
   });
 }
@@ -95,22 +79,23 @@ static void TeakSceneHandleConnectionOptions(UISceneConnectionOptions* connectio
 
 #pragma mark - Hook factories
 
-static void TeakSceneHookClass(Class klass, NSString* source);
+static void TeakSceneHookClass(Class klass, NSString* source, BOOL addContinueUserActivity);
 
+// option: add scene:continueUserActivity: to delegates that lack it.
 API_AVAILABLE(ios(13.0))
-static IMP TeakConfigurationHook(Class klass, SEL sel, IMP original) {
+static IMP TeakConfigurationHook(SEL sel, IMP original, BOOL addContinueUserActivity) {
   TeakConfigurationIMP host = (TeakConfigurationIMP)original;
   return imp_implementationWithBlock(^UISceneConfiguration*(id self, UIApplication* application, UISceneSession* session, UISceneConnectionOptions* options) {
     UISceneConfiguration* configuration = host(self, sel, application, session, options);
     if (configuration.delegateClass != nil) {
-      TeakSceneHookClass(configuration.delegateClass, @"configuration");
+      TeakSceneHookClass(configuration.delegateClass, @"configuration", addContinueUserActivity);
     }
     return configuration;
   });
 }
 
 API_AVAILABLE(ios(13.0))
-static IMP TeakWillConnectHook(Class klass, SEL sel, IMP original) {
+static IMP TeakWillConnectHook(SEL sel, IMP original, BOOL unused) {
   TeakWillConnectIMP host = (TeakWillConnectIMP)original;
   return imp_implementationWithBlock(^(id self, UIScene* scene, UISceneSession* session, UISceneConnectionOptions* connectionOptions) {
     BOOL outermost = TeakSceneHookEnter(sel);
@@ -124,11 +109,10 @@ static IMP TeakWillConnectHook(Class klass, SEL sel, IMP original) {
   });
 }
 
+// option: forward contexts Teak handled to the host too.
 API_AVAILABLE(ios(13.0))
-static IMP TeakOpenURLContextsHook(Class klass, SEL sel, IMP original) {
+static IMP TeakOpenURLContextsHook(SEL sel, IMP original, BOOL forwardTeakHandled) {
   TeakOpenURLContextsIMP host = (TeakOpenURLContextsIMP)original;
-  Class swiftUISceneDelegate = objc_getClass("SwiftUI.AppSceneDelegate");
-  BOOL forwardTeakHandled = swiftUISceneDelegate != nil && [klass isSubclassOfClass:swiftUISceneDelegate];
   return imp_implementationWithBlock(^(id self, UIScene* scene, NSSet<UIOpenURLContext*>* URLContexts) {
     BOOL outermost = TeakSceneHookEnter(sel);
     NSSet<UIOpenURLContext*>* forHost = URLContexts;
@@ -151,7 +135,7 @@ static IMP TeakOpenURLContextsHook(Class klass, SEL sel, IMP original) {
 }
 
 API_AVAILABLE(ios(13.0))
-static IMP TeakContinueUserActivityHook(Class klass, SEL sel, IMP original) {
+static IMP TeakContinueUserActivityHook(SEL sel, IMP original, BOOL unused) {
   TeakContinueUserActivityIMP host = (TeakContinueUserActivityIMP)original;
   return imp_implementationWithBlock(^(id self, UIScene* scene, NSUserActivity* userActivity) {
     BOOL outermost = TeakSceneHookEnter(sel);
@@ -168,17 +152,14 @@ static IMP TeakContinueUserActivityHook(Class klass, SEL sel, IMP original) {
 #pragma mark - Installing hooks
 
 // Returns YES if the method was hooked.
-static BOOL TeakSceneHookSelector(Class klass, SEL sel, Protocol* protocol, BOOL addWhenAbsent, TeakHookFactory factory) {
+static BOOL TeakSceneHookSelector(Class klass, SEL sel, Protocol* protocol, BOOL addWhenAbsent, TeakHookFactory factory, BOOL option) {
   TeakSceneHooksInitRegistry();
   @synchronized(sHookLock) {
-    NSString* key = [NSString stringWithFormat:@"%p|%@", (__bridge void*)klass, NSStringFromSelector(sel)];
-    if ([sHookedClassSelectors containsObject:key]) return NO;
-
     // Includes inherited implementations; an inherited one is the original this class forwards to.
     Method existing = class_getInstanceMethod(klass, sel);
     IMP original = existing ? method_getImplementation(existing) : NULL;
 
-    // A hooked superclass's method, inherited as-is.
+    // Already hooked here, or a hooked superclass's method inherited as-is.
     if (original != NULL && [sTeakHookIMPs containsObject:[NSValue valueWithPointer:(const void*)original]]) return NO;
     if (original == NULL && !addWhenAbsent) return NO;
 
@@ -186,22 +167,23 @@ static BOOL TeakSceneHookSelector(Class klass, SEL sel, Protocol* protocol, BOOL
     const char* types = existing ? method_getTypeEncoding(existing) : description.types;
     if (types == NULL) return NO;
 
-    IMP hook = factory(klass, sel, original);
+    IMP hook = factory(sel, original, option);
     [sTeakHookIMPs addObject:[NSValue valueWithPointer:(const void*)hook]];
-    [sHookedClassSelectors addObject:key];
     class_replaceMethod(klass, sel, hook, types);
     return YES;
   }
 }
 
-static void TeakSceneHookClass(Class klass, NSString* source) {
+static void TeakSceneHookClass(Class klass, NSString* source, BOOL addContinueUserActivity) {
   if (klass == nil) return;
   if (@available(iOS 13, *)) {
     Protocol* sceneDelegate = objc_getProtocol("UISceneDelegate");
+    Class swiftUISceneDelegate = objc_getClass("SwiftUI.AppSceneDelegate");
+    BOOL forwardTeakHandled = swiftUISceneDelegate != nil && [klass isSubclassOfClass:swiftUISceneDelegate];
     BOOL hooked = NO;
-    hooked |= TeakSceneHookSelector(klass, @selector(scene:willConnectToSession:options:), sceneDelegate, YES, TeakWillConnectHook);
-    hooked |= TeakSceneHookSelector(klass, @selector(scene:openURLContexts:), sceneDelegate, YES, TeakOpenURLContextsHook);
-    hooked |= TeakSceneHookSelector(klass, @selector(scene:continueUserActivity:), sceneDelegate, sAddContinueUserActivity, TeakContinueUserActivityHook);
+    hooked |= TeakSceneHookSelector(klass, @selector(scene:willConnectToSession:options:), sceneDelegate, YES, TeakWillConnectHook, NO);
+    hooked |= TeakSceneHookSelector(klass, @selector(scene:openURLContexts:), sceneDelegate, YES, TeakOpenURLContextsHook, forwardTeakHandled);
+    hooked |= TeakSceneHookSelector(klass, @selector(scene:continueUserActivity:), sceneDelegate, addContinueUserActivity, TeakContinueUserActivityHook, NO);
     if (hooked) {
       TeakLog_i(@"sdk.init", @{@"scene_hooks" : NSStringFromClass(klass), @"source" : source});
     }
@@ -209,11 +191,11 @@ static void TeakSceneHookClass(Class klass, NSString* source) {
 }
 
 + (void)swizzleInto:(Class)klass {
-  TeakSceneHookClass(klass, @"swizzleInto");
+  TeakSceneHookClass(klass, @"swizzleInto", NO);
 }
 
 + (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity {
-  sAddContinueUserActivity = !hostHandlesUserActivity;
+  BOOL addContinueUserActivity = !hostHandlesUserActivity;
 
   // Scene delegate classes named in the Info.plist manifest, for every session role.
   NSDictionary* manifest = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UIApplicationSceneManifest"];
@@ -231,18 +213,18 @@ static void TeakSceneHookClass(Class klass, NSString* source) {
           TeakLog_e(@"sdk.init", @{@"scene_hooks" : className, @"error" : @"class not found"});
           continue;
         }
-        TeakSceneHookClass(klass, @"manifest");
+        TeakSceneHookClass(klass, @"manifest", addContinueUserActivity);
       }
     }
   }
 
   // SwiftUI's App lifecycle scene delegate.
-  TeakSceneHookClass(objc_getClass("SwiftUI.AppSceneDelegate"), @"swiftui");
+  TeakSceneHookClass(objc_getClass("SwiftUI.AppSceneDelegate"), @"swiftui", addContinueUserActivity);
 
-  // Scene delegate classes chosen at runtime by the app delegate. Only wrapped when the app delegate
-  // implements it; adding it would change how UIKit resolves scene configurations.
+  // Scene delegate classes chosen at runtime by the app delegate. Adding this method when it's absent
+  // would change how UIKit resolves scene configurations.
   if (appDelegateClass != nil) {
-    TeakSceneHookSelector(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), objc_getProtocol("UIApplicationDelegate"), NO, TeakConfigurationHook);
+    TeakSceneHookSelector(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), objc_getProtocol("UIApplicationDelegate"), NO, TeakConfigurationHook, addContinueUserActivity);
   }
 
   // Anything else: hook the delegate of each scene as it connects. UIKit posts this after the
@@ -255,13 +237,13 @@ static void TeakSceneHookClass(Class klass, NSString* source) {
                                                   usingBlock:^(NSNotification* notification) {
                                                     UIScene* scene = notification.object;
                                                     if (![scene isKindOfClass:[UIScene class]] || scene.delegate == nil) return;
-                                                    TeakSceneHookClass([scene.delegate class], @"will_connect");
+                                                    TeakSceneHookClass([scene.delegate class], @"will_connect", addContinueUserActivity);
                                                   }];
   });
 }
 
 #pragma mark - Public methods
-// Not installed on scene delegates; kept for callers of the public header.
+// For scene delegates that forward to Teak by hand.
 
 - (void)scene:(UIScene*)scene willConnectToSession:(UISceneSession*)session options:(UISceneConnectionOptions*)connectionOptions {
   TeakSceneHandleConnectionOptions(connectionOptions);
