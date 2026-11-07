@@ -55,6 +55,7 @@
 		C76E96065742D17D4D889766 /* TeakSceneHooksTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 7905ACBCC98FD0D555F8AF3D /* TeakSceneHooksTests.m */; };
 		CF22EC2983C75A4444F429C6 /* TeakRequestSocketErrorTests.m in Sources */ = {isa = PBXBuildFile; fileRef = DC251E1F09B0739648086440 /* TeakRequestSocketErrorTests.m */; };
 		DDD903E4475B291CE2D4DD1E /* TeakResolvedLinkClassificationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B90C7BE82E8BE2920587249 /* TeakResolvedLinkClassificationTests.m */; };
+		DFA9DEAE31761F4EAF6CFF81 /* TeakOpenURLTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BD43D30D0B972DD7B8B0BBD /* TeakOpenURLTests.m */; };
 		F05085BD353FDBF2763B09C7 /* LiveActivityTokenForwardingTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AB391C763C6BB4A6052F1D21 /* LiveActivityTokenForwardingTests.m */; };
 		F10455A046CB359057A63D58 /* TeakOperationTestDriver.m in Sources */ = {isa = PBXBuildFile; fileRef = 49655D0CF74258D769DEA6F9 /* TeakOperationTestDriver.m */; };
 		F2AD9D4D58D654A460D3A443 /* TeakRewardTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6783B8283D7F4FD5B97A7B99 /* TeakRewardTests.m */; };
@@ -111,6 +112,7 @@
 		0D7BD679E00A2C57BE7AA5E3 /* Pods-AutomatedUITests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedUITests.release.xcconfig"; path = "Target Support Files/Pods-AutomatedUITests/Pods-AutomatedUITests.release.xcconfig"; sourceTree = "<group>"; };
 		12B44A19FD44C70C575E9A8B /* TeakDeviceConfigurationTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakDeviceConfigurationTests.m; sourceTree = "<group>"; };
 		2286E8051950D4EC6E1C79EF /* TeakSessionDeferredCallbackTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakSessionDeferredCallbackTests.m; sourceTree = "<group>"; };
+		2BD43D30D0B972DD7B8B0BBD /* TeakOpenURLTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakOpenURLTests.m; sourceTree = "<group>"; };
 		2CC8154D37CB560E22904A43 /* Pods-AutomatedTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AutomatedTests.debug.xcconfig"; path = "Target Support Files/Pods-AutomatedTests/Pods-AutomatedTests.debug.xcconfig"; sourceTree = "<group>"; };
 		2F0B163A675BB4810C732B49 /* RaceTripwireTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = RaceTripwireTests.m; sourceTree = "<group>"; };
 		3FFF5A9E3FBB614BDDAF98EC /* Pods-Automated.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Automated.release.xcconfig"; path = "Target Support Files/Pods-Automated/Pods-Automated.release.xcconfig"; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 				6783B8283D7F4FD5B97A7B99 /* TeakRewardTests.m */,
 				71FBE616F0BBB83E3D45ABC1 /* TeakBatchedRequestRaceTests.m */,
 				7905ACBCC98FD0D555F8AF3D /* TeakSceneHooksTests.m */,
+				2BD43D30D0B972DD7B8B0BBD /* TeakOpenURLTests.m */,
 			);
 			path = AutomatedTests;
 			sourceTree = "<group>";
@@ -643,6 +646,7 @@
 				F2AD9D4D58D654A460D3A443 /* TeakRewardTests.m in Sources */,
 				B5349939B6EA4ADBB1C2F337 /* TeakBatchedRequestRaceTests.m in Sources */,
 				C76E96065742D17D4D889766 /* TeakSceneHooksTests.m in Sources */,
+				DFA9DEAE31761F4EAF6CFF81 /* TeakOpenURLTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
