@@ -301,6 +301,8 @@ commands:
             grep -rl 'IPHONEOS_DEPLOYMENT_TARGET = ' --include=project.pbxproj . | grep -v vendor/ | while read f; do
               sed -i '' -E 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' "$f"; echo "overrode $f"
             done
+            # Test host predates UIScene; iOS 27 SDK apps without a scene manifest trap at launch.
+            plutil -insert UIApplicationSceneManifest -json '{"UIApplicationSupportsMultipleScenes":false,"UISceneConfigurations":{"UIWindowSceneSessionRoleApplication":[{"UISceneConfigurationName":"Default","UISceneStoryboardFile":"Main"}]}}' Automated/Automated/Info.plist
             git --no-pager diff --stat
   #
   # Trigger a playbook build
