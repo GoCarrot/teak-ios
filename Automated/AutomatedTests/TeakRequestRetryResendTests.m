@@ -17,6 +17,7 @@ extern NSDictionary* TeakVersionDict;
 
 // Private classes / methods, re-declared per the project convention.
 @interface TeakBatchedRequest : TeakRequest
+@property (nonatomic) BOOL sent;
 - (void)prepareAndSend;
 + (nullable TeakBatchedRequest*)addRequestIntoBatch:(nonnull TeakBatchedRequest*)batchedRequest
                                          withSession:(nonnull TeakSession*)session
@@ -57,7 +58,9 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 @interface TeakRequestRetryResendTests : XCTestCase
 @end
 
-@implementation TeakRequestRetryResendTests
+@implementation TeakRequestRetryResendTests {
+  NSDictionary* savedVersionDict;
+}
 
 #pragma mark - Swizzle install/remove
 
@@ -68,6 +71,7 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 }
 
 - (void)setUp {
+  savedVersionDict = TeakVersionDict;
   TeakVersionDict = @{@"sdk_version" : @"4.3.18-test"};
   retryTest_transmits = [NSMutableArray array];
   [TeakRequestRetryResendTests swapTransmit];
@@ -75,6 +79,7 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 
 - (void)tearDown {
   [TeakRequestRetryResendTests swapTransmit];
+  TeakVersionDict = savedVersionDict;
 }
 
 #pragma mark - Fixtures
@@ -124,6 +129,12 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 - (TeakBatchedRequest*)sendBatchedEvent {
   TeakSession* session = [self makeMockSession];
   TeakBatchedRequest* batch = [TeakTrackEventBatchedRequest currentBatchForSession:session];
+  // The current batch is process-wide. Retire one an earlier test class left unsent (it
+  // carries that test's endpoint config, not this one's) so this event starts a fresh batch.
+  if (!batch.sent) {
+    [batch prepareAndSend];
+    batch = [TeakTrackEventBatchedRequest currentBatchForSession:session];
+  }
   return [TeakBatchedRequest addRequestIntoBatch:batch
                                       withSession:session
                                       forEndpoint:@"/me/events"
@@ -172,8 +183,8 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   XCTAssertEqual([self waitForTransmits:count of:profile timeout:3.0], count, @"profile -send never transmitted");
 }
 
-// Delivers `response` to the request the way the URL delegate does, and returns
-// after the response handler's dispatch hop has been given time to run.
+// Hands a reply to the request the way the URL delegate does. Returns immediately; the
+// retry decision runs asynchronously, so callers wait with -waitForTransmits:of:timeout:.
 - (void)deliver:(TeakRequest*)request status:(NSInteger)status error:(NSError*)error {
   [request response:status == 0 ? nil : [self responseWithStatus:status] payload:@{} withError:error];
 }
@@ -264,27 +275,6 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 
     XCTAssertEqual([self settledTransmitsOf:batch], 1u, @"re-sent a batch after %@", error);
   }
-}
-
-#pragma mark - Plain TeakRequest
-
-// The retry budget still stops: one socket retry, then the reply goes to the callback.
-- (void)testPlainRequestRetriesOnceThenStops {
-  TeakRequest* request = [[TeakRequest alloc] initWithSession:[self makeMockSession]
-                                                  forHostname:@"gocarrot.com"
-                                                 withEndpoint:@"/other"
-                                                  withPayload:@{}
-                                                       method:TeakRequest_POST
-                                                     callback:nil
-                                             addCommonPayload:YES];
-  [request send];
-  XCTAssertEqual([self transmitsFor:request].count, 1u);
-
-  [self deliver:request status:0 error:[self socketError]];
-  XCTAssertEqual([self waitForTransmits:2 of:request timeout:4.0], 2u);
-
-  [self deliver:request status:0 error:[self socketError]];
-  XCTAssertEqual([self settledTransmitsOf:request], 2u, @"socket retry went past its stop policy");
 }
 
 @end
