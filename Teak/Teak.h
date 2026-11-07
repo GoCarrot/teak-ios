@@ -424,7 +424,9 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
 /**
  * Open Settings.app to the settings for this application.
  *
- * @return                YES if Settings.app was opened.
+ * The open is asynchronous. Whether Settings.app opened is logged.
+ *
+ * @return                YES if the request to open Settings.app was sent.
  */
 - (BOOL)openSettingsAppToThisAppsSettings;
 
