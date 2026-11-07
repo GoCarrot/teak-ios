@@ -74,6 +74,17 @@ jobs:
             - TeakFramework/TeakResources.bundle.zip
             - TeakFramework/TeakResources.bundle.zip.sha512
             - TeakFramework/Info.plist
+  changelog_check:
+    docker:
+      - image: cimg/node:lts
+    steps:
+      - checkout
+      - run:
+          name: Check changelog fragments
+          command: |
+            yarn install --frozen-lockfile
+            yarn changelog check
+
   tag_build:
     docker:
       - image: cimg/base:current
@@ -229,10 +240,15 @@ workflows:
           filters:
             tags:
               ignore: /.*/
+      - changelog_check:
+          filters:
+            tags:
+              ignore: /.*/
       - tag_build:
           requires:
             - test
             - build
+            - changelog_check
           filters:
             tags:
               ignore: /.*/
