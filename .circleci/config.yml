@@ -266,6 +266,13 @@ commands:
       - restore_cache:
           key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
+          name: Probe ruby (image lacks .ruby-version's 3.2.2)
+          command: |
+            rbenv versions || true
+            v=$(rbenv versions --bare | grep -E '^3\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+            echo "using ruby $v"; echo "$v" > .ruby-version
+            gem install bundler -v 2.4.22 --no-document
+      - run:
           name: Ruby Gems
           command: |
             bundle config set --local path vendor/bundle
