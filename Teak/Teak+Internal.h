@@ -70,6 +70,13 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 
 @end
 
+@interface TeakSceneHooks (Discovery)
++ (void)installForAppDelegateClass:(nullable Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity;
+@end
+
+void TeakLifecycleDidBecomeActive(UIApplication* _Nullable application);
+void TeakLifecycleWillResignActive(UIApplication* _Nullable application);
+
 // Opens url with -[UIApplication openURL:options:completionHandler:] and logs the result as logEvent.
 // Hops to the main thread if called from elsewhere. Returns immediately; the open is asynchronous.
 void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnull url, NSString* _Nonnull logEvent);
