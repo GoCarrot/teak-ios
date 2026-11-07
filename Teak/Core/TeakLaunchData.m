@@ -161,6 +161,16 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return launchDataOperation;
 }
 
+// Log payload for a response with no iOSPath. A body that isn't valid UTF-8 decodes to
+// nil, and a nil value in a dictionary literal throws, so it is logged as NSNull instead.
++ (NSDictionary*)noIosPathLogDataForUrl:(NSURL*)url responseData:(NSData*)data {
+  NSString* response = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+  return @{
+    @"url" : url.absoluteString,
+    @"response" : TeakValueOrNSNull(response)
+  };
+}
+
 // This will get run as an NSInvocationOperation
 - (TeakLaunchData*)resolveUniversalLink:(NSURL*)url {
   // Resolve the universal link, wait for the NSURLSession to complete (or timeout)
@@ -239,10 +249,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
                      // in launchDataFromResolvedUrl:shortLink:. The count gate skips an
                      // empty body, mirroring Android's teakData.length() > 0. (A malformed
                      // body parses to error != nil and is handled in the else below.)
-                     TeakLog_e(@"deep_link.no_ios_path", @{
-                       @"url" : url.absoluteString,
-                       @"response" : [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
-                     });
+                     TeakLog_e(@"deep_link.no_ios_path", [TeakLaunchDataOperation noIosPathLogDataForUrl:url responseData:data]);
                    }
                  } else {
                    TeakLog_e(@"deep_link.json.error", @{
