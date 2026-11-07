@@ -102,7 +102,7 @@ jobs:
           versioned: false
 
   # Dry run of deploy_versioned: same upload and framework steps, but the S3 prefix is a literal
-  # ios/dev/ (expired by a lifecycle rule) and nothing is pushed to the framework repo's main
+  # ios/dev/ (meant to be expired by a bucket lifecycle rule) and nothing is pushed to the framework repo's main
   # or tags.
   deploy_dev:
     docker:
@@ -404,6 +404,7 @@ commands:
               git push --tags
             else
               git push --dry-run origin main
+              echo "dry run: nothing pushed"
             fi
   # Runs the Ruby named in .ruby-version. The image's rbenv doesn't have it, so it is built
   # once per image and cached; the job fails unless that is the Ruby actually running.
