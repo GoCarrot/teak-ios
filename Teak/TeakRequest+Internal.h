@@ -15,14 +15,15 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (strong, nonatomic, readwrite) TeakBatchConfiguration* _Nonnull batch;
 @property (strong, nonatomic, readwrite) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readwrite) BOOL blackhole;
-// Atomic: reset by -send on the sender's queue, read/bumped by the response handler.
+// Atomic only to prevent torn reads: -send resets it on the sender's queue while the response handler reads it.
 @property (atomic) NSUInteger socketErrorRetryCount;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
 // Puts the request on the wire without going through a subclass's -send gate.
-// -send is "start a logical send" (resets retry state, then transmits); -transmit
-// is the transmit alone.
+// -send starts a logical send (resets retry state, then transmits). Retries
+// use -transmit so the gates subclasses put in -send -- the profile's pending-update
+// check, a batch's no-op -- can't swallow a retry of an already-built request.
 - (void)transmit;
 
 // How a retry re-enters -transmit. Called on the main queue. Subclasses that

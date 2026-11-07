@@ -318,11 +318,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   [self transmit];
 }
 
-// Puts the request on the wire. Retries come through here (via -retryTransmit)
-// rather than -send, because subclasses override -send to decide *when* a
-// logical send starts (TeakUserProfile gates on a pending update, a batch is
-// a no-op until it is flushed) and those gates must not swallow a retry of a
-// request that has already been built.
 - (void)transmit {
   if (self.blackhole) return;
 

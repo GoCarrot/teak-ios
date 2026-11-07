@@ -64,9 +64,7 @@
   });
 }
 
-// -send starts a new logical send, so it only does anything when an attribute change is
-// pending. Retries don't come through here (see -retryTransmit): the first attempt has
-// already consumed scheduledBlock, so this guard would drop every retry.
+// Starts a send only when an attribute change is pending. Retries go through -retryTransmit.
 - (void)send {
   // Hop onto the serial operationQueue that setAttribute:forKey:inDictionary: mutates the
   // attribute dictionaries on, so these reads are never concurrent with those writes.
