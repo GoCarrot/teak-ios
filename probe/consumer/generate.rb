@@ -43,8 +43,8 @@ Xcodeproj::Plist.write_to_path(app_plist, 'App-Info.plist')
 Xcodeproj::Plist.write_to_path(nse_plist, 'NSE-Info.plist')
 
 project = Xcodeproj::Project.new('Consumer.xcodeproj')
-app = project.new_target(:application, 'Consumer', :ios, '13.0')
-nse = project.new_target(:app_extension, 'ConsumerNSE', :ios, '13.0')
+app = project.new_target(:application, 'Consumer', :ios, '15.0')
+nse = project.new_target(:app_extension, 'ConsumerNSE', :ios, '15.0')
 
 common = {
   'CODE_SIGNING_ALLOWED' => 'NO', 'CODE_SIGN_IDENTITY' => '', 'CLANG_ENABLE_OBJC_ARC' => 'YES',

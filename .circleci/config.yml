@@ -56,9 +56,6 @@ jobs:
     steps:
       - ios_setup
       - run:
-          name: Ensure IPHONEOS_DEPLOYMENT_TARGET is 9.0
-          command: ./deployment_target_check.rb
-      - run:
           name: Toolchain
           command: xcodebuild -version && xcodebuild -showsdks
       - run:
@@ -287,6 +284,13 @@ commands:
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
+      - run:
+          name: Probe-only deployment target override (Xcode 27 floor is 15.0)
+          command: |
+            grep -rl 'IPHONEOS_DEPLOYMENT_TARGET = ' --include=project.pbxproj . | grep -v vendor/ | while read f; do
+              sed -i '' -E 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' "$f"; echo "overrode $f"
+            done
+            git diff --stat
   #
   # Trigger a playbook build
   #
