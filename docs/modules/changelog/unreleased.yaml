@@ -1,2 +1,4 @@
+enhancement:
+  - "The SDK is now built with Xcode 16.4. The minimum supported iOS version is unchanged."
 bug:
   - "Fixed a crash when resolving a Teak link whose response was not UTF-8 encoded and had no iOS path."
