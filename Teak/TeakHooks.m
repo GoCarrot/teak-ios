@@ -65,6 +65,28 @@ IMP __App_setNotificationCategories = NULL;
 
 extern Teak* _teakSharedInstance;
 
+@interface TeakSceneHooks (Discovery)
++ (void)installForAppDelegateClass:(Class)appDelegateClass;
+@end
+
+// Scene-based apps never get applicationDidBecomeActive:/applicationWillResignActive: on the app
+// delegate, but UIKit posts the UIApplication notifications in both app styles. Both routes funnel
+// through here; in app-delegate apps the delegate method arrives first and the notification is skipped.
+// Main thread only.
+static BOOL sTeakLifecycleActive = NO;
+
+static void TeakLifecycleDidBecomeActive(UIApplication* application) {
+  if (sTeakLifecycleActive) return;
+  sTeakLifecycleActive = YES;
+  [[Teak sharedInstance] applicationDidBecomeActive:application];
+}
+
+static void TeakLifecycleWillResignActive(UIApplication* application) {
+  if (!sTeakLifecycleActive) return;
+  sTeakLifecycleActive = NO;
+  [[Teak sharedInstance] applicationWillResignActive:application];
+}
+
 @interface TeakUNUserNotificationCenterDelegateProxy : NSObject
 
 @property(strong, nonatomic) id currentUserNotificationCenterDelegate;
@@ -219,14 +241,24 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     sHostAppOpenURLOptionsIMP = (BOOL(*)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*))class_replaceMethod(appDelegateClass, desc.name, method_getImplementation(m), desc.types);
   }
 
-  if(@available(iOS 13, *))
-  {
-    Class swiftUIDelegate = objc_getClass("SwiftUI.AppSceneDelegate");
-    if(swiftUIDelegate) {
-      TeakLog_i(@"sdk.init", @"Found SwiftUI.AppSceneDelegate, installing hooks");
-      [TeakSceneHooks swizzleInto:swiftUIDelegate];
-    }
+  // Scene delegates: links and launch URLs
+  if (@available(iOS 13, *)) {
+    [TeakSceneHooks installForAppDelegateClass:appDelegateClass];
   }
+
+  // Lifecycle for scene-based apps
+  [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification
+                                                    object:nil
+                                                     queue:nil
+                                                usingBlock:^(NSNotification* notification) {
+                                                  TeakLifecycleDidBecomeActive(notification.object);
+                                                }];
+  [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationWillResignActiveNotification
+                                                    object:nil
+                                                     queue:nil
+                                                usingBlock:^(NSNotification* notification) {
+                                                  TeakLifecycleWillResignActive(notification.object);
+                                                }];
 
   // applicationDidBecomeActive:
   {
@@ -346,7 +378,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
 }
 
 - (void)applicationDidBecomeActive:(UIApplication*)application {
-  [[Teak sharedInstance] applicationDidBecomeActive:application];
+  TeakLifecycleDidBecomeActive(application);
   if (sHostWEFIMP) {
     sHostWEFIMP(self, @selector(applicationDidBecomeActive:), application);
   }
@@ -380,7 +412,7 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
   if (sHostWREIMP) {
     sHostWREIMP(self, @selector(applicationWillResignActive:), application);
   }
-  [[Teak sharedInstance] applicationWillResignActive:application];
+  TeakLifecycleWillResignActive(application);
 }
 
 - (void)application:(UIApplication*)application didReceiveRemoteNotification:(NSDictionary*)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))handler {
