@@ -102,6 +102,48 @@
   XCTAssertEqualObjects(data.launchUrl.absoluteString, shortLink.absoluteString);
 }
 
+#pragma mark - updateDeepLink:withLaunchLink: (server-enriched deep link on an unattributed launch)
+
+/// An unattributed launch whose users.json reply carries a reward deep link is
+/// re-classified from that link; the launch link sent in the request must survive as
+/// launchUrl.
+- (void)testUpdateDeepLinkRewardKeepsLaunchLink {
+  TeakLaunchDataOperation* op = [self finishedUnattributedOperation];
+  NSURL* launchLink = [NSURL URLWithString:@"https://test.jckpt.com/x"];
+  NSURL* enriched = [NSURL URLWithString:@"teaktest-app://chest?teak_rewardlink_id=abc&teak_reward_id=99"];
+
+  TeakLaunchData* data = [op updateDeepLink:enriched withLaunchLink:launchLink].result;
+
+  XCTAssertTrue([data isKindOfClass:[TeakRewardlinkLaunchData class]]);
+  TeakAttributedLaunchData* attributed = (TeakAttributedLaunchData*)data;
+  XCTAssertEqualObjects(attributed.launchUrl.absoluteString, launchLink.absoluteString);
+  XCTAssertEqualObjects(attributed.deepLink.absoluteString, enriched.absoluteString);
+  XCTAssertEqualObjects(attributed.rewardId, @"99");
+  XCTAssertEqualObjects(attributed.creativeId, @"abc");
+  XCTAssertEqualObjects(data.sessionAttribution[@"launch_link"], launchLink.absoluteString);
+}
+
+/// Notification links don't carry a launch link through re-classification, matching
+/// teak-android.
+- (void)testUpdateDeepLinkNotifDoesNotKeepLaunchLink {
+  TeakLaunchDataOperation* op = [self finishedUnattributedOperation];
+  NSURL* launchLink = [NSURL URLWithString:@"https://test.jckpt.com/x"];
+  NSURL* enriched = [NSURL URLWithString:@"teaktest-app://open?teak_notif_id=555"];
+
+  TeakLaunchData* data = [op updateDeepLink:enriched withLaunchLink:launchLink].result;
+
+  XCTAssertTrue([data isKindOfClass:[TeakNotificationLaunchData class]]);
+  XCTAssertNil(data.launchUrl);
+}
+
+- (TeakLaunchDataOperation*)finishedUnattributedOperation {
+  TeakLaunchDataOperation* op = [TeakLaunchDataOperation unattributed];
+  NSOperationQueue* queue = [[NSOperationQueue alloc] init];
+  [queue addOperation:op];
+  [queue waitUntilAllOperationsAreFinished];
+  return op;
+}
+
 #pragma mark - no_ios_path log payload
 
 /// UTF-16 JSON is valid JSON but not valid UTF-8, so the body can't be decoded as a
