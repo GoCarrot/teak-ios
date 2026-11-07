@@ -73,7 +73,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(url);
   if (query[@"teak_rewardlink_id"]) {
     // If it has a 'teak_rewardlink_id' then it's a reward link
-    return [[TeakRewardlinkLaunchData alloc] initWithUrl:url andShortLink:nil];
+    return [[TeakRewardlinkLaunchData alloc] initWithUrl:url andShortLink:shortLink];
   } else if (query[@"teak_notif_id"]) {
     // If it has a 'teak_notif_id' then it's a notification
     return [[TeakNotificationLaunchData alloc] initWithUrl:url];
@@ -86,9 +86,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 // Classify a resolved universal link. When the server omits iOSPath, resolvedUrl is
 // nil and we fall back to the original launch link so reward/notification attribution
 // carried on the link itself isn't lost — mirroring teak-android's launchDataFromUriPair,
-// which classifies the original launch link when AndroidPath is absent. Distinct from
-// launchDataFromUrl:withShortlink: above: that one drops the short link (launchUrl=nil)
-// for reward links, whereas here the short link is retained as launchUrl.
+// which classifies the original launch link when AndroidPath is absent.
 + (TeakLaunchData*)launchDataFromResolvedUrl:(NSURL*)resolvedUrl shortLink:(NSURL*)shortLink {
   NSURL* attributionUrl = NewIfNotOld(resolvedUrl, shortLink);
   NSDictionary* query = TeakGetQueryParameterDictionaryFromUrl(attributionUrl);
