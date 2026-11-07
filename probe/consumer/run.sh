@@ -28,7 +28,8 @@ APP="$PROJ/dd-sim/Build/Products/Debug-iphonesimulator/Consumer.app"
 echo "== app binary build version" | tee "$LOG/vtool.txt"
 vtool -show-build "$APP/Consumer" | tee -a "$LOG/vtool.txt"
 
-RUNTIME=$(xcrun simctl list runtimes -j | ruby -rjson -e 'r=JSON.parse(STDIN.read)["runtimes"].select{|x| x["platform"]=="iOS" && x["isAvailable"]}.max_by{|x| Gem::Version.new(x["version"])}; puts r["identifier"]')
+# Skip device-specific runtime variants (identifier suffix like -iPhone19-4); they reject generic device types.
+RUNTIME=$(xcrun simctl list runtimes -j | PROBE_RUNTIME_MAJOR="${PROBE_RUNTIME_MAJOR:-}" ruby -rjson -e 'm=ENV["PROBE_RUNTIME_MAJOR"].to_s; r=JSON.parse(STDIN.read)["runtimes"].select{|x| x["platform"]=="iOS" && x["isAvailable"] && x["identifier"]=~/SimRuntime\.iOS-[\d-]+$/ && (m.empty? || x["version"].start_with?(m+"."))}.max_by{|x| Gem::Version.new(x["version"])}; puts r["identifier"]')
 DEVTYPE=$(xcrun simctl list devicetypes -j | ruby -rjson -e 'd=JSON.parse(STDIN.read)["devicetypes"].select{|x| x["name"]=~/^iPhone \d+$/}.max_by{|x| x["name"][/\d+/].to_i}; puts d["identifier"]')
 echo "runtime: $RUNTIME devicetype: $DEVTYPE" | tee -a "$LOG/toolchain.txt"
 UDID=$(xcrun simctl create "probe-$MODE" "$DEVTYPE" "$RUNTIME")
@@ -60,7 +61,9 @@ echo "== probe markers"
 grep -h 'PROBE' "$LOG/console.txt" "$LOG/device-log.txt" | sed 's/^.*PROBE/PROBE/' | sort | uniq -c
 echo "== teak log lines: $(grep -c 'Teak:' "$LOG/console.txt" "$LOG/device-log.txt" | tr '\n' ' ')"
 grep -ho '"event_type":"[a-z._]*"' "$LOG/console.txt" | sort | uniq -c | tee "$LOG/teak-events.txt"
-ls ~/Library/Logs/DiagnosticReports 2>/dev/null | grep -i consumer && { echo "CRASH REPORTS FOUND"; cp ~/Library/Logs/DiagnosticReports/*onsumer* "$LOG/" ; fail=1; }
+NEW_CRASHES=$(find ~/Library/Logs/DiagnosticReports -iname '*onsumer*' -newer "$OUT/push.json" 2>/dev/null; find ~/Library/Logs/DiagnosticReports -iname '*onsumer*' -newer "$LOG/toolchain.txt" 2>/dev/null)
+NEW_CRASHES=$(echo "$NEW_CRASHES" | sort -u | grep . )
+[ -n "$NEW_CRASHES" ] && { echo "CRASH REPORTS FOUND (this run)"; echo "$NEW_CRASHES" | while read c; do cp "$c" "$LOG/"; done; fail=1; }
 grep -q 'PROBE-NSE: contentHandler fired' "$LOG/device-log.txt" "$LOG/console.txt" && echo "NSE: OK" || echo "NSE: no contentHandler marker (informational: simctl push never invoked the NSE on iOS 18.6 either)"
 grep -q 'PROBE: didFinishLaunching' "$LOG/console.txt" "$LOG/device-log.txt" && echo "launch: OK" || { echo "launch: no marker"; fail=1; }
 grep -q 'notification.registration.success' "$LOG/console.txt" && echo "push registration: OK" || { echo "push registration: no success event"; fail=1; }

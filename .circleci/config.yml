@@ -19,7 +19,10 @@ jobs:
       - ios_setup
       - run:
           name: Run Tests
-          command: bundle exec fastlane test
+          command: |
+            xcrun simctl list devices available | grep -E 'iPhone 17 ' | head -3
+            export SCAN_DEVICE="iPhone 17 (27.2)"
+            bundle exec fastlane test
       - store_test_results:
           path: test_output/automated
   test_race:
@@ -37,7 +40,10 @@ jobs:
       # store_* run `when: always` so the results and artifacts still upload on that red.
       - run:
           name: Run Race Tripwires (ThreadSanitizer)
-          command: bundle exec fastlane test_race
+          command: |
+            xcrun simctl list devices available | grep -E 'iPhone 17 ' | head -3
+            export SCAN_DEVICE="iPhone 17 (27.2)"
+            bundle exec fastlane test_race
       - store_test_results:
           path: test_output/race
           when: always
@@ -125,6 +131,11 @@ jobs:
           name: Consumer (UIScene)
           when: always
           command: probe/consumer/run.sh fw scene probe_out
+          no_output_timeout: 20m
+      - run:
+          name: Consumer (UIScene) on iOS 26 runtime, control
+          when: always
+          command: PROBE_RUNTIME_MAJOR=26 probe/consumer/run.sh fw scene probe_out/ios26
           no_output_timeout: 20m
       - store_artifacts:
           path: probe_out
