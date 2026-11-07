@@ -1,2 +1,4 @@
 enhancement:
   - "The SDK is now built with Xcode 16.4. The minimum supported iOS version is unchanged."
+bug:
+  - "``openSettingsAppToThisAppsSettings`` now opens Settings.app in apps built with the iOS 18 SDK and later. It previously did nothing in those apps."
