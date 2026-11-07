@@ -1,3 +1,3 @@
 enhancement:
   - "The SDK is now built with Xcode 16.4. The minimum supported iOS version is unchanged."
-  - "Network requests, including profile and event batches, are now retried when the OS drops an idle connection or the server returns a 5xx, instead of failing silently."
+  - "Network requests, including profile updates and event batches, are now retried when the OS drops an idle connection. Event batches are also retried on server errors."
