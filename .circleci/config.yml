@@ -10,36 +10,40 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "16.4.0"
+        default: "27.2.0"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup:
-          xcode-version: << parameters.xcode-version >>
+      - ios_setup
       - run:
           name: Run Tests
-          command: bundle exec fastlane test
+          command: |
+            xcrun simctl list devices available | grep -E 'iPhone 17 ' | head -3
+            export SCAN_DEVICE="iPhone 17 (27.2)"
+            bundle exec fastlane test
       - store_test_results:
           path: test_output/automated
   test_race:
     parameters:
       xcode-version:
         type: string
-        default: "16.4.0"
+        default: "27.2.0"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup:
-          xcode-version: << parameters.xcode-version >>
+      - ios_setup
       # A red run means a guarded defect is still open: the lane exits nonzero and fails the job.
       # store_* run `when: always` so the results and artifacts still upload on that red.
       - run:
           name: Run Race Tripwires (ThreadSanitizer)
-          command: bundle exec fastlane test_race
+          command: |
+            xcrun simctl list devices available | grep -E 'iPhone 17 ' | head -3
+            export SCAN_DEVICE="iPhone 17 (27.2)"
+            bundle exec fastlane test_race
       - store_test_results:
           path: test_output/race
           when: always
@@ -50,20 +54,32 @@ jobs:
     parameters:
       xcode-version:
         type: string
-        default: "16.4.0"
+        default: "27.2.0"
     macos:
       xcode: << parameters.xcode-version >>
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
-      - ios_setup:
-          xcode-version: << parameters.xcode-version >>
+      - ios_setup
       - run:
-          name: Ensure IPHONEOS_DEPLOYMENT_TARGET is 9.0
-          command: ./deployment_target_check.rb
+          name: Toolchain
+          command: xcodebuild -version && xcodebuild -showsdks
       - run:
           name: Build Teak SDK
-          command: ./compile_xc_framework
+          command: ./compile_xc_framework 2>&1 | tee build.log
+      - run:
+          name: Producer diagnostics
+          when: always
+          command: |
+            mkdir -p probe_out
+            grep -E 'warning:|error:' build.log | sort | uniq -c | sort -rn > probe_out/producer-diagnostics.txt || true
+            cp build.log probe_out/ || true
+            for f in TeakFramework/Teak.xcframework/ios-arm64/Teak.framework/Teak TeakFramework/TeakExtension.xcframework/ios-arm64/TeakExtension.framework/TeakExtension; do
+              echo "== $f"; vtool -show-build "$f"; plutil -p "$(dirname $f)/Info.plist" | grep -E 'MinimumOS|DTSDK|DTXcode'
+            done > probe_out/producer-vtool.txt 2>&1 || true
+            cat probe_out/producer-diagnostics.txt probe_out/producer-vtool.txt
+      - store_artifacts:
+          path: probe_out
       - persist_to_workspace:
           root: .
           paths:
@@ -74,6 +90,60 @@ jobs:
             - TeakFramework/TeakResources.bundle.zip
             - TeakFramework/TeakResources.bundle.zip.sha512
             - TeakFramework/Info.plist
+  consumer:
+    parameters:
+      xcode-version:
+        type: string
+        default: "27.2.0"
+      framework-source:
+        type: enum
+        enum: ["shipped", "built"]
+    macos:
+      xcode: << parameters.xcode-version >>
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios_setup
+      - when:
+          condition:
+            equal: ["built", << parameters.framework-source >>]
+          steps:
+            - attach_workspace:
+                at: workspace/
+            - run: mkdir -p fw && cd fw && unzip -q ../workspace/TeakFramework/Teak.xcframework.zip && unzip -q ../workspace/TeakFramework/TeakExtension.xcframework.zip
+      - when:
+          condition:
+            equal: ["shipped", << parameters.framework-source >>]
+          steps:
+            - run: |
+                mkdir -p fw && cd fw
+                curl -sfO https://teak-build-artifacts.s3.amazonaws.com/ios/Teak-4.3.17.xcframework.zip
+                curl -sfO https://teak-build-artifacts.s3.amazonaws.com/ios/TeakExtension-4.3.17.xcframework.zip
+                unzip -q Teak-4.3.17.xcframework.zip && unzip -q TeakExtension-4.3.17.xcframework.zip
+      - run:
+          name: Simulator runtimes
+          command: xcrun simctl list runtimes
+      - run:
+          name: Consumer (legacy app delegate)
+          command: probe/consumer/run.sh fw legacy probe_out
+          no_output_timeout: 20m
+      - run:
+          name: Consumer (UIScene)
+          when: always
+          command: probe/consumer/run.sh fw scene probe_out
+          no_output_timeout: 20m
+      - run:
+          name: Consumer (SwiftUI)
+          when: always
+          command: probe/consumer/run.sh fw swiftui probe_out
+          no_output_timeout: 20m
+      - run:
+          name: Consumer (UIScene) on iOS 26 runtime, control
+          when: always
+          command: PROBE_RUNTIME_MAJOR=26 probe/consumer/run.sh fw scene probe_out/ios26
+          no_output_timeout: 20m
+      - store_artifacts:
+          path: probe_out
   tag_build:
     docker:
       - image: cimg/base:current
@@ -154,12 +224,11 @@ jobs:
 
   publish_pod:
     macos:
-      xcode: "16.4.0"
+      xcode: "14.3.1"
     resource_class: m4pro.medium
     shell: /bin/bash --login -eo pipefail
     steps:
       - checkout
-      - ruby_setup
       - run: git fetch --tags
       - run:
           name: Publish to CocoaPods trunk
@@ -172,205 +241,50 @@ jobs:
 
 workflows:
   version: 2
-
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 0 * * 1-5"
-          filters:
-            branches:
-              only:
-                - develop
+  xcode27-probe:
     jobs:
       - test:
           context:
             - iOS-Build
-      - build:
-          context:
-            - iOS-Build
-
-  nightly-latest:
-    triggers:
-      - schedule:
-          cron: "0 0 * * 1-5"
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - test:
-          context:
-            - iOS-Build
-      - build:
-          context:
-            - iOS-Build
-
-  un-tagged-build:
-    jobs:
-      - test:
-          context:
-            - iOS-Build
-          filters:
-            tags:
-              ignore: /.*/
-      # Runs the race regression guard under TSan on every commit. Green in normal operation; a red
-      # means a real regression — the fix it guards was reverted, or a new race landed. Non-gating
-      # here (not a dependency of tag_build), so it doesn't block promote-tag creation; the release
-      # gate lives in the tagged-build workflow below, where a red run blocks the deploy.
       - test_race:
           context:
             - iOS-Build
-          filters:
-            tags:
-              ignore: /.*/
       - build:
           context:
             - iOS-Build
-          filters:
-            tags:
-              ignore: /.*/
-      - tag_build:
-          requires:
-            - test
-            - build
-          filters:
-            tags:
-              ignore: /.*/
-
-  tagged-build:
-    jobs:
-      - test:
+      - consumer:
+          name: consumer-shipped-4.3.17
+          framework-source: shipped
           context:
             - iOS-Build
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
-      - build:
+      - consumer:
+          name: consumer-xcode27-built
+          framework-source: built
+          requires:
+            - build
           context:
             - iOS-Build
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
-      # Release gate: the race guard must be green before a version deploys. A red run — a reverted
-      # fix or a new race — blocks deploy_versioned (and the whole deploy chain below), so a version
-      # can't ship while a guarded race is open.
-      - test_race:
-          context:
-            - iOS-Build
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
-      - deploy_versioned:
-          context:
-            - AWS-OIDC-Role
-          requires:
-            - test
-            - build
-            - test_race
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
-      - hold:
-          type: approval
-          requires:
-            - test
-            - build
-            - test_race
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
-      - deploy_latest:
-          context:
-            - AWS-OIDC-Role
-          requires:
-            - hold
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
-      - publish_pod:
-          context:
-            - CocoaPods
-          requires:
-            - deploy_latest
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
 
 commands:
-  # Runs the Ruby named in .ruby-version. The image's rbenv doesn't have it, so it is built
-  # once per image and cached; the job fails unless that is the Ruby actually running.
-  ruby_setup:
-    description: "Run the Ruby pinned in .ruby-version"
-    parameters:
-      xcode-version:
-        type: string
-        default: "16.4.0"
-    steps:
-      - restore_cache:
-          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
-      - run:
-          name: Ruby Setup
-          command: |
-            want=$(sed 's/^ruby-//' .ruby-version)
-            versions="$(rbenv root)/versions"
-            cache="$HOME/ruby-cache"
-            if [ -d "${cache}/${want}" ]; then
-              mkdir -p "${versions}"
-              cp -R "${cache}/${want}" "${versions}/${want}"
-            else
-              brew update --quiet || true
-              brew upgrade ruby-build || true
-              # Link the image's own openssl: ruby-build would otherwise link the newest
-              # brew openssl, which a cache-restored Ruby won't find on a fresh image.
-              brew list openssl@3 >/dev/null 2>&1 || brew install openssl@3
-              RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@3)" rbenv install -s "${want}"
-              mkdir -p "${cache}"
-              cp -R "${versions}/${want}" "${cache}/${want}"
-            fi
-            # Later steps pick this Ruby up through BASH_ENV.
-            shims="$(rbenv root)/shims"
-            echo "export RBENV_VERSION=${want}; export PATH=${shims}:\$PATH" >> "$BASH_ENV"
-            export RBENV_VERSION="${want}" PATH="${shims}:${PATH}"
-            rbenv rehash
-            ruby -v
-            ruby -v | grep -q "^ruby ${want} "
-            ruby -ropenssl -ryaml -e 1
-      - save_cache:
-          paths:
-            - ~/ruby-cache
-          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
   #
   # Common setup
   #
   ios_setup:
     description: "iOS Common Setup"
-    parameters:
-      xcode-version:
-        type: string
-        default: "16.4.0"
     steps:
       - checkout
-      - ruby_setup:
-          xcode-version: << parameters.xcode-version >>
       - run:
           name: Fetch Tags
           command: git fetch --tags
       - restore_cache:
-          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+      - run:
+          name: Probe ruby (image lacks .ruby-version's 3.2.2)
+          command: |
+            rbenv versions || true
+            v=$(rbenv versions --bare | grep -E '^3\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+            echo "using ruby $v"; echo "$v" > .ruby-version
+            gem install bundler -v 2.4.22 --no-document
       - run:
           name: Ruby Gems
           command: |
@@ -382,10 +296,19 @@ commands:
             - ~/Library/Caches/Homebrew
             - vendor/bundle
             - Sample/vendor/bundle
-          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+          key: v2-{{ checksum "setup" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
       - run:
           name: Import Teak Notification Category Data
           command: ./import_notification_categories notification_categories.csv
+      - run:
+          name: Probe-only deployment target override (Xcode 27 floor is 15.0)
+          command: |
+            grep -rl 'IPHONEOS_DEPLOYMENT_TARGET = ' --include=project.pbxproj . | grep -v vendor/ | while read f; do
+              sed -i '' -E 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' "$f"; echo "overrode $f"
+            done
+            # Test host predates UIScene; iOS 27 SDK apps without a scene manifest trap at launch.
+            plutil -insert UIApplicationSceneManifest -json '{"UIApplicationSupportsMultipleScenes":false,"UISceneConfigurations":{"UIWindowSceneSessionRoleApplication":[{"UISceneConfigurationName":"Default","UISceneStoryboardFile":"Main"}]}}' Automated/Automated/Info.plist
+            git --no-pager diff --stat
   #
   # Trigger a playbook build
   #
