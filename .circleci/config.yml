@@ -290,7 +290,7 @@ commands:
             grep -rl 'IPHONEOS_DEPLOYMENT_TARGET = ' --include=project.pbxproj . | grep -v vendor/ | while read f; do
               sed -i '' -E 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/' "$f"; echo "overrode $f"
             done
-            git diff --stat
+            git --no-pager diff --stat
   #
   # Trigger a playbook build
   #
