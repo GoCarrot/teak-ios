@@ -65,10 +65,6 @@ IMP __App_setNotificationCategories = NULL;
 
 extern Teak* _teakSharedInstance;
 
-@interface TeakSceneHooks (Discovery)
-+ (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity;
-@end
-
 // Scene-based apps never get applicationDidBecomeActive:/applicationWillResignActive: on the app
 // delegate, but UIKit posts the UIApplication notifications in both app styles. Both routes funnel
 // through here; in app-delegate apps the delegate method arrives first and the notification is skipped.

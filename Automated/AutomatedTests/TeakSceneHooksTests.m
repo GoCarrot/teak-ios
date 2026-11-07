@@ -51,14 +51,18 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
 
 - (void)setUp {
   _savedSharedInstance = _teakSharedInstance;
-  _teak = mock([Teak class]);
-  _teakSharedInstance = _teak;
+  [self freshTeak];
   _calls = [[NSMutableDictionary alloc] init];
-  [TeakSceneHooks installForAppDelegateClass:nil hostHandlesUserActivity:NO];
 }
 
 - (void)tearDown {
   _teakSharedInstance = _savedSharedInstance;
+}
+
+- (Teak*)freshTeak {
+  _teak = mock([Teak class]);
+  _teakSharedInstance = _teak;
+  return _teak;
 }
 
 - (NSSet<UIOpenURLContext*>*)contextsForURLs:(NSArray<NSURL*>*)urls {
@@ -121,7 +125,9 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   AddRecordingOpenURLContexts(klass, _calls, @"host");
 
   [TeakSceneHooks swizzleInto:klass];
+  IMP hooked = class_getMethodImplementation(klass, @selector(scene:openURLContexts:));
   [TeakSceneHooks swizzleInto:klass];
+  XCTAssertEqual(class_getMethodImplementation(klass, @selector(scene:openURLContexts:)), hooked, @"second hook is a no-op");
 
   NSURL* url = [NSURL URLWithString:@"teak1234://twice"];
   [self openURL:url on:[[klass alloc] init]];
@@ -148,37 +154,27 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   XCTAssertEqual(_calls[@"second"].integerValue, 1);
 }
 
-- (void)testSuperclassThenSubclassCallsEachOnce {
-  Class base = MakeClass(@"BaseSceneDelegate", [UIResponder class]);
-  AddRecordingOpenURLContexts(base, _calls, @"base");
-  Class sub = MakeClass(@"SubSceneDelegate", base);
+// Either hooking order: the subclass inherits the superclass's method, which runs once.
+- (void)testSubclassAndSuperclassHookedInEitherOrderCallEachOnce {
+  for (NSNumber* superclassFirst in @[ @YES, @NO ]) {
+    Class base = MakeClass(@"BaseSceneDelegate", [UIResponder class]);
+    Class sub = MakeClass(@"SubSceneDelegate", base);
+    NSString* key = superclassFirst.boolValue ? @"superclassFirst" : @"subclassFirst";
+    AddRecordingOpenURLContexts(base, _calls, key);
 
-  [TeakSceneHooks swizzleInto:base];
-  [TeakSceneHooks swizzleInto:sub];
+    if (superclassFirst.boolValue) {
+      [TeakSceneHooks swizzleInto:base];
+      [TeakSceneHooks swizzleInto:sub];
+    } else {
+      [TeakSceneHooks swizzleInto:sub];
+      [TeakSceneHooks swizzleInto:base];
+    }
 
-  NSURL* url = [NSURL URLWithString:@"teak1234://base-first"];
-  [self openURL:url on:[[sub alloc] init]];
-  XCTAssertEqual(_calls[@"base"].integerValue, 1);
-  [verifyCount(_teak, times(1)) application:anything() openURL:url sourceApplication:anything() annotation:anything()];
-}
-
-- (void)testSubclassThenSuperclassCallsEachOnce {
-  Class base = MakeClass(@"BaseSceneDelegate", [UIResponder class]);
-  AddRecordingOpenURLContexts(base, _calls, @"base");
-  Class sub = MakeClass(@"SubSceneDelegate", base);
-
-  [TeakSceneHooks swizzleInto:sub];
-  [TeakSceneHooks swizzleInto:base];
-
-  NSURL* subURL = [NSURL URLWithString:@"teak1234://sub-first"];
-  [self openURL:subURL on:[[sub alloc] init]];
-  XCTAssertEqual(_calls[@"base"].integerValue, 1);
-  [verifyCount(_teak, times(1)) application:anything() openURL:subURL sourceApplication:anything() annotation:anything()];
-
-  NSURL* baseURL = [NSURL URLWithString:@"teak1234://base"];
-  [self openURL:baseURL on:[[base alloc] init]];
-  XCTAssertEqual(_calls[@"base"].integerValue, 2);
-  [verifyCount(_teak, times(1)) application:anything() openURL:baseURL sourceApplication:anything() annotation:anything()];
+    NSURL* url = [NSURL URLWithString:[@"teak1234://" stringByAppendingString:key]];
+    [self openURL:url on:[[sub alloc] init]];
+    XCTAssertEqual(_calls[key].integerValue, 1, @"%@", key);
+    [verifyCount(_teak, times(1)) application:anything() openURL:url sourceApplication:anything() annotation:anything()];
+  }
 }
 
 // B overrides scene:openURLContexts: and calls super into A; both hooked.
@@ -205,12 +201,22 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
 }
 
 - (void)testContinueUserActivityNotAddedWhenHostAppDelegateHandlesIt {
-  [TeakSceneHooks installForAppDelegateClass:nil hostHandlesUserActivity:YES];
-  Class klass = MakeClass(@"HostActivitySceneDelegate", [UIResponder class]);
-  [TeakSceneHooks swizzleInto:klass];
+  Class sceneDelegateClass = MakeClass(@"HostActivitySceneDelegate", [UIResponder class]);
+  Class appDelegateClass = MakeClass(@"HostActivityAppDelegate", [UIResponder class]);
+  IMP configIMP = imp_implementationWithBlock(^UISceneConfiguration*(id _self, UIApplication* app, UISceneSession* session, UISceneConnectionOptions* options) {
+    UISceneConfiguration* configuration = [UISceneConfiguration configurationWithName:@"Runtime" sessionRole:UIWindowSceneSessionRoleApplication];
+    configuration.delegateClass = sceneDelegateClass;
+    return configuration;
+  });
+  class_addMethod(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), configIMP, "@@:@@@");
 
-  XCTAssertFalse([klass instancesRespondToSelector:@selector(scene:continueUserActivity:)]);
-  XCTAssertTrue([klass instancesRespondToSelector:@selector(scene:openURLContexts:)]);
+  [TeakSceneHooks installForAppDelegateClass:appDelegateClass hostHandlesUserActivity:YES];
+  [[[appDelegateClass alloc] init] application:[UIApplication sharedApplication]
+       configurationForConnectingSceneSession:mock([UISceneSession class])
+                                      options:mock([UISceneConnectionOptions class])];
+
+  XCTAssertFalse([sceneDelegateClass instancesRespondToSelector:@selector(scene:continueUserActivity:)]);
+  XCTAssertTrue([sceneDelegateClass instancesRespondToSelector:@selector(scene:openURLContexts:)]);
 }
 
 #pragma mark - Routing
@@ -252,12 +258,6 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
 }
 
 #pragma mark - Lifecycle
-
-- (Teak*)freshTeak {
-  _teak = mock([Teak class]);
-  _teakSharedInstance = _teak;
-  return _teak;
-}
 
 - (void)testLifecycleRunsOncePerTransitionAcrossDelegateAndNotification {
   TeakLifecycleInstall();
