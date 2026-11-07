@@ -82,6 +82,22 @@ extern NSURLSession* TeakURLSessionWithoutDelegate(void);
 
 Teak* _teakSharedInstance;
 
+// The deprecated -openURL: returns NO and does nothing in apps built with the iOS 18 SDK or later.
+void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnull url, NSString* _Nonnull logEvent) {
+  if (![NSThread isMainThread]) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+      TeakOpenURLInApplication(application, url, logEvent);
+    });
+    return;
+  }
+
+  [application openURL:url
+                options:@{}
+      completionHandler:^(BOOL success) {
+        TeakLog_i(logEvent, @{@"url" : [url absoluteString], @"success" : @(success)});
+      }];
+}
+
 @implementation Teak
 
 + (Teak*)sharedInstance {
@@ -475,10 +491,10 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
 
 - (BOOL)openSettingsAppToThisAppsSettings {
   TeakLog_t(@"[Teak openSettingsAppToThisAppsSettings]", @{});
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  return [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
-#pragma clang diagnostic pop
+  TeakOpenURLInApplication([UIApplication sharedApplication],
+                           [NSURL URLWithString:UIApplicationOpenSettingsURLString],
+                           @"settings.open_attempt");
+  return YES;
 }
 
 - (BOOL)canOpenNotificationSettings {
@@ -795,10 +811,9 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
 
                         NSString* openUrlString = [NSString stringWithFormat:@"teak:///callback?%@=%@", keyString, valueString];
                         dispatch_async(dispatch_get_main_queue(), ^{
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                          [[UIApplication sharedApplication] openURL:[NSURL URLWithString:openUrlString]];
-#pragma clang diagnostic pop
+                          TeakOpenURLInApplication([UIApplication sharedApplication],
+                                                   [NSURL URLWithString:openUrlString],
+                                                   @"companion.callback_open_attempt");
                         });
                       }];
                     }];

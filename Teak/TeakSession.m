@@ -847,26 +847,13 @@ DefineTeakState(Expired, (@[]));
       // so we should launch an intent with it
       if (attributedLaunchData.deepLink != nil && !TeakLink_WillHandleDeepLink(attributedLaunchData.deepLink)) {
         dispatch_async(dispatch_get_main_queue(), ^{
-          UIApplication* application = [UIApplication sharedApplication];
-
           // It is safe to do this even with links that are handled by Teak,
           // because the Teak delegate hooks check if the link was opened by the
           // host app and bail if it was. By doing this, we ensure that all links
           // are handled to application delegates even in cases where Teak failed
           // to hook the application delegate, e.g. Unity custom application
           // delegates.
-          if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
-            [application openURL:attributedLaunchData.deepLink
-                options:@{}
-                completionHandler:^(BOOL success) {
-                  TeakLog_i(@"deep_link.url_open_attempt", @{@"url" : [attributedLaunchData.deepLink absoluteString], @"success" : [NSNumber numberWithBool:success]});
-                }];
-          } else {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            [application openURL:attributedLaunchData.deepLink];
-#pragma clang diagnostic pop
-          }
+          TeakOpenURLInApplication([UIApplication sharedApplication], attributedLaunchData.deepLink, @"deep_link.url_open_attempt");
         });
       } else {
         // Otherwise, handle the deep link
