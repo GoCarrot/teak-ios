@@ -209,11 +209,17 @@ This is a different mechanism from aligned-load atomicity. On arm64 the pointer 
 - multi-read sites **capture to a local** once, then use the local — re-reading the property for
   each use reopens the window between reads.
 
-## 5. Harness limitation and the standing workflow
+## 5. How crashes report, and the standing workflow
 
-The dynamic crash repro takes down the whole test process — the CF trap is a hard crash, not an
-assertion failure. In a shared test lane that aborts every sibling test in the same run. Until an
-isolated per-test death-test harness exists, that shapes how these tests ship:
+The dynamic crash repro takes down the test host — the CF trap is a hard crash, not an assertion
+failure, and so is a TSan `halt_on_error` abort. That's fine: xcodebuild records the crash against
+the running test, relaunches the host, and runs the remaining tests, so siblings still report. The
+`test_race` lane builds `test_output/race/race.xml` from the `.xcresult` (not xcpretty, which drops
+a crashed test), so the crash shows up as a failing testcase reading `Crash: Automated (<pid>) …`.
+A watchdog-caught deadlock is an ordinary assertion failure, and a hang nothing catches is failed
+by the lane's per-test time allowance (`Test exceeded execution time allowance`).
+
+Standing tests still ship green:
 
 **Each fix ships its own red→green test in the same PR as the fix.** We do not carry standing red
 tests on a branch. The sequence for any concurrency fix is: add the failing test → watch it go red

@@ -42,20 +42,33 @@ platform :ios do
     ENV['TEST_RUNNER_TSAN_OPTIONS'] = "halt_on_error=1 suppressions=#{suppressions_path}"
 
     # Runs the race regression guard under TSan. Green in normal operation; a red run means a real
-    # regression — a guarded fix was reverted, or a new race landed. scan writes the JUnit report
-    # before it raises on failure, so the result is always stored and the lane exits nonzero for CI.
-    # result_bundle and simulator logs sit beside the JUnit report, so a crash on CI leaves a
-    # backtrace in the artifacts instead of only a missing test case.
+    # regression — a guarded fix was reverted, or a new race landed. Most reds here are crashes (a CF
+    # over-release trap, or TSan's halt_on_error abort): xcodebuild relaunches the host and runs the
+    # remaining tests, and records the crash in the .xcresult. xcpretty's JUnit drops the crashed
+    # test entirely, so a red job would show an all-green test tab — race.xml is built from the
+    # .xcresult instead (ensure below), where the crash is a failing testcase. Simulator logs sit
+    # beside it, so a crash on CI leaves a backtrace in the artifacts too.
+    output_dir = File.expand_path('../test_output/race', __dir__)
     scan(
       workspace: 'Automated/Automated.xcworkspace',
       scheme: 'Automated',
       thread_sanitizer: true,
       only_testing: options[:only_testing] || ['AutomatedTests/RaceTripwireTests', 'AutomatedTests/TeakBatchedRequestRaceTests'],
       output_directory: 'test_output/race',
-      output_files: 'race.xml',
-      output_types: 'junit',
+      output_types: '',
+      # A hung test (e.g. a reverted lock fix deadlocking) would otherwise stall the lane with no red.
+      # With timeouts on, xcodebuild kills it after the allowance and records a failure. 60s is ~13x
+      # the slowest test in a clean TSan run (4.6s); xcodebuild rounds allowances up to whole minutes.
+      xcargs: '-test-timeouts-enabled YES -default-test-execution-time-allowance 60',
       result_bundle: true,
       include_simulator_logs: true
     )
+  ensure
+    # Runs on red too; scan's own error still propagates, so the lane exits nonzero for CI. Skipped
+    # when there's no result bundle (e.g. the build itself failed).
+    xcresult = File.join(output_dir, 'Automated.xcresult')
+    if File.exist?(xcresult)
+      trainer(path: xcresult, output_directory: output_dir, output_filename: 'race.xml', fail_build: false)
+    end
   end
 end
