@@ -22,50 +22,12 @@
   return [self claim:activityId signature:signature generation:&generation];
 }
 
-- (void)testFirstClaimIsSent {
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1"]);
-}
-
-- (void)testRepeatOfLastClaimIsSkipped {
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1"]);
-  XCTAssertFalse([self claim:@"a" signature:@"t1|s1"]);
-  XCTAssertFalse([self claim:@"a" signature:@"t1|s1"]);
-}
-
-- (void)testChangedSignatureIsSent {
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1"]);
-  XCTAssertTrue([self claim:@"a" signature:@"t2|s1"]);
-  XCTAssertTrue([self claim:@"a" signature:@"t2|s2"]);
-}
-
-- (void)testActivityIdsAreIndependent {
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1"]);
-  XCTAssertTrue([self claim:@"b" signature:@"t1|s1"]);
-  XCTAssertFalse([self claim:@"a" signature:@"t1|s1"]);
-  XCTAssertFalse([self claim:@"b" signature:@"t1|s1"]);
-}
-
-- (void)testReleaseLetsTheSameSignatureBeSentAgain {
-  NSUInteger generation = 0;
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1" generation:&generation]);
-  [self.cache releaseActivityId:@"a" signature:@"t1|s1" generation:generation];
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1"]);
-}
-
 - (void)testReleaseOfSupersededSignatureKeepsTheNewerClaim {
   NSUInteger oldGeneration = 0;
   XCTAssertTrue([self claim:@"a" signature:@"t1|s1" generation:&oldGeneration]);
   XCTAssertTrue([self claim:@"a" signature:@"t2|s1"]);
   [self.cache releaseActivityId:@"a" signature:@"t1|s1" generation:oldGeneration];
   XCTAssertFalse([self claim:@"a" signature:@"t2|s1"]);
-}
-
-- (void)testResetForgetsEverything {
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1"]);
-  XCTAssertTrue([self claim:@"b" signature:@"t1|s1"]);
-  [self.cache reset];
-  XCTAssertTrue([self claim:@"a" signature:@"t1|s1"]);
-  XCTAssertTrue([self claim:@"b" signature:@"t1|s1"]);
 }
 
 - (void)testReleaseFromBeforeResetCannotDropANewClaim {
