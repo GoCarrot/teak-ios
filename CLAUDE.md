@@ -117,8 +117,8 @@ Artifacts deployed to `s3://teak-build-artifacts/ios/` with SHA512 checksums.
 
 Git tags are the single source of truth for versioning. There are no version-bearing files to keep in sync.
 
-- **Build-time**: Xcode "Define Version" build phases run `git describe --tags` and write `Teak/TeakVersion.h` to `$(DERIVED_FILE_DIR)`. This header defines `TEAK_SDK_VERSION` used in API payloads.
-- **CI artifact naming**: CircleCI deploy jobs use `git describe --tags` for S3 artifact paths.
+- **Build-time**: Xcode "Define Version" build phases run `git describe --tags --match '[0-9]*'` and write `Teak/TeakVersion.h` to `$(DERIVED_FILE_DIR)`. This header defines `TEAK_SDK_VERSION` used in API payloads.
+- **CI artifact naming**: CircleCI deploy jobs use `git describe --tags --match '[0-9]*'` for S3 artifact paths. Always pass `--match '[0-9]*'`: non-release tags such as `pr-screenshots/<n>` otherwise win the describe and break the version (and the podspec `sed`).
 - **Tagging**: The `teak/tag-promote` CI orb parses the HEAD commit message for "Promote to: X.Y.Z" and creates + pushes a git tag.
 
 ### Release Flow

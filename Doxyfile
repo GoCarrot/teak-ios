@@ -15,7 +15,7 @@ AUTOLINK_SUPPORT       = NO
 CASE_SENSE_NAMES = NO
 
 # Project-specific configuration
-INPUT                  = Teak/Teak.h Teak/TeakNotification.h
+INPUT                  = Teak/Teak.h Teak/TeakNotification.h Teak/TeakUserConfiguration.h
 FILE_PATTERNS          = *
 EXTENSION_MAPPING      = h=objc m=objc
 EXCLUDE                =

@@ -25,6 +25,7 @@ symbolMap: docs/symbolMap.json
 parts:
   methods: ~
   staticMethods: ~
+  properties: ~
 
 exclude:
   - file
