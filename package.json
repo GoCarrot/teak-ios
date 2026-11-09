@@ -4,6 +4,6 @@
     "changelog": "doxygen2adoc --config .doxygen2adoc.yml changelog"
   },
   "dependencies": {
-    "doxygen2adoc": "https://github.com/GoCarrot/doxygen2adoc#ba267949eaaa84e4e4bbdf511ea8994a4b8e2d54"
+    "doxygen2adoc": "https://github.com/GoCarrot/doxygen2adoc#26e08883fff830478665b7d2cc0fa3a5e0a64ec9"
   }
 }
