@@ -34,7 +34,9 @@
  */
 @property (nonatomic) BOOL optOutPushKey;
 
+/// @cond INTERNAL
 - (nonnull NSDictionary*)to_h;
 
 + (nonnull TeakUserConfiguration*)fromDictionary:(nonnull NSDictionary*)dictionary;
+/// @endcond
 @end
