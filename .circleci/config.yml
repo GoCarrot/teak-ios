@@ -173,7 +173,7 @@ jobs:
           name: Publish to CocoaPods trunk
           command: |
             gem install cocoapods
-            VERSION=$(git describe --tags --always)
+            VERSION=$(git describe --tags --always --match '[0-9]*')
             git clone --branch "${VERSION}" --depth 1 git@github.com:GoCarrot/teak-ios-framework.git teak-ios-framework
             cd teak-ios-framework
             pod trunk push Teak.podspec --allow-warnings
@@ -369,7 +369,7 @@ commands:
           name: Upload SDK to S3
           command: |
             if [ "<< parameters.versioned >>" = "true" ]; then
-              SFX="-$(git describe --tags --always)"
+              SFX="-$(git describe --tags --always --match '[0-9]*')"
             else
               SFX=""
             fi
@@ -397,7 +397,7 @@ commands:
       - run:
           name: Update teak-ios-framework
           command: |
-            VERSION=$(git describe --tags --always)
+            VERSION=$(git describe --tags --always --match '[0-9]*')
             git clone git@github.com:GoCarrot/teak-ios-framework.git teak-ios-framework
             cd teak-ios-framework
             git config user.email "team@teak.io"
