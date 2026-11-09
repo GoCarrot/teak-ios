@@ -6,6 +6,7 @@
 #import "TeakDebugConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLaunchData.h"
+#import "TeakLiveActivityTokenCache.h"
 #import "TeakRemoteConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakReward.h"
@@ -630,6 +631,9 @@ DefineTeakState(Expired, (@[]));
 
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession {
   @synchronized(currentSessionMutex) {
+    // Live activity tokens are registered per user, so the next user must register them again.
+    [[TeakLiveActivityTokenCache sharedCache] reset];
+
     // Hold the outgoing session's own monitor across its teardown. The two -setState: calls below each
     // self-synchronize individually, but only locking the session across the pair keeps another
     // thread's @synchronized(self) work — e.g. an in-flight hostname KVO callback firing

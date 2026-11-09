@@ -4,3 +4,4 @@ bug:
   - "``openSettingsAppToThisAppsSettings`` now opens Settings.app in apps built with the iOS 18 SDK and later. It previously did nothing in those apps."
   - "Fixed a crash when resolving a Teak link whose response was not UTF-8 encoded and had no iOS path."
   - "Fixed ``launchLink`` being missing from reward link launch data when the link was resolved by the Teak server."
+  - "``startedLiveActivity`` now skips a push token that matches the last one sent for that activity, so repeated ``pushTokenUpdates`` values are not sent to Teak again."
