@@ -76,6 +76,7 @@ See xref:sdk5.adoc[SDK 5 Behaviors].
 |===
 :part_brief!:
 :part_deprecated!:
+:part_decl:
 
 .Example
 [source,swift]
