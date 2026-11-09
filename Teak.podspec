@@ -12,7 +12,7 @@ Pod::Spec.new do |spec|
   # Mirrors the "Define Version" Xcode build phase from Teak.xcodeproj.
   # Regenerated on each `pod install`. Output is gitignored.
   spec.prepare_command = <<-CMD
-    version=$(git describe --tags 2>/dev/null || echo "#{spec.version}")
+    version=$(git describe --tags --match '[0-9]*' 2>/dev/null || echo "#{spec.version}")
     echo "#define TEAK_SDK_VERSION \\"$version\\"" > Teak/TeakVersion.h
   CMD
 

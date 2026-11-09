@@ -95,7 +95,7 @@ build() {
   IOS_PATH="${BASE_DIRECTORY}/ios.xcarchive"
   EXT_IOS_PATH="${BASE_DIRECTORY}/extension-ios.xcarchive"
 
-  TEAK_GIT_VERSION=$(git describe --tags)
+  TEAK_GIT_VERSION=$(git describe --tags --match '[0-9]*')
   msg "SDK version: ${TEAK_GIT_VERSION}"
   msg "Building Teak.xcframework for ${buildtype}"
   msg "Cleaning previous build at ${BASE_DIRECTORY}"

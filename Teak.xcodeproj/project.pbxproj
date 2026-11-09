@@ -1060,7 +1060,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "git=$(sh /etc/profile; which git)\nversion=$(\"$git\" describe --tags)\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
+			shellScript = "git=$(sh /etc/profile; which git)\nversion=$(\"$git\" describe --tags --match '[0-9]*')\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
 		};
 		FA34DA4C2D75FE0B00D1C1C5 /* Define Version */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1079,7 +1079,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "if [ -n \"$TEAK_GIT_VERSION\" ]; then\n  version=\"$TEAK_GIT_VERSION\"\nelse\n  git=$(sh /etc/profile; which git)\n  version=$(\"$git\" describe --tags)\nfi\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
+			shellScript = "if [ -n \"$TEAK_GIT_VERSION\" ]; then\n  version=\"$TEAK_GIT_VERSION\"\nelse\n  git=$(sh /etc/profile; which git)\n  version=$(\"$git\" describe --tags --match '[0-9]*')\nfi\necho \"#define TEAK_SDK_VERSION \\\"$version\\\"\" > \"$DERIVED_FILE_DIR/TeakVersion.h\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
