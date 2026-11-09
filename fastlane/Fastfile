@@ -3,6 +3,8 @@ default_platform(:ios)
 platform :ios do
   desc "Run tests"
   lane :test do
+    # xcodebuild refuses to overwrite an existing result bundle.
+    FileUtils.rm_rf(File.expand_path('../test_output/automated', __dir__))
     scan(
       workspace: 'Automated/Automated.xcworkspace',
       # RaceTripwireTests is the ThreadSanitizer race regression guard — it carries signal only under
@@ -11,7 +13,10 @@ platform :ios do
       skip_testing: ['AutomatedTests/RaceTripwireTests'],
       output_directory: 'test_output/automated',
       output_files: 'results.xml',
-      output_types: 'junit'
+      output_types: 'junit',
+      # No xcpretty: scan then builds the JUnit from the .xcresult, which keeps a crashed test.
+      xcodebuild_formatter: '',
+      result_bundle: true
     )
   end
 
@@ -42,33 +47,23 @@ platform :ios do
     ENV['TEST_RUNNER_TSAN_OPTIONS'] = "halt_on_error=1 suppressions=#{suppressions_path}"
 
     # Runs the race regression guard under TSan. Green in normal operation; a red run means a real
-    # regression — a guarded fix was reverted, or a new race landed. Most reds here are crashes (a CF
-    # over-release trap, or TSan's halt_on_error abort): xcodebuild relaunches the host and runs the
-    # remaining tests, and records the crash in the .xcresult. xcpretty's JUnit drops the crashed
-    # test entirely, so a red job would show an all-green test tab — race.xml is built from the
-    # .xcresult instead (ensure below), where the crash is a failing testcase. Simulator logs sit
-    # beside it, so a crash on CI leaves a backtrace in the artifacts too.
-    output_dir = File.expand_path('../test_output/race', __dir__)
+    # regression — a guarded fix was reverted, or a new race landed. Most reds are crashes; no xcpretty,
+    # so scan builds race.xml from the .xcresult, where a crashed test is a failing testcase. Simulator
+    # logs sit beside it, so a crash on CI leaves a backtrace (and any TSan report) in the artifacts.
     scan(
       workspace: 'Automated/Automated.xcworkspace',
       scheme: 'Automated',
       thread_sanitizer: true,
       only_testing: options[:only_testing] || ['AutomatedTests/RaceTripwireTests', 'AutomatedTests/TeakBatchedRequestRaceTests'],
       output_directory: 'test_output/race',
-      output_types: '',
-      # A hung test (e.g. a reverted lock fix deadlocking) would otherwise stall the lane with no red.
-      # With timeouts on, xcodebuild kills it after the allowance and records a failure. 60s is ~13x
-      # the slowest test in a clean TSan run (4.6s); xcodebuild rounds allowances up to whole minutes.
+      output_files: 'race.xml',
+      output_types: 'junit',
+      xcodebuild_formatter: '',
+      # A test that hangs would otherwise stall the lane with no red; xcodebuild fails it after the
+      # allowance. Generous on purpose — these tests are slow by design.
       xcargs: '-test-timeouts-enabled YES -default-test-execution-time-allowance 60',
       result_bundle: true,
       include_simulator_logs: true
     )
-  ensure
-    # Runs on red too; scan's own error still propagates, so the lane exits nonzero for CI. Skipped
-    # when there's no result bundle (e.g. the build itself failed).
-    xcresult = File.join(output_dir, 'Automated.xcresult')
-    if File.exist?(xcresult)
-      trainer(path: xcresult, output_directory: output_dir, output_filename: 'race.xml', fail_build: false)
-    end
   end
 end

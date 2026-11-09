@@ -216,8 +216,10 @@ failure, and so is a TSan `halt_on_error` abort. That's fine: xcodebuild records
 the running test, relaunches the host, and runs the remaining tests, so siblings still report. The
 `test_race` lane builds `test_output/race/race.xml` from the `.xcresult` (not xcpretty, which drops
 a crashed test), so the crash shows up as a failing testcase reading `Crash: Automated (<pid>) …`.
-A watchdog-caught deadlock is an ordinary assertion failure, and a hang nothing catches is failed
-by the lane's per-test time allowance (`Test exceeded execution time allowance`).
+For a TSan abort that text is all the test tab shows; the `race on …` report itself is in the scan
+log and the CI artifacts. A watchdog-caught deadlock is an ordinary assertion failure, and a test
+that hangs is failed by the lane's per-test time allowance (`Test exceeded execution time
+allowance`) — that covers a hang inside a test, not one in host launch or setup.
 
 Standing tests still ship green:
 
