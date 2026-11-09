@@ -118,6 +118,27 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   [verifyCount(_teak, times(1)) application:anything() continueUserActivity:activity restorationHandler:anything()];
 }
 
+// A relaunch restores the scene session the app delegate configured earlier; UIKit doesn't ask again.
+- (void)testRestoredSessionDelegateClassIsHookedAtLaunch {
+  [TeakSceneHooks installForAppDelegateClass:nil hostHandlesUserActivity:NO];
+  Class sceneDelegateClass = MakeClass(@"RestoredSceneDelegate", [UIResponder class]);
+  UISceneConfiguration* configuration = [UISceneConfiguration configurationWithName:@"Restored" sessionRole:UIWindowSceneSessionRoleApplication];
+  configuration.delegateClass = sceneDelegateClass;
+  UISceneSession* session = mock([UISceneSession class]);
+  [given(session.configuration) willReturn:configuration];
+  UIApplication* application = mock([UIApplication class]);
+  [given(application.openSessions) willReturn:[NSSet setWithObject:session]];
+
+  XCTAssertFalse([sceneDelegateClass instancesRespondToSelector:@selector(scene:willConnectToSession:options:)]);
+  [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationDidFinishLaunchingNotification object:application];
+
+  NSURL* url = [NSURL URLWithString:@"teak1234://restored"];
+  UISceneConnectionOptions* options = mock([UISceneConnectionOptions class]);
+  [given(options.URLContexts) willReturn:[self contextsForURLs:@[ url ]]];
+  [[[sceneDelegateClass alloc] init] scene:mock([UIScene class]) willConnectToSession:mock([UISceneSession class]) options:options];
+  [verifyCount(_teak, times(1)) application:anything() openURL:url sourceApplication:anything() annotation:anything()];
+}
+
 #pragma mark - Hook bookkeeping
 
 - (void)testHookingTheSameClassTwiceCallsHostOnce {

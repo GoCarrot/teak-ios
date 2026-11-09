@@ -27,6 +27,8 @@ typedef IMP (*TeakHookFactory)(SEL sel, IMP original, BOOL option);
 
 static NSObject* sHookLock = nil;
 static NSMutableSet<NSValue*>* sTeakHookIMPs = nil;
+// From the latest install, for delegate classes discovered by notification observers.
+static BOOL sInstallAddsContinueUserActivity = YES;
 
 static void TeakSceneHooksInitRegistry(void) {
   static dispatch_once_t onceToken;
@@ -196,6 +198,7 @@ static void TeakSceneHookClass(Class klass, NSString* source, BOOL addContinueUs
 
 + (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity {
   BOOL addContinueUserActivity = !hostHandlesUserActivity;
+  sInstallAddsContinueUserActivity = addContinueUserActivity;
 
   // Scene delegate classes named in the Info.plist manifest, for every session role.
   NSDictionary* manifest = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UIApplicationSceneManifest"];
@@ -227,17 +230,30 @@ static void TeakSceneHookClass(Class klass, NSString* source, BOOL addContinueUs
     TeakSceneHookSelector(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), objc_getProtocol("UIApplicationDelegate"), NO, TeakConfigurationHook, addContinueUserActivity);
   }
 
-  // Anything else: hook the delegate of each scene as it connects. UIKit posts this after the
-  // delegate's scene:willConnectToSession:options:, so it only catches later opens, not launch URLs.
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
+    // Restored scene sessions keep the delegate class the app delegate picked on an earlier launch, and
+    // UIKit doesn't ask the app delegate again. This is posted before any scene connects.
+    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidFinishLaunchingNotification
+                                                      object:nil
+                                                       queue:nil
+                                                  usingBlock:^(NSNotification* notification) {
+                                                    UIApplication* application = notification.object;
+                                                    if (![application isKindOfClass:[UIApplication class]]) return;
+                                                    for (UISceneSession* session in application.openSessions) {
+                                                      TeakSceneHookClass(session.configuration.delegateClass, @"open_session", sInstallAddsContinueUserActivity);
+                                                    }
+                                                  }];
+
+    // Anything else: hook the delegate of each scene as it connects. UIKit posts this after the
+    // delegate's scene:willConnectToSession:options:, so it only catches later opens, not launch URLs.
     [[NSNotificationCenter defaultCenter] addObserverForName:UISceneWillConnectNotification
                                                       object:nil
                                                        queue:nil
                                                   usingBlock:^(NSNotification* notification) {
                                                     UIScene* scene = notification.object;
                                                     if (![scene isKindOfClass:[UIScene class]] || scene.delegate == nil) return;
-                                                    TeakSceneHookClass([scene.delegate class], @"will_connect", addContinueUserActivity);
+                                                    TeakSceneHookClass([scene.delegate class], @"will_connect", sInstallAddsContinueUserActivity);
                                                   }];
   });
 }
