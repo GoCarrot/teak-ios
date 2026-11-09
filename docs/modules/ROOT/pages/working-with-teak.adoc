@@ -48,23 +48,34 @@ Teak.login("YOUR_PLAYER_ID", with:playerConfiguration)
 
 In addition to email and Facebook id, ``TeakUserConfiguration`` carries per-user data collection opt-outs, set at login time. These are distinct from a player's channel opt-in/out preferences -- see <<notification_channels_and_opt_out_preferences,Notification Channels and Opt-Out Preferences>>.
 
-// This table is hand-written, not doxygen2adoc-generated: only Teak.h and TeakNotification.h
-// are in the Doxyfile INPUT, and doxygen2adoc's "parts" mechanism only emits embeddable partials
-// for methods, not properties, so TeakUserConfiguration can't be wired into it without adding
-// Doxyfile/pipeline support for property parts.
+// Rows are generated from the TeakUserConfiguration.h doc comments (doxygen2adoc property parts).
+:part_brief:
+:part_deprecated:
+:part_decl!:
 [cols="1,3a", stripes="even"]
 |===
 |Property |Effect
 
 |``optOutIdfa``
-|Opts out of IDFA collection for this user. See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
+|
+doxygen2adoc:[TeakUserConfiguration optOutIdfa][]
+
+See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
 
 |``optOutPushKey``
-|Opts out of Push Key (push token) collection for this user. See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
+|
+doxygen2adoc:[TeakUserConfiguration optOutPushKey][]
+
+See <<disabling_automatic_data_collection,Disabling Automatic Data Collection>> for the app-wide equivalent.
 
 |``optOutFacebook``
-|Deprecated -- see xref:sdk5.adoc[SDK 5 Behaviors].
+|
+doxygen2adoc:[TeakUserConfiguration optOutFacebook][]
+
+See xref:sdk5.adoc[SDK 5 Behaviors].
 |===
+:part_brief!:
+:part_deprecated!:
 
 .Example
 [source,swift]
