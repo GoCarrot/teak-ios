@@ -27,6 +27,7 @@
 #import "TeakMPInt.h"
 
 #import "TeakHelpers.h"
+#import "TeakLiveActivityTokenCache.h"
 
 #ifndef __IPHONE_12_0
 #define __IPHONE_12_0 120000
@@ -234,6 +235,23 @@ void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnu
     return op;
   }
 
+  // ActivityKit re-emits identical tokens, and integrators are told to forward every emission, so drop
+  // repeats of what was last sent for this activity. Without an operation queue the send can never
+  // complete, so don't claim: a later emission must still go out.
+  NSString* signature = [NSString stringWithFormat:@"%@|%@", tokenString, systemActivityId];
+  NSUInteger cacheGeneration = 0;
+  TeakLiveActivityTokenCache* cache = [TeakLiveActivityTokenCache sharedCache];
+  BOOL claimed = NO;
+  if ([Teak sharedInstance].operationQueue != nil) {
+    if (![cache claimActivityId:activityId signature:signature generation:&cacheGeneration]) {
+      TeakLog_i(@"live_activity.token.skipped", @{@"activityId" : activityId, @"systemActivityId" : systemActivityId});
+      TeakOperation* skippedOp = [TeakOperation withResult:[[TeakOperationResult alloc] initWithStatus:@"ok" andErrors:nil]];
+      [[Teak sharedInstance].operationQueue addOperation:skippedOp];
+      return skippedOp;
+    }
+    claimed = YES;
+  }
+
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activities"
                                      withPayload:@{
                                        @"live_activity_id" : [activityId copy],
@@ -247,6 +265,10 @@ void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnu
                                          TeakLog_i(@"live_activity.token.forwarded", @{@"activityId" : activityId, @"systemActivityId" : systemActivityId});
                                        } else {
                                          TeakLog_e(@"live_activity.token.error", @"Error forwarding live activity token.", @{@"response" : reply});
+                                         // Let the next emission of this token try again.
+                                         if (claimed) {
+                                           [cache releaseActivityId:activityId signature:signature generation:cacheGeneration];
+                                         }
                                        }
 
                                        return parsedResult;
