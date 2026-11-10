@@ -6,6 +6,7 @@
 #import "TeakChannelStatus.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakLaunchData.h"
 #import "TeakLink.h"
 #import "TeakLog.h"
 #import "TeakPushState.h"
@@ -39,10 +40,6 @@ extern NSString* const currentSessionMutex;
 // iterations) for it, and the serialization tests need TSan anyway. The `test_race` lane runs all of
 // them, every commit, with ThreadSanitizer attached for the tests that need it, and additionally
 // gates tagged-build releases.
-//
-// launchDataOperation is atomic+capture-to-local too (see TeakSession.m), but its pointee never
-// frees — see the comment near testAdditionalDataIsAtomicUnderConcurrency below — so it's pinned
-// as a static atomic-declaration assertion in TeakSessionLockingTests.m instead.
 //
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which race
 // class, and why some classes (e.g. lock-inversion deadlocks) carry no in-process data-race signal
@@ -91,6 +88,7 @@ extern NSString* const currentSessionMutex;
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, atomic) NSString* facebookAccessToken;
+@property (strong, atomic) TeakLaunchDataOperation* launchDataOperation;
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 @property (strong, atomic, readwrite) NSDictionary* additionalData;
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
@@ -370,12 +368,26 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
-// launchDataOperation has no dynamic crash repro here: TeakLaunchDataOperation is an
-// NSInvocationOperation subclass that targets itself in its own initializer, and
-// -[NSInvocationOperation retainArguments] retains that target — every instance is a permanent
-// operation→invocation→operation retain cycle that ARC can't break, so the pointee never frees
-// and there's no dealloc-during-read window to catch. It's pinned as a static atomic-declaration
-// assertion in TeakSessionLockingTests.m instead (same treatment as currentState/previousState).
+// launchDataOperation is reassigned in the identify-reply callback (and by updateDeepLink:) while
+// read from several call sites, each of which reads it once into a local before use. The writer
+// replaces it with fresh operations that free once unreferenced, so a nonatomic reassignment
+// would release the old operation under a concurrent reader.
+- (void)testLaunchDataOperationIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.launchDataOperation = [TeakLaunchDataOperation unattributed];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                TeakLaunchDataOperation* op = session.launchDataOperation;
+                (void)NSStringFromClass([op class]).length;
+                (void)op.isFinished;
+              }
+            }];
+}
 
 // additionalData's pointee is an NSDictionary, not a CFString. A single non-empty entry forces a
 // real heap-allocated dictionary — an empty dictionary literal returns a shared singleton that

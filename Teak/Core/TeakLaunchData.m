@@ -5,6 +5,9 @@
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @interface TeakLaunchDataOperation ()
+@property (strong, atomic, readwrite) TeakLaunchData* result;
+@property (strong, nonatomic) TeakLaunchData* precomputedLaunchData;
+@property (strong, nonatomic) NSURL* universalLink;
 @property (strong, nonatomic) NSURL* resolvedLaunchUrl;
 @end
 
@@ -65,8 +68,9 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 }
 
 + (TeakLaunchDataOperation*)fromUniversalLink:(NSURL*)url {
-  TeakLaunchDataOperation* launchDataOp = [TeakLaunchDataOperation alloc];
-  return [launchDataOp initWithTarget:launchDataOp selector:@selector(resolveUniversalLink:) object:url];
+  TeakLaunchDataOperation* launchDataOp = [[TeakLaunchDataOperation alloc] init];
+  launchDataOp.universalLink = url;
+  return launchDataOp;
 }
 
 + (TeakLaunchData*)launchDataFromUrl:(NSURL*)url withShortlink:(NSURL*)shortLink {
@@ -135,11 +139,19 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 }
 
 - (id)initWithLaunchData:(TeakLaunchData*)launchData {
-  return [super initWithTarget:self selector:@selector(returnLaunchData:) object:launchData];
+  self = [super init];
+  if (self) {
+    _precomputedLaunchData = launchData;
+  }
+  return self;
 }
 
-- (TeakLaunchData*)returnLaunchData:(TeakLaunchData*)launchData {
-  return launchData;
+- (void)main {
+  if (self.universalLink != nil) {
+    self.result = [self resolveUniversalLink:self.universalLink];
+  } else {
+    self.result = self.precomputedLaunchData;
+  }
 }
 
 - (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink withLaunchLink:(NSURL*)launchLink {
@@ -169,7 +181,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   };
 }
 
-// This will get run as an NSInvocationOperation
+// Runs from -main, on the operation's queue.
 - (TeakLaunchData*)resolveUniversalLink:(NSURL*)url {
   // Resolve the universal link, wait for the NSURLSession to complete (or timeout)
   // then classify the result.
