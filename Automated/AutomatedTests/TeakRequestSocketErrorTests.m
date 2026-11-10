@@ -1,22 +1,12 @@
 #import <XCTest/XCTest.h>
 
-#import "TeakRequest.h"
+#import "TeakRequest+Internal.h"
 #import <Teak/Teak.h>
 
 #include <sys/errno.h>
 
 @import OCHamcrest;
 @import OCMockito;
-
-// Re-expose the internal predicates and stop-policy constant so tests can
-// exercise them without driving a full NSURLSession round-trip. See
-// CLAUDE.md "Header imports in tests".
-extern const NSUInteger TeakRequestMaxSocketRetries;
-
-@interface TeakRequest (SocketErrorTests)
-+ (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
-+ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
-@end
 
 @interface TeakRequestSocketErrorTests : XCTestCase
 @end

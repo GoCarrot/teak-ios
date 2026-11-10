@@ -1,16 +1,10 @@
 #import <XCTest/XCTest.h>
 
-#import "TeakRequest.h"
+#import "TeakRequest+Internal.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
-
-// Re-expose the internal helper so tests can exercise it without
-// driving a full request lifecycle. See CLAUDE.md "Header imports in tests".
-@interface TeakRequest (ClientErrorTests)
-+ (NSString* _Nonnull)titleForClientError:(NSDictionary* _Nullable)clientError;
-@end
 
 @interface TeakRequestClientErrorTests : XCTestCase
 @end

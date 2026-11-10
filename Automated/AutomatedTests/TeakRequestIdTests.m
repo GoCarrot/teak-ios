@@ -3,7 +3,7 @@
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakRemoteConfiguration.h"
-#import "TeakRequest.h"
+#import "TeakRequest+Internal.h"
 #import "TeakSession.h"
 #import <Teak/Teak.h>
 
@@ -12,9 +12,6 @@
 
 // Re-declared: internal to the SDK.
 extern NSDictionary* TeakVersionDict;
-
-@interface TeakRequest (RequestIdTests)
-@end
 
 @interface TeakRequestIdTests : XCTestCase
 @end

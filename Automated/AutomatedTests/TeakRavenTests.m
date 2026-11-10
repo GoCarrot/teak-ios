@@ -4,7 +4,7 @@
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLog.h"
-#import "TeakRaven.h"
+#import "TeakRaven+Internal.h"
 #import <Teak/Teak.h>
 
 #import <signal.h>
@@ -24,13 +24,6 @@
 // The shared instance is a plain global with external linkage, so a test can
 // install a real Teak to exercise the singleton-routed exception path.
 extern Teak* _Nullable _teakSharedInstance;
-
-// Re-expose payloadTemplate for inspection, and the uncaught-path entry point so a
-// test can drive it directly (it's declared in a TeakRaven.m class extension).
-@interface TeakRaven ()
-@property (strong, nonatomic) NSMutableDictionary* payloadTemplate;
-- (void)reportUncaughtException:(nonnull NSException*)exception;
-@end
 
 // Re-expose runId as read-write so tests can inject a known value
 @interface TeakLog ()
