@@ -16,14 +16,15 @@
 //     callback while read cross-thread by the heartbeat queue and the duration-report background
 //     block. See RaceTripwireTests.m for the dynamic use-after-free repro backing these three.
 //   - launchDataOperation is reassigned in the same identify-reply callback while read from
-//     several call sites. See RaceTripwireTests.m for the dynamic use-after-free repro.
+//     several call sites, and the replaced operation frees. See RaceTripwireTests.m for why it has
+//     no dynamic repro. This static pin is its only regression guard.
 //
 // A behavioral race test for currentState/previousState/reportDurationBlock isn't feasible — on
 // ARM64 aligned pointer reads don't actually tear, so the race is formal (UB / TSan-detectable)
 // rather than observable — and these tests instead pin the declarations to atomic via the
-// Objective-C runtime, failing if any reverts. countryCode/userProfile/serverSessionId/
-// launchDataOperation get the same static pin here as a cheap permanent guard, on top of the
-// dynamic repro.
+// Objective-C runtime, failing if any reverts. launchDataOperation's pointee does free, but it has
+// no over-release trap to catch, so it's pinned here the same way. countryCode/userProfile/
+// serverSessionId get the same static pin as a cheap permanent guard, on top of the dynamic repro.
 @interface TeakSessionLockingTests : XCTestCase
 @end
 
