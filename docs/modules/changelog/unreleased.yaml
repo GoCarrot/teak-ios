@@ -5,4 +5,4 @@ bug:
   - "Fixed a crash when resolving a Teak link whose response was not UTF-8 encoded and had no iOS path."
   - "Fixed the session being reported as ended, with no resume, when the app returned to the foreground immediately after backgrounding."
   - "Fixed ``launchLink`` being missing from reward link launch data when the link was resolved by the Teak server."
-  - "Fixed a memory leak where launch data was never freed after a later launch or deep link replaced it."
+  - "Fixed a memory leak where launch data was never freed after a deep link updated it."

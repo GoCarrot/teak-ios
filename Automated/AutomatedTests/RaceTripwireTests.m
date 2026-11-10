@@ -366,10 +366,10 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
-// launchDataOperation has no dynamic crash repro here. Its pointee frees, but it's a plain
-// Objective-C object rather than a CF-bridged one, so a reader retaining a freed operation hits no
-// over-release trap — reverting the property to nonatomic stays green under both an isa touch and a
-// CFURL reached through the operation's result. It's pinned as a static atomic-declaration
+// launchDataOperation has no dynamic crash repro here. Its pointee frees, but a repro in the same
+// shape as the ones in this file (2M iterations, writer assigning fresh operations, reader touching
+// either the isa or a CFURL reached through the operation's result) stayed green with the property
+// reverted to nonatomic. Why isn't established. It's pinned as a static atomic-declaration
 // assertion in TeakSessionLockingTests.m instead.
 
 // additionalData's pointee is an NSDictionary, not a CFString. A single non-empty entry forces a

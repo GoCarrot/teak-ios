@@ -22,8 +22,8 @@
 // A behavioral race test for currentState/previousState/reportDurationBlock isn't feasible — on
 // ARM64 aligned pointer reads don't actually tear, so the race is formal (UB / TSan-detectable)
 // rather than observable — and these tests instead pin the declarations to atomic via the
-// Objective-C runtime, failing if any reverts. launchDataOperation's pointee does free, but it has
-// no over-release trap to catch, so it's pinned here the same way. countryCode/userProfile/
+// Objective-C runtime, failing if any reverts. launchDataOperation's pointee does free, but no
+// dynamic repro for it has gone red yet, so it's pinned here the same way. countryCode/userProfile/
 // serverSessionId get the same static pin as a cheap permanent guard, on top of the dynamic repro.
 @interface TeakSessionLockingTests : XCTestCase
 @end
