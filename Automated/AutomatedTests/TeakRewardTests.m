@@ -13,8 +13,7 @@
 extern TeakSession* currentSession;
 
 // onCompleteWithReward is private (declared only in TeakReward.m's class extension);
-// re-exposed here per the project convention of redeclaring internal properties in
-// the test file rather than importing Teak+Internal.h.
+// re-exposed here.
 @interface TeakReward (RewardTests)
 @property (nonatomic, copy, readonly) RewardCompletedWithReward onCompleteWithReward;
 @end
