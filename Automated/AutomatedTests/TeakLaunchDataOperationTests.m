@@ -4,9 +4,6 @@
 
 #import "TeakLaunchData.h"
 
-@import OCHamcrest;
-@import OCMockito;
-
 // Forward-declare TeakConfiguration's init selector so +setUp can seed the
 // singleton without importing TeakConfiguration.h (its transitive imports
 // aren't on the test target's HEADER_SEARCH_PATHS and collide with Teak.h).
@@ -15,8 +12,9 @@
 @end
 
 // Each launch-data operation must deallocate once nothing outside it holds a
-// reference. Every factory is checked: an operation that owns a strong path back
-// to itself never frees, and every launch leaks one.
+// reference: an operation that owns a strong path back to itself never frees, and
+// every launch leaks one. The factories not covered here (push notification, user
+// activity) build through the same initializer as the ones that are.
 @interface TeakLaunchDataOperationTests : XCTestCase
 @end
 
@@ -86,6 +84,17 @@
   }
   XCTAssertNil(weakOriginal);
   XCTAssertNil(weakUpdated);
+}
+
+// A universal link that can't be resolved (here a nil URL, which raises while
+// building the request) must not take the host app down, and must still leave a
+// result for the session to read.
+- (void)testUnresolvableUniversalLinkFinishesWithUnattributedResult {
+  TeakLaunchDataOperation* op = [TeakLaunchDataOperation fromUniversalLink:nil];
+  [op start];
+  XCTAssertTrue(op.isFinished);
+  XCTAssertNotNil(op.result);
+  XCTAssertNil(op.result.launchUrl);
 }
 
 - (void)testResultIsSetOnlyAfterRun {
