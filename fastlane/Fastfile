@@ -7,9 +7,10 @@ platform :ios do
     FileUtils.rm_rf(File.expand_path('../test_output/automated', __dir__))
     scan(
       workspace: 'Automated/Automated.xcworkspace',
-      # RaceTripwireTests is the ThreadSanitizer race regression guard — it carries signal only under
-      # a sanitizer, so it's excluded from this fast (non-TSan) lane to keep it a quick green signal;
-      # the `test_race` lane runs it under TSan on every commit.
+      # RaceTripwireTests is the race regression guard: its crash repros run hundreds of thousands of
+      # iterations and several of its tests carry signal only under a sanitizer, so it's excluded from
+      # this fast (non-TSan) lane to keep it a quick green signal; the `test_race` lane runs it under
+      # TSan on every commit.
       skip_testing: ['AutomatedTests/RaceTripwireTests'],
       output_directory: 'test_output/automated',
       output_files: 'results.xml',
@@ -60,7 +61,7 @@ platform :ios do
       output_types: 'junit',
       xcodebuild_formatter: '',
       # A test that hangs would otherwise stall the lane with no red; xcodebuild fails it after the
-      # allowance. Generous on purpose — these tests are slow by design.
+      # allowance. Generous on purpose — the crash repros run hundreds of thousands of iterations.
       xcargs: '-test-timeouts-enabled YES -default-test-execution-time-allowance 60',
       result_bundle: true,
       include_simulator_logs: true

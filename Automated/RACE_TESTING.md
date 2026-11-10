@@ -42,8 +42,8 @@ dynamic crash repro, static assertion — is only trustworthy once you have:
 
 A test that stays green when you revert the fix guards nothing — it will stay green when the bug
 comes back, too. Do the revert, watch the red, restore the fix, watch the green. Skip this and
-you've written decoration, not a guard. This gate is non-negotiable, and it applies to all three
-techniques equally.
+you've written decoration, not a guard. This gate is non-negotiable, and it applies to every
+technique below equally.
 
 ## 2. ThreadSanitizer: what it catches, what it's blind to
 
@@ -139,7 +139,9 @@ instead (e.g. `NSStringFromClass([obj class]).length`) to force a class-table lo
 traps on freed/reused memory, and expect to need a higher iteration count — roughly 10x — to
 reproduce as deterministically as the CFString case. That 10x is a crash margin, not slack (see §6),
 so for a standing per-commit guard on a plain-object pointee, use the snapshot-retention check in
-§3b instead. Keep this two-thread repro for showing that the production crash is real.
+§3b instead. No standing test uses the plain-object variant any more; reach for it when you need to
+show that a production crash is real. The NSString tests in `RaceTripwireTests.m` are the live
+two-thread repros.
 
 Minimal skeleton (drop into an XCTest case; `raceBlockA:blockB:` is the spin-barrier helper in
 `RaceTripwireTests.m`):
@@ -209,7 +211,8 @@ it needs no iterations and no particular pointee type:
 An atomic getter retains the value under the slot lock and hands back an autoreleased snapshot, so
 the old value survives the setter (§4). A nonatomic synthesized getter returns the bare ivar, so the
 setter frees it and the weak reference zeroes. That's red on revert as an assertion, not a crash.
-The live helper is `-assertGetter:setter:on:keepsSnapshotAliveOf:` in `RaceTripwireTests.m`.
+The live helper is `-assertGetter:setter:on:keepsSnapshotAliveOf:` in
+`AtomicPropertySnapshotTests.m`, which runs in the fast `test` lane since it needs no sanitizer.
 
 Two things it needs to be honest:
 
@@ -217,9 +220,10 @@ Two things it needs to be honest:
   never frees, so it holds the weak reference forever and the test can't go red. The helper asserts
   that the old value is gone once the snapshot's pool drains, which catches this.
 - **A synthesized accessor.** The check pins the accessor's contract, not the timing. A hand-written
-  getter that loads the ivar and then retains it is still racy but would pass. The compiler warns
-  (`-Watomic-property-with-user-defined-accessor`) when an atomic property pairs a user-defined
-  getter with a synthesized setter.
+  getter that loads the ivar and then retains it is still racy but would pass. Don't count on the
+  compiler here: `-Watomic-property-with-user-defined-accessor` fires only when an atomic property
+  pairs a hand-written getter with a synthesized setter (not when both are hand-written), and
+  warnings aren't errors in this project.
 
 ## 4. Why `atomic` fixes the nonatomic-strong UAF
 
@@ -283,7 +287,8 @@ A slow race test is slow for one of two reasons, and only one of them can be tri
   is a lottery ticket, and trimming N trades revert-red reliability for time. Don't trim it; change
   the technique so the window is forced instead of sampled. Exemplar: the plain-object atomic-property
   tripwires in `RaceTripwireTests.m` ran 2M iterations each, 2–4s per test under TSan. They now use
-  the snapshot-retention check (§3b), which is deterministic and takes about a millisecond.
+  the snapshot-retention check (§3b) in `AtomicPropertySnapshotTests.m`, which is deterministic
+  and takes about a millisecond.
 
 To tell them apart, ask what a single iteration needs in order to red. If the answer is "the two
 threads overlap at all," it's iteration-bound. If it's "a free lands in a gap a few instructions
