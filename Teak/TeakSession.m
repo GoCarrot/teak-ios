@@ -93,13 +93,22 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 
 @property (nonatomic) BOOL userIdentificationSent;
-// reportDurationBlock is created and stored under @synchronized(self) in the currentState
-// handler, but its background-queue body reads it lock-free to check for cancellation while
-// resetReportDurationBlock cancels and frees it under the lock. atomic accessors keep that
-// lock-free read from retaining a pointer the setter is releasing out from under it.
+// reportDurationBlock is stored under @synchronized(self) in the currentState handler, outside
+// reportDurationMutex. atomic accessors keep the claim's read (under reportDurationMutex, not
+// self) from retaining a pointer the store is releasing out from under it.
 @property (strong, atomic) dispatch_block_t reportDurationBlock;
+// Makes the duration-report block's "not canceled? mark sent" and -resetReportDurationBlock's
+// "read sent, cancel, clear" mutually exclusive, so a reset either cancels the report before it
+// claims or sees it as sent and resumes — never a sent /session_stop with no /session_resume.
+// A dedicated per-session token, not self: the claim runs on a background queue, and keeping it
+// off self keeps it out of the self<->currentSessionMutex ordering. It's a leaf — nothing taken
+// under it acquires another lock.
+@property (strong, nonatomic, readonly) NSObject* reportDurationMutex;
+// Test-only: called inside the claim, after the cancel check passes and before the report is
+// marked sent. Always nil in production.
+@property (copy, atomic) void (^reportDurationClaimHook)(void);
 // reportDurationSent/sessionVectorClock are C11 atomics, not ObjC `atomic` properties: the
-// duration-report background block writes both lock-free (see the block body below), while
+// duration-report background block writes both under reportDurationMutex only, while
 // sessionVectorClock is also incremented from the currentState observer's @synchronized(self).
 // A plain assignment (identify-reply reset-to-0, init) is already a safe atomic store on this
 // type. sessionVectorClock's `++` is a compound read-modify-write that neither a plain store nor
@@ -461,6 +470,7 @@ DefineTeakState(Expired, (@[]));
     self.deviceConfiguration = configuration.deviceConfiguration;
     self.serverSessionId = nil;
     self.sessionVectorClock = 0;
+    _reportDurationMutex = [[NSObject alloc] init];
 
     // Assign unattributed launch at init
     self.launchDataOperation = [TeakLaunchDataOperation unattributed];
@@ -997,26 +1007,11 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           __strong typeof(self) blockSelf = weakSelf;
           [blockSelf beginBackgroundUpdateTask];
 
-          // Make sure the current reportDurationBlock hasn't been canceled. This body captures
-          // weakSelf (it can't reference itself), so it tests whatever reportDurationBlock holds
-          // now — under a rapid Expiring re-transition that may be a newer block than this one.
-          // This body runs outside @synchronized(self), so a concurrent resetReportDurationBlock
-          // can cancel and nil reportDurationBlock at any moment. Reading it once into a strong
-          // local is load-bearing: it retains the block across dispatch_block_testcancel so the
-          // testcancel can't race the setter's release, and it removes the nil-window a second
-          // read would open (testcancel(nil) crashes). Do not re-read the property here.
-          //
-          // serverSessionId is under the same hazard: the identify-reply callback can reassign it
-          // on another queue at any moment, so the nil-check and the later use below must see the
-          // same value — single-read it here too, rather than re-reading blockSelf.serverSessionId.
-          dispatch_block_t canceledCheckBlock = blockSelf.reportDurationBlock;
+          // serverSessionId can be reassigned by the identify-reply callback on another queue at any
+          // moment, so the nil-check and the later use below must see the same value — single-read it.
           NSString* serverSessionId = blockSelf.serverSessionId;
-          if (canceledCheckBlock != nil && !dispatch_block_testcancel(canceledCheckBlock) && serverSessionId != nil) {
-            // reportDurationSent/sessionVectorClock are atomic-typed (see the class extension), so
-            // this store and fetch-add are each safe against the KVO observer's resume-path
-            // increment on another thread without taking any lock here.
-            int vectorClock = [blockSelf markReportDurationSentAndIncrementSessionVectorClock];
-
+          int vectorClock = 0;
+          if (serverSessionId != nil && [blockSelf claimReportDuration:&vectorClock]) {
             // Send request for "if you don't hear back from me, this session ended now"
             NSDictionary* payload = @{
               @"session_id" : TeakURLEscapedString(serverSessionId),
@@ -1062,14 +1057,40 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   return [self incrementSessionVectorClock];
 }
 
-- (BOOL)resetReportDurationBlock {
-  BOOL lastReportDurationSent = self.reportDurationSent;
-  if (self.reportDurationBlock) {
-    dispatch_block_cancel(self.reportDurationBlock);
-    self.reportDurationBlock = nil;
-    self.reportDurationSent = NO;
+// Called from the duration-report block. Returns YES (and the post-increment vector clock) if the
+// current reportDurationBlock hasn't been canceled, marking the report sent. The block captures
+// weakSelf, not itself, so this tests whatever reportDurationBlock holds now — under a rapid Expiring
+// re-transition that may be a newer block than the caller. Read once into a strong local: it
+// retains the block across dispatch_block_testcancel and avoids testcancel(nil), which crashes.
+- (BOOL)claimReportDuration:(int*)outVectorClock {
+  @synchronized(self.reportDurationMutex) {
+    dispatch_block_t block = self.reportDurationBlock;
+    if (block == nil || dispatch_block_testcancel(block)) {
+      return NO;
+    }
+    void (^hook)(void) = self.reportDurationClaimHook;
+    if (hook != nil) {
+      hook();
+    }
+    *outVectorClock = [self markReportDurationSentAndIncrementSessionVectorClock];
+    return YES;
   }
-  return lastReportDurationSent;
+}
+
+// Cancels any pending duration report and returns whether one was already sent (so the caller owes
+// the server a /session_resume). Shares reportDurationMutex with -claimReportDuration: so a report
+// can't be claimed between reading reportDurationSent and canceling.
+- (BOOL)resetReportDurationBlock {
+  @synchronized(self.reportDurationMutex) {
+    BOOL lastReportDurationSent = self.reportDurationSent;
+    dispatch_block_t block = self.reportDurationBlock;
+    if (block != nil) {
+      dispatch_block_cancel(block);
+      self.reportDurationBlock = nil;
+    }
+    self.reportDurationSent = NO;
+    return lastReportDurationSent;
+  }
 }
 
 - (void)beginBackgroundUpdateTask {
