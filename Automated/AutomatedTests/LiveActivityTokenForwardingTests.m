@@ -1,20 +1,59 @@
 #import <XCTest/XCTest.h>
 
+#import "TeakConfiguration.h"
+#import "TeakLiveActivityTokenCache.h"
 #import "TeakOperationTestDriver.h"
+#import "TeakSession.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
 
+extern TeakSession* currentSession;
+extern Teak* _teakSharedInstance;
+
+@interface Teak (LiveActivityTokenForwardingTests)
+@property (strong, nonatomic) NSOperationQueue* _Nonnull operationQueue;
+@end
+
+@interface TeakSession (LiveActivityTokenForwardingTests)
++ (void)logoutReusingCurrentSession:(BOOL)reuseSession;
+- (void)detachDeviceConfigurationObservers;
+@end
+
 @interface LiveActivityTokenForwardingTests : XCTestCase
 @property (nonatomic) TeakOperationTestDriver* driver;
+@property (nonatomic) Teak* savedSharedInstance;
 @end
 
 @implementation LiveActivityTokenForwardingTests
 
+// The user-change test drives a real session, which reads TeakConfiguration.
++ (void)setUp {
+  [super setUp];
+  @try {
+    [TeakConfiguration configureForAppId:@"test-app" andSecret:@"test-secret"];
+  } @catch (NSException* exception) {
+    // Already initialized by another test.
+  }
+}
+
 - (void)setUp {
   [super setUp];
   self.driver = [[TeakOperationTestDriver alloc] init];
+  self.savedSharedInstance = _teakSharedInstance;
+  // Running an operation that unexpectedly turned into a real request would block forever.
+  self.continueAfterFailure = NO;
+  // The cache is process-wide and most tests here forward the same activity and token.
+  [[TeakLiveActivityTokenCache sharedCache] reset];
+}
+
+- (void)tearDown {
+  // A real session stays a live deviceConfiguration KVO observer until detached.
+  [currentSession detachDeviceConfigurationObservers];
+  currentSession = nil;
+  _teakSharedInstance = self.savedSharedInstance;
+  [super tearDown];
 }
 
 #pragma mark - Helpers
@@ -28,6 +67,20 @@
   return [Teak startedLiveActivity:@"my-activity"
                          withToken:[self sampleTokenData]
                   systemActivityId:@"system-activity-uuid"];
+}
+
+- (TeakOperation*)operationWithToken:(NSData*)token {
+  return [Teak startedLiveActivity:@"my-activity" withToken:token systemActivityId:@"system-activity-uuid"];
+}
+
+- (NSData*)otherTokenData {
+  unsigned char bytes[] = {0x01, 0x02, 0x03, 0x04};
+  return [NSData dataWithBytes:bytes length:sizeof(bytes)];
+}
+
+// A request-backed operation carries {endpoint, payload}; a skipped one just carries its result.
+- (BOOL)sendsRequest:(TeakOperation*)op {
+  return op.invocation.selector == NSSelectorFromString(@"performRequest:");
 }
 
 #pragma mark - Input validation: activityId
@@ -183,6 +236,89 @@
   XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"invalid_device");
   XCTAssertNotNil(result.errors[@"device_id"]);
+}
+
+#pragma mark - Dedupe
+
+// Dedupe only claims when there is a queue to send on. The queue is suspended so nothing runs, and
+// the operations are inspected rather than run.
+- (void)installSharedInstance {
+  Teak* teak = [[Teak alloc] init];
+  teak.operationQueue = [[NSOperationQueue alloc] init];
+  teak.operationQueue.suspended = YES;
+  _teakSharedInstance = teak;
+}
+
+- (void)testNoSharedInstanceMeansNoClaim {
+  _teakSharedInstance = nil;
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  XCTAssertTrue([self sendsRequest:[self validOperation]], @"Without a queue nothing was sent, so the next emission must not be skipped");
+}
+
+- (void)testRepeatedTokenIsNotForwardedAgain {
+  [self installSharedInstance];
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+
+  TeakOperation* repeat = [self validOperation];
+  XCTAssertFalse([self sendsRequest:repeat], @"Same activity, token and system id should be skipped");
+
+  TeakOperationResult* result = (TeakOperationResult*)[self.driver requestParamsFor:repeat];
+  XCTAssertFalse(result.error, @"A skipped forward still reports ok");
+  XCTAssertEqualObjects(result.status, @"ok");
+}
+
+- (void)testChangedTokenIsForwarded {
+  [self installSharedInstance];
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  XCTAssertTrue([self sendsRequest:[self operationWithToken:[self otherTokenData]]]);
+}
+
+- (void)testChangedSystemActivityIdIsForwarded {
+  [self installSharedInstance];
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  TeakOperation* op = [Teak startedLiveActivity:@"my-activity" withToken:[self sampleTokenData] systemActivityId:@"other-system-activity-uuid"];
+  XCTAssertTrue([self sendsRequest:op]);
+}
+
+- (void)testChangedActivityIdIsForwarded {
+  [self installSharedInstance];
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  TeakOperation* op = [Teak startedLiveActivity:@"other-activity" withToken:[self sampleTokenData] systemActivityId:@"system-activity-uuid"];
+  XCTAssertTrue([self sendsRequest:op]);
+}
+
+- (void)testSuccessfulReplyKeepsTheTokenDeduped {
+  [self installSharedInstance];
+  TeakOperation* first = [self validOperation];
+  first.replyParser(@{@"status" : @"ok"});
+
+  XCTAssertFalse([self sendsRequest:[self validOperation]]);
+}
+
+- (void)testErrorReplyLetsTheSameTokenBeForwardedAgain {
+  [self installSharedInstance];
+  TeakOperation* first = [self validOperation];
+  first.replyParser(@{@"status" : @"invalid_device", @"errors" : @{@"device_id" : @[ @"not found" ]}});
+
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+}
+
+- (void)testInvalidArgumentsDoNotClaimTheCache {
+  [self installSharedInstance];
+  TeakOperation* bad = [Teak startedLiveActivity:@"my-activity" withToken:[self sampleTokenData] systemActivityId:@""];
+  XCTAssertFalse([self sendsRequest:bad]);
+
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+}
+
+- (void)testUserChangeLetsTheSameTokenBeForwardedAgain {
+  [self installSharedInstance];
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  XCTAssertFalse([self sendsRequest:[self validOperation]]);
+
+  [TeakSession logoutReusingCurrentSession:NO];
+
+  XCTAssertTrue([self sendsRequest:[self validOperation]]);
 }
 
 @end
