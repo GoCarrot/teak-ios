@@ -3,12 +3,10 @@
 
 #import "SKPaymentObserver.h"
 #import "TeakAppConfiguration.h"
-#import "TeakChannelStatus.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLink.h"
 #import "TeakLog.h"
-#import "TeakPushState.h"
 #import "TeakRaven.h"
 #import "TeakSession.h"
 #import "TeakUserProfile.h"
@@ -27,21 +25,24 @@ extern NSString* const currentSessionMutex;
 
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Three
-// kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
-// userProfile/stateChain/facebookAccessToken/additionalData/emailStatus/pushStatus/smsStatus, and
-// TeakDeviceConfiguration's pushToken/liveActivityPushToStartToken/advertisingIdentifier/
-// notificationDisplayEnabled) that carry signal on their own, ThreadSanitizer-only serialization
-// guards (the attribute-dict test and the ProductRequest active-requests test) that need the
-// sanitizer to see the race at all, and a lock-inversion deadlock guard (the UserIdentified-transition
-// test) that forces an AB-BA interleaving and catches the hang with a watchdog rather than any
-// data-race signal. All run every commit, just on different lanes: the `test` lane skips this whole
-// class to keep the fast per-commit signal quick — the crash repros are too slow (up to 2M
-// iterations) for it, and the serialization tests need TSan anyway. The `test_race` lane runs all of
-// them, every commit, with ThreadSanitizer attached for the tests that need it, and additionally
-// gates tagged-build releases.
+// kinds of guard live here: CF-over-release crash repros (serverSessionId/countryCode/
+// facebookAccessToken, and TeakDeviceConfiguration's pushToken/liveActivityPushToStartToken/
+// advertisingIdentifier/notificationDisplayEnabled) that carry signal on their own,
+// ThreadSanitizer-only serialization guards (the attribute-dict test and the ProductRequest
+// active-requests test) that need the sanitizer to see the race at all, and a lock-inversion deadlock
+// guard (the UserIdentified-transition test) that forces an AB-BA interleaving and catches the hang
+// with a watchdog rather than any data-race signal. All run every commit, just on different lanes:
+// the `test` lane skips this whole class to keep the fast per-commit signal quick — the crash repros
+// are too slow (200k iterations) for it, and the serialization tests need TSan anyway. The
+// `test_race` lane runs all of them, every commit, with ThreadSanitizer attached for the tests that
+// need it, and additionally gates tagged-build releases.
+//
+// The atomic properties with plain-object pointees (logListener, onComplete, userProfile,
+// additionalData, the channel statuses, stateChain) are guarded by deterministic snapshot checks in
+// AtomicPropertySnapshotTests.m instead, which the fast lane runs.
 //
 // launchDataOperation is atomic+capture-to-local too (see TeakSession.m), but its pointee never
-// frees — see the comment near testAdditionalDataIsAtomicUnderConcurrency below — so it's pinned
+// frees — see the comment after testFacebookAccessTokenIsAtomicUnderConcurrency below — so it's pinned
 // as a static atomic-declaration assertion in TeakSessionLockingTests.m instead.
 //
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which race
@@ -84,18 +85,12 @@ extern NSString* const currentSessionMutex;
 @end
 
 // countryCode/serverSessionId/facebookAccessToken are private (declared only in TeakSession.m's
-// class extension); userProfile/additionalData/emailStatus/pushStatus/smsStatus are public but
-// readonly there. Re-declared here for full read-write access, per the project convention of
+// class extension). Re-declared here for full read-write access, per the project convention of
 // redeclaring internal properties in the test file rather than importing Teak+Internal.h.
 @interface TeakSession (RaceTripwire)
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, atomic) NSString* facebookAccessToken;
-@property (strong, atomic, readwrite) TeakUserProfile* userProfile;
-@property (strong, atomic, readwrite) NSDictionary* additionalData;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 - (void)detachDeviceConfigurationObservers;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
@@ -123,13 +118,6 @@ extern NSString* const currentSessionMutex;
 @interface ProductRequest (RaceTripwire)
 + (void)addActiveProductRequest:(ProductRequest*)request;
 + (void)removeActiveProductRequest:(ProductRequest*)request;
-@end
-
-// stateChain is private (declared only in TeakPushState.m's class extension). Re-declared here
-// for full read-write access, per the project convention of redeclaring internal properties in
-// the test file rather than importing Teak+Internal.h (which doesn't expose it either).
-@interface TeakPushState (RaceTripwire)
-@property (strong, atomic) NSArray* stateChain;
 @end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
@@ -223,11 +211,11 @@ static NSMutableArray* keepAliveBareSessions;
   return session;
 }
 
-// Session strong-property use-after-free repro (CF over-release trap). countryCode, userProfile,
-// and serverSessionId are reassigned in the identify-reply request callback while read cross-thread
-// by the heartbeat queue and the duration-report background block. A nonatomic strong reassignment
-// on one thread races a read+retain on another, retaining a pointer that's being freed underneath
-// it. See Automated/RACE_TESTING.md §3 for the technique this drives: fresh, distinct >15-char
+// Session strong-property use-after-free repro (CF over-release trap). countryCode and
+// serverSessionId (and userProfile, guarded in AtomicPropertySnapshotTests.m) are reassigned in the
+// identify-reply request callback while read cross-thread by the heartbeat queue and the
+// duration-report background block. A nonatomic strong reassignment on one thread races a
+// read+retain on another, retaining a pointer that's being freed underneath it. See Automated/RACE_TESTING.md §3 for the technique this drives: fresh, distinct >15-char
 // heap-allocated values on the writer side (short NSStrings become tagged pointers that never
 // free, giving a false green), a spin-barrier so both threads race for their full duration, and a
 // dereference (not just a pointer bind) on the reader side so a use-after-free lands inside the
@@ -264,93 +252,6 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
-// logListener's pointee is a block — a plain object once it captures data and escapes to the heap,
-// freeable like any other Objective-C object. Host apps can reassign it from any thread at any time
-// (it's the public "active log listener" property) while every SDK log call reads and invokes it on
-// its own thread — the same nonatomic-strong freeable-pointee shape as userProfile below. Touching
-// the isa via NSStringFromClass forces the same reliable class-table-lookup trap that userProfile
-// needed; invoking the block is an additional dereference through its own invoke pointer. Confirmed
-// both ways: crashes reliably with logListener reverted to nonatomic (and/or TeakLog.m's read
-// reverted to calling the getter twice), clean with atomic + single-read capture restored.
-- (void)testLogListenerIsAtomicUnderConcurrency {
-  Teak* teak = [[Teak alloc] init];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      NSString* tag = [[NSString alloc] initWithFormat:@"race-loglistener-value-%d", i];
-      // Capturing tag is load-bearing: a captureless block literal is __NSGlobalBlock__
-      // (static, never heap-copied, never freed) and wouldn't reproduce the UAF at all.
-      teak.logListener = ^(NSString* event, NSString* level, NSDictionary* eventData) {
-        (void)tag;
-      };
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                TeakLogListener listener = teak.logListener;
-                if (listener) {
-                  (void)NSStringFromClass([listener class]).length;
-                  listener(@"race", @"INFO", nil);
-                }
-              }
-            }];
-}
-
-// TeakReward.onComplete is the same host-settable block-UAF shape as logListener above: a public,
-// host-settable nonatomic-strong property whose pointee (the block) is a plain freeable object once
-// it captures data and escapes to the heap. The reward-click reply callback (TeakReward.m) reads it
-// into a single local before invoking, so this guards the property's atomicity itself, not a
-// check-then-call double-read. Confirmed both ways: crashes reliably with onComplete reverted to
-// nonatomic, clean with atomic restored.
-- (void)testOnCompleteIsAtomicUnderConcurrency {
-  TeakReward* reward = [[TeakReward alloc] init];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      NSString* tag = [[NSString alloc] initWithFormat:@"race-oncomplete-value-%d", i];
-      // Capturing tag is load-bearing: a captureless block literal is __NSGlobalBlock__
-      // (static, never heap-copied, never freed) and wouldn't reproduce the UAF at all.
-      reward.onComplete = ^{
-        (void)tag;
-      };
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                RewardCompleted completion = reward.onComplete;
-                if (completion) {
-                  (void)NSStringFromClass([completion class]).length;
-                  completion();
-                }
-              }
-            }];
-}
-
-// userProfile's pointee is a plain object, not a CFString — reading .stringAttributes.count alone
-// wasn't a reliable enough dereference to reproduce (freed memory quickly reused by the next
-// same-shaped allocation reads back as "valid"); touching the isa via NSStringFromClass forces a
-// class-table lookup that reliably traps on the freed/reused pointer, at a higher iteration count
-// than the two NSString properties above needed. Confirmed both ways: crashes reliably with
-// userProfile reverted to nonatomic, clean with atomic restored.
-- (void)testUserProfileIsAtomicUnderConcurrency {
-  TeakSession* session = [self bareSessionKeptAlive];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      RaceGuardUserProfile* profile = [[RaceGuardUserProfile alloc] init];
-      profile.stringAttributes = [@{@"seed" : [[NSString alloc] initWithFormat:@"race-userprofile-value-%d", i]} mutableCopy];
-      session.userProfile = profile;
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                TeakUserProfile* p = session.userProfile;
-                (void)NSStringFromClass([p class]).length;
-                (void)p.stringAttributes.count;
-              }
-            }];
-}
-
 // facebookAccessToken is reassigned lock-free in -handleEvent: (the Facebook SDK's own callback,
 // an arbitrary thread) while sendUserIdentifier reads it under @synchronized(self) — that lock
 // doesn't cover the writer. Same CFString-backed repro as countryCode/serverSessionId above.
@@ -376,80 +277,6 @@ static NSMutableArray* keepAliveBareSessions;
 // operation→invocation→operation retain cycle that ARC can't break, so the pointee never frees
 // and there's no dealloc-during-read window to catch. It's pinned as a static atomic-declaration
 // assertion in TeakSessionLockingTests.m instead (same treatment as currentState/previousState).
-
-// additionalData's pointee is an NSDictionary, not a CFString. A single non-empty entry forces a
-// real heap-allocated dictionary — an empty dictionary literal returns a shared singleton that
-// never deallocates and would false-green this test.
-- (void)testAdditionalDataIsAtomicUnderConcurrency {
-  TeakSession* session = [self bareSessionKeptAlive];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      session.additionalData = @{@"seed" : [[NSString alloc] initWithFormat:@"race-additionaldata-value-%d", i]};
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                NSDictionary* d = session.additionalData;
-                (void)NSStringFromClass([d class]).length;
-                (void)d.count;
-              }
-            }];
-}
-
-// emailStatus/pushStatus/smsStatus are plain TeakChannelStatus objects — same isa-touch technique
-// as userProfile above. +unknown is a dispatch_once singleton that never deallocates; -[TeakChannelStatus
-// initWithDictionary:] with a recognized state string gives a genuine fresh alloc on every call instead.
-- (void)testEmailStatusIsAtomicUnderConcurrency {
-  TeakSession* session = [self bareSessionKeptAlive];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      session.emailStatus = [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                TeakChannelStatus* status = session.emailStatus;
-                (void)NSStringFromClass([status class]).length;
-                (void)status.state.length;
-              }
-            }];
-}
-
-- (void)testPushStatusIsAtomicUnderConcurrency {
-  TeakSession* session = [self bareSessionKeptAlive];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      session.pushStatus = [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                TeakChannelStatus* status = session.pushStatus;
-                (void)NSStringFromClass([status class]).length;
-                (void)status.state.length;
-              }
-            }];
-}
-
-- (void)testSmsStatusIsAtomicUnderConcurrency {
-  TeakSession* session = [self bareSessionKeptAlive];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      session.smsStatus = [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                TeakChannelStatus* status = session.smsStatus;
-                (void)NSStringFromClass([status class]).length;
-                (void)status.state.length;
-              }
-            }];
-}
 
 // sessionVectorClock lost-update repro (scalar read-modify-write, see RACE_TESTING.md §3a/§1's
 // fourth class). Unlike the UAF tests above, the pointee here can't be freed and the aligned
@@ -567,7 +394,7 @@ static NSMutableArray* keepAliveBareSessions;
 // a main-queue retry); notificationDisplayEnabled from the pushState operation queue's completion
 // block. All four are read cross-thread by TeakSession's operation queue while building the identify
 // payload (TeakSession.m's sendUserIdentifier/dispatchUserDataEvent). Same technique as the
-// TeakSession properties above — all four are plain NSStrings, so no isa-touch needed. Green now
+// TeakSession properties above — all four are plain NSStrings. Green now
 // (atomic).
 - (void)testPushTokenIsAtomicUnderConcurrency {
   TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
@@ -629,34 +456,6 @@ static NSMutableArray* keepAliveBareSessions;
               for (int i = 0; i < N; i++) {
                 NSString* s = config.notificationDisplayEnabled;
                 (void)s.length;
-              }
-            }];
-}
-
-// TeakPushState.stateChain is written under @synchronized(self) in updateCurrentState: but read
-// lock-free by cachedPushState and serializedStateChain. COW discipline means the writer already
-// swaps in a whole new array rather than mutating in place — but the old array is still freed on
-// swap, so a nonatomic-strong reassignment on one thread races a read+retain on another, same as
-// serverSessionId/countryCode/userProfile above. The array itself is a plain object (not a
-// CFString), and its element (a single string) is short-lived per iteration too, so — like
-// userProfile — a shallow read (e.g. .count alone) risks a same-shaped-allocation false green;
-// isa-touch via NSStringFromClass plus .count, at userProfile's higher iteration count, reproduces
-// reliably. Uses a bare `[TeakPushState alloc]` (no -init) since the test only drives the
-// stateChain accessor — -init would register a TeakEvent handler and spin up an operation queue
-// neither of which this repro needs.
-- (void)testStateChainIsAtomicUnderConcurrency {
-  TeakPushState* pushState = [TeakPushState alloc];
-  const int N = 2000000;
-  [self raceBlockA:^{
-    for (int i = 0; i < N; i++) {
-      pushState.stateChain = @[ [[NSString alloc] initWithFormat:@"race-statechain-value-%d", i] ];
-    }
-  }
-            blockB:^{
-              for (int i = 0; i < N; i++) {
-                NSArray* chain = pushState.stateChain;
-                (void)NSStringFromClass([chain class]).length;
-                (void)chain.count;
               }
             }];
 }

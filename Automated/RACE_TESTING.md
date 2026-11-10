@@ -42,8 +42,8 @@ dynamic crash repro, static assertion — is only trustworthy once you have:
 
 A test that stays green when you revert the fix guards nothing — it will stay green when the bug
 comes back, too. Do the revert, watch the red, restore the fix, watch the green. Skip this and
-you've written decoration, not a guard. This gate is non-negotiable, and it applies to all three
-techniques equally.
+you've written decoration, not a guard. This gate is non-negotiable, and it applies to every
+technique below equally.
 
 ## 2. ThreadSanitizer: what it catches, what it's blind to
 
@@ -137,7 +137,11 @@ pointee, a shallow property/ivar read can false-green — freed memory gets reus
 allocation quickly enough that the read lands on something that still looks "valid." Touch the isa
 instead (e.g. `NSStringFromClass([obj class]).length`) to force a class-table lookup that reliably
 traps on freed/reused memory, and expect to need a higher iteration count — roughly 10x — to
-reproduce as deterministically as the CFString case.
+reproduce as deterministically as the CFString case. That 10x is a crash margin, not slack (see §6),
+so for a standing per-commit guard on a plain-object pointee, use the snapshot-retention check in
+§3b instead. No standing test uses the plain-object variant; reach for it when you need to show
+that a production crash is real. The NSString tests in `RaceTripwireTests.m` are the live
+two-thread repros.
 
 Minimal skeleton (drop into an XCTest case; `raceBlockA:blockB:` is the spin-barrier helper in
 `RaceTripwireTests.m`):
@@ -193,6 +197,34 @@ underlying `atomic_int`). No crash needed — reverting either method to a bare
 `self.sessionVectorClock++` on the same atomic-typed property still reliably drops tickets at a few
 hundred thousand iterations, same revert-check bar as everything else in this doc.
 
+## 3b. The snapshot-retention check (deterministic, for the same UAF)
+
+The crash repro samples the load→retain window. This check stands in it instead, on one thread, so
+it needs no iterations and no particular pointee type:
+
+1. Seed the property with a fresh heap object, so the property is its only owner.
+2. Call the real getter through an `objc_msgSend` cast that returns `void*`. ARC adds no retain of
+   its own, so this is the reader that has loaded the pointer but not yet retained it.
+3. Call the real setter with a new value. That's the writer's release.
+4. Assert that a `__weak` reference to the old value is still non-nil.
+
+An atomic getter retains the value under the slot lock and hands back an autoreleased snapshot, so
+the old value survives the setter (§4). A nonatomic synthesized getter returns the bare ivar, so the
+setter frees it and the weak reference zeroes. That's red on revert as an assertion, not a crash.
+The live helper is `-assertGetter:setter:on:keepsSnapshotAliveOf:` in
+`AtomicPropertySnapshotTests.m`, which runs in the fast `test` lane since it needs no sanitizer.
+
+Two things it needs to be honest:
+
+- **A freeable value.** A tagged pointer or shared singleton (`@[]`, `+[TeakChannelStatus unknown]`)
+  never frees, so it holds the weak reference forever and the test can't go red. The helper asserts
+  that the old value is gone once the snapshot's pool drains, which catches this.
+- **A synthesized accessor.** The check pins the accessor's contract, not the timing. A hand-written
+  getter that loads the ivar and then retains it is still racy but would pass. Don't count on the
+  compiler here: `-Watomic-property-with-user-defined-accessor` fires only when an atomic property
+  pairs a hand-written getter with a synthesized setter (not when both are hand-written), and
+  warnings aren't errors in this project.
+
 ## 4. Why `atomic` fixes the nonatomic-strong UAF
 
 Declaring the property `atomic` (strong) routes reads through `objc_getProperty`, which **retains
@@ -242,12 +274,33 @@ structural — assert the removal is idempotent and that replacement determinist
 outgoing session (see `RaceTripwireTests`), rather than trying to trap the corruption. The revert
 check still applies: drop the flag or the detach call and watch the structural assertions go red.
 
-## 6. Quick reference
+## 6. Iteration-bound vs margin-bound — classify before trimming
+
+A slow race test is slow for one of two reasons, and only one of them can be trimmed.
+
+- **Iteration-bound.** The collision is structural: any overlap of the two sides reds it, so
+  iterations past the first overlap are waste. Trim N against a measured red rate: revert the fix,
+  measure red at a few lower N, pick a value well above the floor, then validate the shipped
+  constants end to end (§2). Exemplar: `TeakBatchedRequestRaceTests` — the mutate-while-enumerate
+  test reds 50/50 at N=100 and ships at N=1000 (~0.4s, was ~16s).
+- **Margin-bound.** N *is* the probability of landing in a sub-microsecond window. Every iteration
+  is a lottery ticket, and trimming N trades revert-red reliability for time. Don't trim it; change
+  the technique so the window is forced instead of sampled. Exemplar: the plain-object
+  atomic-property guards. As two-thread repros at 2M iterations each, they take 2–4s per test under
+  TSan; as snapshot-retention checks (§3b, `AtomicPropertySnapshotTests.m`) they're deterministic
+  and take about a millisecond.
+
+To tell them apart, ask what a single iteration needs in order to red. If the answer is "the two
+threads overlap at all," it's iteration-bound. If it's "a free lands in a gap a few instructions
+wide," it's margin-bound.
+
+## 7. Quick reference
 
 | Shared state | Detector | Signal | Example source |
 |---|---|---|---|
 | Mutable container (dict/array) | ThreadSanitizer | `race on NSMutableDictionary` | `userProfile` string-attributes dict |
 | nonatomic-strong, freeable pointee | Dynamic crash repro (CF over-release trap) | `SIGTRAP` in `_CFRelease` | `TeakSession.serverSessionId` |
+| nonatomic-strong, freeable pointee (deterministic) | Snapshot-retention check (§3b) | weak ref zeroed, assertion red | `TeakSession.userProfile`, `Teak.logListener` |
 | static/ivar strong pointer, return outside lock | ThreadSanitizer (partial) + measured rounds multiplier | race report **or** crash, rate ≈ crash rate | `TeakTrackEventBatchedRequest.currentBatch` |
 | Immortal scalar/pointer | Static atomic-declaration assertion | assertion red | state-machine fields |
 | Cross-object KVO add/remove (shared observee) | Structural assertion (idempotent removal + detached-at-replacement) | assertion red | `TeakSession` deviceConfiguration observers |

@@ -14,7 +14,9 @@
 //     seen in production as an EXC_BAD_ACCESS in dispatch_block_testcancel).
 //   - countryCode / userProfile / serverSessionId are reassigned in the identify-reply request
 //     callback while read cross-thread by the heartbeat queue and the duration-report background
-//     block. See RaceTripwireTests.m for the dynamic use-after-free repro backing these three.
+//     block. countryCode/serverSessionId have dynamic use-after-free repros in
+//     RaceTripwireTests.m; userProfile has a deterministic snapshot check in
+//     AtomicPropertySnapshotTests.m.
 //   - launchDataOperation is reassigned in the same identify-reply callback while read from
 //     several call sites. See RaceTripwireTests.m for why it has no dynamic repro: its pointee
 //     (a TeakLaunchDataOperation, an NSInvocationOperation subclass) targets itself in its own
@@ -26,7 +28,7 @@
 // TSan-detectable) rather than observable (or, for launchDataOperation, there's no free-then-reuse
 // window at all) — and these tests instead pin the declarations to atomic via the Objective-C
 // runtime, failing if any reverts. countryCode/userProfile/serverSessionId get the same static pin
-// here as a cheap permanent guard, on top of the dynamic repro.
+// here as a cheap permanent guard, on top of those behavioral tests.
 @interface TeakSessionLockingTests : XCTestCase
 @end
 
