@@ -286,6 +286,7 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u);
 
   NSArray* ids = [self wireRequestIdsOf:profile];
+  XCTAssertTrue([ids[0] isKindOfClass:[NSString class]], @"no request_id on the wire");
   XCTAssertEqualObjects(ids[0], ids[1], @"a retry went out with a different request_id");
 }
 
