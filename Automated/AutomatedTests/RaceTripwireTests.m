@@ -17,9 +17,7 @@
 @import OCHamcrest;
 @import OCMockito;
 
-// Teak+Internal.h can't be imported here: it pulls in <Teak/Teak.h> as a module and then textually
-// includes headers the module already provides (TeakUserConfiguration.h, TeakLink.h), which fails
-// with duplicate interface definitions. The few Teak members the tests need are re-declared instead.
+// Teak+Internal.h can't be imported into the test target (see CLAUDE.md), so redeclare what's needed.
 @interface Teak (RaceTripwire)
 + (dispatch_queue_t)operationQueue;
 @end
