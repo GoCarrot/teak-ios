@@ -42,7 +42,8 @@ The generator creates a boilerplate XCTest file with OCMockito/OCHamcrest import
 **Header imports in tests:**
 - SDK source headers via bare name: `#import "TeakPushState.h"` (HEADER_SEARCH_PATHS covers all SDK subdirectories)
 - Framework public headers: `#import <Teak/Teak.h>`
-- To access internal properties, re-declare them in a class extension in the test file rather than importing `Teak+Internal.h` (which pulls in headers not on the test target's search path)
+- Atomicity pins: `#import "AtomicPropertyAssertions.h"` and `XCTAssertTrue(isAtomicProperty([Cls class], "prop"), ...)`
+- To access internal properties, import the matching private header (`TeakSession+Internal.h`, `TeakRequest+Internal.h`, ...) rather than re-declaring them in a class extension in the test file. Private class extensions live in `Teak/**/<Class>+Internal.h`; when a test needs something that's only declared in a `.m`, move that declaration into the class's `+Internal.h` instead of redeclaring it. The exception is `Teak+Internal.h`: it pulls `<Teak/Teak.h>` in as a module and then textually includes headers the module already provides, which fails in the test target with duplicate interface definitions, so redeclare the `Teak` members you need.
 
 **Creating Teak instances for testing:**
 `[[Teak alloc] init]` bypasses `initWithApplicationId:andSecret:` and creates a bare instance with nil properties. This is safe for unit testing where you set only the properties under test. Production code must always use `[Teak sharedInstance]`.

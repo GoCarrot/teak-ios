@@ -1,4 +1,5 @@
 #import "TeakPushState.h"
+#import "TeakPushState+Internal.h"
 #import "TeakLog.h"
 #import <UserNotifications/UNNotificationSettings.h>
 #import <UserNotifications/UNUserNotificationCenter.h>
@@ -90,14 +91,6 @@ extern UNNotificationSettings* UNNotificationCenterSettingsSync(void);
   //if (self.state == entry.state)
   return NO;
 }
-@end
-
-@interface TeakPushState ()
-
-@property (strong, atomic) NSArray* stateChain;
-@property (strong, nonatomic) NSOperationQueue* operationQueue;
-
-- (TeakPushStateChainEntry*)determineCurrentPushStateBlocking;
 @end
 
 @implementation TeakPushState
