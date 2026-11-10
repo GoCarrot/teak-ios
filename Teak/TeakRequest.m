@@ -344,13 +344,14 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
   // The same request id must mean the same logical send to the server, so a send
   // after the first gets a new one. Retries go through -transmit and keep it.
-  if (self.sendDate != nil) {
+  if (self.hasStartedSend) {
     NSString* requestId = [TeakRequest generateRequestId];
     NSMutableDictionary* payload = [self.payload mutableCopy];
     if (payload[@"request_id"] != nil) payload[@"request_id"] = requestId;
     self.requestId = requestId;
     self.payload = payload;
   }
+  self.hasStartedSend = YES;
   [self transmit];
 }
 

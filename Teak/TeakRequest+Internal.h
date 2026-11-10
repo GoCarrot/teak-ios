@@ -18,6 +18,8 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (nonatomic, readwrite) BOOL blackhole;
 // Atomic only to prevent torn reads: -send resets it on the sender's queue while the response handler reads it.
 @property (atomic) NSUInteger socketErrorRetryCount;
+// Set by the first -send, so a later one knows to mint a new request id.
+@property (atomic) BOOL hasStartedSend;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
