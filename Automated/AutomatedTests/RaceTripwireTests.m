@@ -1,15 +1,12 @@
 #import <XCTest/XCTest.h>
-#import <objc/message.h>
 #import <stdatomic.h>
 
 #import "SKPaymentObserver.h"
 #import "TeakAppConfiguration.h"
-#import "TeakChannelStatus.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakLink.h"
 #import "TeakLog.h"
-#import "TeakPushState.h"
 #import "TeakRaven.h"
 #import "TeakSession.h"
 #import "TeakUserProfile.h"
@@ -26,15 +23,13 @@ extern TeakSession* currentSession;
 // test can hold it directly to model a lifecycle transition that took the mutex.
 extern NSString* const currentSessionMutex;
 
-// Race-detection regression guard. Drives a real Teak type under concurrency (or, for the snapshot
-// guards, stands in the race window directly) and pins an invariant a detector can observe, so a red
-// run means a real regression — the fix it guards was reverted. Four kinds of guard live here: CF-over-release crash repros (serverSessionId/countryCode/
+// Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
+// detector can observe, so a red run means a real regression — the fix it guards was reverted. Three
+// kinds of guard live here: CF-over-release crash repros (serverSessionId/countryCode/
 // facebookAccessToken, and TeakDeviceConfiguration's pushToken/liveActivityPushToStartToken/
-// advertisingIdentifier/notificationDisplayEnabled) that race two threads and carry signal on their
-// own; snapshot-retention guards (logListener/onComplete/userProfile/additionalData/emailStatus/
-// pushStatus/smsStatus/stateChain) that pin the same atomic-getter fix deterministically on one
-// thread; ThreadSanitizer-only serialization guards (the attribute-dict test and the ProductRequest
-// active-requests test) that need the sanitizer to see the race at all; and a lock-inversion deadlock
+// advertisingIdentifier/notificationDisplayEnabled) that carry signal on their own,
+// ThreadSanitizer-only serialization guards (the attribute-dict test and the ProductRequest
+// active-requests test) that need the sanitizer to see the race at all, and a lock-inversion deadlock
 // guard (the UserIdentified-transition test) that forces an AB-BA interleaving and catches the hang
 // with a watchdog rather than any data-race signal. All run every commit, just on different lanes:
 // the `test` lane skips this whole class to keep the fast per-commit signal quick — the crash repros
@@ -42,8 +37,12 @@ extern NSString* const currentSessionMutex;
 // `test_race` lane runs all of them, every commit, with ThreadSanitizer attached for the tests that
 // need it, and additionally gates tagged-build releases.
 //
+// The atomic properties with plain-object pointees (logListener, onComplete, userProfile,
+// additionalData, the channel statuses, stateChain) are guarded by deterministic snapshot checks in
+// AtomicPropertySnapshotTests.m instead, which the fast lane runs.
+//
 // launchDataOperation is atomic+capture-to-local too (see TeakSession.m), but its pointee never
-// frees — see the comment near testAdditionalDataGetterReturnsRetainedSnapshot below — so it's pinned
+// frees — see the comment after testFacebookAccessTokenIsAtomicUnderConcurrency below — so it's pinned
 // as a static atomic-declaration assertion in TeakSessionLockingTests.m instead.
 //
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which race
@@ -86,18 +85,12 @@ extern NSString* const currentSessionMutex;
 @end
 
 // countryCode/serverSessionId/facebookAccessToken are private (declared only in TeakSession.m's
-// class extension); userProfile/additionalData/emailStatus/pushStatus/smsStatus are public but
-// readonly there. Re-declared here for full read-write access, per the project convention of
+// class extension). Re-declared here for full read-write access, per the project convention of
 // redeclaring internal properties in the test file rather than importing Teak+Internal.h.
 @interface TeakSession (RaceTripwire)
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, atomic) NSString* facebookAccessToken;
-@property (strong, atomic, readwrite) TeakUserProfile* userProfile;
-@property (strong, atomic, readwrite) NSDictionary* additionalData;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 - (void)detachDeviceConfigurationObservers;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
@@ -125,13 +118,6 @@ extern NSString* const currentSessionMutex;
 @interface ProductRequest (RaceTripwire)
 + (void)addActiveProductRequest:(ProductRequest*)request;
 + (void)removeActiveProductRequest:(ProductRequest*)request;
-@end
-
-// stateChain is private (declared only in TeakPushState.m's class extension). Re-declared here
-// for full read-write access, per the project convention of redeclaring internal properties in
-// the test file rather than importing Teak+Internal.h (which doesn't expose it either).
-@interface TeakPushState (RaceTripwire)
-@property (strong, atomic) NSArray* stateChain;
 @end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
@@ -208,48 +194,6 @@ extern NSString* const currentSessionMutex;
   free(ready);
 }
 
-// The getter called with a non-retainable return type, so ARC adds no retain of its own and the
-// result is exactly what the accessor handed back. No return-value-optimization handshake either:
-// that only happens when the caller is about to retain, so an atomic getter's autorelease really
-// lands in the pool.
-static void* (*const RawGetter)(id, SEL) = (void* (*)(id, SEL))objc_msgSend;
-static void (*const Setter)(id, SEL, id) = (void (*)(id, SEL, id))objc_msgSend;
-
-// Snapshot-retention guard for a strong (or copy) property whose pointee can be freed — the
-// deterministic form of the cross-thread use-after-free (RACE_TESTING.md §3b). The UAF window is
-// the gap between a reader's load of the pointer and its retain; a writer that releases the old
-// value inside that gap frees it out from under the reader. Rather than sample that sub-microsecond
-// gap with millions of racing iterations, stand in it on one thread: take the getter's result
-// without retaining it (the reader has loaded but not yet retained), call the real setter (the
-// writer's release), and check whether the old value survived. An atomic getter hands back a
-// retained, autoreleased snapshot, so it does; a nonatomic synthesized getter returns the bare ivar,
-// so the setter's release frees it and the weak reference zeroes. That's red on revert, as an
-// assertion rather than a crash.
-//
-// makeValue must return a fresh heap object on every call — a tagged pointer or shared singleton
-// never frees and would hold the weak reference forever. The final assertion catches that: once the
-// snapshot's pool drains, the old value must actually be gone.
-//
-// This pins the accessor's contract (the getter retains under the setter's lock), not the timing,
-// so it relies on the accessor being synthesized. A hand-written getter that loads the ivar and
-// then retains it is still racy but would pass here; the compiler warns when an atomic property
-// pairs a user-defined getter with a synthesized setter.
-- (void)assertGetter:(SEL)getter setter:(SEL)setter on:(id)object keepsSnapshotAliveOf:(id (^)(void))makeValue {
-  __weak id oldValue;
-  @autoreleasepool {
-    @autoreleasepool {
-      Setter(object, setter, makeValue());  // the property is now the value's only owner
-    }
-    @autoreleasepool {
-      oldValue = (__bridge id)RawGetter(object, getter);
-      XCTAssertNotNil(oldValue, @"seeded value should be readable back through %@", NSStringFromSelector(getter));
-      Setter(object, setter, makeValue());
-      XCTAssertNotNil(oldValue, @"%@ freed the value a reader had just loaded — the getter didn't hand back a retained snapshot (is the property nonatomic?)", NSStringFromSelector(setter));
-    }
-  }
-  XCTAssertNil(oldValue, @"the replaced value outlived its snapshot — makeValue isn't producing a freeable object, so this test can't go red");
-}
-
 // TeakSession's designated initializer (-init) registers KVO observers and an event handler that
 // -dealloc unconditionally unregisters; skipping -init and then letting the instance deinit would
 // itself crash (NSRangeException from removeObserver:forKeyPath: on a path never added). These
@@ -267,8 +211,8 @@ static NSMutableArray* keepAliveBareSessions;
   return session;
 }
 
-// Session strong-property use-after-free repro (CF over-release trap). countryCode, userProfile,
-// and serverSessionId are reassigned in the identify-reply request callback while read cross-thread
+// Session strong-property use-after-free repro (CF over-release trap). countryCode and
+// serverSessionId (and userProfile, guarded in AtomicPropertySnapshotTests.m) are reassigned in the identify-reply request callback while read cross-thread
 // by the heartbeat queue and the duration-report background block. A nonatomic strong reassignment
 // on one thread races a read+retain on another, retaining a pointer that's being freed underneath
 // it. See Automated/RACE_TESTING.md §3 for the technique this drives: fresh, distinct >15-char
@@ -308,60 +252,6 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
-// The properties below are snapshot-retention guards (see -assertGetter:setter:on:keepsSnapshotAliveOf:).
-// Each pointee is a plain object rather than a CFString, which made the two-thread crash repro need
-// millions of iterations to trap reliably; the snapshot check doesn't sample a window, so it's
-// deterministic regardless of pointee type.
-
-// logListener's pointee is a block — a plain object once it captures data and escapes to the heap,
-// freeable like any other Objective-C object. Host apps can reassign it from any thread at any time
-// (it's the public "active log listener" property) while every SDK log call reads and invokes it on
-// its own thread.
-- (void)testLogListenerGetterReturnsRetainedSnapshot {
-  Teak* teak = [[Teak alloc] init];
-  [self assertGetter:@selector(logListener)
-                setter:@selector(setLogListener:)
-                    on:teak
-  keepsSnapshotAliveOf:^id {
-    NSString* tag = [[NSString alloc] initWithFormat:@"race-loglistener-value-%u", arc4random()];
-    // Capturing tag is load-bearing: a captureless block literal is __NSGlobalBlock__ (static,
-    // never freed) and would pin the weak reference forever.
-    return [^(NSString* event, NSString* level, NSDictionary* eventData) {
-      (void)tag;
-    } copy];
-  }];
-}
-
-// TeakReward.onComplete is the same host-settable block-UAF shape as logListener above: a public,
-// host-settable nonatomic-strong property whose pointee (the block) is a plain freeable object once
-// it captures data and escapes to the heap. The reward-click reply callback (TeakReward.m) reads it
-// into a single local before invoking, so this guards the property's atomicity itself, not a
-// check-then-call double-read.
-- (void)testOnCompleteGetterReturnsRetainedSnapshot {
-  TeakReward* reward = [[TeakReward alloc] init];
-  [self assertGetter:@selector(onComplete)
-                setter:@selector(setOnComplete:)
-                    on:reward
-  keepsSnapshotAliveOf:^id {
-    NSString* tag = [[NSString alloc] initWithFormat:@"race-oncomplete-value-%u", arc4random()];
-    // Capturing tag is load-bearing, same as logListener above.
-    return [^{
-      (void)tag;
-    } copy];
-  }];
-}
-
-// userProfile is reassigned in the identify-reply callback alongside countryCode/serverSessionId
-// above, and read by the heartbeat queue and the duration-report block.
-- (void)testUserProfileGetterReturnsRetainedSnapshot {
-  [self assertGetter:@selector(userProfile)
-                setter:@selector(setUserProfile:)
-                    on:[self bareSessionKeptAlive]
-  keepsSnapshotAliveOf:^id {
-    return [[RaceGuardUserProfile alloc] init];
-  }];
-}
-
 // facebookAccessToken is reassigned lock-free in -handleEvent: (the Facebook SDK's own callback,
 // an arbitrary thread) while sendUserIdentifier reads it under @synchronized(self) — that lock
 // doesn't cover the writer. Same CFString-backed repro as countryCode/serverSessionId above.
@@ -387,48 +277,6 @@ static NSMutableArray* keepAliveBareSessions;
 // operation→invocation→operation retain cycle that ARC can't break, so the pointee never frees
 // and there's no dealloc-during-read window to catch. It's pinned as a static atomic-declaration
 // assertion in TeakSessionLockingTests.m instead (same treatment as currentState/previousState).
-
-// additionalData's pointee is an NSDictionary. A single non-empty entry forces a real
-// heap-allocated dictionary — an empty dictionary literal returns a shared singleton that never
-// deallocates.
-- (void)testAdditionalDataGetterReturnsRetainedSnapshot {
-  [self assertGetter:@selector(additionalData)
-                setter:@selector(setAdditionalData:)
-                    on:[self bareSessionKeptAlive]
-  keepsSnapshotAliveOf:^id {
-    return @{@"seed" : [[NSString alloc] initWithFormat:@"race-additionaldata-value-%u", arc4random()]};
-  }];
-}
-
-// emailStatus/pushStatus/smsStatus are plain TeakChannelStatus objects. +unknown is a dispatch_once
-// singleton that never deallocates; -[TeakChannelStatus initWithDictionary:] with a recognized state
-// string gives a genuine fresh alloc on every call instead.
-- (void)testEmailStatusGetterReturnsRetainedSnapshot {
-  [self assertGetter:@selector(emailStatus)
-                setter:@selector(setEmailStatus:)
-                    on:[self bareSessionKeptAlive]
-  keepsSnapshotAliveOf:^id {
-    return [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
-  }];
-}
-
-- (void)testPushStatusGetterReturnsRetainedSnapshot {
-  [self assertGetter:@selector(pushStatus)
-                setter:@selector(setPushStatus:)
-                    on:[self bareSessionKeptAlive]
-  keepsSnapshotAliveOf:^id {
-    return [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
-  }];
-}
-
-- (void)testSmsStatusGetterReturnsRetainedSnapshot {
-  [self assertGetter:@selector(smsStatus)
-                setter:@selector(setSmsStatus:)
-                    on:[self bareSessionKeptAlive]
-  keepsSnapshotAliveOf:^id {
-    return [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
-  }];
-}
 
 // sessionVectorClock lost-update repro (scalar read-modify-write, see RACE_TESTING.md §3a/§1's
 // fourth class). Unlike the UAF tests above, the pointee here can't be freed and the aligned
@@ -546,7 +394,7 @@ static NSMutableArray* keepAliveBareSessions;
 // a main-queue retry); notificationDisplayEnabled from the pushState operation queue's completion
 // block. All four are read cross-thread by TeakSession's operation queue while building the identify
 // payload (TeakSession.m's sendUserIdentifier/dispatchUserDataEvent). Same technique as the
-// TeakSession properties above — all four are plain NSStrings, so no isa-touch needed. Green now
+// TeakSession properties above — all four are plain NSStrings. Green now
 // (atomic).
 - (void)testPushTokenIsAtomicUnderConcurrency {
   TeakDeviceConfiguration* config = [[TeakDeviceConfiguration alloc] init];
@@ -610,22 +458,6 @@ static NSMutableArray* keepAliveBareSessions;
                 (void)s.length;
               }
             }];
-}
-
-// TeakPushState.stateChain is written under @synchronized(self) in updateCurrentState: but read
-// lock-free by cachedPushState and serializedStateChain. COW discipline means the writer already
-// swaps in a whole new array rather than mutating in place — but the old array is still freed on
-// swap, so a nonatomic-strong reassignment on one thread races a read+retain on another. Same
-// snapshot-retention guard as userProfile above. Uses a bare `[TeakPushState alloc]` (no -init)
-// since the test only drives the stateChain accessor — -init would register a TeakEvent handler and
-// spin up an operation queue, neither of which this guard needs.
-- (void)testStateChainGetterReturnsRetainedSnapshot {
-  [self assertGetter:@selector(stateChain)
-                setter:@selector(setStateChain:)
-                    on:[TeakPushState alloc]
-  keepsSnapshotAliveOf:^id {
-    return @[ [[NSString alloc] initWithFormat:@"race-statechain-value-%u", arc4random()] ];
-  }];
 }
 
 // Attribute-dict serialization regression guard (ThreadSanitizer). Two threads drive the real setter
