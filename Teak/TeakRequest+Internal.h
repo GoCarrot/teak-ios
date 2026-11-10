@@ -8,7 +8,8 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;
 @property (copy, nonatomic, readwrite) TeakRequestResponse _Nullable callback;
 @property (strong, nonatomic) NSString* _Nonnull hostname;
-@property (strong, nonatomic) NSString* _Nonnull requestId;
+// Atomic because a later -send replaces it while the response handler of an earlier send reads it.
+@property (atomic, strong) NSString* _Nonnull requestId;
 @property (strong, nonatomic) TeakSession* _Nonnull session;
 @property (strong, nonatomic) NSDate* _Nonnull sendDate;
 
@@ -53,6 +54,22 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // socket without reopening it. Checks both the top-level domain/code and,
 // for robustness against API surfaces that nest it, NSUnderlyingErrorKey.
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
+
+// YES when the request failed without an HTTP reply (timeout, dropped connection,
+// OS-closed socket), other than a cancellation.
++ (BOOL)isNoResponseFailure:(NSHTTPURLResponse* _Nullable)response error:(NSError* _Nullable)error;
+
+// A fresh id for one logical send, sent as request_id.
++ (NSString* _Nonnull)generateRequestId;
+
+// Whether a no-reply failure that may have reached the server may be resent. Subclasses
+// whose endpoint isn't deduplicated server-side return NO.
+- (BOOL)retriesAfterPossibleDelivery;
+
+// YES when a failed attempt should be retried through the socket-retry path:
+// an ECONNABORTED, or a no-reply failure the request allows resending, within
+// the stop policy (TeakRequestMaxSocketRetries).
+- (BOOL)shouldRetryResponse:(NSHTTPURLResponse* _Nullable)response error:(NSError* _Nullable)error;
 
 // Returns YES when `error` is a retryable socket error (see
 // isRetryableSocketError:) and `retryCount` hasn't reached the stop policy

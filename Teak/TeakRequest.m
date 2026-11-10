@@ -195,6 +195,32 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return [TeakRequest isRetryableSocketError:error] && retryCount < TeakRequestMaxSocketRetries;
 }
 
++ (BOOL)isNoResponseFailure:(NSHTTPURLResponse*)response error:(NSError*)error {
+  if (response != nil || error == nil) return NO;
+  return !([error.domain isEqualToString:NSURLErrorDomain] && error.code == NSURLErrorCancelled);
+}
+
+- (BOOL)retriesAfterPossibleDelivery {
+  return YES;
+}
+
+- (BOOL)shouldRetryResponse:(NSHTTPURLResponse*)response error:(NSError*)error {
+  if (self.socketErrorRetryCount >= TeakRequestMaxSocketRetries) return NO;
+
+  // ECONNABORTED means the request never left the device, so resending is always safe.
+  if ([TeakRequest isRetryableSocketError:error]) return YES;
+  return [TeakRequest isNoResponseFailure:response error:error] && [self retriesAfterPossibleDelivery];
+}
+
++ (NSString*)generateRequestId {
+  CFUUIDRef theUUID = CFUUIDCreate(NULL);
+  CFStringRef string = CFUUIDCreateString(NULL, theUUID);
+  CFRelease(theUUID);
+  NSString* requestId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
+  CFRelease(string);
+  return requestId;
+}
+
 + (NSMutableDictionary*)requestsInFlight {
   static NSMutableDictionary* dict = nil;
   static dispatch_once_t onceToken;
@@ -222,11 +248,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 - (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
   self = [super init];
   if (self) {
-    CFUUIDRef theUUID = CFUUIDCreate(NULL);
-    CFStringRef string = CFUUIDCreateString(NULL, theUUID);
-    CFRelease(theUUID);
-    self.requestId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
-    CFRelease(string);
+    self.requestId = [TeakRequest generateRequestId];
     self.endpoint = endpoint;
     self.callback = callback;
     self.hostname = hostname;
@@ -287,6 +309,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
 
+        // The server dedupes on request_id where it supports it. Retries resend
+        // this same request object, so they carry the same id.
+        payloadWithCommon[@"request_id"] = self.requestId;
+
         // Future-Pat: save the transmission bytes
         if (!self.session.appConfiguration.isProduction) {
           payloadWithCommon[@"debug"] = [NSNumber numberWithBool:YES];
@@ -315,6 +341,16 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   // from an earlier send would silently disable retries for every later one.
   self.socketErrorRetryCount = 0;
   self.retry.retryIndex = 0;
+
+  // The same request id must mean the same logical send to the server, so a send
+  // after the first gets a new one. Retries go through -transmit and keep it.
+  if (self.sendDate != nil) {
+    NSString* requestId = [TeakRequest generateRequestId];
+    NSMutableDictionary* payload = [self.payload mutableCopy];
+    if (payload[@"request_id"] != nil) payload[@"request_id"] = requestId;
+    self.requestId = requestId;
+    self.payload = payload;
+  }
   [self transmit];
 }
 
@@ -391,26 +427,25 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
+        BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error] && [self retriesAfterPossibleDelivery];
 
-        if ([TeakRequest shouldRetrySocketError:error retryCount:self.socketErrorRetryCount]) {
-          // The OS can close a pooled connection's socket while the app is
-          // backgrounded and fail to reopen it on the next request; retry
-          // once after a short delay rather than surfacing an empty reply.
-          // Checked ahead of the server-configured retry ladder below since
-          // it's a distinct failure class (transport, not HTTP) — a request
-          // with configured retry times still gets this one stacked on top.
+        if ([self shouldRetryResponse:response error:error]) {
+          // A request that got no HTTP reply (the OS closed a pooled socket while
+          // the app was backgrounded, a timeout, a dropped connection) is retried
+          // once after a short delay with the same request id, so a server that
+          // dedupes on it can tell a resend from a new request. Checked ahead of
+          // the server-configured retry ladder below since it's a distinct failure
+          // class (transport, not HTTP) — a request with configured retry times
+          // still gets this one stacked on top.
           self.socketErrorRetryCount++;
-          TeakLog_i(@"request.retry.socket_error", [self to_h]);
+          TeakLog_i(isSocketError ? @"request.retry.socket_error" : @"request.retry.no_response", [self to_h]);
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
             [self retryTransmit];
           });
         } else if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
-          // Only a 5xx reply climbs the ladder. A nil response (timeout, connection
-          // lost mid-transfer) may still have reached the server, and re-POSTing
-          // would double-count non-idempotent requests like /me/events batches.
-          // Retry with delay + jitter
+          // Only a 5xx reply climbs the ladder. Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
           if (delay < 0.0f) delay = 0.0f;
@@ -423,8 +458,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
             [self retryTransmit];
           });
         } else {
-          if (isSocketError) {
-            TeakLog_e(@"request.retry.socket_error.exhausted", [self to_h]);
+          if (isSocketError || isNoResponse) {
+            TeakLog_e(isSocketError ? @"request.retry.socket_error.exhausted" : @"request.retry.no_response.exhausted", [self to_h]);
           }
 
           // Check to see if the response has a 'report_client_error' key
@@ -506,6 +541,13 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
     result = currentBatch;
   }
   return result;
+}
+
+// Event batches aren't deduplicated server-side yet, so a batch that may have reached
+// the server must not be resent. A pre-send ECONNABORTED and the server-error ladder
+// still retry.
+- (BOOL)retriesAfterPossibleDelivery {
+  return NO;
 }
 
 - (void)prepareAndSend {
