@@ -212,10 +212,10 @@ static NSMutableArray* keepAliveBareSessions;
 }
 
 // Session strong-property use-after-free repro (CF over-release trap). countryCode and
-// serverSessionId (and userProfile, guarded in AtomicPropertySnapshotTests.m) are reassigned in the identify-reply request callback while read cross-thread
-// by the heartbeat queue and the duration-report background block. A nonatomic strong reassignment
-// on one thread races a read+retain on another, retaining a pointer that's being freed underneath
-// it. See Automated/RACE_TESTING.md §3 for the technique this drives: fresh, distinct >15-char
+// serverSessionId (and userProfile, guarded in AtomicPropertySnapshotTests.m) are reassigned in the
+// identify-reply request callback while read cross-thread by the heartbeat queue and the
+// duration-report background block. A nonatomic strong reassignment on one thread races a
+// read+retain on another, retaining a pointer that's being freed underneath it. See Automated/RACE_TESTING.md §3 for the technique this drives: fresh, distinct >15-char
 // heap-allocated values on the writer side (short NSStrings become tagged pointers that never
 // free, giving a false green), a spin-barrier so both threads race for their full duration, and a
 // dereference (not just a pointer bind) on the reader side so a use-after-free lands inside the

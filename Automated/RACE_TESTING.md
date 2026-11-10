@@ -139,8 +139,8 @@ instead (e.g. `NSStringFromClass([obj class]).length`) to force a class-table lo
 traps on freed/reused memory, and expect to need a higher iteration count — roughly 10x — to
 reproduce as deterministically as the CFString case. That 10x is a crash margin, not slack (see §6),
 so for a standing per-commit guard on a plain-object pointee, use the snapshot-retention check in
-§3b instead. No standing test uses the plain-object variant any more; reach for it when you need to
-show that a production crash is real. The NSString tests in `RaceTripwireTests.m` are the live
+§3b instead. No standing test uses the plain-object variant; reach for it when you need to show
+that a production crash is real. The NSString tests in `RaceTripwireTests.m` are the live
 two-thread repros.
 
 Minimal skeleton (drop into an XCTest case; `raceBlockA:blockB:` is the spin-barrier helper in
@@ -285,10 +285,10 @@ A slow race test is slow for one of two reasons, and only one of them can be tri
   test reds 50/50 at N=100 and ships at N=1000 (~0.4s, was ~16s).
 - **Margin-bound.** N *is* the probability of landing in a sub-microsecond window. Every iteration
   is a lottery ticket, and trimming N trades revert-red reliability for time. Don't trim it; change
-  the technique so the window is forced instead of sampled. Exemplar: the plain-object atomic-property
-  tripwires in `RaceTripwireTests.m` ran 2M iterations each, 2–4s per test under TSan. They now use
-  the snapshot-retention check (§3b) in `AtomicPropertySnapshotTests.m`, which is deterministic
-  and takes about a millisecond.
+  the technique so the window is forced instead of sampled. Exemplar: the plain-object
+  atomic-property guards. As two-thread repros at 2M iterations each, they take 2–4s per test under
+  TSan; as snapshot-retention checks (§3b, `AtomicPropertySnapshotTests.m`) they're deterministic
+  and take about a millisecond.
 
 To tell them apart, ask what a single iteration needs in order to red. If the answer is "the two
 threads overlap at all," it's iteration-bound. If it's "a free lands in a gap a few instructions

@@ -42,15 +42,13 @@ static void (*const Setter)(id, SEL, id) = (void (*)(id, SEL, id))objc_msgSend;
 
 // TeakSession's -init registers KVO observers and an event handler that -dealloc unconditionally
 // unregisters, so a bare `[TeakSession alloc]` (no -init) would crash on deinit. These tests only
-// drive the synthesized accessors, so they use a bare instance and keep it alive for the process.
-static NSMutableArray* keepAliveBareSessions;
-
-- (TeakSession*)bareSessionKeptAlive {
-  if (keepAliveBareSessions == nil) {
-    keepAliveBareSessions = [NSMutableArray array];
-  }
-  TeakSession* session = [TeakSession alloc];
-  [keepAliveBareSessions addObject:session];
+// drive the synthesized accessors, so they share one bare instance that lives for the process.
+- (TeakSession*)bareSession {
+  static TeakSession* session;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    session = [TeakSession alloc];
+  });
   return session;
 }
 
@@ -67,18 +65,16 @@ static NSMutableArray* keepAliveBareSessions;
 - (void)assertGetter:(SEL)getter setter:(SEL)setter on:(id)object keepsSnapshotAliveOf:(id (^)(void))makeValue {
   __weak id oldValue;
   @autoreleasepool {
-    @autoreleasepool {
-      Setter(object, setter, makeValue());  // the property is now the value's only owner
+    Setter(object, setter, makeValue());  // the property is now the value's only owner
+  }
+  @autoreleasepool {
+    oldValue = (__bridge id)RawGetter(object, getter);
+    if (oldValue == nil) {
+      XCTFail(@"seeded value should be readable back through %@", NSStringFromSelector(getter));
+      return;
     }
-    @autoreleasepool {
-      oldValue = (__bridge id)RawGetter(object, getter);
-      if (oldValue == nil) {
-        XCTFail(@"seeded value should be readable back through %@", NSStringFromSelector(getter));
-        return;
-      }
-      Setter(object, setter, makeValue());
-      XCTAssertNotNil(oldValue, @"%@ freed the value a reader had just loaded — the getter didn't hand back a retained snapshot (is the property nonatomic?)", NSStringFromSelector(setter));
-    }
+    Setter(object, setter, makeValue());
+    XCTAssertNotNil(oldValue, @"%@ freed the value a reader had just loaded — the getter didn't hand back a retained snapshot (is the property nonatomic?)", NSStringFromSelector(setter));
   }
   XCTAssertNil(oldValue, @"the replaced value outlived its snapshot — something else still owns it (a singleton or tagged pointer?), so this test can't go red");
 }
@@ -124,7 +120,7 @@ static NSMutableArray* keepAliveBareSessions;
 - (void)testUserProfileGetterReturnsRetainedSnapshot {
   [self assertGetter:@selector(userProfile)
                 setter:@selector(setUserProfile:)
-                    on:[self bareSessionKeptAlive]
+                    on:[self bareSession]
   keepsSnapshotAliveOf:^id {
     return [[TeakUserProfile alloc] init];
   }];
@@ -135,7 +131,7 @@ static NSMutableArray* keepAliveBareSessions;
 - (void)testAdditionalDataGetterReturnsRetainedSnapshot {
   [self assertGetter:@selector(additionalData)
                 setter:@selector(setAdditionalData:)
-                    on:[self bareSessionKeptAlive]
+                    on:[self bareSession]
   keepsSnapshotAliveOf:^id {
     return @{@"seed" : [[NSString alloc] initWithFormat:@"snapshot-additionaldata-value-%u", arc4random()]};
   }];
@@ -147,7 +143,7 @@ static NSMutableArray* keepAliveBareSessions;
 - (void)testEmailStatusGetterReturnsRetainedSnapshot {
   [self assertGetter:@selector(emailStatus)
                 setter:@selector(setEmailStatus:)
-                    on:[self bareSessionKeptAlive]
+                    on:[self bareSession]
   keepsSnapshotAliveOf:^id {
     return [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
   }];
@@ -156,7 +152,7 @@ static NSMutableArray* keepAliveBareSessions;
 - (void)testPushStatusGetterReturnsRetainedSnapshot {
   [self assertGetter:@selector(pushStatus)
                 setter:@selector(setPushStatus:)
-                    on:[self bareSessionKeptAlive]
+                    on:[self bareSession]
   keepsSnapshotAliveOf:^id {
     return [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
   }];
@@ -165,7 +161,7 @@ static NSMutableArray* keepAliveBareSessions;
 - (void)testSmsStatusGetterReturnsRetainedSnapshot {
   [self assertGetter:@selector(smsStatus)
                 setter:@selector(setSmsStatus:)
-                    on:[self bareSessionKeptAlive]
+                    on:[self bareSession]
   keepsSnapshotAliveOf:^id {
     return [[TeakChannelStatus alloc] initWithDictionary:@{@"state" : TeakChannelStateOptIn}];
   }];
