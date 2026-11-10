@@ -222,8 +222,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
                // If we aren't already retrying, and there's any kind of error (for example iOS 12 malarky)
                // wait 1.5 seconds and retry.
                if (error != nil && retryCount < 1) {
-                 // Strong capture: -main is blocked on sema until this retry signals it, so the
-                 // operation must stay alive for it. Released once the block runs.
+                 // Strong capture: -main is blocked on sema until this retry signals it.
                  double delayInSeconds = 1.5;
                  dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
                  dispatch_after(popTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^(void) {

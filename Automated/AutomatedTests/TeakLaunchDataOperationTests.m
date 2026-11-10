@@ -13,8 +13,7 @@
 
 // Each launch-data operation must deallocate once nothing outside it holds a
 // reference: an operation that owns a strong path back to itself never frees, and
-// every launch leaks one. The factories not covered here (push notification, user
-// activity) build through the same initializer as the ones that are.
+// every launch leaks one.
 @interface TeakLaunchDataOperationTests : XCTestCase
 @end
 
