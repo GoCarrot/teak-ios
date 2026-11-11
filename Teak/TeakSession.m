@@ -537,8 +537,8 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  // No deviceConfiguration detach or event-handler removal here: a session can only free after
-  // replacement has done both (the handler set holds it until then).
+  // A session frees only after replacement, which has already detached its deviceConfiguration
+  // observers and removed it from the event-handler set.
   UnRegisterKeyValueObserverFor(self, currentState);
 }
 
@@ -575,6 +575,9 @@ DefineTeakState(Expired, (@[]));
   @synchronized(self) {
     self.replaced = YES;
   }
+  // Idempotent, and a no-op where the replacement site already detached before expiring the session.
+  // Doing it here too means no replacement path can leave a freed session observing.
+  [self detachDeviceConfigurationObservers];
   [TeakEvent removeEventHandler:self];
   dispatch_async([Teak operationQueue], ^{
     self.userProfile = nil;
@@ -804,7 +807,6 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
-      [oldSession detachDeviceConfigurationObservers];
       [oldSession detachAfterReplacement];
     }
     return currentSession;
@@ -941,7 +943,6 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
       dispatch_source_set_event_handler(self.heartbeat, ^{
         __strong typeof(self) blockSelf = weakSelf;
-        if (blockSelf == nil) return;
         [blockSelf sendHeartbeat];
       });
 
@@ -1065,9 +1066,8 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         self.reportDurationBlock = reportDurationBlock;
         // The stored block holds the session weakly so it can't form a cycle through
         // self.reportDurationBlock. This dispatch holds it strongly instead, until the report has
-        // run: a logout or launch replaces the session right after Expiring, and without this hold the
-        // session could free before the background-priority block runs, dropping /session_stop.
-        // Invoking the block after a reset has canceled it is a no-op, so cancellation is unaffected.
+        // run. Invoking the block after a reset has canceled it is a no-op, so cancellation is
+        // unaffected.
         dispatch_async(self.reportDurationQueue, ^{
           reportDurationBlock();
           (void)self;

@@ -455,7 +455,6 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
                          method:TeakRequest_POST
                        callback:^(NSDictionary* reply) {
                          TeakTrackEventBatchedRequest* batch = weakSelf;
-                         if (batch == nil) return;
 
                          // Snapshot under the same lock -addRequestIntoBatch: appends
                          // callbacks under, then invoke outside the lock so an
