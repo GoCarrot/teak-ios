@@ -1,21 +1,22 @@
 #import <Foundation/Foundation.h>
 
-/// Remembers the last live activity token forwarded for each activity id so repeat emissions of the
-/// same token are not sent to the server again. In-memory only; cleared when the user changes.
+@class TeakOperation;
+
+/// Remembers the request operation behind the last live activity token forwarded for each activity id,
+/// so a repeat emission of the same token gets that operation back instead of sending again.
+/// In-memory only; cleared when the user changes.
 @interface TeakLiveActivityTokenCache : NSObject
 
 + (nonnull TeakLiveActivityTokenCache*)sharedCache;
 
-/// Returns YES, and records `signature` as the last one sent for `activityId`, if it differs from what
-/// was last recorded. Returns NO if it matches, meaning the forward should be skipped. The claim is
-/// recorded before the request is sent, so concurrent duplicates collapse as well.
-///
-/// On YES, `generation` receives the value to hand back to -releaseActivityId:signature:generation:.
-- (BOOL)claimActivityId:(nonnull NSString*)activityId signature:(nonnull NSString*)signature generation:(nonnull NSUInteger*)generation;
+/// Returns the operation already recorded for `activityId` if it was recorded with the same
+/// `signature` and has not been cancelled. Otherwise records `op` in its place and returns nil, meaning
+/// the caller should send `op`. Check and record are one step, so concurrent duplicates collapse.
+- (nullable TeakOperation*)operationForActivityId:(nonnull NSString*)activityId signature:(nonnull NSString*)signature orRecord:(nonnull TeakOperation*)op;
 
-/// Forgets a claim whose request failed, so the next emission is sent again. Does nothing if the cache
-/// was reset or a different signature was claimed for `activityId` since.
-- (void)releaseActivityId:(nonnull NSString*)activityId signature:(nonnull NSString*)signature generation:(NSUInteger)generation;
+/// Forgets `op` after its request failed, so the next emission is sent again. Does nothing if `op`
+/// is no longer what is recorded for `activityId`: it was superseded, or the cache was reset.
+- (void)releaseOperation:(nonnull TeakOperation*)op forActivityId:(nonnull NSString*)activityId;
 
 /// Forgets everything. Replies still in flight from before the reset can no longer release anything.
 - (void)reset;

@@ -599,6 +599,10 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * the OS-level system activity identifier to the Teak backend so that server-driven live
  * activity updates can be delivered via APNs.
  *
+ * Forwarding the same token for the same activity again returns the operation from the
+ * original call rather than sending a second request, so cancelling it or setting its
+ * ``completionBlock`` affects every caller holding it.
+ *
  * @param activityId       A stable, game-chosen constant string naming the *kind* of live
  *                         activity (for example, ``@"chest_timer"``). All instances of the
  *                         same kind of activity should use the same value; Teak uses it as
