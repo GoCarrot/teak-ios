@@ -5,6 +5,7 @@
 #import "TeakHelpers.h"
 #import "TeakLaunchData.h"
 #import "TeakRemoteConfiguration.h"
+#import "TeakRequest.h"
 #import "TeakSession.h"
 #import "TeakUserProfile.h"
 #import <Teak/Teak.h>
@@ -212,6 +213,52 @@ static NSDictionary* savedTeakVersionDict = nil;
 
   XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
                 @"an identify reply after replacement pinned the session");
+}
+
+#pragma mark - Event batches
+
+// Same shape TrackEvent sends.
+- (NSDictionary*)trackEventPayload {
+  return @{@"action_type" : @"test_action", @"object_type" : @"test_object", @"duration" : @1, @"count" : @1};
+}
+
+// A tracked event goes into a /me/events batch that holds its session. Replacement takes the session
+// to Expiring, which sends the batch; the next event starts a new batch. The old batch and its session
+// must then both free.
+- (void)testEventBatchFromReplacedSessionFrees {
+  __weak TeakSession* weakSession = nil;
+  __weak TeakRequest* weakBatch = nil;
+  @autoreleasepool {
+    TeakSession* session = [TeakSession currentSession];
+    // The default endpoint configuration delays /me/events, so this schedules the batch.
+    TeakRequest* batch = [TeakRequest requestWithSession:session
+                                             forEndpoint:@"/me/events"
+                                             withPayload:[self trackEventPayload]
+                                                  method:TeakRequest_POST
+                                                callback:nil];
+    XCTAssertNotNil(batch);
+    // Keep the send off the network.
+    [batch setValue:@YES forKey:@"blackhole"];
+    weakSession = session;
+    weakBatch = batch;
+
+    [TeakSession logoutReusingCurrentSession:NO];
+    XCTAssertTrue([[batch valueForKey:@"sent"] boolValue], @"Expiring didn't send the batch");
+
+    TeakRequest* nextBatch = [TeakRequest requestWithSession:[TeakSession currentSession]
+                                                 forEndpoint:@"/me/events"
+                                                 withPayload:[self trackEventPayload]
+                                                      method:TeakRequest_POST
+                                                    callback:nil];
+    XCTAssertNotEqual(nextBatch, batch);
+    [nextBatch setValue:@YES forKey:@"blackhole"];
+  }
+
+  // The canceled scheduled send still holds the batch until its delay (5s by default) elapses.
+  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakBatch == nil); } timeout:10.0],
+                @"a sent event batch is still alive");
+  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
+                @"a replaced session with a sent event batch is still alive");
 }
 
 @end
