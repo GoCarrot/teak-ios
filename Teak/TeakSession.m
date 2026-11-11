@@ -28,10 +28,11 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 // -detachDeviceConfigurationObservers' three removeObserver calls, so add/remove serialization is
 // verifiable by reading this one lock's use sites — not by tracing which callers happen to hold
 // another lock. KVO add/remove is not thread-safe (concurrent add/remove on the shared object corrupts
-// its per-object observation info), so all of it must be serialized. Every live add/remove site also
-// runs under currentSessionMutex today, so this token is belt-and-suspenders for them; its job is to
-// make the serialization a local, grep-verifiable fact, and it becomes the sole guard once -dealloc's
-// removeObserver goes live (see -detachDeviceConfigurationObservers).
+// its per-object observation info), so all of it must be serialized. Every add/remove site but the
+// -dealloc fallback also runs under currentSessionMutex, so this token is belt-and-suspenders for
+// them; its job is to make the serialization a local, grep-verifiable fact, and it's the sole guard
+// for the -dealloc fallback's removeObserver, which runs off currentSessionMutex (see
+// -detachDeviceConfigurationObservers).
 //
 // A dedicated token, NOT @synchronized(self): self is entangled with currentSessionMutex (the class
 // methods acquire currentSessionMutex and call into self-synchronized session code, and the
@@ -108,6 +109,9 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // Test-only: called inside the claim, after the cancel check passes and before the report is
 // marked sent. Always nil in production.
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
+// Where the duration report is dispatched. Always the background global queue in production; tests
+// swap in their own queue to control when the report runs.
+@property (strong, atomic) dispatch_queue_t reportDurationQueue;
 // reportDurationSent/sessionVectorClock are C11 atomics, not ObjC `atomic` properties: the
 // duration-report background block writes both under reportDurationMutex only, while
 // sessionVectorClock is also incremented from the currentState observer's @synchronized(self).
@@ -374,6 +378,7 @@ DefineTeakState(Expired, (@[]));
                                                     method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     __strong typeof(self) blockSelf = weakSelf;
+                                                    if (blockSelf == nil) return;
 
                                                     bool logLocal = [reply[@"verbose_logging"] boolValue];
                                                     bool logRemote = [reply[@"log_remote"] boolValue];
@@ -472,6 +477,7 @@ DefineTeakState(Expired, (@[]));
     self.serverSessionId = nil;
     self.sessionVectorClock = 0;
     _reportDurationMutex = [[NSObject alloc] init];
+    self.reportDurationQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 
     // Assign unattributed launch at init
     self.launchDataOperation = [TeakLaunchDataOperation unattributed];
@@ -520,14 +526,12 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  // Currently inert: a session retains itself through the shared event-handler registry and is
-  // released only here in -dealloc, so that cycle keeps -dealloc from running in practice — every
-  // session is detached at replacement instead. Kept because it goes live the moment that leak is
-  // fixed and sessions become mortal: then this is the sole detach for the last, never-replaced
-  // session, and the idempotence flag keeps it a no-op for any session already detached at replacement.
+  // Replaced sessions are already detached (see -detachAfterReplacement); the idempotence flag keeps
+  // this a no-op for them. It's the detach for a session that frees without ever being replaced.
   [self detachDeviceConfigurationObservers];
   UnRegisterKeyValueObserverFor(self, currentState);
 
+  // Same: a no-op for a replaced session, which already left the handler set.
   [TeakEvent removeEventHandler:self];
 }
 
@@ -538,13 +542,12 @@ DefineTeakState(Expired, (@[]));
 // handled here; a session's other observers (its own currentState and its per-session
 // remoteConfiguration) are not shared across sessions, so they stay in -dealloc.
 //
-// Called at each session replacement so removal is deterministic and bounded: sessions are immortal
-// (see -dealloc), so left to -dealloc alone these observers would never be removed and the shared
-// object's observer list would grow for the life of the process. Detaching here also forecloses the
-// race the leak fix would otherwise activate — once -dealloc runs, its removeObserver would run off
-// currentSessionMutex and could race a newer session's addObserver on this same object. The flag makes
-// removal idempotent so the -dealloc fallback can't double-remove (which throws "not registered as an
-// observer").
+// Called at each session replacement so removal is deterministic and bounded, rather than waiting on
+// -dealloc, which runs whenever the last in-flight request or queued block lets go of the session.
+// Detaching here also keeps removal on currentSessionMutex: -dealloc runs off it, on whatever thread
+// drops the last reference, and its removeObserver could otherwise race a newer session's addObserver on
+// this same object. The flag makes removal idempotent so the -dealloc fallback can't double-remove
+// (which throws "not registered as an observer").
 - (void)detachDeviceConfigurationObservers {
   @synchronized(deviceConfigurationObserverMutex) {
     if (self.deviceConfigurationObserversDetached) return;
@@ -554,6 +557,21 @@ DefineTeakState(Expired, (@[]));
     UnRegisterKeyValueObserverFor(self.deviceConfiguration, pushToken);
     UnRegisterKeyValueObserverFor(self.deviceConfiguration, liveActivityPushToStartToken);
   }
+}
+
+// Releases what keeps a replaced session alive. The shared event-handler set holds its handlers strongly,
+// and the userProfile holds the session back (a TeakUserProfile is a TeakRequest, which retains its
+// session), so either one alone keeps the session from ever freeing. Called at each replacement once the
+// outgoing session is Expired, after the Expiring transition has captured the profile for its final send.
+//
+// The profile is released on the operation queue, behind any attribute write or send already queued
+// there. Work that captured the profile itself — a pending send, a scheduled retry — keeps it, and the
+// session, alive until that work runs.
+- (void)detachAfterReplacement {
+  [TeakEvent removeEventHandler:self];
+  dispatch_async([Teak operationQueue], ^{
+    self.userProfile = nil;
+  });
 }
 
 - (void)handleEvent:(TeakEvent*)event {
@@ -664,6 +682,7 @@ DefineTeakState(Expired, (@[]));
 
       [currentSession setState:[TeakSession Expiring]];
       [currentSession setState:[TeakSession Expired]];
+      [currentSession detachAfterReplacement];
 
       currentSession = newSession;
     }
@@ -759,6 +778,7 @@ DefineTeakState(Expired, (@[]));
         [oldSession detachDeviceConfigurationObservers];
         [oldSession setState:[TeakSession Expiring]];
         [oldSession setState:[TeakSession Expired]];
+        [oldSession detachAfterReplacement];
       }
     }
 
@@ -780,6 +800,7 @@ DefineTeakState(Expired, (@[]));
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
       [oldSession detachDeviceConfigurationObservers];
+      [oldSession detachAfterReplacement];
     }
     return currentSession;
   }
@@ -915,6 +936,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       self.heartbeat = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, self.heartbeatQueue);
       dispatch_source_set_event_handler(self.heartbeat, ^{
         __strong typeof(self) blockSelf = weakSelf;
+        if (blockSelf == nil) return;
         [blockSelf sendHeartbeat];
       });
 
@@ -1009,6 +1031,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         __weak typeof(self) weakSelf = self;
         dispatch_block_t reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
           __strong typeof(self) blockSelf = weakSelf;
+          if (blockSelf == nil) return;
           [blockSelf beginBackgroundUpdateTask];
 
           // serverSessionId can be reassigned by the identify-reply callback on another queue at any
@@ -1035,7 +1058,15 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           [blockSelf endBackgroundUpdateTask];
         });
         self.reportDurationBlock = reportDurationBlock;
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), reportDurationBlock);
+        // The stored block holds the session weakly so it can't form a cycle through
+        // self.reportDurationBlock. This dispatch holds it strongly instead, until the report has
+        // run: a logout or launch replaces the session right after Expiring, and without this hold the
+        // session could free before the background-priority block runs, dropping /session_stop.
+        // Invoking the block after a reset has canceled it is a no-op, so cancellation is unaffected.
+        dispatch_async(self.reportDurationQueue, ^{
+          reportDurationBlock();
+          (void)self;
+        });
       }
     } else if (newValue == [TeakSession Expired]) {
     }
