@@ -235,22 +235,14 @@ void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnu
     return op;
   }
 
-  // ActivityKit re-emits identical tokens, and integrators are told to forward every emission, so drop
-  // repeats of what was last sent for this activity. Without an operation queue the send can never
-  // complete, so don't claim: a later emission must still go out.
+  // ActivityKit re-emits identical tokens, and integrators are told to forward every emission, so a
+  // repeat of what was last sent for this activity gets that send's operation back, and with it the
+  // real outcome. Without an operation queue the send can never complete, so don't record it: a later
+  // emission must still go out.
   NSString* signature = [NSString stringWithFormat:@"%@|%@", tokenString, systemActivityId];
-  NSUInteger cacheGeneration = 0;
   TeakLiveActivityTokenCache* cache = [TeakLiveActivityTokenCache sharedCache];
-  BOOL claimed = NO;
-  if ([Teak sharedInstance].operationQueue != nil) {
-    if (![cache claimActivityId:activityId signature:signature generation:&cacheGeneration]) {
-      TeakLog_i(@"live_activity.token.skipped", @{@"activityId" : activityId, @"systemActivityId" : systemActivityId});
-      TeakOperation* skippedOp = [TeakOperation withResult:[[TeakOperationResult alloc] initWithStatus:@"ok" andErrors:nil]];
-      [[Teak sharedInstance].operationQueue addOperation:skippedOp];
-      return skippedOp;
-    }
-    claimed = YES;
-  }
+  __block __weak TeakOperation* weakOp = nil;
+  BOOL record = [Teak sharedInstance].operationQueue != nil;
 
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/live_activities"
                                      withPayload:@{
@@ -266,13 +258,24 @@ void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnu
                                        } else {
                                          TeakLog_e(@"live_activity.token.error", @"Error forwarding live activity token.", @{@"response" : reply});
                                          // Let the next emission of this token try again.
-                                         if (claimed) {
-                                           [cache releaseActivityId:activityId signature:signature generation:cacheGeneration];
+                                         TeakOperation* failedOp = weakOp;
+                                         if (failedOp != nil) {
+                                           [cache releaseOperation:failedOp forActivityId:activityId];
                                          }
                                        }
 
                                        return parsedResult;
                                      }];
+  weakOp = op;
+
+  if (record) {
+    TeakOperation* existingOp = [cache operationForActivityId:activityId signature:signature orRecord:op];
+    if (existingOp != nil) {
+      TeakLog_i(@"live_activity.token.skipped", @{@"activityId" : activityId, @"systemActivityId" : systemActivityId});
+      return existingOp;
+    }
+  }
+
   [[Teak sharedInstance].operationQueue addOperation:op];
   return op;
 }
