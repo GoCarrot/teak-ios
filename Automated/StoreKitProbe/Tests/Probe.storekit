@@ -1,0 +1,18 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "6740000001",
+      "localizations" : [ { "description" : "Probe coins", "displayName" : "Probe Coins", "locale" : "en_US" } ],
+      "productID" : "io.teak.probe.coins",
+      "referenceName" : "Probe Coins",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {},
+  "subscriptionGroups" : [],
+  "version" : { "major" : 3, "minor" : 0 }
+}
