@@ -40,10 +40,6 @@ extern NSString* const currentSessionMutex;
 // them, every commit, with ThreadSanitizer attached for the tests that need it, and additionally
 // gates tagged-build releases.
 //
-// launchDataOperation is atomic+capture-to-local too (see TeakSession.m), but its pointee never
-// frees — see the comment near testAdditionalDataIsAtomicUnderConcurrency below — so it's pinned
-// as a static atomic-declaration assertion in TeakSessionLockingTests.m instead.
-//
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which race
 // class, and why some classes (e.g. lock-inversion deadlocks) carry no in-process data-race signal
 // and get a watchdog or structural guard instead.
@@ -370,12 +366,11 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
-// launchDataOperation has no dynamic crash repro here: TeakLaunchDataOperation is an
-// NSInvocationOperation subclass that targets itself in its own initializer, and
-// -[NSInvocationOperation retainArguments] retains that target — every instance is a permanent
-// operation→invocation→operation retain cycle that ARC can't break, so the pointee never frees
-// and there's no dealloc-during-read window to catch. It's pinned as a static atomic-declaration
-// assertion in TeakSessionLockingTests.m instead (same treatment as currentState/previousState).
+// launchDataOperation has no dynamic crash repro here. Its pointee frees, but a repro in the same
+// shape as the ones in this file (2M iterations, writer assigning fresh operations, reader touching
+// either the isa or a CFURL reached through the operation's result) stayed green with the property
+// reverted to nonatomic. Why isn't established. It's pinned as a static atomic-declaration
+// assertion in TeakSessionLockingTests.m instead.
 
 // additionalData's pointee is an NSDictionary, not a CFString. A single non-empty entry forces a
 // real heap-allocated dictionary — an empty dictionary literal returns a shared singleton that
