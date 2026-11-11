@@ -64,7 +64,7 @@
   });
 }
 
-// Starts a send only when an attribute change is pending. Retries go through -retryTransmit.
+// Starts a send only when an attribute change is pending. Retries go through -retryTransmitForGeneration:.
 - (void)send {
   // Hop onto the serial operationQueue that setAttribute:forKey:inDictionary: mutates the
   // attribute dictionaries on, so these reads are never concurrent with those writes.
@@ -91,11 +91,12 @@
 }
 
 // Retries fire on the main queue. -transmit reads self.payload, which -send reassigns on the
-// operationQueue, so hop onto it to keep the read serialized with that write. Resends the
-// payload built by the last -send; nothing is rebuilt or re-armed.
-- (void)retryTransmit {
+// operationQueue, so hop onto it to keep the read serialized with that write, and so a -send
+// that ran first has already bumped the generation by the time it is checked. Resends the
+// payload built by the send the retry belongs to; nothing is rebuilt or re-armed.
+- (void)retryTransmitForGeneration:(NSUInteger)generation {
   dispatch_async([Teak operationQueue], ^{
-    [self transmit];
+    [super retryTransmitForGeneration:generation];
   });
 }
 

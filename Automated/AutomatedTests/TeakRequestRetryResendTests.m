@@ -42,7 +42,7 @@ extern NSDictionary* TeakVersionDict;
 // Test-only swizzle on the real -transmit: records which request would have gone
 // on the wire (and whether that happened on the operationQueue) instead of
 // hitting the network. Everything above it -- -send, the subclass overrides,
-// -response:payload:withError:, the retry gates, -retryTransmit -- is production code.
+// -response:payload:withError:, the retry gates, -retryTransmitForGeneration: -- is production code.
 static NSMutableArray<NSDictionary*>* retryTest_transmits;
 
 @implementation TeakRequest (RetryResendTest)
@@ -51,7 +51,9 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   BOOL onOperationQueue = strcmp(label, dispatch_queue_get_label([Teak operationQueue])) == 0;
   @synchronized(retryTest_transmits) {
     [retryTest_transmits addObject:@{
-      @"request" : [NSValue valueWithNonretainedObject:self],
+      // An address, not an object: a late retry can record a request its test has already
+      // released, and reading it back as an object would retain freed memory.
+      @"request" : [NSValue valueWithPointer:(__bridge const void*)self],
       @"wireRequestId" : self.payload[@"request_id"] ?: [NSNull null],
       @"onOperationQueue" : @(onOperationQueue)
     }];
@@ -91,6 +93,10 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 // Retry ladder of [0] on both endpoints so a 5xx retry fires immediately; no batching
 // config, so sends go out immediately.
 - (TeakSession*)makeMockSession {
+  return [self makeMockSessionWithLadder:@[ @0 ]];
+}
+
+- (TeakSession*)makeMockSessionWithLadder:(NSArray*)times {
   TeakAppConfiguration* appConfig = mock([TeakAppConfiguration class]);
   [given([appConfig appId]) willReturn:@"test-app-id"];
   [given([appConfig appVersion]) willReturn:@"1"];
@@ -104,7 +110,7 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   [given([deviceConfig deviceId]) willReturn:@"test-device-id"];
 
   TeakRemoteConfiguration* remoteConfig = mock([TeakRemoteConfiguration class]);
-  NSDictionary* ladder = @{@"retry" : @{@"times" : @[ @0 ], @"jitter" : @0}};
+  NSDictionary* ladder = @{@"retry" : @{@"times" : times, @"jitter" : @0}};
   [given([remoteConfig endpointConfigurations]) willReturn:@{
     @"gocarrot.com" : @{@"/me/events" : ladder, @"/me/profile" : ladder}
   }];
@@ -120,7 +126,11 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 }
 
 - (TeakUserProfile*)makeProfile {
-  return [[TeakUserProfile alloc] initForSession:[self makeMockSession]
+  return [self makeProfileWithSession:[self makeMockSession]];
+}
+
+- (TeakUserProfile*)makeProfileWithSession:(TeakSession*)session {
+  return [[TeakUserProfile alloc] initForSession:session
                                   withDictionary:@{
                                     @"string_attributes" : @{@"k" : [NSNull null]},
                                     @"number_attributes" : @{},
@@ -178,7 +188,7 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 - (NSArray<NSDictionary*>*)transmitsFor:(TeakRequest*)request {
   @synchronized(retryTest_transmits) {
     return [retryTest_transmits filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSDictionary* transmit, NSDictionary* _) {
-      return [transmit[@"request"] nonretainedObjectValue] == request;
+      return [transmit[@"request"] pointerValue] == (__bridge const void*)request;
     }]];
   }
 }
@@ -209,6 +219,12 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 // retry decision runs asynchronously, so callers wait with -waitForTransmits:of:timeout:.
 - (void)deliver:(TeakRequest*)request status:(NSInteger)status error:(NSError*)error {
   [request response:status == 0 ? nil : [self responseWithStatus:status] payload:@{} withError:error];
+}
+
+// The retry decision runs asynchronously after -deliver:. Give it time to schedule its retry,
+// so a following send meets a retry that is already pending, not one never scheduled.
+- (void)letRetryDecisionRun {
+  [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.3]];
 }
 
 #pragma mark - TeakUserProfile
@@ -260,6 +276,63 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   [self sendProfile:profile value:@"b" expectingTransmits:3];
   [self deliver:profile status:503 error:nil];
   XCTAssertEqual([self waitForTransmits:4 of:profile timeout:3.0], 4u, @"later send inherited the earlier send's spent retry budget");
+}
+
+#pragma mark - A newer send supersedes an earlier one
+
+// A retry resends the request's current payload, so one that outlived a newer send would
+// put that send on the wire twice. The newer send is the only one that may retry.
+- (void)testNewerProfileSendDropsTheEarlierSendsPendingRetry {
+  TeakUserProfile* profile = [self makeProfile];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self deliver:profile status:0 error:[self socketError]];
+  [self letRetryDecisionRun];
+
+  // Send B starts while A's retry is still waiting out its delay.
+  [self sendProfile:profile value:@"b" expectingTransmits:2];
+
+  XCTAssertEqual([self settledTransmitsOf:profile], 2u, @"A's retry fired after B started");
+  [self waitForTransmits:NSUIntegerMax of:profile timeout:1.5];
+  NSArray* ids = [self wireRequestIdsOf:profile];
+  XCTAssertEqual(ids.count, 2u, @"A's retry fired after B started");
+  XCTAssertNotEqualObjects(ids[0], ids[1]);
+
+  // B still retries like any send.
+  [self deliver:profile status:0 error:[self socketError]];
+  XCTAssertEqual([self waitForTransmits:3 of:profile timeout:4.0], 3u, @"B lost its own retry");
+  XCTAssertEqualObjects([self wireRequestIdsOf:profile][2], ids[1]);
+}
+
+- (void)testNewerProfileSendDropsTheEarlierSendsPendingServerErrorRetry {
+  // A 1s ladder, so the retry is still pending when B starts.
+  TeakUserProfile* profile = [self makeProfileWithSession:[self makeMockSessionWithLadder:@[ @1.0 ]]];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self deliver:profile status:503 error:nil];
+  [self letRetryDecisionRun];
+
+  [self sendProfile:profile value:@"b" expectingTransmits:2];
+
+  [self waitForTransmits:NSUIntegerMax of:profile timeout:2.0];
+  XCTAssertEqual([self transmitsFor:profile].count, 2u, @"A's server-error retry fired after B started");
+}
+
+// A's failure can arrive after B has started: it must not schedule a retry of B's payload or
+// spend B's retry budget.
+- (void)testFailureOfAnEarlierSendDoesNotRetryTheNewerSend {
+  for (NSNumber* status in @[ @0, @503 ]) {
+    TeakUserProfile* profile = [self makeProfile];
+    [self sendProfile:profile value:@"a" expectingTransmits:1];
+    NSUInteger earlier = profile.sendGeneration;
+    [self sendProfile:profile value:@"b" expectingTransmits:2];
+
+    [profile response:status.integerValue == 0 ? nil : [self responseWithStatus:status.integerValue]
+              payload:@{}
+            withError:status.integerValue == 0 ? [self socketError] : nil
+       sendGeneration:earlier];
+
+    XCTAssertEqual([self settledTransmitsOf:profile], 2u, @"A's failure (status %@) retried B", status);
+    XCTAssertEqual(profile.socketErrorRetryCount, 0u, @"A's failure spent B's retry budget");
+  }
 }
 
 #pragma mark - request_id

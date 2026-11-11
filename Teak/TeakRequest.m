@@ -219,6 +219,17 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return dict;
 }
 
+// The send generation each in-flight task was transmitted under, keyed like requestsInFlight.
+// Guarded by TeakRequestsInFlightMutex.
++ (NSMutableDictionary*)sendGenerationsInFlight {
+  static NSMutableDictionary* dict = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    dict = [[NSMutableDictionary alloc] init];
+  });
+  return dict;
+}
+
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback {
   return [TeakRequest requestWithSession:session forHostname:kTeakHostname withEndpoint:endpoint withPayload:payload method:method callback:callback];
 }
@@ -331,6 +342,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   self.socketErrorRetryCount = 0;
   self.retry.retryIndex = 0;
 
+  // A new send supersedes every earlier one: retries still waiting to fire, and
+  // failures still to arrive, for an earlier generation are dropped. Only -send
+  // writes this, and it is called serially per request.
+  self.sendGeneration = self.sendGeneration + 1;
+
   // The same request id must mean the same logical send to the server, so a send
   // after the first gets a new one. Retries go through -transmit and keep it.
   if (self.hasStartedSend) {
@@ -356,6 +372,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];
     @synchronized(TeakRequestsInFlightMutex) {
       [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = self;
+      [TeakRequest sendGenerationsInFlight][@(dataTask.taskIdentifier)] = @(self.sendGeneration);
     }
     self.sendDate = [NSDate date];
     [dataTask resume];
@@ -366,8 +383,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   teak_catch_report;
 }
 
-- (void)retryTransmit {
-  [self transmit];
+- (void)retryTransmitForGeneration:(NSUInteger)generation {
+  if (generation == self.sendGeneration) [self transmit];
 }
 
 - (NSDictionary*)to_h {
@@ -390,6 +407,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
+  [self response:response payload:payload withError:error sendGeneration:self.sendGeneration];
+}
+
+- (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error sendGeneration:(NSUInteger)generation {
   teak_try {
     NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
 
@@ -418,8 +439,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
         BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error];
+        // A reply to a send that a later -send has replaced doesn't get a retry: the
+        // newer send owns the retry state and the payload a retry would resend.
+        BOOL isSuperseded = generation != self.sendGeneration;
 
-        if ([TeakRequest shouldRetryResponse:response error:error retryCount:self.socketErrorRetryCount]) {
+        if (!isSuperseded && [TeakRequest shouldRetryResponse:response error:error retryCount:self.socketErrorRetryCount]) {
           // A request that got no HTTP reply (the OS closed a pooled socket while
           // the app was backgrounded, a timeout, a dropped connection) is retried
           // once after a short delay with the same request id, so a server that
@@ -432,9 +456,9 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self retryTransmit];
+            [self retryTransmitForGeneration:generation];
           });
-        } else if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
+        } else if (!isSuperseded && response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
           // Only a 5xx reply climbs the ladder. Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
@@ -445,10 +469,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self retryTransmit];
+            [self retryTransmitForGeneration:generation];
           });
         } else {
-          if (isSocketError || isNoResponse) {
+          if (!isSuperseded && (isSocketError || isNoResponse)) {
             TeakLog_e(isSocketError ? @"request.retry.socket_error.exhausted" : @"request.retry.no_response.exhausted", [self to_h]);
           }
 
@@ -809,8 +833,13 @@ KeyValueObserverSupported(TeakBatchedRequest);
   @synchronized(TeakRequestsInFlightMutex) {
     TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
     if (request) {
-      [request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error];
+      NSNumber* generation = [TeakRequest sendGenerationsInFlight][@(dataTask.taskIdentifier)];
+      [request response:(NSHTTPURLResponse*)dataTask.response
+                payload:reply
+              withError:error
+         sendGeneration:generation == nil ? request.sendGeneration : generation.unsignedIntegerValue];
       [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
+      [[TeakRequest sendGenerationsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
     }
   }
 }

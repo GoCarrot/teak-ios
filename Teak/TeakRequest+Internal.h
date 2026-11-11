@@ -18,6 +18,9 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (nonatomic, readwrite) BOOL blackhole;
 // Atomic only to prevent torn reads: -send resets it on the sender's queue while the response handler reads it.
 @property (atomic) NSUInteger socketErrorRetryCount;
+// Counts -send calls. A retry or a failed reply that belongs to an earlier generation than
+// the current one has been superseded by a later send and is dropped.
+@property (atomic) NSUInteger sendGeneration;
 // Set by the first -send, so a later one knows to mint a new request id.
 @property (atomic) BOOL hasStartedSend;
 
@@ -29,9 +32,15 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // check, a batch's no-op -- can't swallow a retry of an already-built request.
 - (void)transmit;
 
-// How a retry re-enters -transmit. Called on the main queue. Subclasses that
-// mutate their payload on another queue override this to hop onto it.
-- (void)retryTransmit;
+// How a retry re-enters -transmit. Called on the main queue, with the send generation the
+// retry was scheduled under; transmits only if no later -send has replaced that send.
+// Subclasses that mutate their payload on another queue override this to hop onto it,
+// and check the generation there, where it can't change underneath the check.
+- (void)retryTransmitForGeneration:(NSUInteger)generation;
+
+// The reply to the attempt transmitted under `generation`. -response:payload:withError: is this
+// with the current generation.
+- (void)response:(NSHTTPURLResponse* _Nullable)response payload:(NSDictionary* _Nullable)payload withError:(NSError* _Nullable)error sendGeneration:(NSUInteger)generation;
 
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 
