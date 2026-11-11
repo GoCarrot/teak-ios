@@ -378,20 +378,18 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   XCTAssertEqual([self waitForTransmits:2 of:batch timeout:3.0], 2u, @"retry hit the batch's no-op -send instead of resending");
 }
 
-// A nil response can mean the request reached the server (timeout, connection
-// lost mid-transfer), and the server doesn't dedupe /me/events by request_id yet, so
-// re-POSTing a batch would double-count it.
-- (void)testBatchedRequestDoesNotRetryNilResponseNonSocketErrors {
-  NSArray<NSError*>* errors = @[ [self urlError:NSURLErrorNetworkConnectionLost], [self urlError:NSURLErrorTimedOut] ];
-  for (NSError* error in errors) {
+// With the server deduping /me/events on request_id, a batch is retried like any request,
+// and the resend carries the same id.
+- (void)testBatchedRequestRetriesNoResponseWithTheSameRequestId {
+  for (NSNumber* code in @[ @(NSURLErrorNetworkConnectionLost), @(NSURLErrorTimedOut) ]) {
     TeakBatchedRequest* batch = [self sendBatchedEvent];
     XCTAssertEqual([self waitForTransmits:1 of:batch timeout:3.0], 1u);
 
-    [self deliver:batch status:0 error:error];
+    [self deliver:batch status:0 error:[self urlError:code.integerValue]];
 
-    // Settle past the 1.5s retry delay, or a retry that should have been blocked lands after the check.
-    [self waitForTransmits:NSUIntegerMax of:batch timeout:2.0];
-    XCTAssertEqual([self transmitsFor:batch].count, 1u, @"re-sent a batch after %@", error);
+    XCTAssertEqual([self waitForTransmits:2 of:batch timeout:4.0], 2u, @"no retry after error %@", code);
+    NSArray* ids = [self wireRequestIdsOf:batch];
+    XCTAssertEqualObjects(ids[0], ids[1], @"the batch resend carried a different request_id");
   }
 }
 

@@ -1,6 +1,6 @@
 #import "TeakRequest.h"
 
-// Stop policy for isRetryableSocketError: retries — see shouldRetrySocketError:retryCount:.
+// Stop policy for no-response retries — see shouldRetryResponse:error:retryCount:.
 extern const NSUInteger TeakRequestMaxSocketRetries;
 
 @interface TeakRequest ()
@@ -64,17 +64,8 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // A fresh id for one logical send, sent as request_id.
 + (NSString* _Nonnull)generateRequestId;
 
-// Whether a no-reply failure that may have reached the server may be resent. Subclasses
-// whose endpoint isn't deduplicated server-side return NO.
-- (BOOL)retriesAfterPossibleDelivery;
-
-// YES when a failed attempt should be retried through the socket-retry path:
-// an ECONNABORTED, or a no-reply failure the request allows resending, within
-// the stop policy (TeakRequestMaxSocketRetries).
-- (BOOL)shouldRetryResponse:(NSHTTPURLResponse* _Nullable)response error:(NSError* _Nullable)error;
-
-// Returns YES when `error` is a retryable socket error (see
-// isRetryableSocketError:) and `retryCount` hasn't reached the stop policy
-// (TeakRequestMaxSocketRetries) yet.
-+ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
+// YES when a failed attempt should be retried: it got no HTTP reply (see
+// isNoResponseFailure:error:) and `retryCount` hasn't reached the stop policy
+// (TeakRequestMaxSocketRetries) yet. A resend carries the same request_id.
++ (BOOL)shouldRetryResponse:(NSHTTPURLResponse* _Nullable)response error:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
 @end

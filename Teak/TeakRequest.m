@@ -13,12 +13,13 @@
 #include <CommonCrypto/CommonHMAC.h>
 #include <sys/errno.h>
 
-// Delay before retrying a request that failed with a socket-closed transport
-// error. Matches TeakLog.m's TeakLogSender delayInSeconds, which retries the
-// same underlying OS behavior on its own NSURLSession — tune both together.
+// Delay before retrying a request that got no HTTP reply. Matches TeakLog.m's
+// TeakLogSender delayInSeconds, which retries the same underlying OS behavior
+// (a pooled socket closed while backgrounded) on its own NSURLSession — tune
+// both together.
 static const NSTimeInterval TeakRequestSocketErrorRetryDelay = 1.5;
 
-// How many times a socket-closed transport error gets retried. The stop
+// How many times a request that got no HTTP reply gets retried. The stop
 // policy lives here so the call site doesn't need to know the limit —
 // raising it later is a one-line change.
 const NSUInteger TeakRequestMaxSocketRetries = 1;
@@ -191,25 +192,13 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return NO;
 }
 
-+ (BOOL)shouldRetrySocketError:(NSError*)error retryCount:(NSUInteger)retryCount {
-  return [TeakRequest isRetryableSocketError:error] && retryCount < TeakRequestMaxSocketRetries;
-}
-
 + (BOOL)isNoResponseFailure:(NSHTTPURLResponse*)response error:(NSError*)error {
   if (response != nil || error == nil) return NO;
   return !([error.domain isEqualToString:NSURLErrorDomain] && error.code == NSURLErrorCancelled);
 }
 
-- (BOOL)retriesAfterPossibleDelivery {
-  return YES;
-}
-
-- (BOOL)shouldRetryResponse:(NSHTTPURLResponse*)response error:(NSError*)error {
-  if (self.socketErrorRetryCount >= TeakRequestMaxSocketRetries) return NO;
-
-  // ECONNABORTED means the request never left the device, so resending is always safe.
-  if ([TeakRequest isRetryableSocketError:error]) return YES;
-  return [TeakRequest isNoResponseFailure:response error:error] && [self retriesAfterPossibleDelivery];
++ (BOOL)shouldRetryResponse:(NSHTTPURLResponse*)response error:(NSError*)error retryCount:(NSUInteger)retryCount {
+  return [TeakRequest isNoResponseFailure:response error:error] && retryCount < TeakRequestMaxSocketRetries;
 }
 
 + (NSString*)generateRequestId {
@@ -428,9 +417,9 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
-        BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error] && [self retriesAfterPossibleDelivery];
+        BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error];
 
-        if ([self shouldRetryResponse:response error:error]) {
+        if ([TeakRequest shouldRetryResponse:response error:error retryCount:self.socketErrorRetryCount]) {
           // A request that got no HTTP reply (the OS closed a pooled socket while
           // the app was backgrounded, a timeout, a dropped connection) is retried
           // once after a short delay with the same request id, so a server that
@@ -542,13 +531,6 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
     result = currentBatch;
   }
   return result;
-}
-
-// Event batches aren't deduplicated server-side yet, so a batch that may have reached
-// the server must not be resent. A pre-send ECONNABORTED and the server-error ladder
-// still retry.
-- (BOOL)retriesAfterPossibleDelivery {
-  return NO;
 }
 
 - (void)prepareAndSend {
