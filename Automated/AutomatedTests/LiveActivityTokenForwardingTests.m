@@ -78,7 +78,7 @@ extern Teak* _teakSharedInstance;
   return [NSData dataWithBytes:bytes length:sizeof(bytes)];
 }
 
-// A request-backed operation carries {endpoint, payload}; a skipped one just carries its result.
+// A request-backed operation carries {endpoint, payload}; a validation failure just carries its result.
 - (BOOL)sendsRequest:(TeakOperation*)op {
   return op.invocation.selector == NSSelectorFromString(@"performRequest:");
 }
@@ -240,7 +240,7 @@ extern Teak* _teakSharedInstance;
 
 #pragma mark - Dedupe
 
-// Dedupe only claims when there is a queue to send on. The queue is suspended so nothing runs, and
+// Dedupe only records when there is a queue to send on. The queue is suspended so nothing runs, and
 // the operations are inspected rather than run.
 - (void)installSharedInstance {
   Teak* teak = [[Teak alloc] init];
@@ -249,41 +249,59 @@ extern Teak* _teakSharedInstance;
   _teakSharedInstance = teak;
 }
 
-- (void)testNoSharedInstanceMeansNoClaim {
+- (void)testNoSharedInstanceMeansNothingIsRecorded {
   _teakSharedInstance = nil;
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
-  XCTAssertTrue([self sendsRequest:[self validOperation]], @"Without a queue nothing was sent, so the next emission must not be skipped");
+  TeakOperation* first = [self validOperation];
+  XCTAssertTrue([self sendsRequest:first]);
+  TeakOperation* second = [self validOperation];
+  XCTAssertNotEqual(second, first, @"Without a queue nothing was sent, so the next emission must not reuse the first");
+  XCTAssertTrue([self sendsRequest:second]);
 }
 
-- (void)testRepeatedTokenIsNotForwardedAgain {
+- (void)testRepeatedTokenSharesTheFailureOfTheOriginalSend {
   [self installSharedInstance];
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
-
+  TeakOperation* first = [self validOperation];
   TeakOperation* repeat = [self validOperation];
-  XCTAssertFalse([self sendsRequest:repeat], @"Same activity, token and system id should be skipped");
+  XCTAssertEqual(repeat, first, @"Same activity, token and system id should share the original operation");
 
-  TeakOperationResult* result = (TeakOperationResult*)[self.driver requestParamsFor:repeat];
-  XCTAssertFalse(result.error, @"A skipped forward still reports ok");
-  XCTAssertEqualObjects(result.status, @"ok");
+  first.replyParser(@{@"status" : @"invalid_device", @"errors" : @{@"device_id" : @[ @"not found" ]}});
+
+  TeakOperation* retry = [self validOperation];
+  XCTAssertNotEqual(retry, first);
+  XCTAssertTrue([self sendsRequest:retry], @"A failed send must not block the next emission");
+}
+
+- (void)testCancelledOperationDoesNotBlockTheNextEmission {
+  [self installSharedInstance];
+  TeakOperation* first = [self validOperation];
+  [first cancel];
+
+  TeakOperation* next = [self validOperation];
+  XCTAssertNotEqual(next, first);
+  XCTAssertTrue([self sendsRequest:next]);
 }
 
 - (void)testChangedTokenIsForwarded {
   [self installSharedInstance];
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
-  XCTAssertTrue([self sendsRequest:[self operationWithToken:[self otherTokenData]]]);
+  TeakOperation* first = [self validOperation];
+  TeakOperation* changed = [self operationWithToken:[self otherTokenData]];
+  XCTAssertNotEqual(changed, first);
+  XCTAssertTrue([self sendsRequest:changed]);
 }
 
 - (void)testChangedSystemActivityIdIsForwarded {
   [self installSharedInstance];
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  TeakOperation* first = [self validOperation];
   TeakOperation* op = [Teak startedLiveActivity:@"my-activity" withToken:[self sampleTokenData] systemActivityId:@"other-system-activity-uuid"];
+  XCTAssertNotEqual(op, first);
   XCTAssertTrue([self sendsRequest:op]);
 }
 
 - (void)testChangedActivityIdIsForwarded {
   [self installSharedInstance];
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  TeakOperation* first = [self validOperation];
   TeakOperation* op = [Teak startedLiveActivity:@"other-activity" withToken:[self sampleTokenData] systemActivityId:@"system-activity-uuid"];
+  XCTAssertNotEqual(op, first);
   XCTAssertTrue([self sendsRequest:op]);
 }
 
@@ -292,18 +310,10 @@ extern Teak* _teakSharedInstance;
   TeakOperation* first = [self validOperation];
   first.replyParser(@{@"status" : @"ok"});
 
-  XCTAssertFalse([self sendsRequest:[self validOperation]]);
+  XCTAssertEqual([self validOperation], first);
 }
 
-- (void)testErrorReplyLetsTheSameTokenBeForwardedAgain {
-  [self installSharedInstance];
-  TeakOperation* first = [self validOperation];
-  first.replyParser(@{@"status" : @"invalid_device", @"errors" : @{@"device_id" : @[ @"not found" ]}});
-
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
-}
-
-- (void)testInvalidArgumentsDoNotClaimTheCache {
+- (void)testInvalidArgumentsAreNotRecorded {
   [self installSharedInstance];
   TeakOperation* bad = [Teak startedLiveActivity:@"my-activity" withToken:[self sampleTokenData] systemActivityId:@""];
   XCTAssertFalse([self sendsRequest:bad]);
@@ -313,12 +323,15 @@ extern Teak* _teakSharedInstance;
 
 - (void)testUserChangeLetsTheSameTokenBeForwardedAgain {
   [self installSharedInstance];
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
-  XCTAssertFalse([self sendsRequest:[self validOperation]]);
+  TeakOperation* first = [self validOperation];
+  XCTAssertTrue([self sendsRequest:first]);
+  XCTAssertEqual([self validOperation], first);
 
   [TeakSession logoutReusingCurrentSession:NO];
 
-  XCTAssertTrue([self sendsRequest:[self validOperation]]);
+  TeakOperation* afterUserChange = [self validOperation];
+  XCTAssertNotEqual(afterUserChange, first);
+  XCTAssertTrue([self sendsRequest:afterUserChange]);
 }
 
 @end
