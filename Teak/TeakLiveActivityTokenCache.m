@@ -1,11 +1,19 @@
 #import "TeakLiveActivityTokenCache.h"
+#import "TeakOperation.h"
 
-@interface TeakLiveActivityTokenCache ()
-@property (nonatomic, strong) NSMutableDictionary<NSString*, NSString*>* signatures;
-@property (nonatomic) NSUInteger generation;
+@interface TeakLiveActivityTokenCacheEntry : NSObject
+@property (nonatomic, copy) NSString* signature;
+@property (nonatomic, strong) TeakOperation* operation;
 @end
 
-// Leaf lock: nothing is called while it is held, so it is safe to take under any other lock.
+@implementation TeakLiveActivityTokenCacheEntry
+@end
+
+@interface TeakLiveActivityTokenCache ()
+@property (nonatomic, strong) NSMutableDictionary<NSString*, TeakLiveActivityTokenCacheEntry*>* entries;
+@end
+
+// Leaf lock: the only thing called while it is held is -isCancelled, which does not take this lock.
 @implementation TeakLiveActivityTokenCache
 
 + (nonnull TeakLiveActivityTokenCache*)sharedCache {
@@ -20,34 +28,37 @@
 - (instancetype)init {
   self = [super init];
   if (self) {
-    _signatures = [[NSMutableDictionary alloc] init];
+    _entries = [[NSMutableDictionary alloc] init];
   }
   return self;
 }
 
-- (BOOL)claimActivityId:(nonnull NSString*)activityId signature:(nonnull NSString*)signature generation:(nonnull NSUInteger*)generation {
+- (nullable TeakOperation*)operationForActivityId:(nonnull NSString*)activityId signature:(nonnull NSString*)signature orRecord:(nonnull TeakOperation*)op {
   @synchronized(self) {
-    if ([self.signatures[activityId] isEqualToString:signature]) {
-      return NO;
+    TeakLiveActivityTokenCacheEntry* entry = self.entries[activityId];
+    if (entry != nil && [entry.signature isEqualToString:signature] && !entry.operation.isCancelled) {
+      return entry.operation;
     }
-    self.signatures[activityId] = [signature copy];
-    *generation = self.generation;
-    return YES;
+
+    entry = [[TeakLiveActivityTokenCacheEntry alloc] init];
+    entry.signature = signature;
+    entry.operation = op;
+    self.entries[activityId] = entry;
+    return nil;
   }
 }
 
-- (void)releaseActivityId:(nonnull NSString*)activityId signature:(nonnull NSString*)signature generation:(NSUInteger)generation {
+- (void)releaseOperation:(nonnull TeakOperation*)op forActivityId:(nonnull NSString*)activityId {
   @synchronized(self) {
-    if (generation == self.generation && [self.signatures[activityId] isEqualToString:signature]) {
-      [self.signatures removeObjectForKey:activityId];
+    if (self.entries[activityId].operation == op) {
+      [self.entries removeObjectForKey:activityId];
     }
   }
 }
 
 - (void)reset {
   @synchronized(self) {
-    [self.signatures removeAllObjects];
-    self.generation++;
+    [self.entries removeAllObjects];
   }
 }
 
