@@ -42,17 +42,24 @@ def crash_frames(body, limit = 12)
 end
 
 # Crashes xcodebuild recorded in the xcresult: [simulator UDID, [failure descriptions]]. A crashed test
-# shows up in `testFailures` with text like "Test crashed with signal segv."
+# shows up in `testFailures` as "Test crashed with signal segv." or, when ReportCrash is working,
+# "Crash: Automated (<pid>) -[Class test]".
 def xcresult_crashes(xcresult_path)
   return [nil, []] unless xcresult_path && File.exist?(xcresult_path)
   out = `xcrun xcresulttool get test-results summary --path #{Shellwords.escape(xcresult_path)} 2>/dev/null`
   summary = JSON.parse(out)
+  unless summary.key?('testFailures') && summary.key?('devicesAndConfigurations')
+    UI.important("crash check: couldn't read xcresult (unexpected summary shape): #{xcresult_path}")
+    return [nil, []]
+  end
   udid = summary.dig('devicesAndConfigurations', 0, 'device', 'deviceId')
-  crashes = (summary['testFailures'] || []).select { |f| f['failureText'].to_s =~ /crashed/i }.map do |f|
+  crashes = summary['testFailures'].select { |f| f['failureText'].to_s =~ /\A(Test crashed|Crash:)/ }.map do |f|
     "#{f['testIdentifierString']}: #{f['failureText']}"
   end
   [udid, crashes]
-rescue StandardError
+rescue StandardError => e
+  # Fail open so a broken check can't red a good run, but say so.
+  UI.important("crash check: couldn't read xcresult (#{e.class}: #{e.message}): #{xcresult_path}")
   [nil, []]
 end
 
@@ -61,7 +68,7 @@ end
 # as an ordinary failed test and is easy to read as the expected red.
 #
 # Two signals: the xcresult (always has it, names the test) and a new Automated-*.ips (has the faulting
-# frames, but ReportCrash may write it late or, as seen, not at all). Either one is enough.
+# frames, but ReportCrash writes it asynchronously and may be late or absent). Either one is enough.
 def fail_if_test_host_crashed
   since = Time.now
   scan_error = nil
