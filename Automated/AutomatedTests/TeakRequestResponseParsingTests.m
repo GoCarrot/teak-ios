@@ -1,17 +1,10 @@
 #import <XCTest/XCTest.h>
 
-#import "TeakRequest.h"
+#import "TeakRequest+Internal.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
-
-// Re-expose the internal parse helper so tests can exercise it without
-// driving a full NSURLSession round-trip. See CLAUDE.md "Header imports in tests".
-@interface TeakRequest (ResponseParsingTests)
-+ (NSDictionary* _Nonnull)parseJSONResponseData:(NSData* _Nullable)data
-                                          error:(NSError* _Nullable* _Nullable)outError;
-@end
 
 @interface TeakRequestResponseParsingTests : XCTestCase
 @end

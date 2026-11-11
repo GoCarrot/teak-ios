@@ -1,6 +1,6 @@
 #import <XCTest/XCTest.h>
 
-#import "TeakSession.h"
+#import "TeakSession+Internal.h"
 #import "TeakState.h"
 #import <Teak/Teak.h>
 
@@ -11,11 +11,6 @@
 // read. It has external linkage, so the test can drive it directly without
 // standing up a real session (which performs network I/O at init).
 extern TeakSession* currentSession;
-
-// previousState is internal; re-expose it so the OrWas Expiring gate can be stubbed.
-@interface TeakSession (Testing)
-@property (strong, nonatomic) TeakState* previousState;
-@end
 
 @interface TeakSessionDeferredCallbackTests : XCTestCase
 @end

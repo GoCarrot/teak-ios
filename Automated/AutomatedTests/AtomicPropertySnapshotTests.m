@@ -2,8 +2,8 @@
 #import <objc/message.h>
 
 #import "TeakChannelStatus.h"
-#import "TeakPushState.h"
-#import "TeakSession.h"
+#import "TeakPushState+Internal.h"
+#import "TeakSession+Internal.h"
 #import "TeakUserProfile.h"
 #import <Teak/Teak.h>
 
@@ -12,21 +12,6 @@
 // which is what closes the cross-thread use-after-free (see Automated/RACE_TESTING.md §3b). They're
 // single-threaded, deterministic and need no sanitizer, so they run in the fast `test` lane. The
 // NSString-backed properties have two-thread CF-trap crash repros in RaceTripwireTests.m instead.
-
-// userProfile/additionalData/emailStatus/pushStatus/smsStatus are public but readonly; stateChain is
-// private. Re-declared here for read-write access, per the project convention of redeclaring
-// internal properties in the test file rather than importing Teak+Internal.h.
-@interface TeakSession (AtomicPropertySnapshot)
-@property (strong, atomic, readwrite) TeakUserProfile* userProfile;
-@property (strong, atomic, readwrite) NSDictionary* additionalData;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull pushStatus;
-@property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull smsStatus;
-@end
-
-@interface TeakPushState (AtomicPropertySnapshot)
-@property (strong, atomic) NSArray* stateChain;
-@end
 
 // The getter called with a non-retainable return type, so ARC adds no retain of its own and the
 // result is exactly what the accessor handed back. There's no return-value-optimization handshake

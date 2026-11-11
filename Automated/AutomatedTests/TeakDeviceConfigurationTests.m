@@ -1,6 +1,5 @@
 #import <XCTest/XCTest.h>
-#import <objc/runtime.h>
-
+#import "AtomicPropertyAssertions.h"
 #import "PushRegistrationEvent.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakEvent.h"
@@ -22,33 +21,24 @@
 // pushToken/liveActivityPushToStartToken/advertisingIdentifier/notificationDisplayEnabled are all
 // reassigned from a writer thread other than TeakSession's operation queue, which reads them while
 // building the identify payload (see RaceTripwireTests.m for the dynamic use-after-free repro
-// backing these four). A cheap permanent guard, complementary to the dynamic repro: pins the
-// declaration to atomic via the Objective-C runtime, failing if any reverts.
-- (BOOL)isNonatomicProperty:(const char*)name {
-  objc_property_t property = class_getProperty([TeakDeviceConfiguration class], name);
-  XCTAssertTrue(property != NULL, @"TeakDeviceConfiguration has no property named %s", name);
-  if (property == NULL) return YES;
-  NSString* attributes = @(property_getAttributes(property));
-  return [[attributes componentsSeparatedByString:@","] containsObject:@"N"];
-}
-
+// backing these four). A cheap permanent guard, complementary to the dynamic repro.
 - (void)testPushTokenIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"pushToken"],
+  XCTAssertTrue(isAtomicProperty([TeakDeviceConfiguration class], "pushToken"),
                  @"TeakDeviceConfiguration.pushToken must stay atomic — reassigned on the event-processing queue while read by TeakSession's operation queue");
 }
 
 - (void)testLiveActivityPushToStartTokenIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"liveActivityPushToStartToken"],
+  XCTAssertTrue(isAtomicProperty([TeakDeviceConfiguration class], "liveActivityPushToStartToken"),
                  @"TeakDeviceConfiguration.liveActivityPushToStartToken must stay atomic — same cross-thread reassignment hazard as pushToken");
 }
 
 - (void)testAdvertisingIdentifierIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"advertisingIdentifier"],
+  XCTAssertTrue(isAtomicProperty([TeakDeviceConfiguration class], "advertisingIdentifier"),
                  @"TeakDeviceConfiguration.advertisingIdentifier must stay atomic — reassigned from init/the event queue/a main-queue retry while read by TeakSession's operation queue");
 }
 
 - (void)testNotificationDisplayEnabledIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"notificationDisplayEnabled"],
+  XCTAssertTrue(isAtomicProperty([TeakDeviceConfiguration class], "notificationDisplayEnabled"),
                  @"TeakDeviceConfiguration.notificationDisplayEnabled must stay atomic — reassigned on the pushState operation queue's completion block while read by TeakSession's operation queue");
 }
 

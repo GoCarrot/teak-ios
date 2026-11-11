@@ -1,20 +1,31 @@
 #import <XCTest/XCTest.h>
 #import <stdatomic.h>
 
-#import "SKPaymentObserver.h"
+#import "SKPaymentObserver+Internal.h"
 #import "TeakAppConfiguration.h"
 #import "TeakConfiguration.h"
-#import "TeakDeviceConfiguration.h"
+#import "TeakDeviceConfiguration+Internal.h"
 #import "TeakLink.h"
 #import "TeakLog.h"
-#import "TeakRaven.h"
-#import "TeakSession.h"
-#import "TeakUserProfile.h"
-#import "UserIdEvent.h"
+#import "TeakRaven+Internal.h"
+#import "TeakRequest+Internal.h"
+#import "TeakSession+Internal.h"
+#import "TeakUserProfile+Internal.h"
+#import "UserIdEvent+Internal.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
+
+// Teak+Internal.h can't be imported into the test target (see CLAUDE.md), so redeclare what's needed.
+@interface Teak (RaceTripwire)
++ (dispatch_queue_t)operationQueue;
+@end
+
+@interface Teak ()
+@property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
+@property (strong, nonatomic) TeakLog* _Nonnull log;
+@end
 
 // The current-session global (external linkage), driven directly by the replacement guard below.
 extern TeakSession* currentSession;
@@ -48,77 +59,6 @@ extern NSString* const currentSessionMutex;
 // See Automated/RACE_TESTING.md for the race-testing methodology — which detector catches which race
 // class, and why some classes (e.g. lock-inversion deadlocks) carry no in-process data-race signal
 // and get a watchdog or structural guard instead.
-
-@interface Teak (RaceTripwire)
-+ (dispatch_queue_t)operationQueue;
-@end
-
-// Re-expose internal Teak properties needed to build a real TeakRaven (mirrors TeakRavenTests.m).
-@interface Teak ()
-@property (strong, nonatomic) TeakConfiguration* _Nonnull configuration;
-@property (strong, nonatomic) TeakLog* _Nonnull log;
-@end
-
-// TeakRavenReport is a private class declared only inside TeakRaven.m; re-declare its shape here so
-// the tripwire can drive the real initializer and inspect the resulting payload.
-@interface TeakRavenReport : NSObject
-@property (strong, nonatomic) NSMutableDictionary* payload;
-- (id)initForRaven:(nonnull TeakRaven*)raven message:(nonnull NSString*)message additions:(NSDictionary*)additions;
-@end
-
-// userId is read-only in the public header; re-expose as read-write so the tripwire can construct
-// UserIdEvent instances directly, the same way TeakRaven's own handleEvent: receives them.
-@interface UserIdEvent ()
-@property (strong, nonatomic, readwrite) NSString* _Nonnull userId;
-@end
-
-@interface TeakUserProfile (RaceTripwire)
-@property (strong, nonatomic) NSMutableDictionary* stringAttributes;
-@property (strong, nonatomic) NSMutableDictionary* numberAttributes;
-@property (strong, nonatomic) NSString* context;
-@end
-
-// blackhole is readonly in the public header, readwrite in TeakRequest+Internal.h; re-exposed here
-// per the project convention so the tripwire can suppress the real network send.
-@interface TeakRequest (RaceTripwire)
-@property (nonatomic, readwrite) BOOL blackhole;
-@end
-
-// countryCode/serverSessionId/facebookAccessToken are private (declared only in TeakSession.m's
-// class extension). Re-declared here for full read-write access, per the project convention of
-// redeclaring internal properties in the test file rather than importing Teak+Internal.h.
-@interface TeakSession (RaceTripwire)
-@property (strong, atomic) NSString* countryCode;
-@property (strong, atomic) NSString* serverSessionId;
-@property (strong, atomic) NSString* facebookAccessToken;
-@property (nonatomic) BOOL deviceConfigurationObserversDetached;
-- (void)detachDeviceConfigurationObservers;
-+ (void)logoutReusingCurrentSession:(BOOL)reuseSession;
-// The macro-generated currentState KVO handler. A bare-alloc session never registers the observer
-// (-init does), so the lock-order guard invokes the real handler directly to exercise its body.
-- (void)_TeakSession_currentState_ChangedFrom:(id)oldValue to:(id)newValue;
-@property (nonatomic) atomic_int sessionVectorClock;
-- (int)incrementSessionVectorClock;
-- (int)markReportDurationSentAndIncrementSessionVectorClock;
-@end
-
-// pushToken/liveActivityPushToStartToken/advertisingIdentifier/notificationDisplayEnabled are
-// public but readonly on TeakDeviceConfiguration. Re-declared here for full read-write access,
-// same convention as TeakSession above.
-@interface TeakDeviceConfiguration (RaceTripwire)
-@property (strong, atomic, readwrite) NSString* pushToken;
-@property (strong, atomic, readwrite) NSString* liveActivityPushToStartToken;
-@property (strong, atomic, readwrite) NSString* advertisingIdentifier;
-@property (strong, atomic, readwrite) NSString* notificationDisplayEnabled;
-@end
-
-// addActiveProductRequest:/removeActiveProductRequest: are private (declared only in
-// SKPaymentObserver.m). Re-declared here so the test can drive the real synchronized mutation
-// methods directly, rather than reconstructing the array access by hand.
-@interface ProductRequest (RaceTripwire)
-+ (void)addActiveProductRequest:(ProductRequest*)request;
-+ (void)removeActiveProductRequest:(ProductRequest*)request;
-@end
 
 // A profile whose send is a no-op: the tripwire drives a bare-alloc profile that has no backing
 // request or session, so the real send would reach into unrelated networking. The tripwire only

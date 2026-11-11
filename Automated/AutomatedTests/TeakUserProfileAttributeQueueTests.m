@@ -1,6 +1,6 @@
 #import <XCTest/XCTest.h>
 
-#import "TeakUserProfile.h"
+#import "TeakUserProfile+Internal.h"
 #import <Teak/Teak.h>
 
 // setAttribute:forKey:inDictionary: must touch the attribute dictionary + firstSetTime
@@ -15,12 +15,6 @@
 // synchronously on the caller's queue, so this fails deterministically when reverted.
 @interface Teak (Testing)
 + (dispatch_queue_t)operationQueue;
-@end
-
-@interface TeakUserProfile (Testing)
-@property (strong, nonatomic) NSMutableDictionary* stringAttributes;
-@property (strong, nonatomic) NSMutableDictionary* numberAttributes;
-@property (strong, nonatomic) NSDate* firstSetTime;
 @end
 
 @interface TeakUserProfileAttributeQueueTests : XCTestCase

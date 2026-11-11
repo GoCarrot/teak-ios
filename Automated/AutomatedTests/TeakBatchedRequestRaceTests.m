@@ -5,7 +5,8 @@
 #import "TeakAppConfiguration.h"
 #import "TeakDeviceConfiguration.h"
 #import "TeakRemoteConfiguration.h"
-#import "TeakRequest.h"
+#import "TeakBatchedRequest+Internal.h"
+#import "TeakRequest+Internal.h"
 #import "TeakSession.h"
 #import <Teak/Teak.h>
 
@@ -19,32 +20,6 @@
 // dictionary literal) the first time this file runs before anything else in
 // the process has triggered that flow.
 extern NSDictionary* TeakVersionDict;
-
-// TeakBatchedRequest / TeakTrackEventBatchedRequest are private classes declared
-// only inside TeakRequest.m; re-declare their shape here so the test can drive
-// the real class/instance methods directly, per the project convention (see
-// RaceTripwireTests.m's TeakRavenReport re-declaration).
-@interface TeakBatchedRequest : TeakRequest
-@property (nonatomic) BOOL sent;
-@property (strong, nonatomic) NSMutableArray* callbacks;
-@property (strong, nonatomic) NSMutableArray* batchContents;
-
-- (BOOL)cancel;
-- (void)sendNow;
-- (void)prepareAndSend;
-- (void)reallyActuallySend;
-
-+ (nullable TeakBatchedRequest*)addRequestIntoBatch:(nonnull TeakBatchedRequest*)batchedRequest
-                                         withSession:(nonnull TeakSession*)session
-                                         forEndpoint:(nonnull NSString*)endpoint
-                                         withPayload:(nonnull NSDictionary*)payload
-                                         andCallback:(nullable TeakRequestResponse)callback;
-@end
-
-@interface TeakTrackEventBatchedRequest : TeakBatchedRequest
-- (nonnull TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session;
-+ (nonnull TeakTrackEventBatchedRequest*)currentBatchForSession:(nonnull TeakSession*)session;
-@end
 
 // Test-only swizzles on the real (production) -cancel and -reallyActuallySend.
 //

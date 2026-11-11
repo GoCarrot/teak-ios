@@ -1,7 +1,7 @@
 #import <XCTest/XCTest.h>
 
+#import "AtomicPropertyAssertions.h"
 #import "TeakSession.h"
-#import <objc/runtime.h>
 
 // Several TeakSession properties are accessed across lock boundaries and must stay `atomic`:
 //
@@ -34,48 +34,38 @@
 
 @implementation TeakSessionLockingTests
 
-// YES if the named property carries the nonatomic flag (the "N" token in its runtime
-// attribute string), which would reintroduce the torn-read race.
-- (BOOL)isNonatomicProperty:(const char*)name {
-  objc_property_t property = class_getProperty([TeakSession class], name);
-  XCTAssertTrue(property != NULL, @"TeakSession has no property named %s", name);
-  if (property == NULL) return YES;
-  NSString* attributes = @(property_getAttributes(property));
-  return [[attributes componentsSeparatedByString:@","] containsObject:@"N"];
-}
-
 - (void)testCurrentStateIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"currentState"],
+  XCTAssertTrue(isAtomicProperty([TeakSession class], "currentState"),
                  @"TeakSession.currentState must stay atomic — read under currentSessionMutex, written under @synchronized(self)");
 }
 
 - (void)testPreviousStateIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"previousState"],
+  XCTAssertTrue(isAtomicProperty([TeakSession class], "previousState"),
                  @"TeakSession.previousState must stay atomic — same cross-lock-domain access as currentState");
 }
 
 - (void)testReportDurationBlockIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"reportDurationBlock"],
+  XCTAssertTrue(isAtomicProperty([TeakSession class], "reportDurationBlock"),
                  @"TeakSession.reportDurationBlock must stay atomic — its background-queue body reads it outside @synchronized(self) while resetReportDurationBlock cancels and frees it under the lock");
 }
 
 - (void)testCountryCodeIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"countryCode"],
+  XCTAssertTrue(isAtomicProperty([TeakSession class], "countryCode"),
                  @"TeakSession.countryCode must stay atomic — reassigned in the identify-reply callback while sendHeartbeat reads it on the heartbeat queue");
 }
 
 - (void)testUserProfileIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"userProfile"],
+  XCTAssertTrue(isAtomicProperty([TeakSession class], "userProfile"),
                  @"TeakSession.userProfile must stay atomic — reassigned in the identify-reply callback while read and sent on the operation queue");
 }
 
 - (void)testServerSessionIdIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"serverSessionId"],
+  XCTAssertTrue(isAtomicProperty([TeakSession class], "serverSessionId"),
                  @"TeakSession.serverSessionId must stay atomic — reassigned in the identify-reply callback while read by the duration-report background block");
 }
 
 - (void)testLaunchDataOperationIsAtomic {
-  XCTAssertFalse([self isNonatomicProperty:"launchDataOperation"],
+  XCTAssertTrue(isAtomicProperty([TeakSession class], "launchDataOperation"),
                  @"TeakSession.launchDataOperation must stay atomic — reassigned in the identify-reply callback while read from sendUserIdentifier, identifyUserOperation, and processAttributionAndDispatchEvents");
 }
 
