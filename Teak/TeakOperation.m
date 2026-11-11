@@ -106,8 +106,7 @@ static TeakOperationResult* TeakOperationResultForException(NSString* _Nullable 
   NSDictionary* payload = requestParams[kPayload];
   id (^replyParser)(NSDictionary* _Nonnull) = self.replyParser;
   dispatch_semaphore_t sema = dispatch_semaphore_create(0);
-  // The block runs later, on another queue, outside anything this method could catch. Every way
-  // out of it has to signal, or the operation never finishes.
+  // Runs later, on another queue. Every way out has to signal, or the operation never finishes.
   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
     @try {
       TeakRequest* request = [TeakRequest requestWithSession:session
@@ -139,7 +138,6 @@ static TeakOperationResult* TeakOperationResultForException(NSString* _Nullable 
 }
 
 @end
-
 
 @implementation TeakOperation
 

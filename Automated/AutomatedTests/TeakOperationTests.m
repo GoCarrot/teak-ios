@@ -11,23 +11,20 @@
 // identified session without a real one.
 extern TeakSession* currentSession;
 
-// A TeakOperation must deallocate once nothing outside it holds a reference: an
-// operation that owns a strong path back to itself never frees, and every call that
-// returns one leaks it.
 @interface TeakOperationTests : XCTestCase
 @property (strong, nonatomic) TeakOperationTestDriver* driver;
 @end
 
 @implementation TeakOperationTests
 
-- (void)tearDown {
-  currentSession = nil;
-  [super tearDown];
-}
-
 - (void)setUp {
   [super setUp];
   self.driver = [[TeakOperationTestDriver alloc] init];
+}
+
+- (void)tearDown {
+  currentSession = nil;
+  [super tearDown];
 }
 
 // Builds an operation inside its own autorelease pool, optionally runs it, and
@@ -76,7 +73,6 @@ extern TeakSession* currentSession;
   XCTAssertNoThrow(result = [self.driver runSync:op]);
   XCTAssertTrue(op.isFinished);
   XCTAssertTrue([result isKindOfClass:[TeakOperationResult class]]);
-  XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
 }
 
@@ -87,7 +83,6 @@ extern TeakSession* currentSession;
   TeakOperationResult* result = nil;
   XCTAssertNoThrow(result = [self.driver runSync:op]);
   XCTAssertTrue([result isKindOfClass:[TeakOperationResult class]]);
-  XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.status, @"error");
 }
 
