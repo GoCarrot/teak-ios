@@ -1,6 +1,7 @@
 #import <XCTest/XCTest.h>
 
 #import "TeakConfiguration.h"
+#import "TeakEvent.h"
 #import "TeakHelpers.h"
 #import "TeakLaunchData.h"
 #import "TeakRemoteConfiguration.h"
@@ -25,6 +26,7 @@ extern NSDictionary* TeakVersionDict;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
 - (BOOL)setState:(nonnull TeakState*)newState;
 - (void)detachDeviceConfigurationObservers;
+- (void)userProfileReceived:(nullable NSDictionary*)userProfile;
 @end
 
 // A session that's been replaced must free. Each test drives a real replacement path and then waits
@@ -34,6 +36,8 @@ extern NSDictionary* TeakVersionDict;
 @end
 
 @implementation TeakSessionLifetimeTests
+
+static NSDictionary* savedTeakVersionDict = nil;
 
 // -[TeakSession init] reads TeakConfiguration.configuration; seed it once (another test class may
 // have configured it already).
@@ -46,9 +50,15 @@ extern NSDictionary* TeakVersionDict;
   // Set by Teak's own init, which tests don't run. A TeakRequest's common payload includes it, and
   // building that payload with it nil throws mid-init — which, without ARC exception cleanup, leaks
   // the session the request was being built for.
+  savedTeakVersionDict = TeakVersionDict;
   if (TeakVersionDict == nil) {
     TeakVersionDict = @{@"ios" : @"test"};
   }
+}
+
++ (void)tearDown {
+  TeakVersionDict = savedTeakVersionDict;
+  [super tearDown];
 }
 
 - (void)setUp {
@@ -57,8 +67,9 @@ extern NSDictionary* TeakVersionDict;
 }
 
 - (void)tearDown {
-  // A real session stays a live deviceConfiguration KVO observer until detached.
+  // A real session stays a live deviceConfiguration KVO observer and event handler until detached.
   [currentSession detachDeviceConfigurationObservers];
+  if (currentSession != nil) [TeakEvent removeEventHandler:currentSession];
   currentSession = nil;
   [super tearDown];
 }
@@ -168,10 +179,10 @@ extern NSDictionary* TeakVersionDict;
     [TeakSession logoutReusingCurrentSession:NO];
   }
 
-  // Drain the operation queue, where replacement releases the profile, so the report is the only
-  // work left that could still be holding the session.
-  dispatch_sync([Teak operationQueue], ^{
-                });
+  // Give everything else holding the session time to let go, so the report is the only thing that
+  // could still be keeping it alive when the queue resumes. With the hold in place the session stays
+  // alive and this times out; without it the session frees here and the report finds it gone.
+  [self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:1.0];
 
   dispatch_resume(reportQueue);
   XCTAssertEqual(dispatch_semaphore_wait(claimed, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)), 0,
@@ -181,5 +192,26 @@ extern NSDictionary* TeakVersionDict;
                 @"the session is still alive after its duration report ran");
 }
 
-@end
+#pragma mark - Late identify reply
 
+// The /users.json request holds the session until its reply runs, so the reply can land after
+// replacement. It must not attach a profile, which would hold the session again.
+- (void)testIdentifyReplyAfterReplacementDoesNotPinSession {
+  __weak TeakSession* weakSession = nil;
+  @autoreleasepool {
+    TeakSession* session = [TeakSession currentSession];
+    weakSession = session;
+    [TeakSession logoutReusingCurrentSession:NO];
+
+    // Land the reply after replacement has released the profile on the operation queue.
+    dispatch_sync([Teak operationQueue], ^{
+                  });
+    [session userProfileReceived:@{}];
+    XCTAssertNil(session.userProfile);
+  }
+
+  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
+                @"an identify reply after replacement pinned the session");
+}
+
+@end

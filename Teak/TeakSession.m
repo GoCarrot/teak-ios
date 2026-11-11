@@ -28,11 +28,9 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 // -detachDeviceConfigurationObservers' three removeObserver calls, so add/remove serialization is
 // verifiable by reading this one lock's use sites — not by tracing which callers happen to hold
 // another lock. KVO add/remove is not thread-safe (concurrent add/remove on the shared object corrupts
-// its per-object observation info), so all of it must be serialized. Every add/remove site but the
-// -dealloc fallback also runs under currentSessionMutex, so this token is belt-and-suspenders for
-// them; its job is to make the serialization a local, grep-verifiable fact, and it's the sole guard
-// for the -dealloc fallback's removeObserver, which runs off currentSessionMutex (see
-// -detachDeviceConfigurationObservers).
+// its per-object observation info), so all of it must be serialized. Every add/remove site also runs
+// under currentSessionMutex, so this token is belt-and-suspenders; its job is to make the
+// serialization a local, grep-verifiable fact.
 //
 // A dedicated token, NOT @synchronized(self): self is entangled with currentSessionMutex (the class
 // methods acquire currentSessionMutex and call into self-synchronized session code, and the
@@ -128,9 +126,13 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (nonatomic) atomic_int sessionVectorClock;
 
 // Set once, under deviceConfigurationObserverMutex, when this session's observers on the shared
-// deviceConfiguration are removed, so the removal happens exactly once whether it comes from session
-// replacement or -dealloc. See -detachDeviceConfigurationObservers.
+// deviceConfiguration are removed, so the removal happens exactly once. See
+// -detachDeviceConfigurationObservers.
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
+
+// Set under @synchronized(self) by -detachAfterReplacement, and read under the same lock where an
+// identify reply attaches a user profile, so a reply that lands after replacement can't attach one.
+@property (nonatomic) BOOL replaced;
 @end
 
 @implementation TeakSession
@@ -389,8 +391,7 @@ DefineTeakState(Expired, (@[]));
 
                                                     blockSelf.countryCode = reply[@"country_code"];
 
-                                                    // User profile
-                                                    blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
+                                                    [blockSelf userProfileReceived:reply[@"user_profile"]];
 
                                                     // Deep link
                                                     if (reply[@"deep_link"]) {
@@ -436,6 +437,16 @@ DefineTeakState(Expired, (@[]));
                                                   }];
 
     [request send];
+  }
+}
+
+// The /users.json request holds this session until its reply runs, so a reply can arrive after the
+// session was replaced. Attaching a profile then would retain the session again (the profile holds
+// it) after -detachAfterReplacement already released the last one, so a replaced session gets none.
+- (void)userProfileReceived:(nullable NSDictionary*)userProfile {
+  @synchronized(self) {
+    if (self.replaced) return;
+    self.userProfile = [[TeakUserProfile alloc] initForSession:self withDictionary:userProfile];
   }
 }
 
@@ -526,13 +537,9 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  // Replaced sessions are already detached (see -detachAfterReplacement); the idempotence flag keeps
-  // this a no-op for them. It's the detach for a session that frees without ever being replaced.
-  [self detachDeviceConfigurationObservers];
+  // No deviceConfiguration detach or event-handler removal here: a session can only free after
+  // replacement has done both (the handler set holds it until then).
   UnRegisterKeyValueObserverFor(self, currentState);
-
-  // Same: a no-op for a replaced session, which already left the handler set.
-  [TeakEvent removeEventHandler:self];
 }
 
 // Remove this session's observers on the shared deviceConfiguration singleton, serialized on
@@ -542,12 +549,9 @@ DefineTeakState(Expired, (@[]));
 // handled here; a session's other observers (its own currentState and its per-session
 // remoteConfiguration) are not shared across sessions, so they stay in -dealloc.
 //
-// Called at each session replacement so removal is deterministic and bounded, rather than waiting on
-// -dealloc, which runs whenever the last in-flight request or queued block lets go of the session.
-// Detaching here also keeps removal on currentSessionMutex: -dealloc runs off it, on whatever thread
-// drops the last reference, and its removeObserver could otherwise race a newer session's addObserver on
-// this same object. The flag makes removal idempotent so the -dealloc fallback can't double-remove
-// (which throws "not registered as an observer").
+// Called at each session replacement, under currentSessionMutex, so removal is deterministic and
+// can't race a newer session's addObserver on this same object. The flag makes removal idempotent,
+// since a second remove throws "not registered as an observer".
 - (void)detachDeviceConfigurationObservers {
   @synchronized(deviceConfigurationObserverMutex) {
     if (self.deviceConfigurationObserversDetached) return;
@@ -568,6 +572,9 @@ DefineTeakState(Expired, (@[]));
 // there. Work that captured the profile itself — a pending send, a scheduled retry — keeps it, and the
 // session, alive until that work runs.
 - (void)detachAfterReplacement {
+  @synchronized(self) {
+    self.replaced = YES;
+  }
   [TeakEvent removeEventHandler:self];
   dispatch_async([Teak operationQueue], ^{
     self.userProfile = nil;
@@ -676,8 +683,6 @@ DefineTeakState(Expired, (@[]));
         newSession = [[TeakSession alloc] init];
       }
 
-      // Drop the outgoing session's shared-deviceConfiguration observers here instead of leaving them
-      // to its background -dealloc. See -detachDeviceConfigurationObservers.
       [currentSession detachDeviceConfigurationObservers];
 
       [currentSession setState:[TeakSession Expiring]];
