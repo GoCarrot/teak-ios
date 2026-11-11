@@ -31,6 +31,12 @@ Expected on iOS 18.6 (Xcode 16.4):
 | SK2 purchase, `Transaction.updates` listener running, finished | 0 (`updatesDelivered=[]`) |
 | `Transaction.updates` started after an unfinished SK2 purchase (positive control) | `updatesDelivered=[tx]` |
 
+Receipt read (`testReceiptAfterSK1Purchases`, `testReceiptAfterSK2Purchases`): run each alone on an erased
+simulator, the receipt file persists across tests. On the local StoreKit test server, two SK1 purchases
+create the receipt (1668 bytes, product id present once, no growth between purchases); two SK2 purchases,
+finished or not, leave `appStoreReceiptURL` pointing at no file. The local receipt isn't a model of the
+sandbox/production one; this only shows a receipt read can't be assumed to see SK2 purchases.
+
 The SK1 control and the updates positive control show the harness can see a delivery; the
 zeros mean something only because of them.
 

@@ -60,6 +60,42 @@ final class ProbeTests: XCTestCase {
     plog("\(name): updatesDelivered=\(ProbeTests.updates) iOS=\(UIDevice.current.systemVersion) teakPurchaseSucceededCalls=\(s.count) txIds=\(ids) keys=\(s.first.map { Array($0.keys).sorted() } ?? [])")
   }
 
+  // Passive-read check: does the on-device app receipt (what Teak sends as purchase_token)
+  // gain an in_app entry per purchase? Counts raw occurrences of the product id string, so
+  // no ASN.1 parsing. Two purchases per path so growth is visible. Run each receipt test
+  // alone on an erased simulator: the receipt file persists across tests.
+  func receiptInfo() -> String {
+    guard let url = Bundle.main.appStoreReceiptURL else { return "receiptURL=nil" }
+    guard let data = try? Data(contentsOf: url) else { return "receipt=missing(\(url.lastPathComponent))" }
+    let n = Array("io.teak.probe.coins".utf8); let b = [UInt8](data); var c = 0
+    if b.count >= n.count { for i in 0...(b.count - n.count) where b[i] == n[0] && Array(b[i..<(i + n.count)]) == n { c += 1 } }
+    return "receiptBytes=\(data.count) productIdOccurrences=\(c)"
+  }
+
+  func testReceiptAfterSK2Purchases() async throws {
+    plog("SK2 receipt before: \(receiptInfo())")
+    let p = try await Product.products(for: ["io.teak.probe.coins"]).first!
+    for i in 1...2 {
+      guard case .success(let v) = try await p.purchase(), case .verified(let t) = v else { return XCTFail("no verified purchase") }
+      plog("SK2 purchase #\(i) tx id=\(t.id); receipt immediately: \(receiptInfo())")
+      try await Task.sleep(nanoseconds: 4_000_000_000)
+      plog("SK2 purchase #\(i) receipt 4s later: \(receiptInfo())")
+      await t.finish()
+      try await Task.sleep(nanoseconds: 4_000_000_000)
+      plog("SK2 purchase #\(i) receipt 4s after finish: \(receiptInfo())")
+    }
+  }
+
+  func testReceiptAfterSK1Purchases() async throws {
+    plog("SK1 receipt before: \(receiptInfo())")
+    for i in 1...2 {
+      let pay = SKMutablePayment(); pay.productIdentifier = "io.teak.probe.coins"
+      SKPaymentQueue.default().add(pay)
+      try await Task.sleep(nanoseconds: 5_000_000_000)
+      plog("SK1 purchase #\(i); receipt: \(receiptInfo())")
+    }
+  }
+
   func testSK1Control() async throws {
     // SKProductsRequest reports the config product invalid under SKTestSession, so buy by identifier.
     let pay = SKMutablePayment(); pay.productIdentifier = "io.teak.probe.coins"
