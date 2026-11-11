@@ -466,4 +466,23 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   }
 }
 
+// The send generation belongs to one request. A retry pending on batch A must survive batch B
+// going out; only a later send of the same object supersedes it.
+- (void)testBatchRetryIsNotDroppedWhenAnotherBatchSends {
+  TeakBatchedRequest* batchA = [self sendBatchedEvent];
+  XCTAssertEqual([self waitForTransmits:1 of:batchA timeout:3.0], 1u);
+  [self deliver:batchA status:0 error:[self socketError]];
+  [self letRetryDecisionRun];
+
+  // Batch B goes out while A's retry is still waiting out its delay.
+  TeakBatchedRequest* batchB = [self sendBatchedEvent];
+  XCTAssertNotEqual(batchA, batchB, @"the second event reused the sent batch");
+  XCTAssertEqual([self waitForTransmits:1 of:batchB timeout:3.0], 1u);
+
+  XCTAssertEqual([self waitForTransmits:2 of:batchA timeout:4.0], 2u, @"batch A's retry was dropped by batch B's send");
+  NSArray* ids = [self wireRequestIdsOf:batchA];
+  XCTAssertEqualObjects(ids[0], ids[1], @"A's retry carried a different request_id");
+  XCTAssertEqual([self settledTransmitsOf:batchB], 1u, @"batch B was retried on A's behalf");
+}
+
 @end
