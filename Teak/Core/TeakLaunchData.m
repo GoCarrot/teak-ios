@@ -6,8 +6,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @interface TeakLaunchDataOperation ()
 @property (strong, atomic, readwrite) TeakLaunchData* result;
-@property (assign, nonatomic) BOOL resolvesUniversalLink;
-@property (strong, nonatomic) NSURL* universalLink;
+@property (assign, nonatomic, readonly) BOOL resolvesUniversalLink;
+@property (strong, nonatomic, readonly) NSURL* universalLink;
 @property (strong, nonatomic) TeakLaunchData* precomputedLaunchData;
 @property (strong, nonatomic) NSURL* resolvedLaunchUrl;
 @end
@@ -69,10 +69,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 }
 
 + (TeakLaunchDataOperation*)fromUniversalLink:(NSURL*)url {
-  TeakLaunchDataOperation* launchDataOp = [[TeakLaunchDataOperation alloc] init];
-  launchDataOp.resolvesUniversalLink = YES;
-  launchDataOp.universalLink = url;
-  return launchDataOp;
+  return [[TeakLaunchDataOperation alloc] initWithUniversalLink:url];
 }
 
 + (TeakLaunchData*)launchDataFromUrl:(NSURL*)url withShortlink:(NSURL*)shortLink {
@@ -138,6 +135,15 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 
 + (TeakLaunchDataOperation*)unattributed {
   return [[TeakLaunchDataOperation alloc] initWithLaunchData:[[TeakLaunchData alloc] init]];
+}
+
+- (id)initWithUniversalLink:(NSURL*)url {
+  self = [super init];
+  if (self) {
+    _resolvesUniversalLink = YES;
+    _universalLink = url;
+  }
+  return self;
 }
 
 - (id)initWithLaunchData:(TeakLaunchData*)launchData {
