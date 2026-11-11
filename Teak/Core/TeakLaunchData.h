@@ -1,8 +1,11 @@
 #import <Foundation/Foundation.h>
 
 @class TeakNotification;
+@class TeakLaunchData;
 
-@interface TeakLaunchDataOperation : NSInvocationOperation
+@interface TeakLaunchDataOperation : NSOperation
+@property (strong, atomic, readonly) TeakLaunchData* result;
+
 + (TeakLaunchDataOperation*)fromUniversalLink:(NSURL*)url;
 + (TeakLaunchDataOperation*)fromOpenUrl:(NSURL*)url;
 + (TeakLaunchDataOperation*)fromPushNotification:(TeakNotification*)teakNotification;

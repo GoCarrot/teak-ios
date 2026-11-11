@@ -240,6 +240,7 @@ check still applies: drop the flag or the detach call and watch the structural a
 |---|---|---|---|
 | Mutable container (dict/array) | ThreadSanitizer | `race on NSMutableDictionary` | `userProfile` string-attributes dict |
 | nonatomic-strong, freeable pointee | Dynamic crash repro (CF over-release trap) | `SIGTRAP` in `_CFRelease` | `TeakSession.serverSessionId` |
+| nonatomic-strong, freeable pointee, no repro goes red | Static atomic-declaration assertion | assertion red | `TeakSession.launchDataOperation` |
 | static/ivar strong pointer, return outside lock | ThreadSanitizer (partial) + measured rounds multiplier | race report **or** crash, rate ≈ crash rate | `TeakTrackEventBatchedRequest.currentBatch` |
 | Immortal scalar/pointer | Static atomic-declaration assertion | assertion red | state-machine fields |
 | Cross-object KVO add/remove (shared observee) | Structural assertion (idempotent removal + detached-at-replacement) | assertion red | `TeakSession` deviceConfiguration observers |
