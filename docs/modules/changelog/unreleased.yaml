@@ -7,3 +7,4 @@ bug:
   - "Fixed the session being reported as ended, with no resume, when the app returned to the foreground immediately after backgrounding."
   - "Fixed ``launchLink`` being missing from reward link launch data when the link was resolved by the Teak server."
   - "``startedLiveActivity`` now skips a push token that matches the last one sent for that activity, so repeated ``pushTokenUpdates`` values are not sent to Teak again. A repeat returns the original call's operation, so it reports that send's result."
+  - "Fixed a memory leak where launch data was never freed after a deep link updated it."

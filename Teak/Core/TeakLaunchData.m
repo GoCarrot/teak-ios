@@ -5,6 +5,10 @@
 extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @interface TeakLaunchDataOperation ()
+@property (strong, atomic, readwrite) TeakLaunchData* result;
+@property (assign, nonatomic, readonly) BOOL resolvesUniversalLink;
+@property (strong, nonatomic, readonly) NSURL* universalLink;
+@property (strong, nonatomic) TeakLaunchData* precomputedLaunchData;
 @property (strong, nonatomic) NSURL* resolvedLaunchUrl;
 @end
 
@@ -65,8 +69,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
 }
 
 + (TeakLaunchDataOperation*)fromUniversalLink:(NSURL*)url {
-  TeakLaunchDataOperation* launchDataOp = [TeakLaunchDataOperation alloc];
-  return [launchDataOp initWithTarget:launchDataOp selector:@selector(resolveUniversalLink:) object:url];
+  return [[TeakLaunchDataOperation alloc] initWithUniversalLink:url];
 }
 
 + (TeakLaunchData*)launchDataFromUrl:(NSURL*)url withShortlink:(NSURL*)shortLink {
@@ -134,12 +137,38 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   return [[TeakLaunchDataOperation alloc] initWithLaunchData:[[TeakLaunchData alloc] init]];
 }
 
-- (id)initWithLaunchData:(TeakLaunchData*)launchData {
-  return [super initWithTarget:self selector:@selector(returnLaunchData:) object:launchData];
+- (id)initWithUniversalLink:(NSURL*)url {
+  self = [super init];
+  if (self) {
+    _resolvesUniversalLink = YES;
+    _universalLink = url;
+  }
+  return self;
 }
 
-- (TeakLaunchData*)returnLaunchData:(TeakLaunchData*)launchData {
-  return launchData;
+- (id)initWithLaunchData:(TeakLaunchData*)launchData {
+  self = [super init];
+  if (self) {
+    _precomputedLaunchData = launchData;
+  }
+  return self;
+}
+
+// Always finishes with a non-nil result. Anything that raises here would otherwise escape the
+// operation queue and terminate the host app, so it's logged and the launch falls back to
+// unattributed.
+- (void)main {
+  TeakLaunchData* launchData = nil;
+  @try {
+    launchData = self.resolvesUniversalLink ? [self resolveUniversalLink:self.universalLink] : self.precomputedLaunchData;
+  } @catch (NSException* exception) {
+    TeakLog_e(@"launch_data.error", @{
+      @"url" : TeakValueOrNSNull(self.universalLink.absoluteString),
+      @"exception" : TeakValueOrNSNull(exception.description)
+    });
+  }
+  self.precomputedLaunchData = nil;
+  self.result = launchData ? launchData : [[TeakLaunchData alloc] init];
 }
 
 - (TeakLaunchDataOperation*)updateDeepLink:(NSURL*)updatedDeepLink withLaunchLink:(NSURL*)launchLink {
@@ -169,7 +198,7 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
   };
 }
 
-// This will get run as an NSInvocationOperation
+// Runs from -main, on the operation's queue.
 - (TeakLaunchData*)resolveUniversalLink:(NSURL*)url {
   // Resolve the universal link, wait for the NSURLSession to complete (or timeout)
   // then classify the result.
@@ -199,11 +228,11 @@ static NSString* const kTeakWGWidgetUserInfoKeyActivityID = @"WGWidgetUserInfoKe
                // If we aren't already retrying, and there's any kind of error (for example iOS 12 malarky)
                // wait 1.5 seconds and retry.
                if (error != nil && retryCount < 1) {
-                 __weak typeof(self) weakSelf = self;
+                 // Strong capture: -main is blocked on sema until this retry signals it.
                  double delayInSeconds = 1.5;
                  dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
                  dispatch_after(popTime, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0ul), ^(void) {
-                   [weakSelf resolveUniversalLink:url retryCount:retryCount + 1 thenSignal:sema];
+                   [self resolveUniversalLink:url retryCount:retryCount + 1 thenSignal:sema];
                  });
 
                  // Bail out here so that we do not set the attribution
