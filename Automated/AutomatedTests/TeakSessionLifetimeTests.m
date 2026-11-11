@@ -23,12 +23,23 @@ extern NSDictionary* TeakVersionDict;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
 @property (strong, atomic) dispatch_queue_t reportDurationQueue;
+@property (nonatomic) BOOL deviceConfigurationObserversDetached;
 + (TeakSession*)currentSession;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
 - (BOOL)setState:(nonnull TeakState*)newState;
 - (void)detachDeviceConfigurationObservers;
 - (void)userProfileReceived:(nullable NSDictionary*)userProfile;
 @end
+
+// blackhole is readwrite in TeakRequest+Internal.h; sent lives on the private batch subclass.
+@interface TeakRequest (LifetimeTesting)
+@property (nonatomic, readwrite) BOOL blackhole;
+@property (nonatomic) BOOL sent;
+@end
+
+// Fails unless the weakly held object frees within the timeout.
+#define AssertFreed(weakRef, timeoutSeconds, message) \
+  XCTAssertTrue([self waitUntil:^{ return (BOOL)((weakRef) == nil); } timeout:(timeoutSeconds)], message)
 
 // A session that's been replaced must free. Each test drives a real replacement path and then waits
 // on a weak reference: the session's own setup hands it to background work that lets go of it
@@ -99,18 +110,6 @@ static NSDictionary* savedTeakVersionDict = nil;
 
 #pragma mark - Replacement paths
 
-- (void)testSessionReplacedByLogoutFrees {
-  __weak TeakSession* weakSession = nil;
-  @autoreleasepool {
-    weakSession = [TeakSession currentSession];
-    XCTAssertNotNil(weakSession);
-    [TeakSession logoutReusingCurrentSession:NO];
-  }
-
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
-                @"a session replaced on logout is still alive");
-}
-
 - (void)testSessionWithUserProfileReplacedByLogoutFrees {
   __weak TeakSession* weakSession = nil;
   @autoreleasepool {
@@ -120,8 +119,7 @@ static NSDictionary* savedTeakVersionDict = nil;
     [TeakSession logoutReusingCurrentSession:NO];
   }
 
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
-                @"a session replaced on logout is kept alive by its user profile");
+  AssertFreed(weakSession, 5.0, @"a session replaced on logout is kept alive by its user profile");
 }
 
 - (void)testSessionWithUserProfileReplacedByLaunchFrees {
@@ -136,8 +134,7 @@ static NSDictionary* savedTeakVersionDict = nil;
     XCTAssertNotEqual([TeakSession currentSessionOrNil], session);
   }
 
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
-                @"a session replaced on launch is still alive");
+  AssertFreed(weakSession, 5.0, @"a session replaced on launch is still alive");
 }
 
 - (void)testExpiredSessionWithUserProfileReplacedOnNextAccessFrees {
@@ -149,10 +146,11 @@ static NSDictionary* savedTeakVersionDict = nil;
     XCTAssertTrue([session setState:[TeakSession Expired]]);
     weakSession = session;
     XCTAssertNotEqual([TeakSession currentSession], session);
+    // A freed session must not stay a deviceConfiguration observer.
+    XCTAssertTrue(session.deviceConfigurationObserversDetached);
   }
 
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
-                @"an expired session replaced on the next currentSession access is still alive");
+  AssertFreed(weakSession, 5.0, @"an expired session replaced on the next currentSession access is still alive");
 }
 
 #pragma mark - Duration report
@@ -180,17 +178,14 @@ static NSDictionary* savedTeakVersionDict = nil;
     [TeakSession logoutReusingCurrentSession:NO];
   }
 
-  // Give everything else holding the session time to let go, so the report is the only thing that
-  // could still be keeping it alive when the queue resumes. With the hold in place the session stays
-  // alive and this times out; without it the session frees here and the report finds it gone.
+  // Lets every other holder of the session release it before the report runs.
   [self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:1.0];
 
   dispatch_resume(reportQueue);
   XCTAssertEqual(dispatch_semaphore_wait(claimed, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)), 0,
                  @"/session_stop was dropped: the session freed before its duration report ran");
 
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
-                @"the session is still alive after its duration report ran");
+  AssertFreed(weakSession, 5.0, @"the session is still alive after its duration report ran");
 }
 
 #pragma mark - Late identify reply
@@ -211,8 +206,7 @@ static NSDictionary* savedTeakVersionDict = nil;
     XCTAssertNil(session.userProfile);
   }
 
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
-                @"an identify reply after replacement pinned the session");
+  AssertFreed(weakSession, 5.0, @"an identify reply after replacement pinned the session");
 }
 
 #pragma mark - Event batches
@@ -230,7 +224,9 @@ static NSDictionary* savedTeakVersionDict = nil;
   __weak TeakRequest* weakBatch = nil;
   @autoreleasepool {
     TeakSession* session = [TeakSession currentSession];
-    // The default endpoint configuration delays /me/events, so this schedules the batch.
+    // A short delay keeps the batch on the scheduled-send path without waiting out the 5s default.
+    [session.remoteConfiguration setValue:@{kTeakHostname : @{@"/me/events" : @{@"batch" : @{@"time" : @0.1, @"count" : @50}}}}
+                                   forKey:@"endpointConfigurations"];
     TeakRequest* batch = [TeakRequest requestWithSession:session
                                              forEndpoint:@"/me/events"
                                              withPayload:[self trackEventPayload]
@@ -238,12 +234,12 @@ static NSDictionary* savedTeakVersionDict = nil;
                                                 callback:nil];
     XCTAssertNotNil(batch);
     // Keep the send off the network.
-    [batch setValue:@YES forKey:@"blackhole"];
+    batch.blackhole = YES;
     weakSession = session;
     weakBatch = batch;
 
     [TeakSession logoutReusingCurrentSession:NO];
-    XCTAssertTrue([[batch valueForKey:@"sent"] boolValue], @"Expiring didn't send the batch");
+    XCTAssertTrue(batch.sent, @"Expiring didn't send the batch");
 
     TeakRequest* nextBatch = [TeakRequest requestWithSession:[TeakSession currentSession]
                                                  forEndpoint:@"/me/events"
@@ -251,14 +247,12 @@ static NSDictionary* savedTeakVersionDict = nil;
                                                       method:TeakRequest_POST
                                                     callback:nil];
     XCTAssertNotEqual(nextBatch, batch);
-    [nextBatch setValue:@YES forKey:@"blackhole"];
+    nextBatch.blackhole = YES;
   }
 
-  // The canceled scheduled send still holds the batch until its delay (5s by default) elapses.
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakBatch == nil); } timeout:10.0],
-                @"a sent event batch is still alive");
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:5.0],
-                @"a replaced session with a sent event batch is still alive");
+  // The canceled scheduled send still holds the batch until its delay elapses.
+  AssertFreed(weakBatch, 5.0, @"a sent event batch is still alive");
+  AssertFreed(weakSession, 5.0, @"a replaced session with a sent event batch is still alive");
 }
 
 @end
