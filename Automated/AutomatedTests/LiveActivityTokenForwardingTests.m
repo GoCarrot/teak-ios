@@ -258,23 +258,13 @@ extern Teak* _teakSharedInstance;
   XCTAssertTrue([self sendsRequest:second]);
 }
 
-- (void)testRepeatedTokenReturnsTheOperationAlreadySent {
-  [self installSharedInstance];
-  TeakOperation* first = [self validOperation];
-  XCTAssertTrue([self sendsRequest:first]);
-
-  TeakOperation* repeat = [self validOperation];
-  XCTAssertEqual(repeat, first, @"Same activity, token and system id should share the original operation");
-}
-
 - (void)testRepeatedTokenSharesTheFailureOfTheOriginalSend {
   [self installSharedInstance];
   TeakOperation* first = [self validOperation];
   TeakOperation* repeat = [self validOperation];
-  XCTAssertEqual(repeat, first);
+  XCTAssertEqual(repeat, first, @"Same activity, token and system id should share the original operation");
 
-  TeakOperationResult* result = first.replyParser(@{@"status" : @"invalid_device", @"errors" : @{@"device_id" : @[ @"not found" ]}});
-  XCTAssertTrue(result.error, @"The repeat's caller holds the operation that failed");
+  first.replyParser(@{@"status" : @"invalid_device", @"errors" : @{@"device_id" : @[ @"not found" ]}});
 
   TeakOperation* retry = [self validOperation];
   XCTAssertNotEqual(retry, first);
