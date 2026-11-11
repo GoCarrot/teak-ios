@@ -1,7 +1,15 @@
 #import <XCTest/XCTest.h>
 
 #import "TeakOperationTestDriver.h"
+#import "TeakSession.h"
 #import <Teak/Teak.h>
+
+@import OCHamcrest;
+@import OCMockito;
+
+// Read by +[TeakSession whenUserIdIsOrWasReadyRun:]; set directly so a test can stand in an
+// identified session without a real one.
+extern TeakSession* currentSession;
 
 // A TeakOperation must deallocate once nothing outside it holds a reference: an
 // operation that owns a strong path back to itself never frees, and every call that
@@ -11,6 +19,11 @@
 @end
 
 @implementation TeakOperationTests
+
+- (void)tearDown {
+  currentSession = nil;
+  [super tearDown];
+}
 
 - (void)setUp {
   [super setUp];
@@ -25,7 +38,7 @@
     TeakOperation* op = make();
     XCTAssertNotNil(op);
     if (run) {
-      [self.driver runSync:op];
+      [op start];
       XCTAssertTrue(op.isFinished);
     }
     weakOp = op;
@@ -73,6 +86,26 @@
 
   TeakOperationResult* result = nil;
   XCTAssertNoThrow(result = [self.driver runSync:op]);
+  XCTAssertTrue([result isKindOfClass:[TeakOperationResult class]]);
+  XCTAssertTrue(result.error);
+  XCTAssertEqualObjects(result.status, @"error");
+}
+
+// A session with no app configuration can't build a request, and a request that was never built
+// never calls back; the operation must still finish.
+- (void)testRequestThatCannotBeBuiltFinishesWithErrorResult {
+  TeakSession* session = mock([TeakSession class]);
+  [given([session currentState]) willReturn:[TeakSession UserIdentified]];
+  currentSession = session;
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/test" withPayload:@{@"key" : @"value"}];
+  NSOperationQueue* queue = [[NSOperationQueue alloc] init];
+  XCTestExpectation* finished = [[XCTKVOExpectation alloc] initWithKeyPath:@"isFinished" object:op expectedValue:@YES];
+  [queue addOperation:op];
+  [self waitForExpectations:@[ finished ] timeout:5.0];
+
+  TeakOperationResult* result = (TeakOperationResult*)[op result];
+  XCTAssertTrue([result isKindOfClass:[TeakOperationResult class]]);
   XCTAssertTrue(result.error);
 }
 
