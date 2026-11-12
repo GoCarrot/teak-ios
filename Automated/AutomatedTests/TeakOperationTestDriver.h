@@ -5,7 +5,7 @@
 // Expose TeakOperation's private replyParser property for tests that want to exercise the
 // reply-parsing block directly without actually dispatching a network request.
 @interface TeakOperation ()
-@property (nonatomic, copy, nullable) id (^replyParser)(NSDictionary* _Nonnull);
+@property (nonatomic, copy, readonly, nullable) id (^replyParser)(NSDictionary* _Nonnull);
 @end
 
 /// Helper object for exercising TeakOperations in unit tests. Held by each test as a

@@ -8,3 +8,5 @@ bug:
   - "Fixed ``launchLink`` being missing from reward link launch data when the link was resolved by the Teak server."
   - "``startedLiveActivity`` now skips a push token that matches the last one sent for that activity, so repeated ``pushTokenUpdates`` values are not sent to Teak again. A repeat returns the original call's operation, so it reports that send's result."
   - "Fixed a memory leak where launch data was never freed after a deep link updated it."
+  - "Fixed a memory leak where operations returned by live activity, channel and category state, and local notification scheduling calls were never freed."
+  - "Reading ``result`` on a canceled ``TeakOperation`` now returns an error result instead of throwing."
