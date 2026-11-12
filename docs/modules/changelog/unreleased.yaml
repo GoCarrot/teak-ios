@@ -8,5 +8,4 @@ bug:
   - "``startedLiveActivity`` now skips a push token that matches the last one sent for that activity, so repeated ``pushTokenUpdates`` values are not sent to Teak again. A repeat returns the original call's operation, so it reports that send's result."
   - "Fixed a memory leak where launch data was never freed after a deep link updated it."
   - "Fixed a memory leak where operations returned by live activity, channel and category state, and local notification scheduling calls were never freed."
-  - "``forEndpoint:withPayload:`` on ``TeakOperation`` now sends the payload it is given. It previously sent an empty payload."
-  - "An exception raised while a ``TeakOperation`` runs, or reading ``result`` on one that was canceled before it ran, now gives an error ``TeakOperationResult`` instead of raising when ``result`` is read."
+  - "Reading ``result`` on a canceled ``TeakOperation`` now returns an error result instead of throwing."
