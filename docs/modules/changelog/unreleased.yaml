@@ -1,5 +1,6 @@
 enhancement:
   - "The SDK is now built with Xcode 16.4. The minimum supported iOS version is unchanged."
+  - "Network requests, including profile updates and event batches, are now retried once when they fail without a server response, such as when the OS drops an idle connection."
 bug:
   - "``openSettingsAppToThisAppsSettings`` now opens Settings.app in apps built with the iOS 18 SDK and later. It previously did nothing in those apps."
   - "Fixed a crash when resolving a Teak link whose response was not UTF-8 encoded and had no iOS path."

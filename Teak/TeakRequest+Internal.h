@@ -1,6 +1,6 @@
 #import "TeakRequest.h"
 
-// Stop policy for isRetryableSocketError: retries — see shouldRetrySocketError:retryCount:.
+// Stop policy for no-response retries — see shouldRetryResponse:error:retryCount:.
 extern const NSUInteger TeakRequestMaxSocketRetries;
 
 @interface TeakRequest ()
@@ -8,16 +8,39 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;
 @property (copy, nonatomic, readwrite) TeakRequestResponse _Nullable callback;
 @property (strong, nonatomic) NSString* _Nonnull hostname;
-@property (strong, nonatomic) NSString* _Nonnull requestId;
+// Atomic because a later -send replaces it while the response handler of an earlier send reads it.
+@property (atomic, strong) NSString* _Nonnull requestId;
 @property (strong, nonatomic) TeakSession* _Nonnull session;
 @property (strong, nonatomic) NSDate* _Nonnull sendDate;
 
 @property (strong, nonatomic, readwrite) TeakBatchConfiguration* _Nonnull batch;
 @property (strong, nonatomic, readwrite) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readwrite) BOOL blackhole;
-@property (nonatomic) NSUInteger socketErrorRetryCount;
+// Atomic only to prevent torn reads: -send resets it on the sender's queue while the response handler reads it.
+@property (atomic) NSUInteger socketErrorRetryCount;
+// Counts -send calls. A retry or a failed reply that belongs to an earlier generation than
+// the current one has been superseded by a later send and is dropped.
+@property (atomic) NSUInteger sendGeneration;
+// Set by the first -send, so a later one knows to mint a new request id.
+@property (atomic) BOOL hasStartedSend;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
+
+// Puts the request on the wire without going through a subclass's -send gate.
+// -send starts a logical send (resets retry state, then transmits). Retries
+// use -transmit so the gates subclasses put in -send -- the profile's pending-update
+// check, a batch's no-op -- can't swallow a retry of an already-built request.
+- (void)transmit;
+
+// How a retry re-enters -transmit. Called on the main queue, with the send generation the
+// retry was scheduled under; transmits only if no later -send has replaced that send.
+// Subclasses that mutate their payload on another queue override this to hop onto it,
+// and check the generation there, where it can't change underneath the check.
+- (void)retryTransmitForGeneration:(NSUInteger)generation;
+
+// The reply to the attempt transmitted under `generation`. -response:payload:withError: is this
+// with the current generation.
+- (void)response:(NSHTTPURLResponse* _Nullable)response payload:(NSDictionary* _Nullable)payload withError:(NSError* _Nullable)error sendGeneration:(NSUInteger)generation;
 
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 
@@ -43,8 +66,15 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // for robustness against API surfaces that nest it, NSUnderlyingErrorKey.
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
 
-// Returns YES when `error` is a retryable socket error (see
-// isRetryableSocketError:) and `retryCount` hasn't reached the stop policy
-// (TeakRequestMaxSocketRetries) yet.
-+ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
+// YES when the request failed without an HTTP reply (timeout, dropped connection,
+// OS-closed socket), other than a cancellation.
++ (BOOL)isNoResponseFailure:(NSHTTPURLResponse* _Nullable)response error:(NSError* _Nullable)error;
+
+// A fresh id for one logical send, sent as request_id.
++ (NSString* _Nonnull)generateRequestId;
+
+// YES when a failed attempt should be retried: it got no HTTP reply (see
+// isNoResponseFailure:error:) and `retryCount` hasn't reached the stop policy
+// (TeakRequestMaxSocketRetries) yet. A resend carries the same request_id.
++ (BOOL)shouldRetryResponse:(NSHTTPURLResponse* _Nullable)response error:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
 @end

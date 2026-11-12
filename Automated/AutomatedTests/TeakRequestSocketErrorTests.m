@@ -15,7 +15,7 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 
 @interface TeakRequest (SocketErrorTests)
 + (BOOL)isRetryableSocketError:(NSError* _Nullable)error;
-+ (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
++ (BOOL)shouldRetryResponse:(NSHTTPURLResponse* _Nullable)response error:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
 @end
 
 @interface TeakRequestSocketErrorTests : XCTestCase
@@ -81,38 +81,53 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @end
 
 ///// The retry gate: response:payload:withError: calls
-///// +shouldRetrySocketError:retryCount: to decide whether to fire another
-///// retry. These pin the count boundary so the gate can't loop past the stop
-///// policy or silently stop retrying a fresh socket error.
+///// +shouldRetryResponse:error:retryCount: to decide whether to fire another
+///// retry. These pin what counts as a retryable failure and the count boundary,
+///// so the gate can't loop past the stop policy or silently stop retrying a
+///// fresh no-response failure.
 
 @interface TeakRequestRetryGateTests : XCTestCase
 @end
 
 @implementation TeakRequestRetryGateTests
 
+- (NSError*)socketError {
+  return [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
+}
+
+- (NSError*)urlError:(NSInteger)code {
+  return [NSError errorWithDomain:NSURLErrorDomain code:code userInfo:nil];
+}
+
 - (void)testRetriesASocketErrorBelowTheLimit {
-  NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertTrue([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries - 1]);
+  XCTAssertTrue([TeakRequest shouldRetryResponse:nil error:[self socketError] retryCount:TeakRequestMaxSocketRetries - 1]);
 }
 
-- (void)testDoesNotRetryASocketErrorAtTheLimit {
-  NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries]);
+- (void)testRetriesAnyNoResponseFailureBelowTheLimit {
+  XCTAssertTrue([TeakRequest shouldRetryResponse:nil error:[self urlError:NSURLErrorNetworkConnectionLost] retryCount:TeakRequestMaxSocketRetries - 1]);
+  XCTAssertTrue([TeakRequest shouldRetryResponse:nil error:[self urlError:NSURLErrorTimedOut] retryCount:TeakRequestMaxSocketRetries - 1]);
 }
 
-- (void)testDoesNotRetryASocketErrorPastTheLimit {
-  NSError* error = [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries + 1]);
+- (void)testDoesNotRetryAtTheLimit {
+  XCTAssertFalse([TeakRequest shouldRetryResponse:nil error:[self socketError] retryCount:TeakRequestMaxSocketRetries]);
+  XCTAssertFalse([TeakRequest shouldRetryResponse:nil error:[self urlError:NSURLErrorTimedOut] retryCount:TeakRequestMaxSocketRetries]);
 }
 
-- (void)testDoesNotRetryANonSocketErrorBelowTheLimit {
-  NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries - 1]);
+- (void)testDoesNotRetryPastTheLimit {
+  XCTAssertFalse([TeakRequest shouldRetryResponse:nil error:[self socketError] retryCount:TeakRequestMaxSocketRetries + 1]);
 }
 
-- (void)testDoesNotRetryANonSocketErrorAtTheLimit {
-  NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNetworkConnectionLost userInfo:nil];
-  XCTAssertFalse([TeakRequest shouldRetrySocketError:error retryCount:TeakRequestMaxSocketRetries]);
+- (void)testDoesNotRetryACancellation {
+  XCTAssertFalse([TeakRequest shouldRetryResponse:nil error:[self urlError:NSURLErrorCancelled] retryCount:0]);
+}
+
+// A reply with a status is an answer, not a transport failure.
+- (void)testDoesNotRetryAnHttpReply {
+  NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:[NSURL URLWithString:@"https://gocarrot.com"]
+                                                            statusCode:503
+                                                           HTTPVersion:@"HTTP/1.1"
+                                                          headerFields:@{}];
+  XCTAssertFalse([TeakRequest shouldRetryResponse:response error:nil retryCount:0]);
 }
 
 @end
