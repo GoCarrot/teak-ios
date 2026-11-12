@@ -1,6 +1,7 @@
 enhancement:
   - "The SDK is now built with Xcode 16.4. The minimum supported iOS version is unchanged."
 bug:
+  - "Apps using a UIKit scene delegate (``UIWindowSceneDelegate``) now get Teak session pause/resume on background/foreground, and the custom-scheme opens, launch URLs and universal links UIKit delivers to the scene delegate now reach Teak. Previously only SwiftUI scene apps were hooked. Scene delegates chosen at runtime in ``application:configurationForConnectingSceneSession:options:`` are covered too. As in app-delegate apps, links Teak handles aren't passed on to a UIKit scene delegate's ``scene:openURLContexts:``."
   - "``openSettingsAppToThisAppsSettings`` now opens Settings.app in apps built with the iOS 18 SDK and later. It previously did nothing in those apps."
   - "Fixed a crash when resolving a Teak link whose response was not UTF-8 encoded and had no iOS path."
   - "Fixed the session being reported as ended, with no resume, when the app returned to the foreground immediately after backgrounding."
