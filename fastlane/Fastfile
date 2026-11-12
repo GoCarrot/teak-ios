@@ -1,18 +1,127 @@
 default_platform(:ios)
 
+require 'json'
+require 'shellwords'
+require 'time'
+
+DIAGNOSTIC_REPORTS_DIR = File.expand_path('~/Library/Logs/DiagnosticReports')
+
+# A crash report (.ips): one JSON header line, then a JSON body.
+def load_crash_report(path)
+  header_line, body = File.read(path).split("\n", 2)
+  { path: path, header: JSON.parse(header_line), body: body.to_s.strip.empty? ? {} : JSON.parse(body) }
+rescue StandardError
+  # Half-written, vanished or unreadable: not a report we can use.
+  nil
+end
+
+# New test host crash reports since `since`. Reports are host-wide and every worktree's test host
+# shares one bundle id, so when we know this run's simulator UDID only reports whose process ran
+# from that simulator count.
+def new_test_host_crashes(since, udid)
+  Dir.glob(File.join(DIAGNOSTIC_REPORTS_DIR, 'Automated-*.ips')).filter_map do |path|
+    next unless File.mtime(path) >= since
+    report = load_crash_report(path)
+    next unless report
+    proc_path = report[:body]['procPath'].to_s
+    next if udid && !proc_path.include?("CoreSimulator/Devices/#{udid}/")
+    report
+  rescue Errno::ENOENT
+    nil
+  end
+end
+
+def crash_frames(body, limit = 12)
+  thread = (body['threads'] || [])[body['faultingThread'].to_i] || {}
+  images = body['usedImages'] || []
+  (thread['frames'] || []).first(limit).each_with_index.map do |frame, i|
+    image = images[frame['imageIndex'].to_i] || {}
+    where = frame['symbol'] ? "#{frame['symbol']} + #{frame['symbolLocation']}" : format('0x%x', frame['imageOffset'].to_i)
+    format('  %2d  %-28s %s', i, image['name'] || '???', where)
+  end
+end
+
+# Crashes xcodebuild recorded in the xcresult: [simulator UDID, [failure descriptions]]. A crashed test
+# shows up in `testFailures` as "Test crashed with signal segv." or, when ReportCrash is working,
+# "Crash: Automated (<pid>) -[Class test]".
+def xcresult_crashes(xcresult_path)
+  return [nil, []] unless xcresult_path && File.exist?(xcresult_path)
+  out = `xcrun xcresulttool get test-results summary --path #{Shellwords.escape(xcresult_path)} 2>/dev/null`
+  summary = JSON.parse(out)
+  unless summary.key?('testFailures') && summary.key?('devicesAndConfigurations')
+    UI.important("crash check: couldn't read xcresult (unexpected summary shape): #{xcresult_path}")
+    return [nil, []]
+  end
+  udid = summary.dig('devicesAndConfigurations', 0, 'device', 'deviceId')
+  crashes = summary['testFailures'].select { |f| f['failureText'].to_s =~ /\A(Test crashed|Crash:)/ }.map do |f|
+    "#{f['testIdentifierString']}: #{f['failureText']}"
+  end
+  [udid, crashes]
+rescue StandardError => e
+  # Fail open so a broken check can't red a good run, but say so.
+  UI.important("crash check: couldn't read xcresult (#{e.class}: #{e.message}): #{xcresult_path}")
+  [nil, []]
+end
+
+# Runs the block (a scan call). If the test host crashed during it, prints the crash and fails the
+# lane, even when scan itself was green or the run was expected to go red. A crash otherwise shows up
+# as an ordinary failed test and is easy to read as the expected red.
+#
+# Two signals: the xcresult (always has it, names the test) and a new Automated-*.ips (has the faulting
+# frames, but ReportCrash writes it asynchronously and may be late or absent). Either one is enough.
+def fail_if_test_host_crashed
+  since = Time.now
+  scan_error = nil
+  begin
+    yield
+  rescue StandardError => e
+    scan_error = e
+  end
+
+  udid, xcresult_crashes = xcresult_crashes(lane_context[SharedValues::SCAN_GENERATED_XCRESULT_PATH])
+  crashes = new_test_host_crashes(since, udid)
+  # The xcresult says it crashed but the report hasn't landed yet; ReportCrash writes asynchronously.
+  if crashes.empty? && !xcresult_crashes.empty?
+    10.times do
+      sleep 1
+      crashes = new_test_host_crashes(since, udid)
+      break unless crashes.empty?
+    end
+  end
+
+  if crashes.empty? && xcresult_crashes.empty?
+    raise scan_error if scan_error
+    return
+  end
+
+  UI.error('TEST HOST CRASHED')
+  xcresult_crashes.each { |line| UI.error("  xcresult: #{line}") }
+  UI.error('  no new Automated-*.ips found in ~/Library/Logs/DiagnosticReports') if crashes.empty?
+  crashes.each do |report|
+    exception = report[:body]['exception'] || {}
+    UI.error("  report:  #{report[:path]}")
+    UI.error("  process: #{report[:body]['procPath']}")
+    UI.error("  signal:  #{[exception['type'], exception['signal'], exception['subtype']].compact.join(' ')}")
+    crash_frames(report[:body]).each { |line| UI.error(line) }
+  end
+  UI.user_error!('TEST HOST CRASHED')
+end
+
 platform :ios do
   desc "Run tests"
   lane :test do
-    scan(
-      workspace: 'Automated/Automated.xcworkspace',
-      # RaceTripwireTests is the ThreadSanitizer race regression guard — it carries signal only under
-      # a sanitizer, so it's excluded from this fast (non-TSan) lane to keep it a quick green signal;
-      # the `test_race` lane runs it under TSan on every commit.
-      skip_testing: ['AutomatedTests/RaceTripwireTests'],
-      output_directory: 'test_output/automated',
-      output_files: 'results.xml',
-      output_types: 'junit'
-    )
+    fail_if_test_host_crashed do
+      scan(
+        workspace: 'Automated/Automated.xcworkspace',
+        # RaceTripwireTests is the ThreadSanitizer race regression guard — it carries signal only under
+        # a sanitizer, so it's excluded from this fast (non-TSan) lane to keep it a quick green signal;
+        # the `test_race` lane runs it under TSan on every commit.
+        skip_testing: ['AutomatedTests/RaceTripwireTests'],
+        output_directory: 'test_output/automated',
+        output_files: 'results.xml',
+        output_types: 'junit'
+      )
+    end
   end
 
   desc "Run the race-detection regression guard under ThreadSanitizer (per-commit)"

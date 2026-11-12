@@ -2,6 +2,7 @@
 #import "TeakRequest.h"
 #import "TeakSession.h"
 #import "TeakHelpers.h"
+#import "TeakLog.h"
 
 const static NSString* const kEndpoint = @"endpoint";
 const static NSString* const kPayload = @"payload";
@@ -68,44 +69,28 @@ const static NSString* const kPayload = @"payload";
 }
 @end
 
-@interface TeakOperation ()
-@property (nonatomic, copy, nullable) id (^replyParser)(NSDictionary* _Nonnull);
+// Logs a raise from an operation's work and returns the error result the operation finishes with.
+static TeakOperationResult* TeakOperationResultForException(NSString* _Nullable endpoint, NSException* _Nonnull exception) {
+  TeakLog_e(@"operation.error", @{
+    @"endpoint" : TeakValueOrNSNull(endpoint),
+    @"exception" : TeakValueOrNSNull(exception.description)
+  });
+  return [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"exception" : @[ exception.reason ? exception.reason : exception.name ]}];
+}
+
+// The invocation's target. NSInvocation retains its target, so the operation can't be its own
+// target without retaining itself; this object holds the work and nothing that points back.
+@interface TeakOperationWork : NSObject
+@property (nonatomic, copy, readonly, nullable) id (^replyParser)(NSDictionary* _Nonnull);
+- (instancetype)initWithReplyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser;
 @end
 
-@implementation TeakOperation
+@implementation TeakOperationWork
 
-+ (nonnull TeakOperation*)withResult:(nonnull id)result {
-  return [[TeakOperation alloc] initWithResult:result];
-}
-
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint {
-  return [TeakOperation forEndpoint:endpoint withPayload:@{}];
-}
-
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload {
-  return [TeakOperation forEndpoint:endpoint withPayload:@{} replyParser:nil];
-}
-
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
-  return [TeakOperation forEndpoint:endpoint withPayload:@{} replyParser:replyParser];
-}
-
-+ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
-  return [[TeakOperation alloc] initForEndpoint:endpoint withPayload:payload replyParser:replyParser];
-}
-
-- (id)initWithResult:(nonnull id)result {
-  self = [self initWithTarget:self selector:@selector(returnResult:) object:result];
-  return self;
-}
-
-- (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
-
-  // TODO: Put any pre-send validation here
-
-  self = [self initWithTarget:self selector:@selector(performRequest:) object:@{kEndpoint : endpoint, kPayload : payload}];
+- (instancetype)initWithReplyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
+  self = [super init];
   if (self) {
-    self.replyParser = replyParser;
+    _replyParser = [replyParser copy];
   }
   return self;
 }
@@ -119,27 +104,91 @@ const static NSString* const kPayload = @"payload";
 
   NSString* endpoint = requestParams[kEndpoint];
   NSDictionary* payload = requestParams[kPayload];
-
-  __weak typeof(self) weakSelf = self;
+  id (^replyParser)(NSDictionary* _Nonnull) = self.replyParser;
   dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+  // Runs later, on another queue. Every way out has to signal, or the operation never finishes.
   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
-    TeakRequest* request = [TeakRequest requestWithSession:session
-                                               forEndpoint:endpoint
-                                               withPayload:payload
-                                                    method:TeakRequest_POST
-                                                  callback:^(NSDictionary* reply) {
-                                                    __strong typeof(self) blockSelf = weakSelf;
-                                                    if (blockSelf.replyParser != nil) {
-                                                      ret = blockSelf.replyParser(reply);
-                                                    } else {
-                                                      ret = reply;
-                                                    }
-                                                    dispatch_semaphore_signal(sema);
-                                                  }];
-    [request send];
+    @try {
+      TeakRequest* request = [TeakRequest requestWithSession:session
+                                                 forEndpoint:endpoint
+                                                 withPayload:payload
+                                                      method:TeakRequest_POST
+                                                    callback:^(NSDictionary* reply) {
+                                                      @try {
+                                                        ret = replyParser != nil ? replyParser(reply) : reply;
+                                                      } @catch (NSException* exception) {
+                                                        ret = TeakOperationResultForException(endpoint, exception);
+                                                      }
+                                                      dispatch_semaphore_signal(sema);
+                                                    }];
+      if (request == nil) {
+        // The request already logged why it couldn't be built, and it will never call back.
+        ret = [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"request" : @[ @"request could not be created" ]}];
+        dispatch_semaphore_signal(sema);
+        return;
+      }
+      [request send];
+    } @catch (NSException* exception) {
+      ret = TeakOperationResultForException(endpoint, exception);
+      dispatch_semaphore_signal(sema);
+    }
   }];
   dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
   return ret;
+}
+
+@end
+
+@implementation TeakOperation
+
++ (nonnull TeakOperation*)withResult:(nonnull id)result {
+  return [[TeakOperation alloc] initWithResult:result];
+}
+
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint {
+  return [TeakOperation forEndpoint:endpoint withPayload:@{}];
+}
+
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload {
+  return [TeakOperation forEndpoint:endpoint withPayload:payload replyParser:nil];
+}
+
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
+  return [TeakOperation forEndpoint:endpoint withPayload:@{} replyParser:replyParser];
+}
+
++ (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
+  return [[TeakOperation alloc] initForEndpoint:endpoint withPayload:payload replyParser:replyParser];
+}
+
+- (id)initWithResult:(nonnull id)result {
+  return [self initWithTarget:[[TeakOperationWork alloc] initWithReplyParser:nil] selector:@selector(returnResult:) object:result];
+}
+
+- (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
+
+  // TODO: Put any pre-send validation here
+
+  TeakOperationWork* work = [[TeakOperationWork alloc] initWithReplyParser:replyParser];
+  return [self initWithTarget:work selector:@selector(performRequest:) object:@{kEndpoint : endpoint, kPayload : payload}];
+}
+
+// Read by tests to exercise reply parsing without sending a request.
+- (id (^)(NSDictionary* _Nonnull))replyParser {
+  return ((TeakOperationWork*)self.invocation.target).replyParser;
+}
+
+// NSInvocationOperation raises from -result if the operation was cancelled, and re-raises anything
+// the invocation raised. Callers read -result without a @try, so report those as an error result.
+- (id)result {
+  @try {
+    return [super result];
+  } @catch (NSException* exception) {
+    if (self.isCancelled) {
+      return [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"operation" : @[ @"operation was canceled" ]}];
+    }
+    return TeakOperationResultForException(nil, exception);
+  }
 }
 
 @end
