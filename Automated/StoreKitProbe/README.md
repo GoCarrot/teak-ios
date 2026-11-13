@@ -42,3 +42,19 @@ zeros mean something only because of them.
 
 Gotchas: `SKProductsRequest` reports the config product invalid under `SKTestSession`
 (the SK1 control buys by identifier); the swizzle replaces the method, so nothing is sent.
+
+## SK2Observer (C-2320)
+
+`Observer/SK2Observer.m` is its own ObjC-only framework (`nm` shows no `_$s` symbols). It rebinds GOT slots
+for `Transaction.finish()` (both the entry point and the async function pointer; callers bind both) and for
+`VerificationResult<Transaction>.jwsRepresentation` to C thunks that log, then call through.
+`SK2ObserverTests` buys before and after install. The pre-install purchase not showing up is the red.
+
+```bash
+cd /tmp/probe-proj && PROBE_LOG=/tmp/probe.log TEST_RUNNER_PROBE_LOG=/tmp/probe.log xcodebuild test -project Probe.xcodeproj \
+  -scheme Probe -destination "platform=iOS Simulator,name=iPhone 16" -only-testing:ProbeTests/SK2ObserverTests
+```
+
+Expected on iOS 18.2 / 18.4 / 18.6 sims: `finish-hook RESULT … bought=[0, 1, 2] hookSaw=[1, 2]` and
+`jws-hook RESULT … matchesPost=true matchesPre=false`. The receipt is `missing` at finish time on the sim (the local
+test server writes no SK2 receipt), so that column only means something on a device.
