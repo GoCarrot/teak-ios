@@ -1,6 +1,7 @@
 #import "Teak+Internal.h"
 #import <Teak/TeakNotification.h>
 #import "TeakReward.h"
+#import "SKPaymentObserver.h"
 
 void TeakSetDebugOutputEnabled(int enabled) {
   [Teak sharedInstance].enableDebugOutput = (enabled > 0);
@@ -52,6 +53,26 @@ void TeakIncrementEvent(const char* actionId, const char* objectTypeId, const ch
                                     forObjectTypeId:objectTypeId == NULL ? nil : [NSString stringWithUTF8String:objectTypeId]
                                 andObjectInstanceId:objectInstanceId == NULL ? nil : [NSString stringWithUTF8String:objectInstanceId]
                                               count:count];
+}
+
+void TeakReportPurchase(const char* productId, const char* transactionId, const char* priceCurrencyCode, double priceFloat, const char* jwsRepresentation) {
+  if (productId == NULL) return;
+
+  NSDictionary* fallbackPrice = nil;
+  if (priceCurrencyCode != NULL && priceFloat >= 0.0) {
+    fallbackPrice = @{
+      @"price_currency_code" : [NSString stringWithUTF8String:priceCurrencyCode],
+      @"price_float" : [NSDecimalNumber numberWithDouble:priceFloat]
+    };
+  }
+
+  [SKPaymentObserver reportPurchaseOfProduct:[NSString stringWithUTF8String:productId]
+                               transactionId:transactionId == NULL ? nil : [NSString stringWithUTF8String:transactionId]
+                                purchaseDate:[NSDate date]
+                            purchaseDuration:nil
+                                      source:@"report_purchase"
+                               fallbackPrice:fallbackPrice
+                                    jwsToken:jwsRepresentation == NULL ? nil : [NSString stringWithUTF8String:jwsRepresentation]];
 }
 
 void TeakProcessDeepLinks(void) {

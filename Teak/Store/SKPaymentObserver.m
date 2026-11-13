@@ -48,33 +48,148 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction {
   if (transaction == nil || transaction.payment == nil || transaction.payment.productIdentifier == nil) return;
 
-  teak_try {
-    NSNumber* purchaseDuration = [NSNumber numberWithDouble:[[NSDate date] timeIntervalSince1970] - self.paymentStart];
-    TeakLog_i(@"transaction.purchased", @{@"purchase_duration" : _(purchaseDuration)});
+  NSNumber* purchaseDuration = [NSNumber numberWithDouble:[[NSDate date] timeIntervalSince1970] - self.paymentStart];
+  TeakLog_i(@"transaction.purchased", @{@"purchase_duration" : _(purchaseDuration)});
 
-    teak_log_breadcrumb(@"Building date formatter");
-    NSDateFormatter* formatter = [SKPaymentObserver transactionDateFormatter];
+  [SKPaymentObserver reportPurchaseOfProduct:transaction.payment.productIdentifier
+                               transactionId:transaction.transactionIdentifier
+                                purchaseDate:transaction.transactionDate
+                            purchaseDuration:purchaseDuration
+                                      source:@"storekit1_observer"
+                               fallbackPrice:nil
+                                    jwsToken:nil];
+}
+
+#pragma mark - Reported transaction tracking
+
+static NSString* const ReportedTransactionsMutex = @"io.teak.sdk.reportedTransactionsMutex";
+static NSString* const ReportedTransactionsDefaultsKey = @"TeakReportedTransactionIds";
+static const NSUInteger ReportedTransactionsMaxPersisted = 64;
+
++ (NSMutableSet<NSString*>*)claimedTransactionIds {
+  static NSMutableSet* set = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    set = [[NSMutableSet alloc] init];
+  });
+  return set;
+}
+
++ (NSUserDefaults*)reportedTransactionDefaults {
+  return [NSUserDefaults standardUserDefaults];
+}
+
+// Claims a transaction id for reporting. Returns NO if this id is already being
+// reported in this launch, or was reported (and acknowledged by the server) in
+// a previous launch. Claims are in-memory only, so a send that never lands is
+// retried when the transaction is redelivered on a later launch.
++ (void)clearClaimedTransactionIds {
+  @synchronized(ReportedTransactionsMutex) {
+    [[SKPaymentObserver claimedTransactionIds] removeAllObjects];
+  }
+}
+
++ (BOOL)claimTransactionId:(NSString*)transactionId {
+  @synchronized(ReportedTransactionsMutex) {
+    if ([[SKPaymentObserver claimedTransactionIds] containsObject:transactionId]) return NO;
+    NSArray* persisted = [[SKPaymentObserver reportedTransactionDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
+    if ([persisted containsObject:transactionId]) return NO;
+    [[SKPaymentObserver claimedTransactionIds] addObject:transactionId];
+    return YES;
+  }
+}
+
++ (void)releaseTransactionId:(NSString*)transactionId {
+  @synchronized(ReportedTransactionsMutex) {
+    [[SKPaymentObserver claimedTransactionIds] removeObject:transactionId];
+  }
+}
+
++ (void)persistReportedTransactionId:(NSString*)transactionId {
+  @synchronized(ReportedTransactionsMutex) {
+    NSUserDefaults* defaults = [SKPaymentObserver reportedTransactionDefaults];
+    NSMutableArray* persisted = [NSMutableArray arrayWithArray:[defaults arrayForKey:ReportedTransactionsDefaultsKey] ?: @[]];
+    if ([persisted containsObject:transactionId]) return;
+    [persisted addObject:transactionId];
+    while (persisted.count > ReportedTransactionsMaxPersisted) {
+      [persisted removeObjectAtIndex:0];
+    }
+    [defaults setObject:persisted forKey:ReportedTransactionsDefaultsKey];
+  }
+}
+
++ (BOOL)isSuccessfulPurchaseReply:(NSDictionary*)reply {
+  // Transport failures and unparseable bodies produce an empty reply.
+  if (reply == nil || reply.count == 0) return NO;
+  if (reply[@"error"] != nil && reply[@"error"] != [NSNull null]) return NO;
+  return YES;
+}
+
+#pragma mark - Reporting
+
++ (void)reportPurchaseOfProduct:(NSString*)productId
+                  transactionId:(NSString*)transactionId
+                   purchaseDate:(NSDate*)purchaseDate
+               purchaseDuration:(NSNumber*)purchaseDuration
+                         source:(NSString*)source
+                  fallbackPrice:(NSDictionary*)fallbackPrice
+                       jwsToken:(NSString*)jwsToken {
+  if (productId == nil) return;
+
+  teak_try {
+    // Claim synchronously, ahead of the async price lookup, so two paths
+    // reporting the same transaction can't both pass the check.
+    if (transactionId != nil && ![SKPaymentObserver claimTransactionId:transactionId]) {
+      TeakLog_i(@"purchase.report.duplicate", @{@"source" : source, @"transaction_identifier" : transactionId});
+      return;
+    }
 
     teak_log_breadcrumb(@"Getting info from App Store receipt");
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
     NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
 
-    [ProductRequest productRequestForSku:transaction.payment.productIdentifier
+    TeakLog_i(@"purchase.report", @{
+      @"source" : source,
+      @"product_id" : productId,
+      @"transaction_identifier" : _(transactionId),
+      @"receipt_bytes" : receipt == nil ? [NSNull null] : @(receipt.length),
+      @"has_jws" : @(jwsToken != nil)
+    });
+
+    NSDateFormatter* formatter = [SKPaymentObserver transactionDateFormatter];
+    [ProductRequest productRequestForSku:productId
                                 callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
                                   teak_log_breadcrumb(@"Building payload");
                                   NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
-                                    @"purchase_time" : _([formatter stringFromDate:transaction.transactionDate]),
-                                    @"product_id" : transaction.payment.productIdentifier,
-                                    @"transaction_identifier" : _(transaction.transactionIdentifier),
+                                    @"purchase_time" : _([formatter stringFromDate:purchaseDate]),
+                                    @"product_id" : productId,
+                                    @"transaction_identifier" : _(transactionId),
                                     @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
                                     @"purchase_duration" : _(purchaseDuration)
                                   }];
-
-                                  if (priceInfo != nil) {
-                                    [fullPayload addEntriesFromDictionary:priceInfo];
+                                  if (jwsToken != nil) {
+                                    fullPayload[@"jws_representation"] = jwsToken;
                                   }
 
-                                  [PurchaseEvent purchaseSucceeded:fullPayload];
+                                  NSString* priceSource = @"none";
+                                  if (priceInfo.count > 0) {
+                                    [fullPayload addEntriesFromDictionary:priceInfo];
+                                    priceSource = @"storekit";
+                                  } else if (fallbackPrice.count > 0) {
+                                    [fullPayload addEntriesFromDictionary:fallbackPrice];
+                                    priceSource = @"caller";
+                                  }
+                                  TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : priceSource});
+
+                                  [PurchaseEvent purchaseSucceeded:fullPayload
+                                                           onReply:^(NSDictionary* reply) {
+                                                             if (transactionId == nil) return;
+                                                             if ([SKPaymentObserver isSuccessfulPurchaseReply:reply]) {
+                                                               [SKPaymentObserver persistReportedTransactionId:transactionId];
+                                                             } else {
+                                                               [SKPaymentObserver releaseTransactionId:transactionId];
+                                                             }
+                                                           }];
                                 }];
   }
   teak_catch_report;
