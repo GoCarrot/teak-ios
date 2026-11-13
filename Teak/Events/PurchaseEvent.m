@@ -2,6 +2,7 @@
 
 @interface PurchaseEvent ()
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;
+@property (copy, nonatomic, readwrite) PurchaseEventReply _Nullable onReply;
 @end
 
 @implementation PurchaseEvent
@@ -12,8 +13,13 @@
 }
 
 + (void)purchaseSucceeded:(NSDictionary* _Nonnull)payload {
+  [PurchaseEvent purchaseSucceeded:payload onReply:nil];
+}
+
++ (void)purchaseSucceeded:(NSDictionary* _Nonnull)payload onReply:(PurchaseEventReply _Nullable)onReply {
   PurchaseEvent* event = [[PurchaseEvent alloc] initWithType:PurchaseSucceeded];
   event.payload = payload;
+  event.onReply = onReply;
   [TeakEvent postEvent:event];
 }
 @end

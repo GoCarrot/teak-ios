@@ -6,7 +6,14 @@
 // SKPaymentObserver.transactionDateFormatter is private — re-declare for test access.
 @interface SKPaymentObserver (Testing)
 + (NSDateFormatter*)transactionDateFormatter;
++ (BOOL)claimTransactionId:(NSString*)transactionId;
++ (void)releaseTransactionId:(NSString*)transactionId;
++ (void)persistReportedTransactionId:(NSString*)transactionId;
++ (void)clearClaimedTransactionIds;
++ (BOOL)isSuccessfulPurchaseReply:(NSDictionary*)reply;
 @end
+
+static NSString* const ReportedTransactionsDefaultsKey = @"TeakReportedTransactionIds";
 
 // TeakRavenReport is defined in TeakRaven.m; dateFormatter is its only method we need.
 @interface TeakRavenReport : NSObject
@@ -17,6 +24,63 @@
 @end
 
 @implementation SKPaymentObserverTests
+
+- (void)setUp {
+  [SKPaymentObserver clearClaimedTransactionIds];
+  [[NSUserDefaults standardUserDefaults] removeObjectForKey:ReportedTransactionsDefaultsKey];
+}
+
+- (void)tearDown {
+  [SKPaymentObserver clearClaimedTransactionIds];
+  [[NSUserDefaults standardUserDefaults] removeObjectForKey:ReportedTransactionsDefaultsKey];
+}
+
+// The StoreKit 1 observer and the report-purchase hook both see an SK1 purchase;
+// only the first claim may report it.
+- (void)testSecondClaimInSameLaunchIsRejected {
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
+  XCTAssertFalse([SKPaymentObserver claimTransactionId:@"2000000123"]);
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000124"]);
+}
+
+// A send that never landed must be retried when the transaction is redelivered
+// on a later launch, so an unacknowledged claim must not survive the launch.
+- (void)testUnacknowledgedClaimDoesNotSurviveRelaunch {
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
+  [SKPaymentObserver clearClaimedTransactionIds]; // models a relaunch
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
+}
+
+// Once the server acknowledged the report, redelivery on a later launch is skipped.
+- (void)testAcknowledgedTransactionIsRejectedAfterRelaunch {
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
+  [SKPaymentObserver persistReportedTransactionId:@"2000000123"];
+  [SKPaymentObserver clearClaimedTransactionIds]; // models a relaunch
+  XCTAssertFalse([SKPaymentObserver claimTransactionId:@"2000000123"]);
+}
+
+// A failed send releases the claim so a redelivery in the same launch can retry.
+- (void)testReleasedClaimCanBeReclaimed {
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
+  [SKPaymentObserver releaseTransactionId:@"2000000123"];
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
+}
+
+- (void)testPersistedTransactionIdsAreBounded {
+  for (int i = 0; i < 100; i++) {
+    [SKPaymentObserver persistReportedTransactionId:[NSString stringWithFormat:@"%d", i]];
+  }
+  NSArray* persisted = [[NSUserDefaults standardUserDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
+  XCTAssertEqual(persisted.count, 64u);
+  XCTAssertEqualObjects(persisted.lastObject, @"99");
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"0"], @"oldest ids age out");
+}
+
+- (void)testPurchaseReplyClassification {
+  XCTAssertTrue([SKPaymentObserver isSuccessfulPurchaseReply:@{@"code" : @200}]);
+  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{}], @"transport failure yields an empty reply");
+  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{@"error" : @{@"code" : @404}}]);
+}
 
 // Verifies purchase_time uses en_US_POSIX so Arabic-locale devices don't produce
 // Eastern-Arabic numerals the server can't parse (ArgumentError: mon out of range).
