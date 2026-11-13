@@ -58,3 +58,8 @@ cd /tmp/probe-proj && PROBE_LOG=/tmp/probe.log TEST_RUNNER_PROBE_LOG=/tmp/probe.
 Expected on iOS 18.2 / 18.4 / 18.6 sims: `finish-hook RESULT … bought=[0, 1, 2] hookSaw=[1, 2]` and
 `jws-hook RESULT … matchesPost=true matchesPre=false`. The receipt is `missing` at finish time on the sim (the local
 test server writes no SK2 receipt), so that column only means something on a device.
+
+`testTransactionAllFinishedConsumable` asks whether `Transaction.all` lists a finished consumable. Generate the
+project twice, once plain and once with `CONSUMABLE_HISTORY=1` (that merges `App/ConsumableHistory.plist`, which
+sets `SKIncludeConsumableInAppPurchaseHistory`, into the host app). On the 18.6 sim it's only listed with the key;
+on the 17.5 sim it isn't listed either way.

@@ -54,6 +54,10 @@ obs.build_configurations.each do |c|
   s['SDKROOT'] = 'iphoneos'
   s['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
 end
+# CONSUMABLE_HISTORY=1 merges SKIncludeConsumableInAppPurchaseHistory into the host app's Info.plist.
+if ENV['CONSUMABLE_HISTORY'] == '1'
+  app.build_configurations.each { |c| c.build_settings['INFOPLIST_FILE'] = File.join(here, 'App/ConsumableHistory.plist') }
+end
 test.build_configurations.each do |c|
   c.build_settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/ProbeApp.app/ProbeApp'
   c.build_settings['BUNDLE_LOADER'] = '$(TEST_HOST)'

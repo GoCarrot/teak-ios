@@ -57,6 +57,21 @@ final class SK2ObserverTests: XCTestCase {
     if case .verified(let t) = v0 { await t.finish() }
     if case .verified(let t) = v1 { await t.finish() }
   }
+
+  // Is SKIncludeConsumableInAppPurchaseHistory needed for Transaction.all to list a finished consumable?
+  // Run once per host-app plist (generate_project.rb with and without CONSUMABLE_HISTORY=1).
+  // Positive control: the same id must be in Transaction.all before the finish.
+  func testTransactionAllFinishedConsumable() async throws {
+    let key = Bundle.main.object(forInfoDictionaryKey: "SKIncludeConsumableInAppPurchaseHistory") as? Bool
+    let p = try await Product.products(for: ["io.teak.probe.coins"]).first!
+    guard case .success(let v) = try await p.purchase(), case .verified(let t) = v else { return XCTFail("no verified purchase") }
+    func allIds() async -> [UInt64] { await Transaction.all.compactMap { r -> UInt64? in if case .verified(let x) = r { return x.id } else { return nil } }.collect() }
+    let before = await allIds()
+    await t.finish()
+    try await Task.sleep(nanoseconds: 2_000_000_000)
+    let after = await allIds()
+    plog("plist RESULT iOS=\(UIDevice.current.systemVersion) key=\(key.map { String($0) } ?? "absent") tx=\(t.id) allBeforeFinish=\(before) allAfterFinish=\(after) finishedConsumableListed=\(after.contains(t.id))")
+  }
 }
 
 extension AsyncSequence {
