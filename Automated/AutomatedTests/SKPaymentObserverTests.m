@@ -1,5 +1,8 @@
 #import <XCTest/XCTest.h>
 
+#import <objc/runtime.h>
+
+#import "PurchaseEvent.h"
 #import "SKPaymentObserver.h"
 #import "TeakRaven.h"
 
@@ -22,6 +25,28 @@ static NSString* const ReportedTransactionsDefaultsKey = @"TeakReportedTransacti
 
 @interface SKPaymentObserverTests : XCTestCase
 @end
+
+// Stand-ins for the product lookup and the event post, so a report runs synchronously and
+// can be counted without StoreKit or the network.
+static NSMutableArray<NSDictionary*>* ReportedPayloads;
+
+@interface SKPaymentObserverTestDoubles : NSObject
+@end
+
+@implementation SKPaymentObserverTestDoubles
++ (ProductRequest*)productRequestForSku:(NSString*)sku callback:(ProductRequestCallback)callback {
+  callback(@{}, nil);
+  return nil;
+}
+
++ (void)purchaseSucceeded:(NSDictionary*)payload onReply:(PurchaseEventReply)onReply {
+  [ReportedPayloads addObject:payload];
+}
+@end
+
+static void SwapClassMethods(Class original, Class replacement, SEL selector) {
+  method_exchangeImplementations(class_getClassMethod(original, selector), class_getClassMethod(replacement, selector));
+}
 
 @implementation SKPaymentObserverTests
 
@@ -80,6 +105,39 @@ static NSString* const ReportedTransactionsDefaultsKey = @"TeakReportedTransacti
   XCTAssertTrue([SKPaymentObserver isSuccessfulPurchaseReply:@{@"code" : @200}]);
   XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{}], @"transport failure yields an empty reply");
   XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{@"error" : @{@"code" : @404}}]);
+}
+
+// IAP 5 finishes each StoreKit 2 transaction twice, and a purchase can reach Teak from
+// more than one path; every report of one transaction id after the first must be dropped.
+- (void)testRepeatedReportsOfOneTransactionSendOnce {
+  ReportedPayloads = [NSMutableArray array];
+  SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
+  SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
+
+  for (NSString* source in @[ @"storekit2", @"storekit2", @"storekit1_observer" ]) {
+    [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
+                                 transactionId:@"2000001265157858"
+                                  purchaseDate:[NSDate date]
+                              purchaseDuration:nil
+                                        source:source
+                                 fallbackPrice:@{@"price_currency_code" : @"USD", @"price_float" : [NSDecimalNumber decimalNumberWithString:@"0.99"]}
+                                      jwsToken:@"header.payload.signature"];
+  }
+  [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
+                               transactionId:@"2000001265157768"
+                                purchaseDate:[NSDate date]
+                            purchaseDuration:nil
+                                      source:@"storekit2"
+                               fallbackPrice:nil
+                                    jwsToken:nil];
+
+  SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
+  SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
+
+  NSArray* ids = [ReportedPayloads valueForKey:@"transaction_identifier"];
+  XCTAssertEqualObjects(ids, (@[ @"2000001265157858", @"2000001265157768" ]));
+  XCTAssertEqualObjects(ReportedPayloads.firstObject[@"jws_representation"], @"header.payload.signature");
+  XCTAssertEqualObjects(ReportedPayloads.firstObject[@"price_currency_code"], @"USD", @"caller price is used when StoreKit returns none");
 }
 
 // Verifies purchase_time uses en_US_POSIX so Arabic-locale devices don't produce
