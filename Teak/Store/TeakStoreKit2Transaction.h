@@ -12,7 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSDictionary*)payloadFromJWS:(nullable NSString*)jws;
 
 // nil when the transaction should be reported, otherwise a short reason for skipping it.
-// A missing transactionReason is reported: the field only exists from iOS 17.
+// A missing transactionReason is reported: it may be absent on older OS versions (the
+// Swift Transaction.reason property is iOS 17+).
 + (nullable NSString*)skipReasonForTransaction:(NSDictionary*)transaction;
 
 // The transaction id as a decimal string, matching SKPaymentTransaction.transactionIdentifier.
