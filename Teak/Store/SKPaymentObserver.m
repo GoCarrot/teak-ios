@@ -321,6 +321,13 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
   [ProductRequest removeActiveProductRequest:self];
 }
 
+- (void)request:(SKRequest*)request didFailWithError:(NSError*)error {
+  // Without this the callback never runs and the purchase is never reported.
+  TeakLog_e(@"purchase.product_request.error", @{@"error" : _(error.localizedDescription)});
+  self.callback(@{}, nil);
+  [ProductRequest removeActiveProductRequest:self];
+}
+
 - (NSString*)description {
   return [NSString stringWithFormat:@"<%@: %p> products-request: %@", NSStringFromClass([self class]), self, self.productsRequest];
 }
