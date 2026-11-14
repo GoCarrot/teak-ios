@@ -47,6 +47,8 @@ The generator creates a boilerplate XCTest file with OCMockito/OCHamcrest import
 **Creating Teak instances for testing:**
 `[[Teak alloc] init]` bypasses `initWithApplicationId:andSecret:` and creates a bare instance with nil properties. This is safe for unit testing where you set only the properties under test. Production code must always use `[Teak sharedInstance]`.
 
+The test host never runs Teak's init, so `TeakVersionDict` is nil and every `TeakRequest` init throws while building its payload. Seed it (`TeakVersionDict = @{@"ios" : @"test"};`) in any test that builds a `TeakRequest`, and restore it after; see `TeakSessionLifetimeTests`.
+
 **Test patterns:**
 - `DebugConfigurationTests.m` — dependency injection with real objects (preferred when possible)
 - `LogTests.m` — OCMockito mocking with `mock()`, `given()`, `stubProperty()`, `assertThat()`
