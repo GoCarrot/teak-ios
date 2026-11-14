@@ -387,8 +387,7 @@ DefineTeakState(Expired, (@[]));
 
                                                     blockSelf.countryCode = reply[@"country_code"];
 
-                                                    // User profile
-                                                    blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
+                                                    [blockSelf userProfileReceived:reply[@"user_profile"]];
 
                                                     // Deep link
                                                     if (reply[@"deep_link"]) {
@@ -435,6 +434,10 @@ DefineTeakState(Expired, (@[]));
 
     [request send];
   }
+}
+
+- (void)userProfileReceived:(nullable NSDictionary*)userProfile {
+  self.userProfile = [[TeakUserProfile alloc] initForSession:self withDictionary:userProfile];
 }
 
 - (void)sendHeartbeat {
