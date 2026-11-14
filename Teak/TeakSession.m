@@ -1013,6 +1013,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         __weak typeof(self) weakSelf = self;
         dispatch_block_t reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
           __strong typeof(self) blockSelf = weakSelf;
+          if (blockSelf == nil) return;
           [blockSelf beginBackgroundUpdateTask];
 
           // serverSessionId can be reassigned by the identify-reply callback on another queue at any
@@ -1039,7 +1040,14 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
           [blockSelf endBackgroundUpdateTask];
         });
         self.reportDurationBlock = reportDurationBlock;
-        dispatch_async(self.reportDurationQueue, reportDurationBlock);
+        // The stored block holds the session weakly so it can't form a cycle through
+        // self.reportDurationBlock. This dispatch holds it strongly instead, until the report has
+        // run. Invoking the block after a reset has canceled it is a no-op, so cancellation is
+        // unaffected.
+        dispatch_async(self.reportDurationQueue, ^{
+          reportDurationBlock();
+          (void)self;
+        });
       }
     } else if (newValue == [TeakSession Expired]) {
     }
