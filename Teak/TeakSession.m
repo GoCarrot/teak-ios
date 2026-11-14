@@ -130,6 +130,10 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // deviceConfiguration are removed, so the removal happens exactly once whether it comes from session
 // replacement or -dealloc. See -detachDeviceConfigurationObservers.
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
+
+// Set under @synchronized(self) by -detachAfterReplacement, and read under the same lock where an
+// identify reply attaches a user profile, so a reply that lands after replacement can't attach one.
+@property (nonatomic) BOOL replaced;
 @end
 
 @implementation TeakSession
@@ -377,6 +381,7 @@ DefineTeakState(Expired, (@[]));
                                                     method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     __strong typeof(self) blockSelf = weakSelf;
+                                                    if (blockSelf == nil) return;
 
                                                     bool logLocal = [reply[@"verbose_logging"] boolValue];
                                                     bool logRemote = [reply[@"log_remote"] boolValue];
@@ -436,8 +441,14 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
+// The /users.json request holds this session until its reply runs, so a reply can arrive after the
+// session was replaced. A replaced session gets no profile: the profile holds the session, so
+// attaching one would keep a session alive that replacement means to release.
 - (void)userProfileReceived:(nullable NSDictionary*)userProfile {
-  self.userProfile = [[TeakUserProfile alloc] initForSession:self withDictionary:userProfile];
+  @synchronized(self) {
+    if (self.replaced) return;
+    self.userProfile = [[TeakUserProfile alloc] initForSession:self withDictionary:userProfile];
+  }
 }
 
 - (void)sendHeartbeat {
@@ -566,6 +577,9 @@ DefineTeakState(Expired, (@[]));
 // Cleanup for a session that has been replaced. Called at each replacement once the outgoing session
 // is Expired.
 - (void)detachAfterReplacement {
+  @synchronized(self) {
+    self.replaced = YES;
+  }
   // Idempotent, and a no-op where the replacement site already detached before expiring the session.
   // Doing it here too means no replacement path can leave a replaced session observing.
   [self detachDeviceConfigurationObservers];
