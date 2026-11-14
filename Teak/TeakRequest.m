@@ -98,6 +98,8 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 @property (strong, nonatomic) NSMutableArray* callbacks;
 @property (strong, nonatomic) NSMutableArray* batchContents;
 @property (nonatomic) BOOL sent;
+// YES while this batch is registered as an observer of its session's currentState.
+@property (nonatomic) BOOL observingSessionState;
 @property (strong, nonatomic) NSDate* _Nonnull firstAddTime;
 
 - (void)send;               // No-op
@@ -511,18 +513,23 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
 @implementation TeakTrackEventBatchedRequest
 
 - (TeakBatchedRequest*)initWithSession:(nonnull TeakSession*)session {
+  // The callback is stored on the batch, so it holds the batch weakly. Whatever invokes it already
+  // holds the batch: the response handler's block captures the request.
+  __weak TeakTrackEventBatchedRequest* weakSelf = self;
   self = [super initWithSession:session
                     forHostname:kTeakHostname
                    withEndpoint:@"/me/events"
                     withPayload:@{}
                          method:TeakRequest_POST
                        callback:^(NSDictionary* reply) {
+                         TeakTrackEventBatchedRequest* batch = weakSelf;
+
                          // Snapshot under the same lock -addRequestIntoBatch: appends
                          // callbacks under, then invoke outside the lock so an
                          // arbitrary host-app callback can't deadlock against it.
                          NSArray* callbacksSnapshot;
-                         @synchronized(self) {
-                           callbacksSnapshot = [self.callbacks copy];
+                         @synchronized(batch) {
+                           callbacksSnapshot = [batch.callbacks copy];
                          }
                          for (TeakRequestResponse callback in callbacksSnapshot) {
                            callback(reply);
@@ -604,12 +611,17 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
     self.batchContents = [[NSMutableArray alloc] init];
 
     RegisterKeyValueObserverFor(self.session, currentState);
+    self.observingSessionState = YES;
   }
   return self;
 }
 
 - (void)dealloc {
-  UnRegisterKeyValueObserverFor(self.session, currentState);
+  // Removing an observer that isn't registered throws. A batch that failed to build never registered,
+  // and a sent batch already unregistered in -prepareAndSend.
+  if (self.observingSessionState) {
+    UnRegisterKeyValueObserverFor(self.session, currentState);
+  }
 }
 
 // Returns YES if this request will not be sent
@@ -751,6 +763,10 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
     if (self.sent == NO) {
       self.sent = YES;
       UnRegisterKeyValueObserverFor(self.session, currentState);
+      self.observingSessionState = NO;
+      // The scheduled block captures this batch, so holding it past the send would keep the batch,
+      // and its session, alive forever.
+      self.scheduledBlock = nil;
 
       // Sum of squares
       for (NSUInteger i = 0; i < self.batchContents.count; i++) {
