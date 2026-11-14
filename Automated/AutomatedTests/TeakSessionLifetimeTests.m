@@ -11,7 +11,6 @@
 #import <Teak/Teak.h>
 
 extern TeakSession* currentSession;
-extern NSDictionary* TeakVersionDict;
 
 @interface Teak (LifetimeTesting)
 + (dispatch_queue_t)operationQueue;
@@ -49,8 +48,6 @@ extern NSDictionary* TeakVersionDict;
 
 @implementation TeakSessionLifetimeTests
 
-static NSDictionary* savedTeakVersionDict = nil;
-
 // -[TeakSession init] reads TeakConfiguration.configuration; seed it once (another test class may
 // have configured it already).
 + (void)setUp {
@@ -59,18 +56,6 @@ static NSDictionary* savedTeakVersionDict = nil;
     [TeakConfiguration configureForAppId:@"test-app" andSecret:@"test-secret"];
   } @catch (NSException* exception) {
   }
-  // Set by Teak's own init, which tests don't run. A TeakRequest's common payload includes it, and
-  // building that payload with it nil throws mid-init — which, without ARC exception cleanup, leaks
-  // the session the request was being built for.
-  savedTeakVersionDict = TeakVersionDict;
-  if (TeakVersionDict == nil) {
-    TeakVersionDict = @{@"ios" : @"test"};
-  }
-}
-
-+ (void)tearDown {
-  TeakVersionDict = savedTeakVersionDict;
-  [super tearDown];
 }
 
 - (void)setUp {
