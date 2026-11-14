@@ -9,6 +9,7 @@
 #import <Teak/Teak.h>
 
 extern TeakSession* currentSession;
+extern NSDictionary* TeakVersionDict;
 
 @interface TeakSession (LifetimeTesting)
 @property (strong, atomic) NSString* serverSessionId;
@@ -20,10 +21,12 @@ extern TeakSession* currentSession;
 - (void)detachDeviceConfigurationObservers;
 @end
 
-// blackhole is readwrite in TeakRequest+Internal.h; sent lives on the private batch subclass.
+// blackhole is readwrite in TeakRequest+Internal.h; sent and -initWithSession: live on the private
+// batch subclasses.
 @interface TeakRequest (LifetimeTesting)
 @property (nonatomic, readwrite) BOOL blackhole;
 @property (nonatomic) BOOL sent;
+- (instancetype)initWithSession:(TeakSession*)session;
 @end
 
 // Fails unless the weakly held object frees within the timeout.
@@ -115,6 +118,25 @@ extern TeakSession* currentSession;
 }
 
 #pragma mark - Event batches
+
+// A /me/events batch whose payload can't be built returns nil from init, before it registers as an
+// observer of its session. Freeing that half-built batch must not try to remove the observer.
+- (void)testEventBatchThatFailsToBuildFreesWithoutThrowing {
+  TeakSession* session = [TeakSession currentSession];
+  NSDictionary* versionDict = TeakVersionDict;
+  // A nil value in the common payload is what makes building it fail.
+  TeakVersionDict = nil;
+  @try {
+    XCTAssertNoThrow(({
+                       @autoreleasepool {
+                         TeakRequest* batch = [[NSClassFromString(@"TeakTrackEventBatchedRequest") alloc] initWithSession:session];
+                         XCTAssertNil(batch);
+                       }
+                     }));
+  } @finally {
+    TeakVersionDict = versionDict;
+  }
+}
 
 // Same shape TrackEvent sends.
 - (NSDictionary*)trackEventPayload {
