@@ -108,9 +108,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // Test-only: called inside the claim, after the cancel check passes and before the report is
 // marked sent. Always nil in production.
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
-// Where the duration report is dispatched. Always the background global queue in production; tests
-// swap in their own queue to control when the report runs.
-@property (strong, atomic) dispatch_queue_t reportDurationQueue;
 // reportDurationSent/sessionVectorClock are C11 atomics, not ObjC `atomic` properties: the
 // duration-report background block writes both under reportDurationMutex only, while
 // sessionVectorClock is also incremented from the currentState observer's @synchronized(self).
@@ -489,7 +486,6 @@ DefineTeakState(Expired, (@[]));
     self.serverSessionId = nil;
     self.sessionVectorClock = 0;
     _reportDurationMutex = [[NSObject alloc] init];
-    self.reportDurationQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 
     // Assign unattributed launch at init
     self.launchDataOperation = [TeakLaunchDataOperation unattributed];
@@ -1037,48 +1033,49 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       // Reset duraation report and set it
       if(self.serverSessionId != nil) {
         [self resetReportDurationBlock];
-        __weak typeof(self) weakSelf = self;
-        dispatch_block_t reportDurationBlock = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
-          __strong typeof(self) blockSelf = weakSelf;
-          if (blockSelf == nil) return;
-          [blockSelf beginBackgroundUpdateTask];
-
-          // serverSessionId can be reassigned by the identify-reply callback on another queue at any
-          // moment, so the nil-check and the later use below must see the same value — single-read it.
-          NSString* serverSessionId = blockSelf.serverSessionId;
-          int vectorClock = 0;
-          if (serverSessionId != nil && [blockSelf claimReportDuration:&vectorClock]) {
-            // Send request for "if you don't hear back from me, this session ended now"
-            NSDictionary* payload = @{
-              @"session_id" : TeakURLEscapedString(serverSessionId),
-              @"session_duration_ms" : [NSNumber numberWithLong:[blockSelf.endDate timeIntervalSinceDate:blockSelf.startDate] * 1000],
-              @"session_vector_clock": [NSNumber numberWithLong:vectorClock]
-            };
-
-            TeakRequest* request = [TeakRequest requestWithSession:blockSelf
-                                                       forEndpoint:@"/session_stop"
-                                                       withPayload:payload
-                                                            method:TeakRequest_POST
-                                                          callback:nil];
-
-            [request send];
-          }
-
-          [blockSelf endBackgroundUpdateTask];
+        // The stored block is only a cancellation token: a reset cancels it, and the report checks it
+        // before sending. It captures nothing, so storing it can't form a cycle with the session. The
+        // dispatched block isn't stored; it holds the session until the report has run.
+        dispatch_block_t reportDurationBlock = dispatch_block_create(0, ^{
         });
         self.reportDurationBlock = reportDurationBlock;
-        // The stored block holds the session weakly so it can't form a cycle through
-        // self.reportDurationBlock. This dispatch holds it strongly instead, until the report has
-        // run. Invoking the block after a reset has canceled it is a no-op, so cancellation is
-        // unaffected.
-        dispatch_async(self.reportDurationQueue, ^{
-          reportDurationBlock();
-          (void)self;
+        dispatch_async([Teak backgroundQueue], ^{
+          if (!dispatch_block_testcancel(reportDurationBlock)) {
+            [self reportDuration];
+          }
         });
       }
     } else if (newValue == [TeakSession Expired]) {
     }
   }
+}
+
+// Sends /session_stop, the "if you don't hear back from me, this session ended now" report, unless
+// the pending report has been canceled or claimed in the meantime.
+- (void)reportDuration {
+  [self beginBackgroundUpdateTask];
+
+  // serverSessionId can be reassigned by the identify-reply callback on another queue at any
+  // moment, so the nil-check and the later use below must see the same value — single-read it.
+  NSString* serverSessionId = self.serverSessionId;
+  int vectorClock = 0;
+  if (serverSessionId != nil && [self claimReportDuration:&vectorClock]) {
+    NSDictionary* payload = @{
+      @"session_id" : TeakURLEscapedString(serverSessionId),
+      @"session_duration_ms" : [NSNumber numberWithLong:[self.endDate timeIntervalSinceDate:self.startDate] * 1000],
+      @"session_vector_clock" : [NSNumber numberWithLong:vectorClock]
+    };
+
+    TeakRequest* request = [TeakRequest requestWithSession:self
+                                               forEndpoint:@"/session_stop"
+                                               withPayload:payload
+                                                    method:TeakRequest_POST
+                                                  callback:nil];
+
+    [request send];
+  }
+
+  [self endBackgroundUpdateTask];
 }
 
 // sessionVectorClock++ is a read-modify-write; the KVO observer's resume-path increment and the
@@ -1100,10 +1097,10 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   return [self incrementSessionVectorClock];
 }
 
-// Called from the duration-report block. Returns YES (and the post-increment vector clock) if the
-// current reportDurationBlock hasn't been canceled, marking the report sent. The block captures
-// weakSelf, not itself, so this tests whatever reportDurationBlock holds now — under a rapid Expiring
-// re-transition that may be a newer block than the caller. Read once into a strong local: it
+// Called from -reportDuration. Returns YES (and the post-increment vector clock) if the current
+// reportDurationBlock hasn't been canceled, marking the report sent. This tests whatever
+// reportDurationBlock holds now — under a rapid Expiring re-transition that may be a newer token than
+// the one the caller checked. Read once into a strong local: it
 // retains the block across dispatch_block_testcancel and avoids testcancel(nil), which crashes.
 - (BOOL)claimReportDuration:(int*)outVectorClock {
   @synchronized(self.reportDurationMutex) {

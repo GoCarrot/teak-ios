@@ -12,12 +12,15 @@
 extern TeakSession* currentSession;
 extern NSDictionary* TeakVersionDict;
 
+@interface Teak (LifetimeTesting)
++ (void)setBackgroundQueue:(dispatch_queue_t)queue;
+@end
+
 @interface TeakSession (LifetimeTesting)
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
-@property (strong, atomic) dispatch_queue_t reportDurationQueue;
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 + (TeakSession*)currentSession;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
@@ -62,6 +65,7 @@ extern NSDictionary* TeakVersionDict;
 }
 
 - (void)tearDown {
+  [Teak setBackgroundQueue:nil];
   // A real session stays a live deviceConfiguration KVO observer and event handler until detached.
   [currentSession detachDeviceConfigurationObservers];
   if (currentSession != nil) [TeakEvent removeEventHandler:currentSession];
@@ -113,7 +117,7 @@ extern NSDictionary* TeakVersionDict;
   @autoreleasepool {
     TeakSession* session = [TeakSession currentSession];
     session.serverSessionId = @"test-server-session";
-    session.reportDurationQueue = reportQueue;
+    [Teak setBackgroundQueue:reportQueue];
     session.reportDurationClaimHook = ^{
       dispatch_semaphore_signal(claimed);
     };
