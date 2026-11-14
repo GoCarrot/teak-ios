@@ -16,8 +16,10 @@ extern NSDictionary* TeakVersionDict;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
 @property (strong, atomic) dispatch_queue_t reportDurationQueue;
+@property (nonatomic) BOOL deviceConfigurationObserversDetached;
 + (TeakSession*)currentSession;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
+- (BOOL)setState:(nonnull TeakState*)newState;
 - (void)detachDeviceConfigurationObservers;
 @end
 
@@ -90,6 +92,19 @@ static NSDictionary* savedTeakVersionDict = nil;
   @autoreleasepool {
     return condition();
   }
+}
+
+#pragma mark - Replacement paths
+
+// An expired session is replaced on the next currentSession access. A replaced session must not stay
+// a deviceConfiguration observer.
+- (void)testExpiredSessionReplacedOnNextAccessDetaches {
+  TeakSession* session = [TeakSession currentSession];
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+  XCTAssertTrue([session setState:[TeakSession Expired]]);
+  XCTAssertNotEqual([TeakSession currentSession], session);
+  XCTAssertTrue(session.deviceConfigurationObserversDetached);
+  [TeakEvent removeEventHandler:session];
 }
 
 #pragma mark - Duration report

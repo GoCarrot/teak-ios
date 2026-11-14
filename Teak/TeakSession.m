@@ -560,6 +560,14 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
+// Cleanup for a session that has been replaced. Called at each replacement once the outgoing session
+// is Expired.
+- (void)detachAfterReplacement {
+  // Idempotent, and a no-op where the replacement site already detached before expiring the session.
+  // Doing it here too means no replacement path can leave a replaced session observing.
+  [self detachDeviceConfigurationObservers];
+}
+
 - (void)handleEvent:(TeakEvent*)event {
   switch (event.type) {
     case FacebookAccessToken: {
@@ -668,6 +676,7 @@ DefineTeakState(Expired, (@[]));
 
       [currentSession setState:[TeakSession Expiring]];
       [currentSession setState:[TeakSession Expired]];
+      [currentSession detachAfterReplacement];
 
       currentSession = newSession;
     }
@@ -763,6 +772,7 @@ DefineTeakState(Expired, (@[]));
         [oldSession detachDeviceConfigurationObservers];
         [oldSession setState:[TeakSession Expiring]];
         [oldSession setState:[TeakSession Expired]];
+        [oldSession detachAfterReplacement];
       }
     }
 
@@ -783,7 +793,7 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
-      [oldSession detachDeviceConfigurationObservers];
+      [oldSession detachAfterReplacement];
     }
     return currentSession;
   }
