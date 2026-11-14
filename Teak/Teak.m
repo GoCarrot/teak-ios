@@ -118,6 +118,24 @@ void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnu
   return operationQueue;
 }
 
+static NSString* const TeakBackgroundQueueMutex = @"io.teak.sdk.backgroundQueueMutex";
+static dispatch_queue_t TeakBackgroundQueueOverride = nil;
+
++ (dispatch_queue_t _Nonnull)backgroundQueue {
+  @synchronized(TeakBackgroundQueueMutex) {
+    if (TeakBackgroundQueueOverride != nil) {
+      return TeakBackgroundQueueOverride;
+    }
+  }
+  return dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+}
+
++ (void)setBackgroundQueue:(dispatch_queue_t _Nullable)queue {
+  @synchronized(TeakBackgroundQueueMutex) {
+    TeakBackgroundQueueOverride = queue;
+  }
+}
+
 + (void)initForApplicationId:(NSString*)appId withClass:(Class)appDelegateClass andApiKey:(NSString*)apiKey {
   Teak_Plant(appDelegateClass, [appId copy], [apiKey copy]);
 }
