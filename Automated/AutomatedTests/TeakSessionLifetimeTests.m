@@ -12,7 +12,10 @@ extern TeakSession* currentSession;
 extern NSDictionary* TeakVersionDict;
 
 @interface TeakSession (LifetimeTesting)
+@property (strong, atomic) NSString* serverSessionId;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
+@property (copy, atomic) void (^reportDurationClaimHook)(void);
+@property (strong, atomic) dispatch_queue_t reportDurationQueue;
 + (TeakSession*)currentSession;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
 - (void)detachDeviceConfigurationObservers;
@@ -87,6 +90,43 @@ static NSDictionary* savedTeakVersionDict = nil;
   @autoreleasepool {
     return condition();
   }
+}
+
+#pragma mark - Duration report
+
+// Logout takes the session to Expiring, which schedules /session_stop. The report has to go out even
+// if nothing else holds the session by the time it runs. Sessions don't free on replacement yet, so
+// the test drops the event-handler set's hold itself. The report queue is held suspended until
+// everything else that was holding the session has let go.
+- (void)testSessionReplacedByLogoutStillReportsDuration {
+  dispatch_queue_t reportQueue = dispatch_queue_create("io.teak.test.reportDuration", DISPATCH_QUEUE_SERIAL);
+  dispatch_suspend(reportQueue);
+  dispatch_semaphore_t claimed = dispatch_semaphore_create(0);
+
+  __weak TeakSession* weakSession = nil;
+  @autoreleasepool {
+    TeakSession* session = [TeakSession currentSession];
+    session.serverSessionId = @"test-server-session";
+    session.reportDurationQueue = reportQueue;
+    session.reportDurationClaimHook = ^{
+      dispatch_semaphore_signal(claimed);
+    };
+    // Keep /session_stop off the network.
+    [session.remoteConfiguration setValue:@{kTeakHostname : @{@"/session_stop" : @{@"blackhole" : @YES}}}
+                                   forKey:@"endpointConfigurations"];
+    weakSession = session;
+    [TeakSession logoutReusingCurrentSession:NO];
+    [TeakEvent removeEventHandler:session];
+  }
+
+  // Lets every other holder of the session release it before the report runs.
+  [self waitUntil:^{ return (BOOL)(weakSession == nil); } timeout:1.0];
+
+  dispatch_resume(reportQueue);
+  XCTAssertEqual(dispatch_semaphore_wait(claimed, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)), 0,
+                 @"/session_stop was dropped: the session freed before its duration report ran");
+
+  AssertFreed(weakSession, 5.0, @"the session is still alive after its duration report ran");
 }
 
 #pragma mark - Event batches
