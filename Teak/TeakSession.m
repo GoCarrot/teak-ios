@@ -108,9 +108,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // Test-only: called inside the claim, after the cancel check passes and before the report is
 // marked sent. Always nil in production.
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
-// Where the duration report is dispatched. Always the background global queue in production; tests
-// swap in their own queue to control when the report runs.
-@property (strong, atomic) dispatch_queue_t reportDurationQueue;
 // reportDurationSent/sessionVectorClock are C11 atomics, not ObjC `atomic` properties: the
 // duration-report background block writes both under reportDurationMutex only, while
 // sessionVectorClock is also incremented from the currentState observer's @synchronized(self).
@@ -475,7 +472,6 @@ DefineTeakState(Expired, (@[]));
     self.serverSessionId = nil;
     self.sessionVectorClock = 0;
     _reportDurationMutex = [[NSObject alloc] init];
-    self.reportDurationQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
 
     // Assign unattributed launch at init
     self.launchDataOperation = [TeakLaunchDataOperation unattributed];
@@ -1044,7 +1040,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         // self.reportDurationBlock. This dispatch holds it strongly instead, until the report has
         // run. Invoking the block after a reset has canceled it is a no-op, so cancellation is
         // unaffected.
-        dispatch_async(self.reportDurationQueue, ^{
+        dispatch_async([Teak backgroundQueue], ^{
           reportDurationBlock();
           (void)self;
         });
