@@ -97,6 +97,8 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 @property (strong, nonatomic) NSMutableArray* callbacks;
 @property (strong, nonatomic) NSMutableArray* batchContents;
 @property (nonatomic) BOOL sent;
+// YES while this batch is registered as an observer of its session's currentState.
+@property (nonatomic) BOOL observingSessionState;
 @property (strong, nonatomic) NSDate* _Nonnull firstAddTime;
 
 - (void)send;               // No-op
@@ -543,13 +545,15 @@ static NSString* TeakTrackEventBatchedRequestMutex = @"io.teak.sdk.trackEventBat
     self.batchContents = [[NSMutableArray alloc] init];
 
     RegisterKeyValueObserverFor(self.session, currentState);
+    self.observingSessionState = YES;
   }
   return self;
 }
 
 - (void)dealloc {
-  // -prepareAndSend already removed the observer once the batch was sent; a second remove throws.
-  if (!self.sent) {
+  // Removing an observer that isn't registered throws. A batch that failed to build never registered,
+  // and a sent batch already unregistered in -prepareAndSend.
+  if (self.observingSessionState) {
     UnRegisterKeyValueObserverFor(self.session, currentState);
   }
 }
@@ -693,6 +697,7 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
     if (self.sent == NO) {
       self.sent = YES;
       UnRegisterKeyValueObserverFor(self.session, currentState);
+      self.observingSessionState = NO;
       // The scheduled block captures this batch, so holding it past the send would keep the batch,
       // and its session, alive forever.
       self.scheduledBlock = nil;
