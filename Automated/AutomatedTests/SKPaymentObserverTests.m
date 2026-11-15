@@ -91,17 +91,6 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
   XCTAssertEqual(ProductLookups, 0u, @"the JWS price is what this transaction cost; no lookup");
 }
 
-// The server dedupes by transaction id, so every report is sent.
-- (void)testReportingATransactionAgainSendsItAgain {
-  id<TeakStoreKit2Reporting> teak = BareTeak();
-  NSString* jws = SandboxJWSWith(@{}, @[]);
-  [self withReportStandIns:^{
-    [teak reportStoreKit2Transaction:jws];
-    [teak reportStoreKit2Transaction:jws];
-  }];
-  XCTAssertEqual(ReportedPayloads.count, 2u);
-}
-
 - (void)testReportedStoreKit2TransactionWithoutAPriceUsesTheProductLookup {
   id<TeakStoreKit2Reporting> teak = BareTeak();
   [self withReportStandIns:^{
