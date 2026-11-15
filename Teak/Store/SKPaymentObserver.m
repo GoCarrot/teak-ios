@@ -106,7 +106,7 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
       @"purchase_time" : _([[SKPaymentObserver transactionDateFormatter] stringFromDate:[TeakStoreKit2Transaction purchaseDateForTransaction:transaction]]),
       @"product_id" : productId,
       @"transaction_identifier" : transactionId,
-      // The server requires the key, and until it verifies the JWS it checks the receipt.
+      // The server requires the key.
       @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
       @"jws_representation" : jwsRepresentation
     }];
