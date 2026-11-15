@@ -556,11 +556,13 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-// Cleanup for a session that has been replaced. Called at each replacement once the outgoing session
-// is Expired.
-- (void)detachAfterReplacement {
+// End-of-life cleanup, run once from the Expired transition. Expired is terminal, and every path into
+// it replaces the session, so nothing routes new work here afterwards.
+//
+// Runs inside the currentState handler's @synchronized(self), with currentSessionMutex held by every
+// caller of the Expired transition. What it takes under those must stay a leaf lock or an async hop.
+- (void)didExpire {
   // Idempotent, and a no-op where the replacement site already detached before expiring the session.
-  // Doing it here too means no replacement path can leave a replaced session observing.
   [self detachDeviceConfigurationObservers];
 }
 
@@ -672,7 +674,6 @@ DefineTeakState(Expired, (@[]));
 
       [currentSession setState:[TeakSession Expiring]];
       [currentSession setState:[TeakSession Expired]];
-      [currentSession detachAfterReplacement];
 
       currentSession = newSession;
     }
@@ -768,7 +769,6 @@ DefineTeakState(Expired, (@[]));
         [oldSession detachDeviceConfigurationObservers];
         [oldSession setState:[TeakSession Expiring]];
         [oldSession setState:[TeakSession Expired]];
-        [oldSession detachAfterReplacement];
       }
     }
 
@@ -789,7 +789,6 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
-      [oldSession detachAfterReplacement];
     }
     return currentSession;
   }
@@ -1029,6 +1028,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         });
       }
     } else if (newValue == [TeakSession Expired]) {
+      [self didExpire];
     }
   }
 }
