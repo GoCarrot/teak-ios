@@ -16,14 +16,22 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (strong, nonatomic, readwrite) TeakBatchConfiguration* _Nonnull batch;
 @property (strong, nonatomic, readwrite) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readwrite) BOOL blackhole;
-@property (nonatomic) NSUInteger socketErrorRetryCount;
+// Atomic only to prevent torn reads: -send resets it on the sender's queue while the response handler reads it.
+@property (atomic) NSUInteger socketErrorRetryCount;
 // Set by the first -send, so a later one knows to mint a new request id.
 @property (atomic) BOOL hasStartedSend;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
-// Puts the request on the wire. -send starts a logical send and then transmits.
+// Puts the request on the wire without going through a subclass's -send gate.
+// -send starts a logical send (resets retry state, then transmits). Retries
+// use -transmit so the gates subclasses put in -send -- the profile's pending-update
+// check, a batch's no-op -- can't swallow a retry of an already-built request.
 - (void)transmit;
+
+// How a retry re-enters -transmit. Called on the main queue. Subclasses that
+// mutate their payload on another queue override this to hop onto it.
+- (void)retryTransmit;
 
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 

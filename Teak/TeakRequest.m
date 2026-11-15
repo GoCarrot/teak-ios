@@ -294,7 +294,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
 
-        // The server dedupes on request_id where it supports it.
+        // The server dedupes on request_id where it supports it. Retries resend
+        // this same request object, so they carry the same id.
         payloadWithCommon[@"request_id"] = self.requestId;
 
         // Future-Pat: save the transmission bytes
@@ -320,8 +321,14 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)send {
+  // A fresh logical send gets a fresh retry budget. Long-lived requests (the
+  // per-session TeakUserProfile) send more than once, and counters left over
+  // from an earlier send would silently disable retries for every later one.
+  self.socketErrorRetryCount = 0;
+  self.retry.retryIndex = 0;
+
   // The same request id must mean the same logical send to the server, so a send
-  // after the first gets a new one.
+  // after the first gets a new one. Retries go through -transmit and keep it.
   if (self.hasStartedSend) {
     NSString* requestId = [TeakRequest generateRequestId];
     NSMutableDictionary* payload = [self.payload mutableCopy];
@@ -353,6 +360,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     teak_log_breadcrumb(@"request.send.sent");
   }
   teak_catch_report;
+}
+
+- (void)retryTransmit {
+  [self transmit];
 }
 
 - (NSDictionary*)to_h {
@@ -415,19 +426,20 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self send];
+            [self retryTransmit];
           });
-        } else if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
-          // Retry with delay + jitter
+        } else if (response.statusCode >= 500 && self.retry.retryIndex < [self.retry.times count]) {
+          // Only a 5xx reply climbs the ladder. Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
           float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
           if (delay < 0.0f) delay = 0.0f;
 
           self.retry.retryIndex++;
+          TeakLog_i(@"request.retry.server_error", [self to_h]);
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self send];
+            [self retryTransmit];
           });
         } else {
           if (isSocketError) {
