@@ -197,6 +197,15 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return [TeakRequest isRetryableSocketError:error] && retryCount < TeakRequestMaxSocketRetries;
 }
 
++ (NSString*)generateRequestId {
+  CFUUIDRef theUUID = CFUUIDCreate(NULL);
+  CFStringRef string = CFUUIDCreateString(NULL, theUUID);
+  CFRelease(theUUID);
+  NSString* requestId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
+  CFRelease(string);
+  return requestId;
+}
+
 + (NSMutableDictionary*)requestsInFlight {
   static NSMutableDictionary* dict = nil;
   static dispatch_once_t onceToken;
@@ -224,11 +233,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 - (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
   self = [super init];
   if (self) {
-    CFUUIDRef theUUID = CFUUIDCreate(NULL);
-    CFStringRef string = CFUUIDCreateString(NULL, theUUID);
-    CFRelease(theUUID);
-    self.requestId = [(__bridge NSString*)string stringByReplacingOccurrencesOfString:@"-" withString:@""];
-    CFRelease(string);
+    self.requestId = [TeakRequest generateRequestId];
     self.endpoint = endpoint;
     self.callback = callback;
     self.hostname = hostname;
@@ -289,6 +294,9 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
 
+        // The server dedupes on request_id where it supports it.
+        payloadWithCommon[@"request_id"] = self.requestId;
+
         // Future-Pat: save the transmission bytes
         if (!self.session.appConfiguration.isProduction) {
           payloadWithCommon[@"debug"] = [NSNumber numberWithBool:YES];
@@ -312,6 +320,20 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)send {
+  // The same request id must mean the same logical send to the server, so a send
+  // after the first gets a new one.
+  if (self.hasStartedSend) {
+    NSString* requestId = [TeakRequest generateRequestId];
+    NSMutableDictionary* payload = [self.payload mutableCopy];
+    if (payload[@"request_id"] != nil) payload[@"request_id"] = requestId;
+    self.requestId = requestId;
+    self.payload = payload;
+  }
+  self.hasStartedSend = YES;
+  [self transmit];
+}
+
+- (void)transmit {
   if (self.blackhole) return;
 
   teak_try {
