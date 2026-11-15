@@ -397,6 +397,25 @@ To keep a running count for an event, use <<incrementEventWithActionId:forObject
 Teak.sharedInstance()?.incrementEvent(withActionId: "coins_spent", forObjectTypeId: "store", andObjectInstanceId: "gems", count: 50)
 ----
 
+== StoreKit 2 Purchases
+
+Teak tracks StoreKit 1 purchases automatically, but not StoreKit 2 purchases. When a StoreKit 2 purchase succeeds, pass the transaction's `jwsRepresentation` to <<reportStoreKit2Transaction:>>:
+
+.Example
+[source,swift]
+----
+let result = try await product.purchase()
+if case .success(let verification) = result {
+    Teak.sharedInstance()?.reportStoreKit2Transaction(verification.jwsRepresentation)
+    // ...grant the item, then finish the transaction as usual
+}
+----
+
+* Call it from any thread, before or after you finish the transaction. Teak never finishes it.
+* Each transaction is sent to Teak once, even if you report it again or it was also a StoreKit 1 purchase.
+* Reports made before the player is identified are sent once they are.
+* Renewals, revoked transactions and Family Sharing copies are not reported.
+
 == Deep Links
 
 Deep Links are a way to link to specific screens in your game that will open when the game is launched from a notification or Universal Link.

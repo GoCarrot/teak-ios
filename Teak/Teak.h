@@ -509,17 +509,15 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * Report a purchase made with StoreKit 2.
  *
  * Teak tracks StoreKit 1 purchases automatically, but not StoreKit 2 purchases. Call this
- * once the purchase succeeds, passing the transaction's signed JWS:
- *
- * 	// Swift
- * 	if case .success(let verification) = try await product.purchase() {
- * 	  Teak.sharedInstance().reportStoreKit2Transaction(verification.jwsRepresentation)
- * 	}
- *
- * Call it from any thread, before or after you finish the transaction. Teak never finishes
+ * once the purchase succeeds, passing the transaction's signed JWS. Call it from any thread, before or after you finish the transaction. Teak never finishes
  * it. A transaction is sent to Teak once, even if you report it again or Teak also saw it as
  * a StoreKit 1 purchase. Reports made before the player is identified are sent once they are.
  * Renewals, revoked transactions and Family Sharing copies are not reported.
+ *
+ * 	// Swift
+ * 	if case .success(let verification) = try await product.purchase() {
+ * 	  Teak.sharedInstance()?.reportStoreKit2Transaction(verification.jwsRepresentation)
+ * 	}
  *
  * This functionality is also accessible from the C API:
  *
