@@ -7,6 +7,5 @@ typedef void (^PurchaseEventReply)(NSDictionary* _Nonnull reply);
 @property (copy, nonatomic, readonly) PurchaseEventReply _Nullable onReply;
 
 + (void)purchaseFailed:(NSDictionary* _Nonnull)payload;
-+ (void)purchaseSucceeded:(NSDictionary* _Nonnull)payload;
 + (void)purchaseSucceeded:(NSDictionary* _Nonnull)payload onReply:(PurchaseEventReply _Nullable)onReply;
 @end

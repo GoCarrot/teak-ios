@@ -2,9 +2,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-// Reads the fields Teak reports from a StoreKit 2 transaction, given either the
-// transaction's JSON representation or its JWS. Plain Foundation, no StoreKit 2 API, so it
-// works from Objective-C. The JWS signature is not verified here.
+// Reads the fields Teak reports from a StoreKit 2 transaction's JWS payload. The JWS
+// signature is not verified here.
 @interface TeakStoreKit2Transaction : NSObject
 
 // The decoded payload segment of a JWS, or nil if it isn't a three-part JWS with a JSON

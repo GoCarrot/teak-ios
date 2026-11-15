@@ -170,6 +170,7 @@
 		7905ACBCC98FD0D555F8AF3D /* TeakSceneHooksTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakSceneHooksTests.m; sourceTree = "<group>"; };
 		3A1F5C0D7B2E49A8C6D01E75 /* TeakSessionFixtures.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakSessionFixtures.m; sourceTree = "<group>"; };
 		3A1F5C0D7B2E49A8C6D01E76 /* TeakSessionFixtures.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = TeakSessionFixtures.h; sourceTree = "<group>"; };
+		C2296F107A0E4B9D8C3E5F01 /* TeakStoreKit2Fixtures.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = TeakStoreKit2Fixtures.h; sourceTree = "<group>"; };
 		7877A9ADEDBE95E03B97631D /* TeakTestBundleSetup.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakTestBundleSetup.m; sourceTree = "<group>"; };
 		864427BAEA58D0DAC8B50E43 /* TeakAttributedLaunchDataEnrichmentTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = TeakAttributedLaunchDataEnrichmentTests.m; sourceTree = "<group>"; };
 		90808DE4E189C0B1BDF95023 /* DebugConfigurationTests.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; path = DebugConfigurationTests.m; sourceTree = "<group>"; };
@@ -303,6 +304,7 @@
 				6C6CFC4895D0BF30D04BAE1B /* TeakOperationTestDriver.h */,
 				3A1F5C0D7B2E49A8C6D01E75 /* TeakSessionFixtures.m */,
 				3A1F5C0D7B2E49A8C6D01E76 /* TeakSessionFixtures.h */,
+				C2296F107A0E4B9D8C3E5F01 /* TeakStoreKit2Fixtures.h */,
 				98067217DB9FF5953786EA99 /* PushToStartTokenRegistrationTests.m */,
 				12B44A19FD44C70C575E9A8B /* TeakDeviceConfigurationTests.m */,
 				864427BAEA58D0DAC8B50E43 /* TeakAttributedLaunchDataEnrichmentTests.m */,

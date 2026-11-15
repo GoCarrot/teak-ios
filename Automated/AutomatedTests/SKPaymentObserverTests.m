@@ -8,23 +8,42 @@
 #import "TeakRaven.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
+#import "TeakStoreKit2Fixtures.h"
 
-// SKPaymentObserver.transactionDateFormatter is private — re-declare for test access.
+@import OCHamcrest;
+@import OCMockito;
+
+// Private SKPaymentObserver methods, re-declared for test access.
 @interface SKPaymentObserver (Testing)
 + (NSDateFormatter*)transactionDateFormatter;
++ (NSMutableSet<NSString*>*)claimedTransactionIds;
 + (BOOL)claimTransactionId:(NSString*)transactionId;
-+ (void)releaseTransactionId:(NSString*)transactionId;
 + (void)persistReportedTransactionId:(NSString*)transactionId;
-+ (void)clearClaimedTransactionIds;
 + (BOOL)isSuccessfulPurchaseReply:(NSDictionary*)reply;
+- (void)transactionPurchased:(SKPaymentTransaction*)transaction;
 @end
 
 static NSString* const ReportedTransactionsDefaultsKey = @"TeakReportedTransactionIds";
+
+// Forgets this launch's claims, as a relaunch would. The tests are single-threaded.
+static void ClearClaimedTransactionIds(void) {
+  [[SKPaymentObserver claimedTransactionIds] removeAllObjects];
+}
 
 // TeakRavenReport is defined in TeakRaven.m; dateFormatter is its only method we need.
 @interface TeakRavenReport : NSObject
 + (NSDateFormatter*)dateFormatter;
 @end
+
+// Teak's public method, reached without importing Teak.h next to these internal headers
+// (the framework and source copies of its headers clash in this target).
+@protocol TeakStoreKit2Reporting <NSObject>
+- (void)reportStoreKit2Transaction:(NSString*)jwsRepresentation;
+@end
+
+static id<TeakStoreKit2Reporting> BareTeak(void) {
+  return [[NSClassFromString(@"Teak") alloc] init];
+}
 
 @interface SKPaymentObserverTests : XCTestCase
 @end
@@ -53,14 +72,20 @@ static NSDictionary* PurchaseReply;    // nil: the send never gets a reply
 }
 @end
 
-// Stand-ins for the session wait and the request, so TeakCore's handling of a purchase
-// event can be run without a session or the network.
+// Stand-ins for the event post, the session wait and the request, so a purchase event can be
+// run through TeakCore without a session or the network.
+static TeakEvent* PostedEvent;
 static TeakRequestResponse CapturedRequestCallback;
 
 @interface TeakCoreTestDoubles : NSObject
 @end
 
 @implementation TeakCoreTestDoubles
++ (bool)postEvent:(TeakEvent*)event {
+  PostedEvent = event;
+  return true;
+}
+
 + (void)whenUserIdIsReadyRun:(UserIdReadyBlock)block {
   block((TeakSession*)[NSNull null]);
 }
@@ -75,106 +100,32 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
   method_exchangeImplementations(class_getClassMethod(original, selector), class_getClassMethod(replacement, selector));
 }
 
-// Teak's public method, reached without importing Teak.h next to these internal headers
-// (the framework and source copies of its headers clash in this target).
-@protocol TeakStoreKit2Reporting <NSObject>
-- (void)reportStoreKit2Transaction:(NSString*)jwsRepresentation;
-@end
-
-static id<TeakStoreKit2Reporting> BareTeak(void) {
-  // A bare instance: see CLAUDE.md "Creating Teak instances for testing".
-  return [[NSClassFromString(@"Teak") alloc] init];
-}
-
-// The transaction JSON from a sandbox consumable bought with Unity IAP 5 on an iOS 18.7 device,
-// as a JWS with a placeholder header and signature (not a captured JWS: only the payload
-// segment is read, and the signature isn't verified).
-static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
-  NSMutableDictionary* transaction = [@{
-    @"transactionId" : @"2000001265157858",
-    @"originalTransactionId" : @"2000001265157858",
-    @"bundleId" : @"io.teak.app.unity.dev",
-    @"productId" : @"io.teak.app.unity.dev.dollar",
-    @"purchaseDate" : @1794531516000,
-    @"originalPurchaseDate" : @1794531516000,
-    @"quantity" : @1,
-    @"type" : @"Consumable",
-    @"inAppOwnershipType" : @"PURCHASED",
-    @"signedDate" : @1794531517446,
-    @"environment" : @"Sandbox",
-    @"transactionReason" : @"PURCHASE",
-    @"storefront" : @"USA",
-    @"storefrontId" : @"143441",
-    @"price" : @990,
-    @"currency" : @"USD"
-  } mutableCopy];
-  [transaction addEntriesFromDictionary:changes];
-  [transaction removeObjectsForKeys:removing];
-  NSString* payload = [[NSJSONSerialization dataWithJSONObject:transaction options:0 error:nil] base64EncodedStringWithOptions:0];
-  payload = [[[payload stringByReplacingOccurrencesOfString:@"+" withString:@"-"]
-      stringByReplacingOccurrencesOfString:@"/" withString:@"_"]
-      stringByReplacingOccurrencesOfString:@"=" withString:@""];
-  return [NSString stringWithFormat:@"eyJhbGciOiJFUzI1NiJ9.%@.c2lnbmF0dXJl", payload];
+static NSArray* PersistedTransactionIds(void) {
+  return [[NSUserDefaults standardUserDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
 }
 
 @implementation SKPaymentObserverTests
 
 - (void)setUp {
-  [SKPaymentObserver clearClaimedTransactionIds];
+  ClearClaimedTransactionIds();
   [[NSUserDefaults standardUserDefaults] removeObjectForKey:ReportedTransactionsDefaultsKey];
 }
 
 - (void)tearDown {
-  [SKPaymentObserver clearClaimedTransactionIds];
+  ClearClaimedTransactionIds();
   [[NSUserDefaults standardUserDefaults] removeObjectForKey:ReportedTransactionsDefaultsKey];
 }
 
-// Only the first claim of a transaction id in a launch may report it.
-- (void)testSecondClaimInSameLaunchIsRejected {
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
-  XCTAssertFalse([SKPaymentObserver claimTransactionId:@"2000000123"]);
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000124"]);
-}
-
-// A send that never landed must be retried when the transaction is redelivered
-// on a later launch, so an unacknowledged claim must not survive the launch.
-- (void)testUnacknowledgedClaimDoesNotSurviveRelaunch {
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
-  [SKPaymentObserver clearClaimedTransactionIds]; // models a relaunch
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
-}
-
-// Once the server acknowledged the report, redelivery on a later launch is skipped.
-- (void)testAcknowledgedTransactionIsRejectedAfterRelaunch {
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
-  [SKPaymentObserver persistReportedTransactionId:@"2000000123"];
-  [SKPaymentObserver clearClaimedTransactionIds]; // models a relaunch
-  XCTAssertFalse([SKPaymentObserver claimTransactionId:@"2000000123"]);
-}
-
-// A failed send releases the claim so a redelivery in the same launch can retry.
-- (void)testReleasedClaimCanBeReclaimed {
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
-  [SKPaymentObserver releaseTransactionId:@"2000000123"];
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
-}
-
-- (void)testPersistedTransactionIdsAreBounded {
-  for (int i = 0; i < 100; i++) {
-    [SKPaymentObserver persistReportedTransactionId:[NSString stringWithFormat:@"%d", i]];
-  }
-  NSArray* persisted = [[NSUserDefaults standardUserDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
-  XCTAssertEqual(persisted.count, 64u);
-  XCTAssertEqualObjects(persisted.lastObject, @"99");
-  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"0"], @"oldest ids age out");
-}
-
-- (void)testPurchaseReplyClassification {
-  XCTAssertTrue([SKPaymentObserver isSuccessfulPurchaseReply:@{@"code" : @200}]);
-  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{}], @"transport failure yields an empty reply");
-  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{@"error" : @{@"code" : @404}}]);
-  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"invalid_user", @"code" : @404})]);
-  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"Posting too frequent", @"code" : @403})]);
+// The StoreKit 1 observer seeing the sandbox purchase.
+- (void)reportFromStoreKit1 {
+  SKPayment* payment = mock([SKPayment class]);
+  [given([payment productIdentifier]) willReturn:@"io.teak.app.unity.dev.dollar"];
+  SKPaymentTransaction* transaction = mock([SKPaymentTransaction class]);
+  [given([transaction payment]) willReturn:payment];
+  [given([transaction transactionIdentifier]) willReturn:@"2000001265157858"];
+  [given([transaction transactionDate]) willReturn:[NSDate date]];
+  // Not init: that would register the observer for every event.
+  [[SKPaymentObserver alloc] transactionPurchased:transaction];
 }
 
 - (void)withReportStandIns:(void (^)(void))block {
@@ -190,6 +141,27 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
   SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
 }
 
+#pragma mark - Reported transaction ids
+
+- (void)testPersistedTransactionIdsAreBounded {
+  for (int i = 0; i < 100; i++) {
+    [SKPaymentObserver persistReportedTransactionId:[NSString stringWithFormat:@"%d", i]];
+  }
+  NSArray* persisted = PersistedTransactionIds();
+  XCTAssertEqual(persisted.count, 64u);
+  XCTAssertEqualObjects(persisted.lastObject, @"99");
+  XCTAssertTrue([SKPaymentObserver claimTransactionId:@"0"], @"oldest ids age out");
+}
+
+- (void)testPurchaseReplyClassification {
+  XCTAssertTrue([SKPaymentObserver isSuccessfulPurchaseReply:@{@"code" : @200}]);
+  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{}], @"transport failure yields an empty reply");
+  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"invalid_user", @"code" : @404})]);
+  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"Posting too frequent", @"code" : @403})]);
+}
+
+#pragma mark - reportStoreKit2Transaction:
+
 // The game reports a StoreKit 2 purchase once, and again later, and the StoreKit 1 observer
 // also sees it: one send, priced from the JWS without a product lookup.
 - (void)testReportedStoreKit2TransactionSendsOncePricedFromTheJWS {
@@ -200,14 +172,7 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
     [teak reportStoreKit2Transaction:jws];
     [teak reportStoreKit2Transaction:jws];
     manualLookups = ProductLookups;
-    [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
-                                 transactionId:@"2000001265157858"
-                                  purchaseDate:[NSDate date]
-                              purchaseDuration:nil
-                                        source:@"storekit1_observer"
-                                         price:nil
-                                      jwsToken:nil
-                        rememberAcrossLaunches:YES];
+    [self reportFromStoreKit1];
   }];
 
   XCTAssertEqual(ReportedPayloads.count, 1u);
@@ -241,20 +206,7 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
   XCTAssertEqual(ReportedPayloads.count, 1u);
 }
 
-static NSArray* PersistedTransactionIds(void) {
-  return [[NSUserDefaults standardUserDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
-}
-
-static void ReportFromStoreKit1(void) {
-  [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
-                               transactionId:@"2000001265157858"
-                                purchaseDate:[NSDate date]
-                            purchaseDuration:nil
-                                      source:@"storekit1_observer"
-                                       price:nil
-                                    jwsToken:nil
-                      rememberAcrossLaunches:YES];
-}
+#pragma mark - When a transaction counts as reported
 
 // A successful reply marks the id reported, so it isn't sent again on a later launch.
 - (void)testSuccessfulReplyMarksTheTransactionReported {
@@ -263,7 +215,7 @@ static void ReportFromStoreKit1(void) {
   [self withReportStandIns:^{
     PurchaseReply = @{@"code" : @200};
     [teak reportStoreKit2Transaction:jws];
-    [SKPaymentObserver clearClaimedTransactionIds]; // models a relaunch
+    ClearClaimedTransactionIds();
     [teak reportStoreKit2Transaction:jws];
   }];
   XCTAssertEqual(ReportedPayloads.count, 1u);
@@ -291,7 +243,7 @@ static void ReportFromStoreKit1(void) {
   id<TeakStoreKit2Reporting> teak = BareTeak();
   [self withReportStandIns:^{
     PurchaseReply = @{@"code" : @200};
-    ReportFromStoreKit1();
+    [self reportFromStoreKit1];
     [teak reportStoreKit2Transaction:SandboxJWSWith(@{}, @[])];
   }];
   XCTAssertEqual(ReportedPayloads.count, 2u);
@@ -300,47 +252,62 @@ static void ReportFromStoreKit1(void) {
   XCTAssertEqualObjects(PersistedTransactionIds(), @[ @"2000001265157858" ]);
 }
 
+// The StoreKit 1 observer doesn't remember ids across launches: Xcode's StoreKit Testing
+// restarts them at 0 when the tester clears transactions.
+- (void)testStoreKit1SendIsNotRememberedAcrossLaunches {
+  [self withReportStandIns:^{
+    PurchaseReply = @{@"code" : @200};
+    LookupPriceInfo = @{@"price_currency_code" : @"USD", @"price_float" : @0.99};
+    [self reportFromStoreKit1];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 1u);
+  XCTAssertEqualObjects(ReportedPayloads.firstObject[@"price_currency_code"], @"USD");
+  XCTAssertNil(PersistedTransactionIds());
+}
+
+// Nor are ids from a JWS made by Xcode's StoreKit Testing.
+- (void)testXcodeTestingTransactionsAreNotMarkedReported {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  [self withReportStandIns:^{
+    PurchaseReply = @{@"code" : @200};
+    [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"environment" : @"Xcode", @"transactionId" : @"0"}, @[])];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 1u);
+  XCTAssertNil(PersistedTransactionIds());
+}
+
 // A StoreKit 1 product lookup that never returns mustn't hold the transaction id.
 - (void)testHungStoreKit1LookupDoesNotBlockTheGamesReport {
   id<TeakStoreKit2Reporting> teak = BareTeak();
   NSString* jws = SandboxJWSWith(@{}, @[]);
   [self withReportStandIns:^{
     LookupCallsBack = NO;
-    ReportFromStoreKit1();
+    [self reportFromStoreKit1];
     [teak reportStoreKit2Transaction:jws];
   }];
   XCTAssertEqual(ReportedPayloads.count, 1u);
   XCTAssertEqualObjects(ReportedPayloads.firstObject[@"jws_representation"], jws);
 }
 
-// Xcode's StoreKit Testing restarts transaction ids at 0 when the tester clears transactions,
-// so its ids aren't remembered across launches.
-- (void)testXcodeTestingTransactionsAreNotMarkedReported {
-  id<TeakStoreKit2Reporting> teak = BareTeak();
-  [self withReportStandIns:^{
-    PurchaseReply = @{@"code" : @200};
-    [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"environment" : @"Xcode", @"transactionId" : @0}, @[])];
-  }];
-  XCTAssertEqual(ReportedPayloads.count, 1u);
-  XCTAssertNil(PersistedTransactionIds());
-}
-
 // The server's reply to /me/purchase reaches the reporter's onReply.
 - (void)testPurchaseReplyReachesTheReporter {
-  PurchaseEvent* event = [[PurchaseEvent alloc] initWithType:PurchaseSucceeded];
-  [event setValue:@{@"product_id" : @"io.teak.app.unity.dev.dollar"} forKey:@"payload"];
   __block NSDictionary* received = nil;
-  [event setValue:^(NSDictionary* reply) {
-    received = reply;
-  }
-           forKey:@"onReply"];
-
+  PostedEvent = nil;
   CapturedRequestCallback = nil;
+  SEL post = @selector(postEvent:);
   SEL wait = @selector(whenUserIdIsReadyRun:);
   SEL request = @selector(requestWithSession:forEndpoint:withPayload:method:callback:);
+  SwapClassMethods([TeakEvent class], [TeakCoreTestDoubles class], post);
   SwapClassMethods([TeakSession class], [TeakCoreTestDoubles class], wait);
   SwapClassMethods([TeakRequest class], [TeakCoreTestDoubles class], request);
-  [[TeakCore alloc] handleEvent:event]; // not init: that would register it for every event
+  [PurchaseEvent purchaseSucceeded:@{@"product_id" : @"io.teak.app.unity.dev.dollar"}
+                           onReply:^(NSDictionary* reply) {
+                             received = reply;
+                           }];
+  if (PostedEvent != nil) {
+    [[TeakCore alloc] handleEvent:PostedEvent]; // not init: that would register it for every event
+  }
+  SwapClassMethods([TeakEvent class], [TeakCoreTestDoubles class], post);
   SwapClassMethods([TeakSession class], [TeakCoreTestDoubles class], wait);
   SwapClassMethods([TeakRequest class], [TeakCoreTestDoubles class], request);
 
@@ -348,6 +315,8 @@ static void ReportFromStoreKit1(void) {
   if (CapturedRequestCallback != nil) CapturedRequestCallback(@{@"code" : @200});
   XCTAssertEqualObjects(received, @{@"code" : @200});
 }
+
+#pragma mark - Date formatting
 
 // Verifies purchase_time uses en_US_POSIX so Arabic-locale devices don't produce
 // Eastern-Arabic numerals the server can't parse (ArgumentError: mon out of range).

@@ -59,7 +59,7 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
                                       source:@"storekit1_observer"
                                        price:nil
                                     jwsToken:nil
-                      rememberAcrossLaunches:YES];
+                      rememberAcrossLaunches:NO];
 }
 
 #pragma mark - Reported transaction tracking
@@ -75,12 +75,6 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
     set = [[NSMutableSet alloc] init];
   });
   return set;
-}
-
-+ (void)clearClaimedTransactionIds {
-  @synchronized(ReportedTransactionsMutex) {
-    [[SKPaymentObserver claimedTransactionIds] removeAllObjects];
-  }
 }
 
 // Claims a transaction id for reporting. Returns NO if this id is already being
@@ -117,9 +111,7 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
 }
 
 + (BOOL)isSuccessfulPurchaseReply:(NSDictionary*)reply {
-  // Transport failures and unparseable bodies produce an empty reply, and the server's
-  // error bodies carry a code other than 200.
-  if (reply[@"error"] != nil && reply[@"error"] != [NSNull null]) return NO;
+  // Transport failures produce an empty reply; the server's error replies carry another code.
   id code = reply[@"code"];
   return [code isKindOfClass:[NSNumber class]] && [code integerValue] == 200;
 }
@@ -137,73 +129,62 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
   if (productId == nil) return;
 
   teak_try {
-    teak_log_breadcrumb(@"Getting info from App Store receipt");
-    NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
-    NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
-
-    TeakLog_i(@"purchase.report", @{
-      @"source" : source,
-      @"product_id" : productId,
-      @"transaction_identifier" : _(transactionId),
-      @"receipt_bytes" : receipt == nil ? [NSNull null] : @(receipt.length),
-      @"has_jws" : @(jwsToken != nil)
-    });
-
     NSDateFormatter* formatter = [SKPaymentObserver transactionDateFormatter];
-    void (^send)(NSDictionary*, NSString*) = ^(NSDictionary* priceInfo, NSString* priceSource) {
-      // Claimed only now, at the send: a lookup that never returns then holds nothing, and
-      // another path can still report the transaction.
+    void (^send)(NSDictionary*) = ^(NSDictionary* priceInfo) {
+      NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
+        @"purchase_time" : _([formatter stringFromDate:purchaseDate]),
+        @"product_id" : productId,
+        @"transaction_identifier" : _(transactionId),
+        @"purchase_duration" : _(purchaseDuration)
+      }];
+      if (jwsToken != nil) {
+        fullPayload[@"jws_representation"] = jwsToken;
+      }
+      [fullPayload addEntriesFromDictionary:priceInfo ?: @{}];
+      // The server accepts a purchase without a price but doesn't track it, so only a
+      // priced send marks the transaction reported.
+      BOOL priced = priceInfo.count > 0;
+
+      // Claim at the send, so a lookup that never returns holds no id.
       if (transactionId != nil && ![SKPaymentObserver claimTransactionId:transactionId]) {
         TeakLog_i(@"purchase.report.duplicate", @{@"source" : source, @"transaction_identifier" : transactionId});
         return;
       }
 
-      BOOL sent = NO;
-      teak_try {
-        teak_log_breadcrumb(@"Building payload");
-        NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
-          @"purchase_time" : _([formatter stringFromDate:purchaseDate]),
-          @"product_id" : productId,
-          @"transaction_identifier" : _(transactionId),
-          @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
-          @"purchase_duration" : _(purchaseDuration)
-        }];
-        if (jwsToken != nil) {
-          fullPayload[@"jws_representation"] = jwsToken;
-        }
-        [fullPayload addEntriesFromDictionary:priceInfo ?: @{}];
-        TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : priceSource});
+      NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
+      NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
+      fullPayload[@"purchase_token"] = _([receipt base64EncodedStringWithOptions:0]);
+      TeakLog_i(@"purchase.report", @{
+        @"source" : source,
+        @"product_id" : productId,
+        @"transaction_identifier" : _(transactionId),
+        @"receipt_bytes" : receipt == nil ? [NSNull null] : @(receipt.length),
+        @"has_jws" : @(jwsToken != nil)
+      });
 
-        // The server accepts a purchase without a price but doesn't track it, so only a
-        // priced send marks the transaction reported.
-        BOOL priced = priceInfo.count > 0;
-        [PurchaseEvent purchaseSucceeded:fullPayload
-                                 onReply:^(NSDictionary* reply) {
-                                   if (transactionId == nil) return;
-                                   if (![SKPaymentObserver isSuccessfulPurchaseReply:reply] || !priced) {
-                                     [SKPaymentObserver releaseTransactionId:transactionId];
-                                   } else if (rememberAcrossLaunches) {
-                                     [SKPaymentObserver persistReportedTransactionId:transactionId];
-                                   }
-                                 }];
-        sent = YES;
-      }
-      teak_catch_report;
-      if (!sent && transactionId != nil) {
-        [SKPaymentObserver releaseTransactionId:transactionId];
-      }
+      [PurchaseEvent purchaseSucceeded:fullPayload
+                               onReply:^(NSDictionary* reply) {
+                                 if (transactionId == nil) return;
+                                 if (![SKPaymentObserver isSuccessfulPurchaseReply:reply] || !priced) {
+                                   [SKPaymentObserver releaseTransactionId:transactionId];
+                                 } else if (rememberAcrossLaunches) {
+                                   [SKPaymentObserver persistReportedTransactionId:transactionId];
+                                 }
+                               }];
     };
 
     // A price from the caller is what this transaction cost; the product lookup would only
     // give today's list price.
     if (price.count > 0) {
-      send(price, @"caller");
+      TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : @"caller"});
+      send(price);
       return;
     }
 
     [ProductRequest productRequestForSku:productId
                                 callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
-                                  send(priceInfo, priceInfo.count > 0 ? @"storekit" : @"none");
+                                  TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : priceInfo.count > 0 ? @"storekit" : @"none"});
+                                  send(priceInfo);
                                 }];
   }
   teak_catch_report;

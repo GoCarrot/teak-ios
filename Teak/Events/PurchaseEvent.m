@@ -12,10 +12,6 @@
   [TeakEvent postEvent:event];
 }
 
-+ (void)purchaseSucceeded:(NSDictionary* _Nonnull)payload {
-  [PurchaseEvent purchaseSucceeded:payload onReply:nil];
-}
-
 + (void)purchaseSucceeded:(NSDictionary* _Nonnull)payload onReply:(PurchaseEventReply _Nullable)onReply {
   PurchaseEvent* event = [[PurchaseEvent alloc] initWithType:PurchaseSucceeded];
   event.payload = payload;

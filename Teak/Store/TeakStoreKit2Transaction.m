@@ -7,7 +7,7 @@
   NSArray<NSString*>* parts = [jws componentsSeparatedByString:@"."];
   if (parts.count != 3 || parts[1].length == 0) return nil;
 
-  // base64url → base64: swap the alphabet back and restore the padding.
+  // base64url → base64.
   NSMutableString* base64 = [[parts[1] stringByReplacingOccurrencesOfString:@"-" withString:@"+"] mutableCopy];
   [base64 replaceOccurrencesOfString:@"_" withString:@"/" options:0 range:NSMakeRange(0, base64.length)];
   while (base64.length % 4 != 0) {
@@ -35,9 +35,7 @@
 
 + (NSString*)transactionIdForTransaction:(NSDictionary*)transaction {
   id transactionId = transaction[@"transactionId"];
-  if ([transactionId isKindOfClass:[NSString class]]) return [transactionId length] > 0 ? transactionId : nil;
-  if ([transactionId isKindOfClass:[NSNumber class]]) return [NSString stringWithFormat:@"%llu", [transactionId unsignedLongLongValue]];
-  return nil;
+  return [transactionId isKindOfClass:[NSString class]] && [transactionId length] > 0 ? transactionId : nil;
 }
 
 + (NSDictionary*)priceForTransaction:(NSDictionary*)transaction {
