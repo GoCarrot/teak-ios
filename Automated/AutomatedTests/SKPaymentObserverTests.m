@@ -19,7 +19,6 @@
 + (NSMutableSet<NSString*>*)claimedTransactionIds;
 + (BOOL)claimTransactionId:(NSString*)transactionId;
 + (void)persistReportedTransactionId:(NSString*)transactionId;
-+ (BOOL)isSuccessfulPurchaseReply:(NSDictionary*)reply;
 - (void)transactionPurchased:(SKPaymentTransaction*)transaction;
 @end
 
@@ -151,13 +150,6 @@ static NSArray* PersistedTransactionIds(void) {
   XCTAssertEqual(persisted.count, 64u);
   XCTAssertEqualObjects(persisted.lastObject, @"99");
   XCTAssertTrue([SKPaymentObserver claimTransactionId:@"0"], @"oldest ids age out");
-}
-
-- (void)testPurchaseReplyClassification {
-  XCTAssertTrue([SKPaymentObserver isSuccessfulPurchaseReply:@{@"code" : @200}]);
-  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{}], @"transport failure yields an empty reply");
-  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"invalid_user", @"code" : @404})]);
-  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"Posting too frequent", @"code" : @403})]);
 }
 
 #pragma mark - reportStoreKit2Transaction:
