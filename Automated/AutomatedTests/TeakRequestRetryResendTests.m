@@ -244,21 +244,21 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   XCTAssertEqualObjects(retry.payload[@"string_attributes"], original.payload[@"string_attributes"]);
 }
 
-#pragma mark - A newer send replaces the last one
+#pragma mark - A new profile send cancels the last one
 
-// Both sends are in flight when the second starts; the first is superseded, the second isn't.
-- (void)testNewSendSupersedesTheLastSend {
+// Both sends are in flight when the second starts; the first is cancelled, the second isn't.
+- (void)testNewProfileSendCancelsTheLastSend {
   TeakUserProfile* profile = [self makeProfile];
   [self sendProfile:profile value:@"a" expectingTransmits:1];
   [self sendProfile:profile value:@"b" expectingTransmits:2];
 
   NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
-  XCTAssertTrue(sends[0].superseded);
-  XCTAssertFalse(sends[1].superseded);
+  XCTAssertTrue(sends[0].cancelled);
+  XCTAssertFalse(sends[1].cancelled);
 }
 
 // The attempt A has in flight is cancelled when B starts, rather than left to land after B.
-- (void)testNewSendCancelsTheLastSendsTask {
+- (void)testNewProfileSendCancelsTheLastSendsTask {
   TeakUserProfile* profile = [self makeProfile];
   [self sendProfile:profile value:@"a" expectingTransmits:1];
   NSURLSessionDataTask* inFlight = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:@"https://localhost.invalid"]];
@@ -271,7 +271,7 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 
 // A retry waiting to fire when the next send starts must not fire: it would put the older
 // payload on the wire after the newer one.
-- (void)testPendingRetryOfASupersededSendIsDropped {
+- (void)testPendingRetryOfACancelledSendIsDropped {
   // A one second ladder leaves the second send room to start well before the retry is due,
   // even on a loaded machine.
   TeakUserProfile* profile = [self makeProfileWithSession:[self makeMockSessionWithLadder:@[ @1.0 ]]];
@@ -285,26 +285,26 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 
   // Past the point where the retry was due.
   [self waitForTransmits:NSUIntegerMax of:profile timeout:1.2];
-  XCTAssertEqual([self transmitsFor:profile].count, 2u, @"the superseded send's retry went out");
+  XCTAssertEqual([self transmitsFor:profile].count, 2u, @"the cancelled send's retry went out");
 }
 
-// A superseded send never goes on the wire, even if something transmits it after it was replaced.
+// A cancelled send never goes on the wire, even if something transmits it afterwards.
 // Runs the real -transmitSend: (the swizzle leaves it under -retryTest_transmitSend:). Aimed at a
 // host that can't resolve, so a send that wrongly got through goes nowhere.
-- (void)testTransmitSendSkipsASupersededSend {
+- (void)testTransmitSendSkipsACancelledSend {
   TeakRequest* request = [self makePlainRequest];
   request.hostname = @"localhost.invalid";
   TeakRequestSend* send = [[TeakRequestSend alloc] initWithRequest:request];
-  [send supersede];
+  [send cancel];
 
   [request retryTest_transmitSend:send];
 
-  XCTAssertNil(send.task, @"a superseded send was started");
+  XCTAssertNil(send.task, @"a cancelled send was started");
 }
 
-// A reply to the superseded send that arrives after the newer send's own is not retried, and
+// A reply to the cancelled send that arrives after the newer send's own is not retried, and
 // doesn't touch the newer send's retry budget.
-- (void)testLateFailedReplyToASupersededSendIsNotRetried {
+- (void)testLateFailedReplyToACancelledSendIsNotRetried {
   TeakUserProfile* profile = [self makeProfile];
   [self sendProfile:profile value:@"a" expectingTransmits:1];
   [self sendProfile:profile value:@"b" expectingTransmits:2];
@@ -318,6 +318,18 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   XCTAssertEqual(sends[1].serverErrorRetries, 0u);
 }
 
+// Only the profile knows its sends are complete, so only it cancels the last one. A request
+// that is simply sent again leaves the earlier send alone.
+- (void)testSendingAPlainRequestAgainDoesNotCancelTheLastSend {
+  TeakRequest* plain = [self makePlainRequest];
+  [plain send];
+  [plain send];
+
+  NSArray<TeakRequestSend*>* sends = [self transmitsFor:plain];
+  XCTAssertEqual(sends.count, 2u);
+  XCTAssertFalse(sends[0].cancelled, @"the base class cancelled the earlier send");
+}
+
 // The session-end flush calls -send whether or not an update is pending. With none, nothing
 // replaces the send that is in flight, so it must not be cancelled.
 - (void)testFlushWithNothingPendingLeavesTheSendInFlight {
@@ -327,7 +339,7 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 
   [profile send];
   XCTAssertEqual([self settledTransmitsOf:profile], 1u, @"a flush with nothing pending transmitted");
-  XCTAssertFalse(inFlight.superseded, @"a flush with nothing pending superseded the send in flight");
+  XCTAssertFalse(inFlight.cancelled, @"a flush with nothing pending cancelled the send in flight");
 
   // And it still retries like any other send.
   [self deliver:profile status:503 error:nil];

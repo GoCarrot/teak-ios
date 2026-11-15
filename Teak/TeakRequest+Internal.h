@@ -16,20 +16,22 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // A retry is scheduled only from the reply to the attempt before it, so attempts never overlap.
 @property (nonatomic) NSUInteger socketErrorRetries;
 @property (nonatomic) NSUInteger serverErrorRetries;
-// Set once a later -send has replaced this send. A superseded send is never transmitted again,
-// so a retry still waiting to fire is a no-op, and a reply to it is not retried.
-@property (atomic, readonly) BOOL superseded;
-// The most recent attempt, so superseding the send can cancel it.
+// Set by -cancel. A cancelled send is never transmitted again, so a retry still waiting to fire
+// is a no-op, and a reply to it is not retried.
+@property (atomic, readonly) BOOL cancelled;
+// The most recent attempt, so cancelling the send can cancel it.
 @property (atomic, strong) NSURLSessionDataTask* _Nullable task;
 
 - (nonnull instancetype)initWithRequest:(nonnull TeakRequest*)request;
-- (void)supersede;
+// Cancels the attempt in flight and stops any retry still waiting to fire. Cancelling the task
+// alone wouldn't reach those: a retry is a block on a timer, not a task.
+- (void)cancel;
 - (nonnull NSDictionary*)to_h;
 @end
 
 @interface TeakRequest ()
-// The send in flight or waiting to retry. Weak: a request holds no send once it has finished,
-// and a send holds its request.
+// The latest send, in flight or waiting to retry. Weak: a request holds no send once it has
+// finished, and a send holds its request. A request that is sent again can cancel it first.
 @property (atomic, weak) TeakRequestSend* _Nullable currentSend;
 @property (strong, nonatomic, readwrite) NSString* _Nonnull endpoint;
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;

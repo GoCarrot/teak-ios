@@ -156,10 +156,15 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
   return self;
 }
 
-- (void)supersede {
+- (void)cancel {
+  BOOL firstCancel;
   @synchronized(self) {
-    _superseded = YES;
+    firstCancel = !_cancelled;
+    _cancelled = YES;
     [self.task cancel];
+  }
+  if (firstCancel) {
+    TeakLog_i(@"request.send.cancelled", [self to_h]);
   }
 }
 
@@ -364,11 +369,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     // Each send is a new logical request: its own request_id, and its own copy of
     // the payload as it stands now.
     TeakRequestSend* send = [[TeakRequestSend alloc] initWithRequest:self];
-
-    // A new send replaces the last one: its retries are dropped and its attempt in flight is
-    // cancelled. Safe because a send's payload is complete -- the profile re-sends all of its
-    // attributes, not just what changed -- so this send covers everything the last one did.
-    [self.currentSend supersede];
     self.currentSend = send;
 
     teak_log_breadcrumb(@"request.send.constructed");
@@ -381,10 +381,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   teak_try {
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:send.urlRequest];
     BOOL transmitted = NO;
-    // Under the send's lock so that superseding it either finds this task to cancel or comes
+    // Under the send's lock so that cancelling it either finds this task to cancel or comes
     // first, in which case nothing is transmitted.
     @synchronized(send) {
-      if (!send.superseded) {
+      if (!send.cancelled) {
         send.task = dataTask;
         @synchronized(TeakRequestsInFlightMutex) {
           [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = send;
@@ -441,11 +441,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
         BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error];
-        // A reply to a send that a later -send has replaced doesn't get a retry: the newer
-        // send owns the request now.
-        BOOL isSuperseded = send.superseded;
+        // A reply to a send that was cancelled doesn't get a retry.
+        BOOL isCancelled = send.cancelled;
 
-        if (!isSuperseded && [TeakRequest shouldRetryResponse:response error:error retryCount:send.socketErrorRetries]) {
+        if (!isCancelled && [TeakRequest shouldRetryResponse:response error:error retryCount:send.socketErrorRetries]) {
           // A request that got no HTTP reply (the OS closed a pooled socket while
           // the app was backgrounded, a timeout, a dropped connection) is retried
           // once after a short delay with the same request id, so a server that
@@ -458,9 +457,9 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            if (!send.superseded) [self transmitSend:send];
+            if (!send.cancelled) [self transmitSend:send];
           });
-        } else if (!isSuperseded && response.statusCode >= 500 && send.serverErrorRetries < [self.retry.times count]) {
+        } else if (!isCancelled && response.statusCode >= 500 && send.serverErrorRetries < [self.retry.times count]) {
           // Only a 5xx reply climbs the server-configured ladder, as on Android.
           // Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
@@ -472,10 +471,10 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            if (!send.superseded) [self transmitSend:send];
+            if (!send.cancelled) [self transmitSend:send];
           });
         } else {
-          if (!isSuperseded && (isSocketError || isNoResponse)) {
+          if (!isCancelled && (isSocketError || isNoResponse)) {
             TeakLog_e(isSocketError ? @"request.retry.socket_error.exhausted" : @"request.retry.no_response.exhausted", [send to_h]);
           }
 
