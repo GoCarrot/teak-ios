@@ -24,6 +24,7 @@
   if ([TeakStoreKit2Transaction transactionIdForTransaction:transaction] == nil) return @"missing_transaction_id";
   if (![transaction[@"productId"] isKindOfClass:[NSString class]]) return @"missing_product_id";
   if (transaction[@"revocationDate"] != nil && transaction[@"revocationDate"] != [NSNull null]) return @"revoked";
+  if ([transaction[@"inAppOwnershipType"] isEqual:@"FAMILY_SHARED"]) return @"family_shared";
 
   id reason = transaction[@"transactionReason"];
   if ([reason isKindOfClass:[NSString class]] && ![reason isEqualToString:@"PURCHASE"]) {

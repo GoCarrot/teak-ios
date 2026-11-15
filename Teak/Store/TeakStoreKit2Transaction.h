@@ -11,7 +11,8 @@ NS_ASSUME_NONNULL_BEGIN
 // object payload.
 + (nullable NSDictionary*)payloadFromJWS:(nullable NSString*)jws;
 
-// nil when the transaction should be reported, otherwise a short reason for skipping it.
+// nil when the transaction should be reported, otherwise a short reason for skipping it:
+// no ids, revoked, a Family Sharing copy, or a transactionReason other than PURCHASE.
 // A missing transactionReason is reported: it may be absent on older OS versions (the
 // Swift Transaction.reason property is iOS 17+).
 + (nullable NSString*)skipReasonForTransaction:(NSDictionary*)transaction;

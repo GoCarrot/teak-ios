@@ -2,6 +2,7 @@
 #import "PurchaseEvent.h"
 #import "Teak+Internal.h"
 #import "TeakHelpers.h"
+#import "TeakStoreKit2Transaction.h"
 
 #define _(_id) TeakValueOrNSNull(_id)
 
@@ -132,7 +133,7 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
                    purchaseDate:(NSDate*)purchaseDate
                purchaseDuration:(NSNumber*)purchaseDuration
                          source:(NSString*)source
-                          price:(NSDictionary*)fallbackPrice
+                          price:(NSDictionary*)price
                        jwsToken:(NSString*)jwsToken {
   if (productId == nil) return;
 
@@ -157,40 +158,72 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
     });
 
     NSDateFormatter* formatter = [SKPaymentObserver transactionDateFormatter];
+    void (^send)(NSDictionary*, NSString*) = ^(NSDictionary* priceInfo, NSString* priceSource) {
+      teak_log_breadcrumb(@"Building payload");
+      NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
+        @"purchase_time" : _([formatter stringFromDate:purchaseDate]),
+        @"product_id" : productId,
+        @"transaction_identifier" : _(transactionId),
+        @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
+        @"purchase_duration" : _(purchaseDuration)
+      }];
+      if (jwsToken != nil) {
+        fullPayload[@"jws_representation"] = jwsToken;
+      }
+      [fullPayload addEntriesFromDictionary:priceInfo ?: @{}];
+      TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : priceSource});
+
+      [PurchaseEvent purchaseSucceeded:fullPayload
+                               onReply:^(NSDictionary* reply) {
+                                 if (transactionId == nil) return;
+                                 if ([SKPaymentObserver isSuccessfulPurchaseReply:reply]) {
+                                   [SKPaymentObserver persistReportedTransactionId:transactionId];
+                                 } else {
+                                   [SKPaymentObserver releaseTransactionId:transactionId];
+                                 }
+                               }];
+    };
+
+    // A price from the caller is what this transaction cost; the product lookup would only
+    // give today's list price.
+    if (price.count > 0) {
+      send(price, @"caller");
+      return;
+    }
+
     [ProductRequest productRequestForSku:productId
                                 callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
-                                  teak_log_breadcrumb(@"Building payload");
-                                  NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
-                                    @"purchase_time" : _([formatter stringFromDate:purchaseDate]),
-                                    @"product_id" : productId,
-                                    @"transaction_identifier" : _(transactionId),
-                                    @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
-                                    @"purchase_duration" : _(purchaseDuration)
-                                  }];
-                                  if (jwsToken != nil) {
-                                    fullPayload[@"jws_representation"] = jwsToken;
-                                  }
-
-                                  NSString* priceSource = @"none";
-                                  if (priceInfo.count > 0) {
-                                    [fullPayload addEntriesFromDictionary:priceInfo];
-                                    priceSource = @"storekit";
-                                  } else if (fallbackPrice.count > 0) {
-                                    [fullPayload addEntriesFromDictionary:fallbackPrice];
-                                    priceSource = @"caller";
-                                  }
-                                  TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : priceSource});
-
-                                  [PurchaseEvent purchaseSucceeded:fullPayload
-                                                           onReply:^(NSDictionary* reply) {
-                                                             if (transactionId == nil) return;
-                                                             if ([SKPaymentObserver isSuccessfulPurchaseReply:reply]) {
-                                                               [SKPaymentObserver persistReportedTransactionId:transactionId];
-                                                             } else {
-                                                               [SKPaymentObserver releaseTransactionId:transactionId];
-                                                             }
-                                                           }];
+                                  send(priceInfo, priceInfo.count > 0 ? @"storekit" : @"none");
                                 }];
+  }
+  teak_catch_report;
+}
+
++ (void)reportStoreKit2TransactionJWS:(NSString*)jwsRepresentation {
+  teak_try {
+    NSDictionary* transaction = [TeakStoreKit2Transaction payloadFromJWS:jwsRepresentation];
+    if (transaction == nil) {
+      TeakLog_e(@"purchase.report_storekit2.invalid_jws", @"reportStoreKit2Transaction: needs the transaction's jwsRepresentation; this isn't a decodable JWS.");
+      return;
+    }
+
+    NSString* transactionId = [TeakStoreKit2Transaction transactionIdForTransaction:transaction];
+    NSString* skipReason = [TeakStoreKit2Transaction skipReasonForTransaction:transaction];
+    if (skipReason != nil) {
+      TeakLog_i(@"purchase.report_storekit2.skipped", @{@"reason" : skipReason, @"transaction_identifier" : _(transactionId)});
+      return;
+    }
+    if (transaction[@"transactionReason"] == nil) {
+      TeakLog_i(@"purchase.report_storekit2.reason_missing", @{@"transaction_identifier" : transactionId});
+    }
+
+    [SKPaymentObserver reportPurchaseOfProduct:transaction[@"productId"]
+                                 transactionId:transactionId
+                                  purchaseDate:[TeakStoreKit2Transaction purchaseDateForTransaction:transaction]
+                              purchaseDuration:nil
+                                        source:@"report_storekit2_transaction"
+                                         price:[TeakStoreKit2Transaction priceForTransaction:transaction]
+                                      jwsToken:jwsRepresentation];
   }
   teak_catch_report;
 }
