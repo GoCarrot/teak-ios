@@ -178,6 +178,48 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   [verifyCount(_teak, times(1)) application:anything() continueUserActivity:activity restorationHandler:anything()];
 }
 
+- (void)testHostThatThrowsDoesNotStopLaterCalls {
+  Class klass = MakeClass(@"ThrowingSceneDelegate", [UIResponder class]);
+  __block BOOL shouldThrow = YES;
+  void (^maybeThrow)(void) = ^{
+    if (shouldThrow) @throw [NSException exceptionWithName:@"HostThrew" reason:nil userInfo:nil];
+  };
+  class_addMethod(klass, @selector(scene:willConnectToSession:options:), imp_implementationWithBlock(^(id _self, UIScene* scene, UISceneSession* session, UISceneConnectionOptions* options) {
+                    maybeThrow();
+                  }),
+                  "v@:@@@");
+  class_addMethod(klass, @selector(scene:openURLContexts:), imp_implementationWithBlock(^(id _self, UIScene* scene, NSSet* contexts) {
+                    maybeThrow();
+                  }),
+                  "v@:@@");
+  class_addMethod(klass, @selector(scene:continueUserActivity:), imp_implementationWithBlock(^(id _self, UIScene* scene, NSUserActivity* activity) {
+                    maybeThrow();
+                  }),
+                  "v@:@@");
+  [TeakSceneHooks swizzleInto:klass];
+
+  id delegate = [[klass alloc] init];
+  NSURL* launchURL = [NSURL URLWithString:@"teak1234://launch"];
+  UISceneConnectionOptions* options = mock([UISceneConnectionOptions class]);
+  [given(options.URLContexts) willReturn:[self contextsForURLs:@[ launchURL ]]];
+  NSURL* url = [NSURL URLWithString:@"teak1234://open"];
+  NSUserActivity* activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
+
+  XCTAssertThrows([delegate scene:mock([UIScene class]) willConnectToSession:mock([UISceneSession class]) options:options]);
+  XCTAssertThrows([self openURL:[NSURL URLWithString:@"teak1234://threw"] on:delegate]);
+  XCTAssertThrows([delegate scene:mock([UIScene class]) continueUserActivity:activity]);
+
+  shouldThrow = NO;
+  [self freshTeak];
+  [delegate scene:mock([UIScene class]) willConnectToSession:mock([UISceneSession class]) options:options];
+  [self openURL:url on:delegate];
+  [delegate scene:mock([UIScene class]) continueUserActivity:activity];
+
+  [verifyCount(_teak, times(1)) application:anything() openURL:launchURL sourceApplication:anything() annotation:anything()];
+  [verifyCount(_teak, times(1)) application:anything() openURL:url sourceApplication:anything() annotation:anything()];
+  [verifyCount(_teak, times(1)) application:anything() continueUserActivity:activity restorationHandler:anything()];
+}
+
 #pragma mark - Lifecycle
 
 - (void)testLifecycleRunsOncePerTransitionAcrossDelegateAndNotification {
