@@ -11,6 +11,7 @@ extern Teak* _teakSharedInstance;
 extern void TeakLifecycleDidBecomeActive(UIApplication* application);
 extern void TeakLifecycleWillResignActive(UIApplication* application);
 extern void TeakLifecycleInstall(void);
+extern void TeakLifecycleSeed(void);
 
 @interface TeakSceneHooksTests : XCTestCase
 @end
@@ -58,6 +59,26 @@ extern void TeakLifecycleInstall(void);
 
   teak = [self freshTeak];
   TeakLifecycleWillResignActive(nil);
+  [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationWillResignActiveNotification object:nil];
+  [verifyCount(teak, times(1)) applicationWillResignActive:anything()];
+}
+
+- (void)testOffMainSeedOfAnActiveAppLetsTheNextResignThrough {
+  XCTAssertEqual([UIApplication sharedApplication].applicationState, UIApplicationStateActive, @"test host must be active");
+  TeakLifecycleInstall();
+  TeakLifecycleWillResignActive(nil);
+
+  XCTestExpectation* planted = [self expectationWithDescription:@"seeded off main"];
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+    TeakLifecycleSeed();
+    // The seed hops to main; this block queues behind it.
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [planted fulfill];
+    });
+  });
+  [self waitForExpectations:@[ planted ] timeout:5];
+
+  Teak* teak = [self freshTeak];
   [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationWillResignActiveNotification object:nil];
   [verifyCount(teak, times(1)) applicationWillResignActive:anything()];
 }
