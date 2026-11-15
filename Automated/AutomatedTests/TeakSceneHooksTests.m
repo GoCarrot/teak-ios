@@ -295,7 +295,12 @@ static void DiscoverSceneDelegateClass(Class sceneDelegateClass) {
   [self openURL:teakURL on:[[swizzledOnly alloc] init]];
   XCTAssertEqual(_calls[@"swizzledOnly.contexts"].integerValue, 1, @"Teak-handled context still reaches the host");
 
-  [verifyCount(_teak, times(2)) application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()];
+  // A subclass of a class passed to swizzleInto: inherits the hook, and the forwarding with it.
+  Class inheriting = MakeClass(@"SwizzledOnlySubclass", swizzledOnly);
+  [self openURL:teakURL on:[[inheriting alloc] init]];
+  XCTAssertEqual(_calls[@"swizzledOnly.contexts"].integerValue, 2, @"Teak-handled context reaches the inherited host");
+
+  [verifyCount(_teak, times(3)) application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()];
 }
 
 - (void)testWillConnectRoutesEveryLaunchURLAndActivity {
