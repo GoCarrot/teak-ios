@@ -8,8 +8,8 @@
 //   - currentState / previousState are read in the currentSessionMutex lock domain (the class
 //     methods) but written under @synchronized(self), so atomic keeps a cross-domain read from
 //     tearing.
-//   - reportDurationBlock is stored under @synchronized(self), but its background-queue body
-//     reads it under reportDurationMutex only to check for cancellation. atomic keeps that read
+//   - reportDurationBlock is stored under @synchronized(self), but -reportDuration, on the
+//     background queue, reads it under reportDurationMutex only to check for cancellation. atomic keeps that read
 //     from retaining a pointer the store is releasing out from under it (a use-after-free seen in
 //     production as an EXC_BAD_ACCESS in dispatch_block_testcancel).
 //   - countryCode / userProfile / serverSessionId are reassigned in the identify-reply request
