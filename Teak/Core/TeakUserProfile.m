@@ -83,6 +83,10 @@
       }];
       self.payload = payload;
 
+      // Every send carries the full attribute dictionaries, not just what changed, so this send
+      // covers everything the last one did. Cancel the last one rather than let its retries or
+      // its attempt in flight land after this one with older values.
+      [self.currentSend cancel];
       [super send];
 
       self.firstSetTime = nil;
