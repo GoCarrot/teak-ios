@@ -6,6 +6,7 @@
 #import "TeakRemoteConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
+#import "TeakUserProfile.h"
 #import <Teak/Teak.h>
 
 extern TeakSession* currentSession;
@@ -16,6 +17,7 @@ extern NSDictionary* TeakVersionDict;
 @end
 
 @interface TeakSession (LifetimeTesting)
+@property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
@@ -23,6 +25,7 @@ extern NSDictionary* TeakVersionDict;
 + (TeakSession*)currentSession;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
 - (BOOL)setState:(nonnull TeakState*)newState;
+- (void)userProfileReceived:(nullable NSDictionary*)userProfile;
 - (void)detachDeviceConfigurationObservers;
 @end
 
@@ -145,6 +148,19 @@ extern NSDictionary* TeakVersionDict;
                  @"/session_stop was dropped: the session freed before its duration report ran");
 
   AssertFreed(weakSession, 5.0, @"the session is still alive after its duration report ran");
+}
+
+#pragma mark - Late identify reply
+
+// The /users.json request holds the session until its reply runs, so the reply can land after
+// replacement. It must not attach a profile, which would hold the session again.
+- (void)testIdentifyReplyAfterReplacementAttachesNoProfile {
+  TeakSession* session = [TeakSession currentSession];
+  [TeakSession logoutReusingCurrentSession:NO];
+
+  [session userProfileReceived:@{}];
+  XCTAssertNil(session.userProfile, @"an identify reply after replacement attached a profile");
+  [TeakEvent removeEventHandler:session];
 }
 
 #pragma mark - Event batches

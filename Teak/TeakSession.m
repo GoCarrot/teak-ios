@@ -127,6 +127,7 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // deviceConfiguration are removed, so the removal happens exactly once whether it comes from session
 // replacement or -dealloc. See -detachDeviceConfigurationObservers.
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
+
 @end
 
 @implementation TeakSession
@@ -374,6 +375,7 @@ DefineTeakState(Expired, (@[]));
                                                     method:TeakRequest_POST
                                                   callback:^(NSDictionary* reply) {
                                                     __strong typeof(self) blockSelf = weakSelf;
+                                                    if (blockSelf == nil) return;
 
                                                     bool logLocal = [reply[@"verbose_logging"] boolValue];
                                                     bool logRemote = [reply[@"log_remote"] boolValue];
@@ -384,8 +386,7 @@ DefineTeakState(Expired, (@[]));
 
                                                     blockSelf.countryCode = reply[@"country_code"];
 
-                                                    // User profile
-                                                    blockSelf.userProfile = [[TeakUserProfile alloc] initForSession:blockSelf withDictionary:reply[@"user_profile"]];
+                                                    [blockSelf userProfileReceived:reply[@"user_profile"]];
 
                                                     // Deep link
                                                     if (reply[@"deep_link"]) {
@@ -431,6 +432,17 @@ DefineTeakState(Expired, (@[]));
                                                   }];
 
     [request send];
+  }
+}
+
+// The /users.json request holds this session until its reply runs, so a reply can arrive after the
+// session expired and was replaced. An expired session gets no profile: the profile holds the session,
+// so attaching one would keep alive a session that expiry means to release. Expired is set under this
+// same lock, so a reply can't slip in between the check and the transition.
+- (void)userProfileReceived:(nullable NSDictionary*)userProfile {
+  @synchronized(self) {
+    if (self.currentState == [TeakSession Expired]) return;
+    self.userProfile = [[TeakUserProfile alloc] initForSession:self withDictionary:userProfile];
   }
 }
 
