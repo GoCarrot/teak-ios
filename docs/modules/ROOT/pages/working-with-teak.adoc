@@ -450,11 +450,10 @@ and initializing. Deep links will be processed when your game calls `Teak.login(
 
 === Teak Links and Your Own URL Handlers
 
-When a custom-scheme URL opens your app while it's running, whether your own handler also sees it depends on where your app receives URLs:
+When a custom-scheme URL opens your app while it's running, whether your own handler also sees a URL Teak handled depends on where your app receives URLs:
 
-* `application:openURL:options:` on your app delegate, or `scene:openURLContexts:` on a UIKit scene delegate Teak finds itself: you only get URLs that Teak didn't handle.
-* SwiftUI `onOpenURL`: you get every URL, including the ones Teak handled.
-* A scene delegate class you pass to `TeakSceneHooks.swizzleInto:` yourself: you get every URL, including the ones Teak handled.
+* `application:openURL:options:` on your app delegate: you only get URLs that Teak didn't handle.
+* `scene:openURLContexts:` on a scene delegate, or SwiftUI `onOpenURL`: you get every URL, including the ones Teak handled. In `scene:openURLContexts:`, a context's `teakHandled` property is YES for the URLs Teak handled. It isn't set for the launch URLs passed to `scene:willConnectToSession:options:`.
 
 Universal links and URLs that launch the app are always passed on to your handlers.
 

@@ -13,9 +13,8 @@
 // Teak's app delegate hook already sees the activity; if there isn't, the host's own universal links
 // were already dead.
 //
-// Teak-handled URL contexts are withheld from UIKit scene delegates, as the app delegate hooks do.
-// SwiftUI.AppSceneDelegate, and classes the app passed to swizzleInto:, keep getting every context,
-// as they did before Teak found scene delegates itself.
+// Every URL context reaches the scene delegate, after Teak has seen it. The ones Teak handled are
+// marked, and the host can read that from -[UIOpenURLContext teakHandled].
 
 typedef UISceneConfiguration* (*TeakConfigurationIMP)(id, SEL, UIApplication*, UISceneSession*, UISceneConnectionOptions*);
 typedef void (*TeakWillConnectIMP)(id, SEL, UIScene*, UISceneSession*, UISceneConnectionOptions*);
@@ -27,9 +26,7 @@ typedef IMP (*TeakHookFactory)(SEL sel, IMP original, BOOL option);
 
 static NSObject* sHookLock = nil;
 static NSMutableSet<NSValue*>* sTeakHookIMPs = nil;
-// Classes passed to swizzleInto:. Checked when a URL arrives, since the install may hook a class
-// before the app's own swizzleInto: call does.
-static NSMutableSet<Class>* sForwardTeakHandledClasses = nil;
+static char sTeakHandledKey;
 // From the latest install, for delegate classes discovered by notification observers.
 static BOOL sInstallAddsContinueUserActivity = YES;
 
@@ -38,7 +35,6 @@ static void TeakSceneHooksInitRegistry(void) {
   dispatch_once(&onceToken, ^{
     sHookLock = [[NSObject alloc] init];
     sTeakHookIMPs = [[NSMutableSet alloc] init];
-    sForwardTeakHandledClasses = [[NSMutableSet alloc] init];
   });
 }
 
@@ -61,18 +57,6 @@ static void TeakSceneHookExit(SEL sel) {
   } else {
     [threadDictionary removeObjectForKey:key];
   }
-}
-
-static BOOL TeakSceneForwardsTeakHandled(Class klass) {
-  Class swiftUISceneDelegate = objc_getClass("SwiftUI.AppSceneDelegate");
-  if (swiftUISceneDelegate != nil && [klass isSubclassOfClass:swiftUISceneDelegate]) return YES;
-  TeakSceneHooksInitRegistry();
-  @synchronized(sHookLock) {
-    for (Class forwarding in sForwardTeakHandledClasses) {
-      if ([klass isSubclassOfClass:forwarding]) return YES;
-    }
-  }
-  return NO;
 }
 
 #pragma mark - Teak handling
@@ -137,20 +121,15 @@ static IMP TeakOpenURLContextsHook(SEL sel, IMP original, BOOL unused) {
   return imp_implementationWithBlock(^(id self, UIScene* scene, NSSet<UIOpenURLContext*>* URLContexts) {
     BOOL outermost = TeakSceneHookEnter(sel);
     @try {
-      NSSet<UIOpenURLContext*>* forHost = URLContexts;
       if (outermost) {
-        NSMutableSet<UIOpenURLContext*>* unhandled = [[NSMutableSet alloc] init];
         for (UIOpenURLContext* context in URLContexts) {
-          if (!TeakSceneOpenURLContext(context)) {
-            [unhandled addObject:context];
+          if (TeakSceneOpenURLContext(context)) {
+            objc_setAssociatedObject(context, &sTeakHandledKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
           }
         }
-        if (!TeakSceneForwardsTeakHandled([self class])) {
-          forHost = unhandled;
-        }
       }
-      if (host && forHost.count > 0) {
-        host(self, sel, scene, forHost);
+      if (host) {
+        host(self, sel, scene, URLContexts);
       }
     } @finally {
       TeakSceneHookExit(sel);
@@ -216,11 +195,6 @@ static void TeakSceneHookClass(Class klass, NSString* source, BOOL addContinueUs
 }
 
 + (void)swizzleInto:(Class)klass {
-  if (klass == nil) return;
-  TeakSceneHooksInitRegistry();
-  @synchronized(sHookLock) {
-    [sForwardTeakHandledClasses addObject:klass];
-  }
   TeakSceneHookClass(klass, @"swizzleInto", NO);
 }
 
@@ -309,6 +283,15 @@ static void TeakSceneHookClass(Class klass, NSString* source, BOOL addContinueUs
 
 - (void)sceneDidBecomeActive:(UIScene*)scene {
   TeakLifecycleDidBecomeActive([UIApplication sharedApplication]);
+}
+
+@end
+
+API_AVAILABLE(ios(13.0))
+@implementation UIOpenURLContext (Teak)
+
+- (BOOL)teakHandled {
+  return [objc_getAssociatedObject(self, &sTeakHandledKey) boolValue];
 }
 
 @end
