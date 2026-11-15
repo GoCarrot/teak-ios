@@ -38,7 +38,8 @@ static void TeakSceneHooksInitRegistry(void) {
   });
 }
 
-// Returns YES for the outermost Teak hook of this selector on this thread.
+// Returns YES for the outermost Teak hook of this selector on this thread. Every Enter is paired with
+// an Exit in @finally, so a host that throws doesn't leave the depth stuck.
 static BOOL TeakSceneHookEnter(SEL sel) {
   NSMutableDictionary* threadDictionary = [[NSThread currentThread] threadDictionary];
   NSString* key = [@"io.teak.sdk.sceneHookDepth." stringByAppendingString:NSStringFromSelector(sel)];
@@ -101,13 +102,16 @@ static IMP TeakWillConnectHook(SEL sel, IMP original, BOOL unused) {
   TeakWillConnectIMP host = (TeakWillConnectIMP)original;
   return imp_implementationWithBlock(^(id self, UIScene* scene, UISceneSession* session, UISceneConnectionOptions* connectionOptions) {
     BOOL outermost = TeakSceneHookEnter(sel);
-    if (host) {
-      host(self, sel, scene, session, connectionOptions);
+    @try {
+      if (host) {
+        host(self, sel, scene, session, connectionOptions);
+      }
+      if (outermost) {
+        TeakSceneHandleConnectionOptions(connectionOptions);
+      }
+    } @finally {
+      TeakSceneHookExit(sel);
     }
-    if (outermost) {
-      TeakSceneHandleConnectionOptions(connectionOptions);
-    }
-    TeakSceneHookExit(sel);
   });
 }
 
@@ -117,22 +121,25 @@ static IMP TeakOpenURLContextsHook(SEL sel, IMP original, BOOL forwardTeakHandle
   TeakOpenURLContextsIMP host = (TeakOpenURLContextsIMP)original;
   return imp_implementationWithBlock(^(id self, UIScene* scene, NSSet<UIOpenURLContext*>* URLContexts) {
     BOOL outermost = TeakSceneHookEnter(sel);
-    NSSet<UIOpenURLContext*>* forHost = URLContexts;
-    if (outermost) {
-      NSMutableSet<UIOpenURLContext*>* unhandled = [[NSMutableSet alloc] init];
-      for (UIOpenURLContext* context in URLContexts) {
-        if (!TeakSceneOpenURLContext(context)) {
-          [unhandled addObject:context];
+    @try {
+      NSSet<UIOpenURLContext*>* forHost = URLContexts;
+      if (outermost) {
+        NSMutableSet<UIOpenURLContext*>* unhandled = [[NSMutableSet alloc] init];
+        for (UIOpenURLContext* context in URLContexts) {
+          if (!TeakSceneOpenURLContext(context)) {
+            [unhandled addObject:context];
+          }
+        }
+        if (!forwardTeakHandled) {
+          forHost = unhandled;
         }
       }
-      if (!forwardTeakHandled) {
-        forHost = unhandled;
+      if (host && forHost.count > 0) {
+        host(self, sel, scene, forHost);
       }
+    } @finally {
+      TeakSceneHookExit(sel);
     }
-    if (host && forHost.count > 0) {
-      host(self, sel, scene, forHost);
-    }
-    TeakSceneHookExit(sel);
   });
 }
 
@@ -141,13 +148,16 @@ static IMP TeakContinueUserActivityHook(SEL sel, IMP original, BOOL unused) {
   TeakContinueUserActivityIMP host = (TeakContinueUserActivityIMP)original;
   return imp_implementationWithBlock(^(id self, UIScene* scene, NSUserActivity* userActivity) {
     BOOL outermost = TeakSceneHookEnter(sel);
-    if (host) {
-      host(self, sel, scene, userActivity);
+    @try {
+      if (host) {
+        host(self, sel, scene, userActivity);
+      }
+      if (outermost) {
+        TeakSceneContinueUserActivity(userActivity);
+      }
+    } @finally {
+      TeakSceneHookExit(sel);
     }
-    if (outermost) {
-      TeakSceneContinueUserActivity(userActivity);
-    }
-    TeakSceneHookExit(sel);
   });
 }
 
