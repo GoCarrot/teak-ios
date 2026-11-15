@@ -1,19 +1,14 @@
 #import <XCTest/XCTest.h>
 #import <objc/runtime.h>
 
-#import "TeakAppConfiguration.h"
-#import "TeakDeviceConfiguration.h"
-#import "TeakRemoteConfiguration.h"
 #import "TeakRequest+Internal.h"
 #import "TeakSession.h"
+#import "TeakSessionFixtures.h"
 #import "TeakUserProfile.h"
 #import <Teak/Teak.h>
 
 @import OCHamcrest;
 @import OCMockito;
-
-// See TeakBatchedRequestRaceTests.m: read directly by TeakRequest's payload construction.
-extern NSDictionary* TeakVersionDict;
 
 // Private classes / methods, re-declared per the project convention.
 @interface TeakBatchedRequest : TeakRequest
@@ -64,9 +59,7 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 @interface TeakRequestRetryResendTests : XCTestCase
 @end
 
-@implementation TeakRequestRetryResendTests {
-  NSDictionary* savedVersionDict;
-}
+@implementation TeakRequestRetryResendTests
 
 #pragma mark - Swizzle install/remove
 
@@ -77,15 +70,12 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 }
 
 - (void)setUp {
-  savedVersionDict = TeakVersionDict;
-  TeakVersionDict = @{@"sdk_version" : @"4.3.18-test"};
   retryTest_transmits = [NSMutableArray array];
   [TeakRequestRetryResendTests swapTransmit];
 }
 
 - (void)tearDown {
   [TeakRequestRetryResendTests swapTransmit];
-  TeakVersionDict = savedVersionDict;
 }
 
 #pragma mark - Fixtures
@@ -93,32 +83,10 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 // Retry ladder of [0] on both endpoints so a 5xx retry fires immediately; no batching
 // config, so sends go out immediately.
 - (TeakSession*)makeMockSession {
-  TeakAppConfiguration* appConfig = mock([TeakAppConfiguration class]);
-  [given([appConfig appId]) willReturn:@"test-app-id"];
-  [given([appConfig appVersion]) willReturn:@"1"];
-  [given([appConfig appVersionName]) willReturn:@"1.0.0"];
-  [given([appConfig bundleId]) willReturn:@"io.teak.test"];
-  [given([appConfig isProduction]) willReturn:@NO];
-
-  TeakDeviceConfiguration* deviceConfig = mock([TeakDeviceConfiguration class]);
-  [given([deviceConfig platformString]) willReturn:@"iOS"];
-  [given([deviceConfig deviceModel]) willReturn:@"iPhone-test"];
-  [given([deviceConfig deviceId]) willReturn:@"test-device-id"];
-
-  TeakRemoteConfiguration* remoteConfig = mock([TeakRemoteConfiguration class]);
   NSDictionary* ladder = @{@"retry" : @{@"times" : @[ @0 ], @"jitter" : @0}};
-  [given([remoteConfig endpointConfigurations]) willReturn:@{
+  return [TeakSessionFixtures mockSessionWithEndpointConfigurations:@{
     @"gocarrot.com" : @{@"/me/events" : ladder, @"/me/profile" : ladder}
   }];
-  [given([remoteConfig dynamicParameters]) willReturn:@{}];
-
-  TeakSession* session = mock([TeakSession class]);
-  [given([session appConfiguration]) willReturn:appConfig];
-  [given([session deviceConfiguration]) willReturn:deviceConfig];
-  [given([session remoteConfiguration]) willReturn:remoteConfig];
-  [given([session sessionId]) willReturn:@"test-session"];
-  [given([session userId]) willReturn:nil];
-  return session;
 }
 
 - (TeakUserProfile*)makeProfile {
