@@ -19,8 +19,10 @@ extern NSDictionary* TeakVersionDict;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 @property (copy, atomic) void (^reportDurationClaimHook)(void);
+@property (nonatomic) BOOL deviceConfigurationObserversDetached;
 + (TeakSession*)currentSession;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
+- (BOOL)setState:(nonnull TeakState*)newState;
 - (void)detachDeviceConfigurationObservers;
 @end
 
@@ -82,6 +84,30 @@ extern NSDictionary* TeakVersionDict;
   @autoreleasepool {
     return condition();
   }
+}
+
+#pragma mark - Replacement paths
+
+// An expired session is replaced on the next currentSession access. A replaced session must not stay
+// a deviceConfiguration observer.
+- (void)testExpiredSessionReplacedOnNextAccessDetaches {
+  TeakSession* session = [TeakSession currentSession];
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+  XCTAssertTrue([session setState:[TeakSession Expired]]);
+  XCTAssertNotEqual([TeakSession currentSession], session);
+  XCTAssertTrue(session.deviceConfigurationObserversDetached);
+  [TeakEvent removeEventHandler:session];
+}
+
+#pragma mark - Expired transition
+
+// A session that expires detaches, even before anything replaces it.
+- (void)testExpiredTransitionDetachesWithoutReplacement {
+  TeakSession* session = [TeakSession currentSession];
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+  XCTAssertTrue([session setState:[TeakSession Expired]]);
+  XCTAssertEqual([TeakSession currentSessionOrNil], session);
+  XCTAssertTrue(session.deviceConfigurationObserversDetached);
 }
 
 #pragma mark - Duration report

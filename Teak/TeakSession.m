@@ -556,6 +556,16 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
+// End-of-life cleanup, run once from the Expired transition. Expired is terminal, and every path into
+// it replaces the session, so nothing routes new work here afterwards.
+//
+// Runs inside the currentState handler's @synchronized(self), with currentSessionMutex held by every
+// caller of the Expired transition. What it takes under those must stay a leaf lock or an async hop.
+- (void)didExpire {
+  // Idempotent, and a no-op where the replacement site already detached before expiring the session.
+  [self detachDeviceConfigurationObservers];
+}
+
 - (void)handleEvent:(TeakEvent*)event {
   switch (event.type) {
     case FacebookAccessToken: {
@@ -779,7 +789,6 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
-      [oldSession detachDeviceConfigurationObservers];
     }
     return currentSession;
   }
@@ -1019,6 +1028,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         });
       }
     } else if (newValue == [TeakSession Expired]) {
+      [self didExpire];
     }
   }
 }
