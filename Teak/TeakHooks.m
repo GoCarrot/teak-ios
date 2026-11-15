@@ -273,15 +273,6 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
     sHostAppOpenURLOptionsIMP = (BOOL(*)(id, SEL, UIApplication*, NSURL*, NSDictionary<NSString*, id>*))class_replaceMethod(appDelegateClass, desc.name, method_getImplementation(m), desc.types);
   }
 
-  if(@available(iOS 13, *))
-  {
-    Class swiftUIDelegate = objc_getClass("SwiftUI.AppSceneDelegate");
-    if(swiftUIDelegate) {
-      TeakLog_i(@"sdk.init", @"Found SwiftUI.AppSceneDelegate, installing hooks");
-      [TeakSceneHooks swizzleInto:swiftUIDelegate];
-    }
-  }
-
   // applicationDidBecomeActive:
   {
     struct objc_method_description appWEFMethod = protocol_getMethodDescription(uiAppDelegateProto, @selector(applicationDidBecomeActive:), NO, YES);
@@ -347,6 +338,12 @@ void Teak_Plant(Class appDelegateClass, NSString* appId, NSString* appSecret) {
 
     Method ctAppDRRNFCH = class_getInstanceMethod([TeakAppDelegateHooks class], appDRRNFCHMethod.name);
     sHostDRRNFCHIMP = (void (*)(id, SEL, UIApplication*, NSDictionary*, void (^)(UIBackgroundFetchResult)))class_replaceMethod(appDelegateClass, appDRRNFCHMethod.name, method_getImplementation(ctAppDRRNFCH), appDRRNFCHMethod.types);
+  }
+
+  // Scene delegates: links and launch URLs. After the app delegate hooks, so it can tell whether
+  // the host app delegate handles user activities itself.
+  if (@available(iOS 13, *)) {
+    [TeakSceneHooks installForAppDelegateClass:appDelegateClass hostHandlesUserActivity:sHostContinueUserActivityIMP != NULL];
   }
 
   // Lifecycle for scene-based apps

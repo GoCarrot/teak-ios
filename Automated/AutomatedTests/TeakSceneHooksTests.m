@@ -10,6 +10,10 @@
 
 extern Teak* _teakSharedInstance;
 
+@interface TeakSceneHooks (Discovery)
++ (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity;
+@end
+
 @interface Teak (SceneHooksTesting)
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation;
 @end
@@ -35,6 +39,40 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
     calls[[key stringByAppendingString:@".contexts"]] = @(calls[[key stringByAppendingString:@".contexts"]].integerValue + contexts.count);
   });
   class_addMethod(klass, @selector(scene:openURLContexts:), imp, "v@:@@");
+}
+
+// Calls the real -[UIOpenURLContext teakHandled] on a mocked context; the mock would answer NO itself.
+static BOOL TeakHandledFlag(UIOpenURLContext* context) {
+  IMP imp = class_getMethodImplementation([UIOpenURLContext class], @selector(teakHandled));
+  return ((BOOL(*)(id, SEL))imp)(context, @selector(teakHandled));
+}
+
+// Gives klass a scene:openURLContexts: that records, per URL, the teakHandled value of each context it gets.
+static NSMutableDictionary<NSURL*, NSMutableArray<NSNumber*>*>* AddFlagRecordingOpenURLContexts(Class klass) {
+  NSMutableDictionary<NSURL*, NSMutableArray<NSNumber*>*>* saw = [[NSMutableDictionary alloc] init];
+  IMP imp = imp_implementationWithBlock(^(id _self, UIScene* scene, NSSet<UIOpenURLContext*>* contexts) {
+    for (UIOpenURLContext* context in contexts) {
+      if (saw[context.URL] == nil) saw[context.URL] = [[NSMutableArray alloc] init];
+      [saw[context.URL] addObject:@(TeakHandledFlag(context))];
+    }
+  });
+  class_addMethod(klass, @selector(scene:openURLContexts:), imp, "v@:@@");
+  return saw;
+}
+
+// Hooks sceneDelegateClass the way Teak finds a delegate itself: an app delegate picks it at runtime.
+static void DiscoverSceneDelegateClass(Class sceneDelegateClass) {
+  Class appDelegateClass = MakeClass(@"DiscoveringAppDelegate", [UIResponder class]);
+  IMP configIMP = imp_implementationWithBlock(^UISceneConfiguration*(id _self, UIApplication* app, UISceneSession* session, UISceneConnectionOptions* options) {
+    UISceneConfiguration* configuration = [UISceneConfiguration configurationWithName:@"Discovered" sessionRole:UIWindowSceneSessionRoleApplication];
+    configuration.delegateClass = sceneDelegateClass;
+    return configuration;
+  });
+  class_addMethod(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), configIMP, "@@:@@@");
+  [TeakSceneHooks installForAppDelegateClass:appDelegateClass hostHandlesUserActivity:NO];
+  [[[appDelegateClass alloc] init] application:[UIApplication sharedApplication]
+       configurationForConnectingSceneSession:mock([UISceneSession class])
+                                      options:mock([UISceneConnectionOptions class])];
 }
 
 @interface TeakSceneHooksTests : XCTestCase
@@ -74,6 +112,66 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
 
 - (void)openURL:(NSURL*)url on:(id)sceneDelegate {
   [sceneDelegate scene:mock([UIScene class]) openURLContexts:[self contextsForURLs:@[ url ]]];
+}
+
+#pragma mark - Discovery
+
+// A UIKit app that picks its scene delegate class at runtime, in application:configurationForConnectingSceneSession:options:.
+- (void)testSceneDelegateClassPickedAtRuntimeGetsLinkHooks {
+  Class sceneDelegateClass = MakeClass(@"RuntimeSceneDelegate", [UIResponder class]);
+  AddRecordingOpenURLContexts(sceneDelegateClass, _calls, @"host");
+
+  Class appDelegateClass = MakeClass(@"RuntimeAppDelegate", [UIResponder class]);
+  IMP configIMP = imp_implementationWithBlock(^UISceneConfiguration*(id _self, UIApplication* app, UISceneSession* session, UISceneConnectionOptions* options) {
+    UISceneConfiguration* configuration = [UISceneConfiguration configurationWithName:@"Runtime" sessionRole:UIWindowSceneSessionRoleApplication];
+    configuration.delegateClass = sceneDelegateClass;
+    return configuration;
+  });
+  class_addMethod(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), configIMP, "@@:@@@");
+
+  [TeakSceneHooks installForAppDelegateClass:appDelegateClass hostHandlesUserActivity:NO];
+
+  // Nothing is hooked until UIKit asks the app delegate which configuration to use.
+  NSURL* before = [NSURL URLWithString:@"teak1234://before"];
+  [self openURL:before on:[[sceneDelegateClass alloc] init]];
+  [verifyCount(_teak, never()) application:anything() openURL:before sourceApplication:anything() annotation:anything()];
+
+  UISceneConfiguration* returned = [[[appDelegateClass alloc] init] application:[UIApplication sharedApplication]
+                                           configurationForConnectingSceneSession:mock([UISceneSession class])
+                                                                          options:mock([UISceneConnectionOptions class])];
+  XCTAssertEqual(returned.delegateClass, sceneDelegateClass, @"host's configuration is returned untouched");
+
+  NSURL* after = [NSURL URLWithString:@"teak1234://after"];
+  id sceneDelegate = [[sceneDelegateClass alloc] init];
+  [self openURL:after on:sceneDelegate];
+  [verifyCount(_teak, times(1)) application:anything() openURL:after sourceApplication:anything() annotation:anything()];
+  XCTAssertEqual(_calls[@"host"].integerValue, 2, @"host implementation still runs, before and after hooking");
+
+  // The delegate doesn't implement continueUserActivity; Teak adds it.
+  NSUserActivity* activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
+  [sceneDelegate scene:mock([UIScene class]) continueUserActivity:activity];
+  [verifyCount(_teak, times(1)) application:anything() continueUserActivity:activity restorationHandler:anything()];
+}
+
+// A relaunch restores the scene session the app delegate configured earlier; UIKit doesn't ask again.
+- (void)testRestoredSessionDelegateClassIsHookedAtLaunch {
+  [TeakSceneHooks installForAppDelegateClass:nil hostHandlesUserActivity:NO];
+  Class sceneDelegateClass = MakeClass(@"RestoredSceneDelegate", [UIResponder class]);
+  UISceneConfiguration* configuration = [UISceneConfiguration configurationWithName:@"Restored" sessionRole:UIWindowSceneSessionRoleApplication];
+  configuration.delegateClass = sceneDelegateClass;
+  UISceneSession* session = mock([UISceneSession class]);
+  [given(session.configuration) willReturn:configuration];
+  UIApplication* application = mock([UIApplication class]);
+  [given(application.openSessions) willReturn:[NSSet setWithObject:session]];
+
+  XCTAssertFalse([sceneDelegateClass instancesRespondToSelector:@selector(scene:willConnectToSession:options:)]);
+  [[NSNotificationCenter defaultCenter] postNotificationName:UIApplicationDidFinishLaunchingNotification object:application];
+
+  NSURL* url = [NSURL URLWithString:@"teak1234://restored"];
+  UISceneConnectionOptions* options = mock([UISceneConnectionOptions class]);
+  [given(options.URLContexts) willReturn:[self contextsForURLs:@[ url ]]];
+  [[[sceneDelegateClass alloc] init] scene:mock([UIScene class]) willConnectToSession:mock([UISceneSession class]) options:options];
+  [verifyCount(_teak, times(1)) application:anything() openURL:url sourceApplication:anything() annotation:anything()];
 }
 
 #pragma mark - Hook bookkeeping
@@ -158,7 +256,74 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   [verifyCount(_teak, times(1)) application:anything() openURL:url sourceApplication:anything() annotation:anything()];
 }
 
+- (void)testContinueUserActivityNotAddedWhenHostAppDelegateHandlesIt {
+  Class sceneDelegateClass = MakeClass(@"HostActivitySceneDelegate", [UIResponder class]);
+  Class appDelegateClass = MakeClass(@"HostActivityAppDelegate", [UIResponder class]);
+  IMP configIMP = imp_implementationWithBlock(^UISceneConfiguration*(id _self, UIApplication* app, UISceneSession* session, UISceneConnectionOptions* options) {
+    UISceneConfiguration* configuration = [UISceneConfiguration configurationWithName:@"Runtime" sessionRole:UIWindowSceneSessionRoleApplication];
+    configuration.delegateClass = sceneDelegateClass;
+    return configuration;
+  });
+  class_addMethod(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), configIMP, "@@:@@@");
+
+  [TeakSceneHooks installForAppDelegateClass:appDelegateClass hostHandlesUserActivity:YES];
+  [[[appDelegateClass alloc] init] application:[UIApplication sharedApplication]
+       configurationForConnectingSceneSession:mock([UISceneSession class])
+                                      options:mock([UISceneConnectionOptions class])];
+
+  XCTAssertFalse([sceneDelegateClass instancesRespondToSelector:@selector(scene:continueUserActivity:)]);
+  XCTAssertTrue([sceneDelegateClass instancesRespondToSelector:@selector(scene:openURLContexts:)]);
+}
+
 #pragma mark - Routing
+
+// Scene delegates get every context, whichever way Teak found them, and can tell Teak's apart.
+- (void)testEveryContextReachesTheHostMarkedWithTeakHandled {
+  NSURL* teakURL = [NSURL URLWithString:@"teak1234://teak-route"];
+  NSURL* hostURL = [NSURL URLWithString:@"teak1234://host-route"];
+  [given([_teak application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()]) willReturnBool:YES];
+
+  Class discovered = MakeClass(@"DiscoveredSceneDelegate", [UIResponder class]);
+  NSMutableDictionary* discoveredSaw = AddFlagRecordingOpenURLContexts(discovered);
+  DiscoverSceneDelegateClass(discovered);
+
+  Class swizzled = MakeClass(@"SwizzledSceneDelegate", [UIResponder class]);
+  NSMutableDictionary* swizzledSaw = AddFlagRecordingOpenURLContexts(swizzled);
+  [TeakSceneHooks swizzleInto:swizzled];
+  Class inheriting = MakeClass(@"SwizzledSceneDelegateSubclass", swizzled);
+
+  for (Class klass in @[ discovered, swizzled, inheriting ]) {
+    [[[klass alloc] init] scene:mock([UIScene class]) openURLContexts:[self contextsForURLs:@[ teakURL, hostURL ]]];
+  }
+
+  XCTAssertEqualObjects(discoveredSaw[teakURL], @[ @YES ], @"Teak-handled context reaches the host, marked");
+  XCTAssertEqualObjects(discoveredSaw[hostURL], @[ @NO ]);
+  // The subclass inherits the swizzled class's host method, so both opens land in swizzledSaw.
+  XCTAssertEqualObjects(swizzledSaw[teakURL], (@[ @YES, @YES ]));
+  XCTAssertEqualObjects(swizzledSaw[hostURL], (@[ @NO, @NO ]));
+  [verifyCount(_teak, times(3)) application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()];
+}
+
+// Teak handles launch URLs before the host's willConnect, so the host can tell them apart.
+- (void)testLaunchURLsAreMarkedBeforeTheHostSeesThem {
+  NSURL* teakURL = [NSURL URLWithString:@"teak1234://launch"];
+  NSURL* hostURL = [NSURL URLWithString:@"teak1234://host-launch"];
+  [given([_teak application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()]) willReturnBool:YES];
+  NSMutableDictionary<NSURL*, NSNumber*>* hostSaw = [[NSMutableDictionary alloc] init];
+  Class klass = MakeClass(@"LaunchFlagSceneDelegate", [UIResponder class]);
+  IMP willConnect = imp_implementationWithBlock(^(id _self, UIScene* scene, UISceneSession* session, UISceneConnectionOptions* options) {
+    for (UIOpenURLContext* context in options.URLContexts) hostSaw[context.URL] = @(TeakHandledFlag(context));
+  });
+  class_addMethod(klass, @selector(scene:willConnectToSession:options:), willConnect, "v@:@@@");
+  DiscoverSceneDelegateClass(klass);
+
+  UISceneConnectionOptions* options = mock([UISceneConnectionOptions class]);
+  [given(options.URLContexts) willReturn:[self contextsForURLs:@[ teakURL, hostURL ]]];
+  [[[klass alloc] init] scene:mock([UIScene class]) willConnectToSession:mock([UISceneSession class]) options:options];
+
+  XCTAssertEqualObjects(hostSaw, (@{teakURL : @YES, hostURL : @NO}));
+  [verifyCount(_teak, times(1)) application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()];
+}
 
 - (void)testWillConnectRoutesEveryLaunchURLAndActivity {
   Class klass = MakeClass(@"LaunchSceneDelegate", [UIResponder class]);
