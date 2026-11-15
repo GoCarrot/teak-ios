@@ -52,7 +52,7 @@
                                                    forEndpoint:@"/me/purchase"
                                                    withPayload:((PurchaseEvent*)event).payload
                                                         method:TeakRequest_POST
-                                                      callback:((PurchaseEvent*)event).onReply];
+                                                      callback:nil];
         [request send];
       }];
     } break;
