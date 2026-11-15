@@ -95,7 +95,7 @@ IMPORTANT: You must initialize Teak inside the ``@autoreleasepool`` but before U
 
 NOTE: Replace `YOUR_TEAK_APP_ID` and `YOUR_TEAK_API_KEY` with the values for your game.
 
-Teak also exposes this functionality via a C API:
+Teak also exposes this functionality via a C API. Call it from the same place, on the main thread before ``UIApplicationMain()`` is called:
 
 [source,c]
 ----
