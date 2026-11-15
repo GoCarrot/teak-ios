@@ -10,6 +10,8 @@
 @import OCHamcrest;
 @import OCMockito;
 
+extern NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payload, NSString* hostname, NSString* apiKey);
+
 // Private classes / methods, re-declared per the project convention.
 @interface TeakBatchedRequest : TeakRequest
 @property (nonatomic) BOOL sent;
@@ -26,32 +28,18 @@
 @end
 
 @interface TeakRequest (RetryResendTest)
-- (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error;
-- (void)retryTest_transmit;
+- (void)retryTest_transmitSend:(TeakRequestSend*)send;
 @end
 
-@interface Teak (RetryResendTest)
-+ (dispatch_queue_t _Nonnull)operationQueue;
-@end
-
-// Test-only swizzle on the real -transmit: records which request would have gone
-// on the wire (and whether that happened on the operationQueue) instead of
-// hitting the network. Everything above it -- -send, the subclass overrides,
-// -response:payload:withError:, the retry gates, -retryTransmit -- is production code.
-static NSMutableArray<NSDictionary*>* retryTest_transmits;
+// Test-only swizzle on the real -transmitSend:: records which send would have gone on the wire
+// instead of hitting the network. Everything above it -- -send, the subclass overrides,
+// -response:payload:withError:forSend:, the retry gates -- is production code.
+static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 
 @implementation TeakRequest (RetryResendTest)
-- (void)retryTest_transmit {
-  const char* label = dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL);
-  BOOL onOperationQueue = strcmp(label, dispatch_queue_get_label([Teak operationQueue])) == 0;
+- (void)retryTest_transmitSend:(TeakRequestSend*)send {
   @synchronized(retryTest_transmits) {
-    [retryTest_transmits addObject:@{
-      // An address, not an object: a late retry can record a request its test has already
-      // released, and reading it back as an object would retain freed memory.
-      @"request" : [NSValue valueWithPointer:(__bridge const void*)self],
-      @"wireRequestId" : self.payload[@"request_id"] ?: [NSNull null],
-      @"onOperationQueue" : @(onOperationQueue)
-    }];
+    [retryTest_transmits addObject:send];
   }
 }
 @end
@@ -65,8 +53,8 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 
 + (void)swapTransmit {
   Class cls = [TeakRequest class];
-  method_exchangeImplementations(class_getInstanceMethod(cls, @selector(transmit)),
-                                 class_getInstanceMethod(cls, @selector(retryTest_transmit)));
+  method_exchangeImplementations(class_getInstanceMethod(cls, @selector(transmitSend:)),
+                                 class_getInstanceMethod(cls, @selector(retryTest_transmitSend:)));
 }
 
 - (void)setUp {
@@ -135,20 +123,23 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
                                 callback:nil];
 }
 
-- (NSArray<NSString*>*)wireRequestIdsOf:(TeakRequest*)request {
-  return [[self transmitsFor:request] valueForKey:@"wireRequestId"];
-}
-
 - (NSError*)socketError {
   return [NSError errorWithDomain:NSPOSIXErrorDomain code:ECONNABORTED userInfo:nil];
 }
 
+// The request_id inside the body that would have gone on the wire.
+- (NSString*)wireRequestIdOf:(TeakRequestSend*)send {
+  NSDictionary* body = [NSJSONSerialization JSONObjectWithData:send.urlRequest.HTTPBody options:0 error:nil];
+  return body[@"request_id"];
+}
+
 #pragma mark - Counting
 
-- (NSArray<NSDictionary*>*)transmitsFor:(TeakRequest*)request {
+// Every transmission of `request`, retries included, oldest first.
+- (NSArray<TeakRequestSend*>*)transmitsFor:(TeakRequest*)request {
   @synchronized(retryTest_transmits) {
-    return [retryTest_transmits filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSDictionary* transmit, NSDictionary* _) {
-      return [transmit[@"request"] pointerValue] == (__bridge const void*)request;
+    return [retryTest_transmits filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(TeakRequestSend* send, NSDictionary* _) {
+      return send.request == request;
     }]];
   }
 }
@@ -175,10 +166,14 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   XCTAssertEqual([self waitForTransmits:count of:profile timeout:3.0], count, @"profile -send never transmitted");
 }
 
-// Hands a reply to the request the way the URL delegate does. Returns immediately; the
-// retry decision runs asynchronously, so callers wait with -waitForTransmits:of:timeout:.
+// Hands a reply to the most recent transmission the way the URL delegate does. Returns
+// immediately; the retry decision runs asynchronously, so callers wait with
+// -waitForTransmits:of:timeout:.
 - (void)deliver:(TeakRequest*)request status:(NSInteger)status error:(NSError*)error {
-  [request response:status == 0 ? nil : [self responseWithStatus:status] payload:@{} withError:error];
+  [request response:status == 0 ? nil : [self responseWithStatus:status]
+            payload:@{}
+          withError:error
+            forSend:[self transmitsFor:request].lastObject];
 }
 
 #pragma mark - TeakUserProfile
@@ -201,19 +196,6 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u, @"retry was swallowed instead of resending");
 }
 
-// -transmit reads self.payload, which -send reassigns on the operationQueue.
-- (void)testProfileRetryTransmitsOnOperationQueue {
-  TeakUserProfile* profile = [self makeProfile];
-  [self sendProfile:profile value:@"a" expectingTransmits:1];
-
-  [self deliver:profile status:503 error:nil];
-  XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u);
-
-  for (NSDictionary* transmit in [self transmitsFor:profile]) {
-    XCTAssertTrue([transmit[@"onOperationQueue"] boolValue], @"every profile transmit, retries included, must run on the operationQueue");
-  }
-}
-
 // Each logical send gets its own retry budget; a profile is sent many times per session.
 - (void)testProfileRetryBudgetResetsOnEachSend {
   TeakUserProfile* profile = [self makeProfile];
@@ -232,6 +214,24 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   XCTAssertEqual([self waitForTransmits:4 of:profile timeout:3.0], 4u, @"later send inherited the earlier send's spent retry budget");
 }
 
+// A retry resends what the send froze. The profile's payload is rebuilt by every -send, so a retry
+// that rebuilt from the live request would go out with whatever a later send had put there.
+- (void)testRetryResendsTheFrozenSendNotTheLiveRequest {
+  TeakUserProfile* profile = [self makeProfile];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  TeakRequestSend* original = [self transmitsFor:profile].firstObject;
+  NSData* originalBody = original.urlRequest.HTTPBody;
+
+  profile.payload = @{@"replaced" : @YES};
+  [self deliver:profile status:503 error:nil];
+  XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u);
+
+  TeakRequestSend* retry = [self transmitsFor:profile].lastObject;
+  XCTAssertEqual(retry, original, @"a retry built a new send instead of resending the first");
+  XCTAssertEqualObjects(retry.urlRequest.HTTPBody, originalBody);
+  XCTAssertEqualObjects(retry.payload[@"string_attributes"], original.payload[@"string_attributes"]);
+}
+
 #pragma mark - request_id
 
 // The server dedupes on request_id, so it has to be in the signed payload that goes on the wire.
@@ -244,8 +244,20 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   [plain send];
 
   for (TeakRequest* request in @[ profile, batch, plain ]) {
-    XCTAssertEqualObjects([self wireRequestIdsOf:request].firstObject, request.requestId, @"%@ did not send its request_id", request.endpoint);
+    TeakRequestSend* send = [self transmitsFor:request].firstObject;
+    XCTAssertGreaterThan(send.requestId.length, 0u);
+    XCTAssertEqualObjects([self wireRequestIdOf:send], send.requestId, @"%@ did not send its request_id", request.endpoint);
   }
+}
+
+// The signature has to cover the payload that goes out, request_id included.
+- (void)testSignatureCoversTheFrozenPayload {
+  TeakRequest* plain = [self makePlainRequest];
+  [plain send];
+  TeakRequestSend* send = [self transmitsFor:plain].firstObject;
+
+  XCTAssertNotNil(send.payload[@"request_id"]);
+  XCTAssertEqualObjects(send.stringToSign, Teak_StringToSign(plain.method, plain.endpoint, send.payload, plain.hostname, nil));
 }
 
 // A retry is the same logical request, so it has to carry the same id.
@@ -255,9 +267,9 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   [self deliver:profile status:503 error:nil];
   XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u);
 
-  NSArray* ids = [self wireRequestIdsOf:profile];
-  XCTAssertTrue([ids[0] isKindOfClass:[NSString class]], @"no request_id on the wire");
-  XCTAssertEqualObjects(ids[0], ids[1], @"a retry went out with a different request_id");
+  NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
+  XCTAssertTrue([[self wireRequestIdOf:sends[0]] isKindOfClass:[NSString class]], @"no request_id on the wire");
+  XCTAssertEqualObjects([self wireRequestIdOf:sends[0]], [self wireRequestIdOf:sends[1]], @"a retry went out with a different request_id");
 }
 
 // The profile object is re-sent all session; an id reused across sends would let a
@@ -267,13 +279,39 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   [self sendProfile:profile value:@"a" expectingTransmits:1];
   [self sendProfile:profile value:@"b" expectingTransmits:2];
 
-  NSArray* ids = [self wireRequestIdsOf:profile];
-  XCTAssertNotEqualObjects(ids[0], ids[1], @"two sends shared a request_id");
+  NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
+  XCTAssertNotEqualObjects([self wireRequestIdOf:sends[0]], [self wireRequestIdOf:sends[1]], @"two sends shared a request_id");
 
   // And a retry of the second send keeps the second send's id.
   [self deliver:profile status:503 error:nil];
   XCTAssertEqual([self waitForTransmits:3 of:profile timeout:3.0], 3u);
-  XCTAssertEqualObjects([self wireRequestIdsOf:profile][2], ids[1]);
+  XCTAssertEqualObjects([self wireRequestIdOf:[self transmitsFor:profile][2]], [self wireRequestIdOf:sends[1]]);
+}
+
+#pragma mark - What retries
+
+// A reply with a status below 500 is an answer, not a failure to retry.
+- (void)testHttpErrorWithoutLadderIsNotRetried {
+  TeakRequest* request = [self makePlainRequest];
+  [request send];
+  XCTAssertEqual([self waitForTransmits:1 of:request timeout:3.0], 1u);
+
+  [self deliver:request status:404 error:nil];
+
+  XCTAssertEqual([self settledTransmitsOf:request], 1u);
+}
+
+// Only a 5xx reply climbs the ladder: after the one no-response retry, a configured ladder
+// ([0] here) must not retry the same failure again.
+- (void)testNoResponseFailureDoesNotClimbTheLadder {
+  TeakBatchedRequest* batch = [self sendBatchedEvent];
+  XCTAssertEqual([self waitForTransmits:1 of:batch timeout:3.0], 1u);
+
+  [self deliver:batch status:0 error:[self urlError:NSURLErrorTimedOut]];
+  XCTAssertEqual([self waitForTransmits:2 of:batch timeout:4.0], 2u);
+
+  [self deliver:batch status:0 error:[self urlError:NSURLErrorTimedOut]];
+  XCTAssertEqual([self settledTransmitsOf:batch], 2u, @"the ladder retried a request that got no reply");
 }
 
 #pragma mark - No-response failures
@@ -286,8 +324,8 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
     [self deliver:profile status:0 error:[self urlError:code.integerValue]];
 
     XCTAssertEqual([self waitForTransmits:2 of:profile timeout:4.0], 2u, @"no retry after error %@", code);
-    NSArray* ids = [self wireRequestIdsOf:profile];
-    XCTAssertEqualObjects(ids[0], ids[1]);
+    NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
+    XCTAssertEqualObjects([self wireRequestIdOf:sends[0]], [self wireRequestIdOf:sends[1]]);
   }
 }
 
@@ -314,18 +352,6 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 
   [self waitForTransmits:NSUIntegerMax of:request timeout:2.0];
   XCTAssertEqual([self transmitsFor:request].count, 1u, @"retried a cancelled request");
-}
-
-// A reply with a status is an answer, not a transport failure.
-- (void)testHttpErrorWithoutLadderIsNotRetried {
-  TeakRequest* request = [self makePlainRequest];
-  [request send];
-  XCTAssertEqual([self waitForTransmits:1 of:request timeout:3.0], 1u);
-
-  [self deliver:request status:404 error:nil];
-
-  [self waitForTransmits:NSUIntegerMax of:request timeout:2.0];
-  XCTAssertEqual([self transmitsFor:request].count, 1u);
 }
 
 #pragma mark - TeakBatchedRequest (/me/events)
@@ -358,8 +384,8 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
     [self deliver:batch status:0 error:[self urlError:code.integerValue]];
 
     XCTAssertEqual([self waitForTransmits:2 of:batch timeout:4.0], 2u, @"no retry after error %@", code);
-    NSArray* ids = [self wireRequestIdsOf:batch];
-    XCTAssertEqualObjects(ids[0], ids[1], @"the batch resend carried a different request_id");
+    NSArray<TeakRequestSend*>* sends = [self transmitsFor:batch];
+    XCTAssertEqualObjects([self wireRequestIdOf:sends[0]], [self wireRequestIdOf:sends[1]], @"the batch resend carried a different request_id");
   }
 }
 
