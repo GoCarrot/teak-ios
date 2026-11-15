@@ -74,6 +74,12 @@ static NSString* const SandboxTransactionJWS = @"eyJhbGciOiJFUzI1NiJ9.eyJ0cmFuc2
   XCTAssertEqualObjects([TeakStoreKit2Transaction skipReasonForTransaction:revoked], @"revoked");
 }
 
+// A Family Sharing copy isn't revenue from this player.
+- (void)testFamilySharedTransactionIsSkipped {
+  NSDictionary* shared = [self sandboxTransactionWith:@{@"inAppOwnershipType" : @"FAMILY_SHARED"} removing:@[]];
+  XCTAssertEqualObjects([TeakStoreKit2Transaction skipReasonForTransaction:shared], @"family_shared");
+}
+
 - (void)testTransactionWithoutIdsIsSkipped {
   NSDictionary* noProduct = [self sandboxTransactionWith:@{} removing:@[ @"productId" ]];
   NSDictionary* noTransaction = [self sandboxTransactionWith:@{} removing:@[ @"transactionId" ]];

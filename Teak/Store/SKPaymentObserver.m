@@ -56,7 +56,7 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
                                 purchaseDate:transaction.transactionDate
                             purchaseDuration:purchaseDuration
                                       source:@"storekit1_observer"
-                               fallbackPrice:nil
+                                       price:nil
                                     jwsToken:nil];
 }
 
@@ -132,7 +132,7 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
                    purchaseDate:(NSDate*)purchaseDate
                purchaseDuration:(NSNumber*)purchaseDuration
                          source:(NSString*)source
-                  fallbackPrice:(NSDictionary*)fallbackPrice
+                          price:(NSDictionary*)fallbackPrice
                        jwsToken:(NSString*)jwsToken {
   if (productId == nil) return;
 

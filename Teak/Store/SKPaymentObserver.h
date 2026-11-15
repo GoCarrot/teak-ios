@@ -13,7 +13,7 @@ typedef void (^ProductRequestCallback)(NSDictionary* _Nonnull, SKProductsRespons
                    purchaseDate:(NSDate* _Nullable)purchaseDate
                purchaseDuration:(NSNumber* _Nullable)purchaseDuration
                          source:(NSString* _Nonnull)source
-                  fallbackPrice:(NSDictionary* _Nullable)fallbackPrice
+                          price:(NSDictionary* _Nullable)fallbackPrice
                        jwsToken:(NSString* _Nullable)jwsToken;
 @end
 

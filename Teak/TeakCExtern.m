@@ -71,7 +71,7 @@ void TeakReportPurchase(const char* productId, const char* transactionId, const 
                                 purchaseDate:[NSDate date]
                             purchaseDuration:nil
                                       source:@"report_purchase"
-                               fallbackPrice:fallbackPrice
+                                       price:fallbackPrice
                                     jwsToken:jwsRepresentation == NULL ? nil : [NSString stringWithUTF8String:jwsRepresentation]];
 }
 

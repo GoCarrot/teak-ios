@@ -29,12 +29,14 @@ static NSString* const ReportedTransactionsDefaultsKey = @"TeakReportedTransacti
 // Stand-ins for the product lookup and the event post, so a report runs synchronously and
 // can be counted without StoreKit or the network.
 static NSMutableArray<NSDictionary*>* ReportedPayloads;
+static NSUInteger ProductLookups;
 
 @interface SKPaymentObserverTestDoubles : NSObject
 @end
 
 @implementation SKPaymentObserverTestDoubles
 + (ProductRequest*)productRequestForSku:(NSString*)sku callback:(ProductRequestCallback)callback {
+  ProductLookups++;
   callback(@{}, nil);
   return nil;
 }
@@ -46,6 +48,48 @@ static NSMutableArray<NSDictionary*>* ReportedPayloads;
 
 static void SwapClassMethods(Class original, Class replacement, SEL selector) {
   method_exchangeImplementations(class_getClassMethod(original, selector), class_getClassMethod(replacement, selector));
+}
+
+// The transaction JSON from a sandbox consumable bought with Unity IAP 5 on an iOS 18.7 device,
+// as a JWS with a placeholder header and signature (not a captured JWS: only the payload
+// segment is read, and the signature isn't verified).
+// Teak's public method, reached without importing Teak.h next to these internal headers
+// (the framework and source copies of its headers clash in this target).
+@protocol TeakStoreKit2Reporting <NSObject>
+- (void)reportStoreKit2Transaction:(NSString*)jwsRepresentation;
+@end
+
+static id<TeakStoreKit2Reporting> BareTeak(void) {
+  // A bare instance: see CLAUDE.md "Creating Teak instances for testing".
+  return [[NSClassFromString(@"Teak") alloc] init];
+}
+
+static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
+  NSMutableDictionary* transaction = [@{
+    @"transactionId" : @"2000001265157858",
+    @"originalTransactionId" : @"2000001265157858",
+    @"bundleId" : @"io.teak.app.unity.dev",
+    @"productId" : @"io.teak.app.unity.dev.dollar",
+    @"purchaseDate" : @1794531516000,
+    @"originalPurchaseDate" : @1794531516000,
+    @"quantity" : @1,
+    @"type" : @"Consumable",
+    @"inAppOwnershipType" : @"PURCHASED",
+    @"signedDate" : @1794531517446,
+    @"environment" : @"Sandbox",
+    @"transactionReason" : @"PURCHASE",
+    @"storefront" : @"USA",
+    @"storefrontId" : @"143441",
+    @"price" : @990,
+    @"currency" : @"USD"
+  } mutableCopy];
+  [transaction addEntriesFromDictionary:changes];
+  [transaction removeObjectsForKeys:removing];
+  NSString* payload = [[NSJSONSerialization dataWithJSONObject:transaction options:0 error:nil] base64EncodedStringWithOptions:0];
+  payload = [[[payload stringByReplacingOccurrencesOfString:@"+" withString:@"-"]
+      stringByReplacingOccurrencesOfString:@"/" withString:@"_"]
+      stringByReplacingOccurrencesOfString:@"=" withString:@""];
+  return [NSString stringWithFormat:@"eyJhbGciOiJFUzI1NiJ9.%@.c2lnbmF0dXJl", payload];
 }
 
 @implementation SKPaymentObserverTests
@@ -120,7 +164,7 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
                                   purchaseDate:[NSDate date]
                               purchaseDuration:nil
                                         source:source
-                                 fallbackPrice:@{@"price_currency_code" : @"USD", @"price_float" : [NSDecimalNumber decimalNumberWithString:@"0.99"]}
+                                         price:@{@"price_currency_code" : @"USD", @"price_float" : [NSDecimalNumber decimalNumberWithString:@"0.99"]}
                                       jwsToken:@"header.payload.signature"];
   }
   [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
@@ -128,7 +172,7 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
                                 purchaseDate:[NSDate date]
                             purchaseDuration:nil
                                       source:@"storekit2"
-                               fallbackPrice:nil
+                                       price:nil
                                     jwsToken:nil];
 
   SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
@@ -138,6 +182,64 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
   XCTAssertEqualObjects(ids, (@[ @"2000001265157858", @"2000001265157768" ]));
   XCTAssertEqualObjects(ReportedPayloads.firstObject[@"jws_representation"], @"header.payload.signature");
   XCTAssertEqualObjects(ReportedPayloads.firstObject[@"price_currency_code"], @"USD", @"caller price is used when StoreKit returns none");
+}
+
+- (void)withReportStandIns:(void (^)(void))block {
+  ReportedPayloads = [NSMutableArray array];
+  ProductLookups = 0;
+  SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
+  SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
+  block();
+  SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
+  SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
+}
+
+// The game reports a StoreKit 2 purchase once, and again later, and the StoreKit 1 observer
+// also sees it: one send, priced from the JWS without a product lookup.
+- (void)testReportedStoreKit2TransactionSendsOncePricedFromTheJWS {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  NSString* jws = SandboxJWSWith(@{}, @[]);
+  [self withReportStandIns:^{
+    [teak reportStoreKit2Transaction:jws];
+    [teak reportStoreKit2Transaction:jws];
+    [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
+                                 transactionId:@"2000001265157858"
+                                  purchaseDate:[NSDate date]
+                              purchaseDuration:nil
+                                        source:@"storekit1_observer"
+                                         price:nil
+                                      jwsToken:nil];
+  }];
+
+  XCTAssertEqual(ReportedPayloads.count, 1u);
+  NSDictionary* payload = ReportedPayloads.firstObject;
+  XCTAssertEqualObjects(payload[@"product_id"], @"io.teak.app.unity.dev.dollar");
+  XCTAssertEqualObjects(payload[@"transaction_identifier"], @"2000001265157858");
+  XCTAssertEqualObjects(payload[@"jws_representation"], jws);
+  XCTAssertEqualObjects(payload[@"price_currency_code"], @"USD");
+  XCTAssertEqualObjects(payload[@"price_float"], [NSDecimalNumber decimalNumberWithString:@"0.99"]);
+  XCTAssertEqualObjects(payload[@"purchase_time"], @"2026-11-13T00:58:36+0000");
+  XCTAssertEqual(ProductLookups, 0u, @"the JWS price is what this transaction cost; no lookup");
+}
+
+- (void)testReportedStoreKit2TransactionsThatAreNotPurchasesAreNotSent {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  [self withReportStandIns:^{
+    [teak reportStoreKit2Transaction:@"not a jws"];
+    [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"transactionReason" : @"RENEWAL"}, @[])];
+    [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"revocationDate" : @1794531600000}, @[])];
+    [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"inAppOwnershipType" : @"FAMILY_SHARED"}, @[])];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 0u);
+}
+
+// The transactionReason key may be absent on older OS versions; those purchases still count.
+- (void)testReportedStoreKit2TransactionWithoutAReasonIsSent {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  [self withReportStandIns:^{
+    [teak reportStoreKit2Transaction:SandboxJWSWith(@{}, @[ @"transactionReason" ])];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 1u);
 }
 
 // Verifies purchase_time uses en_US_POSIX so Arabic-locale devices don't produce
