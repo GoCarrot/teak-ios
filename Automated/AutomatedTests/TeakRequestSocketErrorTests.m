@@ -80,7 +80,7 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 
 @end
 
-///// The retry gate: response:payload:withError: calls
+///// The retry gate: response:payload:withError:forSend: calls
 ///// +shouldRetryResponse:error:retryCount: to decide whether to fire another
 ///// retry. These pin what counts as a retryable failure and the count boundary,
 ///// so the gate can't loop past the stop policy or silently stop retrying a

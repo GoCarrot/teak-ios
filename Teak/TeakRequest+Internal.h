@@ -3,44 +3,53 @@
 // Stop policy for no-response retries — see shouldRetryResponse:error:retryCount:.
 extern const NSUInteger TeakRequestMaxSocketRetries;
 
+// One logical send of a request, frozen when -send runs. A retry resends this, so it goes out
+// with the same request_id and bytes however the request has changed since.
+@interface TeakRequestSend : NSObject
+@property (strong, nonatomic, readonly) TeakRequest* _Nonnull request;
+@property (strong, nonatomic, readonly) NSString* _Nonnull requestId;
+@property (strong, nonatomic, readonly) NSDictionary* _Nonnull payload;
+@property (strong, nonatomic, readonly) NSString* _Nonnull stringToSign;
+@property (strong, nonatomic, readonly) NSString* _Nonnull signature;
+@property (strong, nonatomic, readonly) NSURLRequest* _Nonnull urlRequest;
+@property (strong, nonatomic) NSDate* _Nullable sendDate;
+// A retry is scheduled only from the reply to the attempt before it, so attempts never overlap.
+@property (nonatomic) NSUInteger socketErrorRetries;
+@property (nonatomic) NSUInteger serverErrorRetries;
+// Set once a later -send has replaced this send. A superseded send is never transmitted again,
+// so a retry still waiting to fire is a no-op, and a reply to it is not retried.
+@property (atomic, readonly) BOOL superseded;
+// The most recent attempt, so superseding the send can cancel it.
+@property (atomic, strong) NSURLSessionDataTask* _Nullable task;
+
+- (nonnull instancetype)initWithRequest:(nonnull TeakRequest*)request;
+- (void)supersede;
+- (nonnull NSDictionary*)to_h;
+@end
+
 @interface TeakRequest ()
+// The send in flight or waiting to retry. Weak: a request holds no send once it has finished,
+// and a send holds its request.
+@property (atomic, weak) TeakRequestSend* _Nullable currentSend;
 @property (strong, nonatomic, readwrite) NSString* _Nonnull endpoint;
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;
 @property (copy, nonatomic, readwrite) TeakRequestResponse _Nullable callback;
 @property (strong, nonatomic) NSString* _Nonnull hostname;
-// Atomic because a later -send replaces it while the response handler of an earlier send reads it.
-@property (atomic, strong) NSString* _Nonnull requestId;
 @property (strong, nonatomic) TeakSession* _Nonnull session;
-@property (strong, nonatomic) NSDate* _Nonnull sendDate;
 
 @property (strong, nonatomic, readwrite) TeakBatchConfiguration* _Nonnull batch;
 @property (strong, nonatomic, readwrite) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readwrite) BOOL blackhole;
-// Atomic only to prevent torn reads: -send resets it on the sender's queue while the response handler reads it.
-@property (atomic) NSUInteger socketErrorRetryCount;
-// Counts -send calls. A retry or a failed reply that belongs to an earlier generation than
-// the current one has been superseded by a later send and is dropped.
-@property (atomic) NSUInteger sendGeneration;
-// Set by the first -send, so a later one knows to mint a new request id.
-@property (atomic) BOOL hasStartedSend;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
-// Puts the request on the wire without going through a subclass's -send gate.
-// -send starts a logical send (resets retry state, then transmits). Retries
-// use -transmit so the gates subclasses put in -send -- the profile's pending-update
-// check, a batch's no-op -- can't swallow a retry of an already-built request.
-- (void)transmit;
+// Puts one send on the wire. -send builds a new send and transmits it; a retry transmits
+// the same send again without going back through -send, so the gates subclasses put in
+// -send (the profile's pending-update check, a batch's no-op) can't swallow it.
+- (void)transmitSend:(TeakRequestSend* _Nonnull)send;
 
-// How a retry re-enters -transmit. Called on the main queue, with the send generation the
-// retry was scheduled under; transmits only if no later -send has replaced that send.
-// Subclasses that mutate their payload on another queue override this to hop onto it,
-// and check the generation there, where it can't change underneath the check.
-- (void)retryTransmitForGeneration:(NSUInteger)generation;
-
-// The reply to the attempt transmitted under `generation`. -response:payload:withError: is this
-// with the current generation.
-- (void)response:(NSHTTPURLResponse* _Nullable)response payload:(NSDictionary* _Nullable)payload withError:(NSError* _Nullable)error sendGeneration:(NSUInteger)generation;
+// The reply to one transmission of `send`: retries it, or hands the reply to the callback.
+- (void)response:(NSHTTPURLResponse* _Nullable)response payload:(NSDictionary* _Nullable)payload withError:(NSError* _Nullable)error forSend:(TeakRequestSend* _Nonnull)send;
 
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 
