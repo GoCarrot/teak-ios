@@ -102,6 +102,17 @@ extern NSDictionary* TeakVersionDict;
   [TeakEvent removeEventHandler:session];
 }
 
+#pragma mark - Expired transition
+
+// The cleanup belongs to the Expired transition itself, not to whichever path replaces the session.
+- (void)testExpiredTransitionDetachesWithoutReplacement {
+  TeakSession* session = [TeakSession currentSession];
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+  XCTAssertTrue([session setState:[TeakSession Expired]]);
+  XCTAssertEqual([TeakSession currentSessionOrNil], session);
+  XCTAssertTrue(session.deviceConfigurationObserversDetached);
+}
+
 #pragma mark - Duration report
 
 // Logout takes the session to Expiring, which schedules /session_stop. The report has to go out even

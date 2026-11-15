@@ -128,9 +128,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // replacement or -dealloc. See -detachDeviceConfigurationObservers.
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 
-// Set under @synchronized(self) by -detachAfterReplacement, and read under the same lock where an
-// identify reply attaches a user profile, so a reply that lands after replacement can't attach one.
-@property (nonatomic) BOOL replaced;
 @end
 
 @implementation TeakSession
@@ -439,11 +436,12 @@ DefineTeakState(Expired, (@[]));
 }
 
 // The /users.json request holds this session until its reply runs, so a reply can arrive after the
-// session was replaced. A replaced session gets no profile: the profile holds the session, so
-// attaching one would keep a session alive that replacement means to release.
+// session expired and was replaced. An expired session gets no profile: the profile holds the session,
+// so attaching one would keep alive a session that expiry means to release. Expired is set under this
+// same lock, so a reply can't slip in between the check and the transition.
 - (void)userProfileReceived:(nullable NSDictionary*)userProfile {
   @synchronized(self) {
-    if (self.replaced) return;
+    if (self.currentState == [TeakSession Expired]) return;
     self.userProfile = [[TeakUserProfile alloc] initForSession:self withDictionary:userProfile];
   }
 }
@@ -570,14 +568,13 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-// Cleanup for a session that has been replaced. Called at each replacement once the outgoing session
-// is Expired.
-- (void)detachAfterReplacement {
-  @synchronized(self) {
-    self.replaced = YES;
-  }
+// End-of-life cleanup, run once from the Expired transition. Expired is terminal, and every path into
+// it replaces the session, so nothing routes new work here afterwards.
+//
+// Runs inside the currentState handler's @synchronized(self), with currentSessionMutex held by every
+// caller of the Expired transition. What it takes under those must stay a leaf lock or an async hop.
+- (void)didExpire {
   // Idempotent, and a no-op where the replacement site already detached before expiring the session.
-  // Doing it here too means no replacement path can leave a replaced session observing.
   [self detachDeviceConfigurationObservers];
 }
 
@@ -689,7 +686,6 @@ DefineTeakState(Expired, (@[]));
 
       [currentSession setState:[TeakSession Expiring]];
       [currentSession setState:[TeakSession Expired]];
-      [currentSession detachAfterReplacement];
 
       currentSession = newSession;
     }
@@ -785,7 +781,6 @@ DefineTeakState(Expired, (@[]));
         [oldSession detachDeviceConfigurationObservers];
         [oldSession setState:[TeakSession Expiring]];
         [oldSession setState:[TeakSession Expired]];
-        [oldSession detachAfterReplacement];
       }
     }
 
@@ -806,7 +801,6 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
-      [oldSession detachAfterReplacement];
     }
     return currentSession;
   }
@@ -1046,6 +1040,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         });
       }
     } else if (newValue == [TeakSession Expired]) {
+      [self didExpire];
     }
   }
 }
