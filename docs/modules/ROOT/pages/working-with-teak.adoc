@@ -411,10 +411,7 @@ if case .success(let verification) = result {
 }
 ----
 
-* Call it from any thread, before or after you finish the transaction. Teak never finishes it.
-* Each transaction is sent to Teak once, even if you report it again or it was also a StoreKit 1 purchase.
-* Reports made before the player is identified are sent once they are.
-* Renewals, revoked transactions and Family Sharing copies are not reported.
+Call it from any thread, before or after you finish the transaction. Teak never finishes it.
 
 == Deep Links
 
