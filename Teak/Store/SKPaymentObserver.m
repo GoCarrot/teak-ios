@@ -92,9 +92,6 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
       TeakLog_i(@"purchase.report_storekit2.skipped", @{@"reason" : transaction.skipReason, @"transaction_identifier" : transaction.transactionId});
       return;
     }
-    if (!transaction.hasTransactionReason) {
-      TeakLog_i(@"purchase.report_storekit2.reason_missing", @{@"transaction_identifier" : transaction.transactionId});
-    }
 
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
     NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];

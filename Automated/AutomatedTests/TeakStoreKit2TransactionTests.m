@@ -21,7 +21,6 @@ static TeakStoreKit2Transaction* TransactionWith(NSDictionary* changes, NSArray*
   XCTAssertEqualObjects(transaction.price, [NSDecimalNumber decimalNumberWithString:@"0.99"]);
   XCTAssertEqualObjects(transaction.currency, @"USD");
   XCTAssertEqualObjects(transaction.purchaseDate, [NSDate dateWithTimeIntervalSince1970:1794531516]);
-  XCTAssertTrue(transaction.hasTransactionReason);
   XCTAssertNil(transaction.skipReason);
 }
 
@@ -64,9 +63,7 @@ static TeakStoreKit2Transaction* TransactionWith(NSDictionary* changes, NSArray*
   XCTAssertEqualObjects(TransactionWith(@{@"inAppOwnershipType" : @"FAMILY_SHARED"}, @[]).skipReason, @"family_shared");
   XCTAssertNil(TransactionWith(@{@"revocationDate" : [NSNull null]}, @[]).skipReason);
 
-  TeakStoreKit2Transaction* noReason = TransactionWith(@{}, @[ @"transactionReason" ]);
-  XCTAssertNil(noReason.skipReason);
-  XCTAssertFalse(noReason.hasTransactionReason);
+  XCTAssertNil(TransactionWith(@{}, @[ @"transactionReason" ]).skipReason, @"a missing reason is reported");
 }
 
 @end

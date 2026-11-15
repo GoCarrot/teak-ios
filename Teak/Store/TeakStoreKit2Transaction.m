@@ -49,10 +49,10 @@ static id ValueOfClass(NSDictionary* payload, NSString* key, Class cls) {
     }
 
     NSString* reason = ValueOfClass(payload, @"transactionReason", [NSString class]);
-    _hasTransactionReason = reason != nil;
-    if (payload[@"revocationDate"] != nil && payload[@"revocationDate"] != [NSNull null]) {
+    NSString* ownership = ValueOfClass(payload, @"inAppOwnershipType", [NSString class]);
+    if (ValueOfClass(payload, @"revocationDate", [NSNumber class]) != nil) {
       _skipReason = @"revoked";
-    } else if ([payload[@"inAppOwnershipType"] isEqual:@"FAMILY_SHARED"]) {
+    } else if ([ownership isEqualToString:@"FAMILY_SHARED"]) {
       _skipReason = @"family_shared";
     } else if (reason != nil && ![reason isEqualToString:@"PURCHASE"]) {
       _skipReason = [NSString stringWithFormat:@"reason_%@", reason];

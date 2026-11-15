@@ -68,26 +68,6 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
 
 #pragma mark - reportStoreKit2Transaction:
 
-// A StoreKit 2 purchase is sent with the JWS and priced from it, without a product lookup.
-- (void)testReportedStoreKit2TransactionIsSentPricedFromTheJWS {
-  id<TeakStoreKit2Reporting> teak = BareTeak();
-  NSString* jws = SandboxJWSWith(@{}, @[]);
-  [self withReportStandIns:^{
-    [teak reportStoreKit2Transaction:jws];
-  }];
-
-  XCTAssertEqual(ReportedPayloads.count, 1u);
-  NSDictionary* payload = ReportedPayloads.firstObject;
-  XCTAssertEqualObjects(payload[@"product_id"], @"io.teak.app.unity.dev.dollar");
-  XCTAssertEqualObjects(payload[@"transaction_identifier"], @"2000001265157858");
-  XCTAssertEqualObjects(payload[@"jws_representation"], jws);
-  XCTAssertEqualObjects(payload[@"price_currency_code"], @"USD");
-  XCTAssertEqualObjects(payload[@"price_float"], [NSDecimalNumber decimalNumberWithString:@"0.99"]);
-  XCTAssertEqualObjects(payload[@"purchase_time"], @"2026-11-13T00:58:36+0000");
-  XCTAssertNotNil(payload[@"purchase_token"], @"the server requires the key");
-  XCTAssertEqual(ProductLookups, 0u, @"the JWS price is what this transaction cost; no lookup");
-}
-
 // Pins the whole /me/purchase payload for the real device transaction.
 - (void)testReportedStoreKit2TransactionPayloadIsExactly {
   id<TeakStoreKit2Reporting> teak = BareTeak();
@@ -108,6 +88,7 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
     @"price_float" : [NSDecimalNumber decimalNumberWithString:@"0.99"]
   };
   XCTAssertEqualObjects(ReportedPayloads, @[ expected ]);
+  XCTAssertEqual(ProductLookups, 0u, @"the JWS price is what this transaction cost; no lookup");
 }
 
 // The server dedupes by transaction id, so every report is sent.
@@ -140,15 +121,6 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
     [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"inAppOwnershipType" : @"FAMILY_SHARED"}, @[])];
   }];
   XCTAssertEqual(ReportedPayloads.count, 0u);
-}
-
-// The transactionReason key may be absent on older OS versions; those purchases still count.
-- (void)testReportedStoreKit2TransactionWithoutAReasonIsSent {
-  id<TeakStoreKit2Reporting> teak = BareTeak();
-  [self withReportStandIns:^{
-    [teak reportStoreKit2Transaction:SandboxJWSWith(@{}, @[ @"transactionReason" ])];
-  }];
-  XCTAssertEqual(ReportedPayloads.count, 1u);
 }
 
 #pragma mark - Date formatting

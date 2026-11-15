@@ -23,7 +23,6 @@ NS_ASSUME_NONNULL_BEGIN
 // A missing transactionReason is reported: it may be absent on older OS versions (the
 // Swift Transaction.reason property is iOS 17+).
 @property (strong, nonatomic, readonly, nullable) NSString* skipReason;
-@property (nonatomic, readonly) BOOL hasTransactionReason;
 
 @end
 
