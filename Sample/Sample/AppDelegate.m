@@ -142,7 +142,8 @@ static UIViewController* SampleTopViewController(void) {
 #pragma clang diagnostic pop
 
 #ifdef SCENE_SAMPLE
-// Launch with -SceneSampleRuntimeDelegate YES to use a scene delegate class that isn't in Info.plist.
+// The "SceneSample (runtime delegate)" scheme passes -SceneSampleRuntimeDelegate YES, which picks a
+// scene delegate class that isn't in Info.plist.
 - (UISceneConfiguration*)application:(UIApplication*)application configurationForConnectingSceneSession:(UISceneSession*)connectingSceneSession options:(UISceneConnectionOptions*)options API_AVAILABLE(ios(13.0)) {
   UISceneConfiguration* configuration = [connectingSceneSession.configuration copy];
   if ([[NSUserDefaults standardUserDefaults] boolForKey:@"SceneSampleRuntimeDelegate"]) {
