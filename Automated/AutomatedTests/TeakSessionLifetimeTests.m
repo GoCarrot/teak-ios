@@ -101,7 +101,7 @@ extern NSDictionary* TeakVersionDict;
 
 #pragma mark - Expired transition
 
-// The cleanup belongs to the Expired transition itself, not to whichever path replaces the session.
+// A session that expires detaches, even before anything replaces it.
 - (void)testExpiredTransitionDetachesWithoutReplacement {
   TeakSession* session = [TeakSession currentSession];
   XCTAssertTrue([session setState:[TeakSession Expiring]]);
