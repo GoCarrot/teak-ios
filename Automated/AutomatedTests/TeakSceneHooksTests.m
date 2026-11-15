@@ -41,6 +41,21 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
   class_addMethod(klass, @selector(scene:openURLContexts:), imp, "v@:@@");
 }
 
+// Hooks sceneDelegateClass the way Teak finds a delegate itself: an app delegate picks it at runtime.
+static void DiscoverSceneDelegateClass(Class sceneDelegateClass) {
+  Class appDelegateClass = MakeClass(@"DiscoveringAppDelegate", [UIResponder class]);
+  IMP configIMP = imp_implementationWithBlock(^UISceneConfiguration*(id _self, UIApplication* app, UISceneSession* session, UISceneConnectionOptions* options) {
+    UISceneConfiguration* configuration = [UISceneConfiguration configurationWithName:@"Discovered" sessionRole:UIWindowSceneSessionRoleApplication];
+    configuration.delegateClass = sceneDelegateClass;
+    return configuration;
+  });
+  class_addMethod(appDelegateClass, @selector(application:configurationForConnectingSceneSession:options:), configIMP, "@@:@@@");
+  [TeakSceneHooks installForAppDelegateClass:appDelegateClass hostHandlesUserActivity:NO];
+  [[[appDelegateClass alloc] init] application:[UIApplication sharedApplication]
+       configurationForConnectingSceneSession:mock([UISceneSession class])
+                                      options:mock([UISceneConnectionOptions class])];
+}
+
 @interface TeakSceneHooksTests : XCTestCase
 @end
 
@@ -246,7 +261,7 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
 - (void)testTeakHandledContextsAreWithheldFromUIKitHost {
   Class klass = MakeClass(@"WithholdSceneDelegate", [UIResponder class]);
   AddRecordingOpenURLContexts(klass, _calls, @"host");
-  [TeakSceneHooks swizzleInto:klass];
+  DiscoverSceneDelegateClass(klass);
 
   NSURL* teakURL = [NSURL URLWithString:@"teak1234://teak-route"];
   NSURL* hostURL = [NSURL URLWithString:@"teak1234://host-route"];
@@ -259,6 +274,28 @@ static void AddRecordingOpenURLContexts(Class klass, NSMutableDictionary<NSStrin
 
   [self openURL:teakURL on:sceneDelegate];
   XCTAssertEqual(_calls[@"host"].integerValue, 1, @"host isn't called when Teak handled every context");
+}
+
+// An app that calls swizzleInto: itself got every context before Teak found scene delegates on its own,
+// including when Teak's install already hooked that class.
+- (void)testSwizzleIntoKeepsForwardingEveryContextEvenAfterDiscovery {
+  NSURL* teakURL = [NSURL URLWithString:@"teak1234://teak-route"];
+  [given([_teak application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()]) willReturnBool:YES];
+
+  Class discoveredFirst = MakeClass(@"DiscoveredThenSwizzled", [UIResponder class]);
+  AddRecordingOpenURLContexts(discoveredFirst, _calls, @"discoveredFirst");
+  DiscoverSceneDelegateClass(discoveredFirst);
+  [TeakSceneHooks swizzleInto:discoveredFirst];
+  [self openURL:teakURL on:[[discoveredFirst alloc] init]];
+  XCTAssertEqual(_calls[@"discoveredFirst.contexts"].integerValue, 1, @"Teak-handled context still reaches the host");
+
+  Class swizzledOnly = MakeClass(@"SwizzledOnly", [UIResponder class]);
+  AddRecordingOpenURLContexts(swizzledOnly, _calls, @"swizzledOnly");
+  [TeakSceneHooks swizzleInto:swizzledOnly];
+  [self openURL:teakURL on:[[swizzledOnly alloc] init]];
+  XCTAssertEqual(_calls[@"swizzledOnly.contexts"].integerValue, 1, @"Teak-handled context still reaches the host");
+
+  [verifyCount(_teak, times(2)) application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()];
 }
 
 - (void)testWillConnectRoutesEveryLaunchURLAndActivity {
