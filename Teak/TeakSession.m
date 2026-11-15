@@ -28,10 +28,9 @@ NSString* const currentSessionMutex = @"TeakCurrentSessionMutex";
 // -detachDeviceConfigurationObservers' three removeObserver calls, so add/remove serialization is
 // verifiable by reading this one lock's use sites — not by tracing which callers happen to hold
 // another lock. KVO add/remove is not thread-safe (concurrent add/remove on the shared object corrupts
-// its per-object observation info), so all of it must be serialized. Every live add/remove site also
-// runs under currentSessionMutex today, so this token is belt-and-suspenders for them; its job is to
-// make the serialization a local, grep-verifiable fact, and it becomes the sole guard once -dealloc's
-// removeObserver goes live (see -detachDeviceConfigurationObservers).
+// its per-object observation info), so all of it must be serialized. Every add/remove site also runs
+// under currentSessionMutex, so this token is belt-and-suspenders; its job is to make the
+// serialization a local, grep-verifiable fact.
 //
 // A dedicated token, NOT @synchronized(self): self is entangled with currentSessionMutex (the class
 // methods acquire currentSessionMutex and call into self-synchronized session code, and the
@@ -124,8 +123,8 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 @property (nonatomic) atomic_int sessionVectorClock;
 
 // Set once, under deviceConfigurationObserverMutex, when this session's observers on the shared
-// deviceConfiguration are removed, so the removal happens exactly once whether it comes from session
-// replacement or -dealloc. See -detachDeviceConfigurationObservers.
+// deviceConfiguration are removed, so the removal happens exactly once. See
+// -detachDeviceConfigurationObservers.
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 
 @end
@@ -532,15 +531,9 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  // Currently inert: a session retains itself through the shared event-handler registry and is
-  // released only here in -dealloc, so that cycle keeps -dealloc from running in practice — every
-  // session is detached at replacement instead. Kept because it goes live the moment that leak is
-  // fixed and sessions become mortal: then this is the sole detach for the last, never-replaced
-  // session, and the idempotence flag keeps it a no-op for any session already detached at replacement.
-  [self detachDeviceConfigurationObservers];
+  // A session frees only after expiring, which has already detached its deviceConfiguration
+  // observers and removed it from the event-handler set.
   UnRegisterKeyValueObserverFor(self, currentState);
-
-  [TeakEvent removeEventHandler:self];
 }
 
 // Remove this session's observers on the shared deviceConfiguration singleton, serialized on
@@ -550,13 +543,9 @@ DefineTeakState(Expired, (@[]));
 // handled here; a session's other observers (its own currentState and its per-session
 // remoteConfiguration) are not shared across sessions, so they stay in -dealloc.
 //
-// Called at each session replacement so removal is deterministic and bounded: sessions are immortal
-// (see -dealloc), so left to -dealloc alone these observers would never be removed and the shared
-// object's observer list would grow for the life of the process. Detaching here also forecloses the
-// race the leak fix would otherwise activate — once -dealloc runs, its removeObserver would run off
-// currentSessionMutex and could race a newer session's addObserver on this same object. The flag makes
-// removal idempotent so the -dealloc fallback can't double-remove (which throws "not registered as an
-// observer").
+// Called at each session replacement, under currentSessionMutex, so removal is deterministic and
+// can't race a newer session's addObserver on this same object. The flag makes removal idempotent,
+// since a second remove throws "not registered as an observer".
 - (void)detachDeviceConfigurationObservers {
   @synchronized(deviceConfigurationObserverMutex) {
     if (self.deviceConfigurationObserversDetached) return;
@@ -571,11 +560,26 @@ DefineTeakState(Expired, (@[]));
 // End-of-life cleanup, run once from the Expired transition. Expired is terminal, and every path into
 // it replaces the session, so nothing routes new work here afterwards.
 //
+// Releases what keeps the session alive. The shared event-handler set holds its handlers strongly, and
+// the userProfile holds the session back (a TeakUserProfile is a TeakRequest, which retains its
+// session), so either one alone keeps the session from ever freeing. The Expiring transition has
+// already captured the profile for its final send.
+//
+// The profile is released on the operation queue, behind any attribute write or send already queued
+// there. Work that captured the profile itself — a pending send, a scheduled retry — keeps it, and the
+// session, alive until that work runs.
+//
 // Runs inside the currentState handler's @synchronized(self), with currentSessionMutex held by every
 // caller of the Expired transition. What it takes under those must stay a leaf lock or an async hop.
+// currentSession still holds the session here, so removing it from the handler set can't free it
+// mid-call.
 - (void)didExpire {
   // Idempotent, and a no-op where the replacement site already detached before expiring the session.
   [self detachDeviceConfigurationObservers];
+  [TeakEvent removeEventHandler:self];
+  dispatch_async([Teak operationQueue], ^{
+    self.userProfile = nil;
+  });
 }
 
 - (void)handleEvent:(TeakEvent*)event {
@@ -680,8 +684,6 @@ DefineTeakState(Expired, (@[]));
         newSession = [[TeakSession alloc] init];
       }
 
-      // Drop the outgoing session's shared-deviceConfiguration observers here instead of leaving them
-      // to its background -dealloc. See -detachDeviceConfigurationObservers.
       [currentSession detachDeviceConfigurationObservers];
 
       [currentSession setState:[TeakSession Expiring]];

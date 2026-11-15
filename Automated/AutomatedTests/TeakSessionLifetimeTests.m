@@ -3,6 +3,7 @@
 #import "TeakConfiguration.h"
 #import "TeakEvent.h"
 #import "TeakHelpers.h"
+#import "TeakLaunchData.h"
 #import "TeakRemoteConfiguration.h"
 #import "TeakRequest.h"
 #import "TeakSession.h"
@@ -11,8 +12,11 @@
 
 extern TeakSession* currentSession;
 extern NSDictionary* TeakVersionDict;
+extern NSMutableSet* TeakEventHandlerSet;
+extern NSString* TeakEventHandlersMutex;
 
 @interface Teak (LifetimeTesting)
++ (dispatch_queue_t)operationQueue;
 + (void)setBackgroundQueue:(dispatch_queue_t)queue;
 @end
 
@@ -25,8 +29,8 @@ extern NSDictionary* TeakVersionDict;
 + (TeakSession*)currentSession;
 + (void)logoutReusingCurrentSession:(BOOL)reuseSession;
 - (BOOL)setState:(nonnull TeakState*)newState;
-- (void)userProfileReceived:(nullable NSDictionary*)userProfile;
 - (void)detachDeviceConfigurationObservers;
+- (void)userProfileReceived:(nullable NSDictionary*)userProfile;
 @end
 
 // blackhole is readwrite in TeakRequest+Internal.h; sent and -initWithSession: live on the private
@@ -41,9 +45,9 @@ extern NSDictionary* TeakVersionDict;
 #define AssertFreed(weakRef, timeoutSeconds, message) \
   XCTAssertTrue([self waitUntil:^{ return (BOOL)((weakRef) == nil); } timeout:(timeoutSeconds)], message)
 
-// Objects tied to a session's lifetime must free once they're done. Each test drives a real path and
-// then waits on a weak reference: background work lets go asynchronously, so the release is polled
-// rather than checked once.
+// A session that's been replaced must free. Each test drives a real replacement path and then waits
+// on a weak reference: the session's own setup hands it to background work that lets go of it
+// asynchronously, so the release is polled rather than checked once.
 @interface TeakSessionLifetimeTests : XCTestCase
 @end
 
@@ -89,17 +93,55 @@ extern NSDictionary* TeakVersionDict;
   }
 }
 
+// Gives a session a user profile the way the identify reply does. The profile holds its session.
+- (void)attachUserProfileTo:(TeakSession*)session {
+  session.userProfile = [[TeakUserProfile alloc] initForSession:session withDictionary:@{}];
+  XCTAssertNotNil(session.userProfile);
+}
+
 #pragma mark - Replacement paths
 
-// An expired session is replaced on the next currentSession access. A replaced session must not stay
-// a deviceConfiguration observer.
-- (void)testExpiredSessionReplacedOnNextAccessDetaches {
-  TeakSession* session = [TeakSession currentSession];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertTrue([session setState:[TeakSession Expired]]);
-  XCTAssertNotEqual([TeakSession currentSession], session);
-  XCTAssertTrue(session.deviceConfigurationObserversDetached);
-  [TeakEvent removeEventHandler:session];
+- (void)testSessionWithUserProfileReplacedByLogoutFrees {
+  __weak TeakSession* weakSession = nil;
+  @autoreleasepool {
+    TeakSession* session = [TeakSession currentSession];
+    [self attachUserProfileTo:session];
+    weakSession = session;
+    [TeakSession logoutReusingCurrentSession:NO];
+  }
+
+  AssertFreed(weakSession, 5.0, @"a session replaced on logout is kept alive by its user profile");
+}
+
+- (void)testSessionWithUserProfileReplacedByLaunchFrees {
+  __weak TeakSession* weakSession = nil;
+  @autoreleasepool {
+    TeakSession* session = [TeakSession currentSession];
+    [self attachUserProfileTo:session];
+    // A launch replaces any session that's past Created.
+    XCTAssertTrue([session setState:[TeakSession Expiring]]);
+    weakSession = session;
+    [TeakSession didLaunchWithData:[TeakLaunchDataOperation unattributed]];
+    XCTAssertNotEqual([TeakSession currentSessionOrNil], session);
+  }
+
+  AssertFreed(weakSession, 5.0, @"a session replaced on launch is still alive");
+}
+
+- (void)testExpiredSessionWithUserProfileReplacedOnNextAccessFrees {
+  __weak TeakSession* weakSession = nil;
+  @autoreleasepool {
+    TeakSession* session = [TeakSession currentSession];
+    [self attachUserProfileTo:session];
+    XCTAssertTrue([session setState:[TeakSession Expiring]]);
+    XCTAssertTrue([session setState:[TeakSession Expired]]);
+    weakSession = session;
+    XCTAssertNotEqual([TeakSession currentSession], session);
+    // A freed session must not stay a deviceConfiguration observer.
+    XCTAssertTrue(session.deviceConfigurationObserversDetached);
+  }
+
+  AssertFreed(weakSession, 5.0, @"an expired session replaced on the next currentSession access is still alive");
 }
 
 #pragma mark - Expired transition
@@ -111,14 +153,16 @@ extern NSDictionary* TeakVersionDict;
   XCTAssertTrue([session setState:[TeakSession Expired]]);
   XCTAssertEqual([TeakSession currentSessionOrNil], session);
   XCTAssertTrue(session.deviceConfigurationObserversDetached);
+  @synchronized(TeakEventHandlersMutex) {
+    XCTAssertFalse([TeakEventHandlerSet containsObject:session]);
+  }
 }
 
 #pragma mark - Duration report
 
-// Logout takes the session to Expiring, which schedules /session_stop. The report has to go out even
-// if nothing else holds the session by the time it runs. Sessions don't free on replacement yet, so
-// the test drops the event-handler set's hold itself. The report queue is held suspended until
-// everything else that was holding the session has let go.
+// Logout takes the session to Expiring, which schedules /session_stop, and replaces it immediately.
+// The report has to go out even though nothing else holds the session by the time it runs. The report
+// queue is held suspended until everything else that was holding the session has let go.
 - (void)testSessionReplacedByLogoutStillReportsDuration {
   dispatch_queue_t reportQueue = dispatch_queue_create("io.teak.test.reportDuration", DISPATCH_QUEUE_SERIAL);
   dispatch_suspend(reportQueue);
@@ -137,7 +181,6 @@ extern NSDictionary* TeakVersionDict;
                                    forKey:@"endpointConfigurations"];
     weakSession = session;
     [TeakSession logoutReusingCurrentSession:NO];
-    [TeakEvent removeEventHandler:session];
   }
 
   // Lets every other holder of the session release it before the report runs.
@@ -154,13 +197,21 @@ extern NSDictionary* TeakVersionDict;
 
 // The /users.json request holds the session until its reply runs, so the reply can land after
 // replacement. It must not attach a profile, which would hold the session again.
-- (void)testIdentifyReplyAfterReplacementAttachesNoProfile {
-  TeakSession* session = [TeakSession currentSession];
-  [TeakSession logoutReusingCurrentSession:NO];
+- (void)testIdentifyReplyAfterReplacementDoesNotPinSession {
+  __weak TeakSession* weakSession = nil;
+  @autoreleasepool {
+    TeakSession* session = [TeakSession currentSession];
+    weakSession = session;
+    [TeakSession logoutReusingCurrentSession:NO];
 
-  [session userProfileReceived:@{}];
-  XCTAssertNil(session.userProfile, @"an identify reply after replacement attached a profile");
-  [TeakEvent removeEventHandler:session];
+    // Land the reply after replacement has released the profile on the operation queue.
+    dispatch_sync([Teak operationQueue], ^{
+                  });
+    [session userProfileReceived:@{}];
+    XCTAssertNil(session.userProfile);
+  }
+
+  AssertFreed(weakSession, 5.0, @"an identify reply after replacement pinned the session");
 }
 
 #pragma mark - Event batches
@@ -189,9 +240,11 @@ extern NSDictionary* TeakVersionDict;
   return @{@"action_type" : @"test_action", @"object_type" : @"test_object", @"duration" : @1, @"count" : @1};
 }
 
-// A tracked event goes into a /me/events batch. Logout takes the session to Expiring, which sends the
-// batch; the next event starts a new batch. The old batch must then free.
-- (void)testSentEventBatchFrees {
+// A tracked event goes into a /me/events batch that holds its session. Replacement takes the session
+// to Expiring, which sends the batch; the next event starts a new batch. The old batch and its session
+// must then both free.
+- (void)testEventBatchFromReplacedSessionFrees {
+  __weak TeakSession* weakSession = nil;
   __weak TeakRequest* weakBatch = nil;
   @autoreleasepool {
     TeakSession* session = [TeakSession currentSession];
@@ -206,6 +259,7 @@ extern NSDictionary* TeakVersionDict;
     XCTAssertNotNil(batch);
     // Keep the send off the network.
     batch.blackhole = YES;
+    weakSession = session;
     weakBatch = batch;
 
     [TeakSession logoutReusingCurrentSession:NO];
@@ -222,6 +276,7 @@ extern NSDictionary* TeakVersionDict;
 
   // The canceled scheduled send still holds the batch until its delay elapses.
   AssertFreed(weakBatch, 5.0, @"a sent event batch is still alive");
+  AssertFreed(weakSession, 5.0, @"a replaced session with a sent event batch is still alive");
 }
 
 @end
