@@ -17,7 +17,6 @@ typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 @interface TeakRetryConfiguration : NSObject
 @property (nonatomic) float jitter;
 @property (strong, nonatomic) NSArray* _Nonnull times;
-@property (nonatomic) NSUInteger retryIndex;
 @end
 
 @interface TeakRequest : NSObject
@@ -36,5 +35,4 @@ typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 
 - (void)send;
-- (NSDictionary* _Nonnull)to_h;
 @end

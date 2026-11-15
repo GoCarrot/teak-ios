@@ -84,7 +84,6 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
   if (self) {
     self.jitter = 0.0f;
     self.times = @[];
-    self.retryIndex = 0;
   }
   return self;
 }
@@ -127,6 +126,45 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 
 @interface TeakRequestURLDelegate : NSObject <NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
 @property (strong, nonatomic) NSMutableDictionary* responseData;
+@end
+
+///// TeakRequestSend impl
+
+@implementation TeakRequestSend
+
+- (instancetype)initWithRequest:(TeakRequest*)request {
+  self = [super init];
+  if (self) {
+    _request = request;
+    _requestId = [TeakRequest generateRequestId];
+
+    // The server dedupes on request_id where it supports it.
+    NSMutableDictionary* payload = [request.payload mutableCopy];
+    payload[@"request_id"] = _requestId;
+    _payload = payload;
+
+    NSString* apiKey = request.session.appConfiguration.apiKey;
+    _stringToSign = Teak_StringToSign(request.method, request.endpoint, payload, request.hostname, apiKey);
+    _signature = Teak_SignString(_stringToSign, apiKey);
+
+    NSMutableURLRequest* urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", request.hostname, request.endpoint]]];
+    TeakAssignPayloadToRequest(request.method, urlRequest, payload);
+    [urlRequest setValue:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", _signature] forHTTPHeaderField:@"Authorization"];
+    _urlRequest = urlRequest;
+  }
+  return self;
+}
+
+- (NSDictionary*)to_h {
+  return @{
+    @"request_id" : self.requestId,
+    @"hostname" : self.request.hostname == nil ? [NSNull null] : self.request.hostname,
+    @"endpoint" : self.request.endpoint,
+    @"payload" : self.payload,
+    @"session" : self.request.session.sessionId
+  };
+}
+
 @end
 
 ///// TeakRequest impl
@@ -233,7 +271,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 - (TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload {
   self = [super init];
   if (self) {
-    self.requestId = [TeakRequest generateRequestId];
     self.endpoint = endpoint;
     self.callback = callback;
     self.hostname = hostname;
@@ -244,7 +281,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     self.batch = [[TeakBatchConfiguration alloc] init];
     self.blackhole = NO;
     self.method = method;
-    self.socketErrorRetryCount = 0;
 
     @try {
       // Assign configuration
@@ -294,9 +330,6 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
           payloadWithCommon[@"api_key"] = self.session.userId;
         }
 
-        // The server dedupes on request_id where it supports it.
-        payloadWithCommon[@"request_id"] = self.requestId;
-
         // Future-Pat: save the transmission bytes
         if (!self.session.appConfiguration.isProduction) {
           payloadWithCommon[@"debug"] = [NSNumber numberWithBool:YES];
@@ -311,58 +344,32 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return self;
 }
 
-- (nonnull NSString*)stringToSign {
-  return Teak_StringToSign(self.method, self.endpoint, self.payload, self.hostname, self.session.appConfiguration.apiKey);
-}
-
-- (nonnull NSString*)sig {
-  return Teak_SignString([self stringToSign], self.session.appConfiguration.apiKey);
-}
-
 - (void)send {
-  // The same request id must mean the same logical send to the server, so a send
-  // after the first gets a new one.
-  if (self.hasStartedSend) {
-    NSString* requestId = [TeakRequest generateRequestId];
-    NSMutableDictionary* payload = [self.payload mutableCopy];
-    if (payload[@"request_id"] != nil) payload[@"request_id"] = requestId;
-    self.requestId = requestId;
-    self.payload = payload;
-  }
-  self.hasStartedSend = YES;
-  [self transmit];
-}
-
-- (void)transmit {
   if (self.blackhole) return;
 
   teak_try {
-    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", self.hostname, self.endpoint]]];
-    TeakAssignPayloadToRequest(self.method, request, self.payload);
-    [request setValue:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", self.sig] forHTTPHeaderField:@"Authorization"];
+    // Each send is a new logical request: its own request_id, and its own copy of
+    // the payload as it stands now.
+    TeakRequestSend* send = [[TeakRequestSend alloc] initWithRequest:self];
     teak_log_breadcrumb(@"request.send.constructed");
-
-    NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:request];
-    @synchronized(TeakRequestsInFlightMutex) {
-      [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = self;
-    }
-    self.sendDate = [NSDate date];
-    [dataTask resume];
-
-    TeakLog_i(@"request.send", [self to_h]);
-    teak_log_breadcrumb(@"request.send.sent");
+    [self transmitSend:send];
   }
   teak_catch_report;
 }
 
-- (NSDictionary*)to_h {
-  return @{
-    @"request_id" : self.requestId,
-    @"hostname" : self.hostname == nil ? [NSNull null] : self.hostname,
-    @"endpoint" : self.endpoint,
-    @"payload" : self.payload,
-    @"session" : self.session.sessionId
-  };
+- (void)transmitSend:(TeakRequestSend*)send {
+  teak_try {
+    NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:send.urlRequest];
+    @synchronized(TeakRequestsInFlightMutex) {
+      [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)] = send;
+    }
+    send.sendDate = [NSDate date];
+    [dataTask resume];
+
+    TeakLog_i(@"request.send", [send to_h]);
+    teak_log_breadcrumb(@"request.send.sent");
+  }
+  teak_catch_report;
 }
 
 - (NSString*)description {
@@ -374,11 +381,11 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
                                     self.payload];
 }
 
-- (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error {
+- (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error forSend:(TeakRequestSend*)send {
   teak_try {
-    NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[self to_h]];
+    NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[send to_h]];
 
-    h[@"response_time"] = [NSNumber numberWithDouble:[self.sendDate timeIntervalSinceNow] * -1000.0];
+    h[@"response_time"] = [NSNumber numberWithDouble:[send.sendDate timeIntervalSinceNow] * -1000.0];
     h[@"payload"] = payload;
     h[@"response_headers"] = response.allHeaderFields;
     TeakLog_i(@"request.reply", h);
@@ -387,13 +394,13 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
     if (response.statusCode == 403 || errorMetadata) {
       @try {
-        NSString* clientSignedString = [self stringToSign];
+        NSString* clientSignedString = send.stringToSign;
         NSString* serverSignedString = errorMetadata ? errorMetadata : payload[@"string_to_sign"];
 
         TeakLog_e(@"request.error.signature", @{
           @"client" : clientSignedString,
           @"server" : _(serverSignedString),
-          @"client_signature" : [self sig]
+          @"client_signature" : send.signature
         });
       } @finally {
       }
@@ -403,35 +410,37 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
 
-        if ([TeakRequest shouldRetrySocketError:error retryCount:self.socketErrorRetryCount]) {
+        if ([TeakRequest shouldRetrySocketError:error retryCount:send.socketErrorRetries]) {
           // The OS can close a pooled connection's socket while the app is
           // backgrounded and fail to reopen it on the next request; retry
           // once after a short delay rather than surfacing an empty reply.
           // Checked ahead of the server-configured retry ladder below since
           // it's a distinct failure class (transport, not HTTP) — a request
           // with configured retry times still gets this one stacked on top.
-          self.socketErrorRetryCount++;
-          TeakLog_i(@"request.retry.socket_error", [self to_h]);
+          send.socketErrorRetries++;
+          TeakLog_i(@"request.retry.socket_error", [send to_h]);
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self send];
+            [self transmitSend:send];
           });
-        } else if ((response == nil || response.statusCode >= 500) && self.retry.retryIndex < [self.retry.times count]) {
+        } else if (response.statusCode >= 500 && send.serverErrorRetries < [self.retry.times count]) {
+          // Only a 5xx reply climbs the server-configured ladder, as on Android.
           // Retry with delay + jitter
           float jitter = (drand48() * 2.0 - 1.0) * self.retry.jitter;
-          float delay = [self.retry.times[self.retry.retryIndex] floatValue] + jitter;
+          float delay = [self.retry.times[send.serverErrorRetries] floatValue] + jitter;
           if (delay < 0.0f) delay = 0.0f;
 
-          self.retry.retryIndex++;
+          send.serverErrorRetries++;
+          TeakLog_i(@"request.retry.server_error", [send to_h]);
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            [self send];
+            [self transmitSend:send];
           });
         } else {
           if (isSocketError) {
-            TeakLog_e(@"request.retry.socket_error.exhausted", [self to_h]);
+            TeakLog_e(@"request.retry.socket_error.exhausted", [send to_h]);
           }
 
           // Check to see if the response has a 'report_client_error' key
@@ -803,9 +812,9 @@ KeyValueObserverSupported(TeakBatchedRequest);
   }
 
   @synchronized(TeakRequestsInFlightMutex) {
-    TeakRequest* request = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
-    if (request) {
-      [request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error];
+    TeakRequestSend* send = [TeakRequest requestsInFlight][@(dataTask.taskIdentifier)];
+    if (send) {
+      [send.request response:(NSHTTPURLResponse*)dataTask.response payload:reply withError:error forSend:send];
       [[TeakRequest requestsInFlight] removeObjectForKey:@(dataTask.taskIdentifier)];
     }
   }
