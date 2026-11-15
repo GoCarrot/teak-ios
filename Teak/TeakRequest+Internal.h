@@ -8,7 +8,8 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (strong, nonatomic, readwrite) NSDictionary* _Nonnull payload;
 @property (copy, nonatomic, readwrite) TeakRequestResponse _Nullable callback;
 @property (strong, nonatomic) NSString* _Nonnull hostname;
-@property (strong, nonatomic) NSString* _Nonnull requestId;
+// Atomic because a later -send replaces it while the response handler of an earlier send reads it.
+@property (atomic, strong) NSString* _Nonnull requestId;
 @property (strong, nonatomic) TeakSession* _Nonnull session;
 @property (strong, nonatomic) NSDate* _Nonnull sendDate;
 
@@ -16,8 +17,13 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (strong, nonatomic, readwrite) TeakRetryConfiguration* _Nonnull retry;
 @property (nonatomic, readwrite) BOOL blackhole;
 @property (nonatomic) NSUInteger socketErrorRetryCount;
+// Set by the first -send, so a later one knows to mint a new request id.
+@property (atomic) BOOL hasStartedSend;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
+
+// Puts the request on the wire. -send starts a logical send and then transmits.
+- (void)transmit;
 
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 
@@ -47,4 +53,7 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // isRetryableSocketError:) and `retryCount` hasn't reached the stop policy
 // (TeakRequestMaxSocketRetries) yet.
 + (BOOL)shouldRetrySocketError:(NSError* _Nullable)error retryCount:(NSUInteger)retryCount;
+
+// A fresh id for one logical send, sent as request_id.
++ (NSString* _Nonnull)generateRequestId;
 @end
