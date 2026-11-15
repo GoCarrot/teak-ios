@@ -1,8 +1,6 @@
 #import "TeakStoreKit2Transaction.h"
 
-@implementation TeakStoreKit2Transaction
-
-+ (NSDictionary*)payloadFromJWS:(NSString*)jws {
+static NSDictionary* PayloadFromJWS(NSString* jws) {
   if (![jws isKindOfClass:[NSString class]]) return nil;
   NSArray<NSString*>* parts = [jws componentsSeparatedByString:@"."];
   if (parts.count != 3 || parts[1].length == 0) return nil;
@@ -20,40 +18,47 @@
   return [payload isKindOfClass:[NSDictionary class]] ? payload : nil;
 }
 
-+ (NSString*)skipReasonForTransaction:(NSDictionary*)transaction {
-  if ([TeakStoreKit2Transaction transactionIdForTransaction:transaction] == nil) return @"missing_transaction_id";
-  if (![transaction[@"productId"] isKindOfClass:[NSString class]]) return @"missing_product_id";
-  if (transaction[@"revocationDate"] != nil && transaction[@"revocationDate"] != [NSNull null]) return @"revoked";
-  if ([transaction[@"inAppOwnershipType"] isEqual:@"FAMILY_SHARED"]) return @"family_shared";
+// The payload is untrusted JSON, so every field is type-checked as it's read.
+static id ValueOfClass(NSDictionary* payload, NSString* key, Class cls) {
+  id value = payload[key];
+  return [value isKindOfClass:cls] ? value : nil;
+}
 
-  id reason = transaction[@"transactionReason"];
-  if ([reason isKindOfClass:[NSString class]] && ![reason isEqualToString:@"PURCHASE"]) {
-    return [NSString stringWithFormat:@"reason_%@", reason];
+@implementation TeakStoreKit2Transaction
+
+- (instancetype)initWithJWS:(NSString*)jws {
+  NSDictionary* payload = PayloadFromJWS(jws);
+  NSString* transactionId = ValueOfClass(payload, @"transactionId", [NSString class]);
+  NSString* productId = ValueOfClass(payload, @"productId", [NSString class]);
+  if (transactionId.length == 0 || productId.length == 0) return nil;
+
+  self = [super init];
+  if (self) {
+    _jwsRepresentation = jws;
+    _transactionId = transactionId;
+    _productId = productId;
+
+    NSNumber* purchaseDate = ValueOfClass(payload, @"purchaseDate", [NSNumber class]);
+    _purchaseDate = purchaseDate == nil ? nil : [NSDate dateWithTimeIntervalSince1970:purchaseDate.doubleValue / 1000.0];
+
+    NSNumber* price = ValueOfClass(payload, @"price", [NSNumber class]);
+    NSString* currency = ValueOfClass(payload, @"currency", [NSString class]);
+    if (price != nil && currency != nil) {
+      _price = [[NSDecimalNumber decimalNumberWithDecimal:price.decimalValue] decimalNumberByMultiplyingByPowerOf10:-3];
+      _currency = currency;
+    }
+
+    NSString* reason = ValueOfClass(payload, @"transactionReason", [NSString class]);
+    _hasTransactionReason = reason != nil;
+    if (payload[@"revocationDate"] != nil && payload[@"revocationDate"] != [NSNull null]) {
+      _skipReason = @"revoked";
+    } else if ([payload[@"inAppOwnershipType"] isEqual:@"FAMILY_SHARED"]) {
+      _skipReason = @"family_shared";
+    } else if (reason != nil && ![reason isEqualToString:@"PURCHASE"]) {
+      _skipReason = [NSString stringWithFormat:@"reason_%@", reason];
+    }
   }
-  return nil;
-}
-
-+ (NSString*)transactionIdForTransaction:(NSDictionary*)transaction {
-  id transactionId = transaction[@"transactionId"];
-  return [transactionId isKindOfClass:[NSString class]] && [transactionId length] > 0 ? transactionId : nil;
-}
-
-+ (NSDictionary*)priceForTransaction:(NSDictionary*)transaction {
-  id currency = transaction[@"currency"];
-  id price = transaction[@"price"];
-  if (![currency isKindOfClass:[NSString class]] || ![price isKindOfClass:[NSNumber class]]) return nil;
-
-  NSDecimalNumber* thousandths = [NSDecimalNumber decimalNumberWithDecimal:[price decimalValue]];
-  return @{
-    @"price_currency_code" : currency,
-    @"price_float" : [thousandths decimalNumberByMultiplyingByPowerOf10:-3]
-  };
-}
-
-+ (NSDate*)purchaseDateForTransaction:(NSDictionary*)transaction {
-  id milliseconds = transaction[@"purchaseDate"];
-  if (![milliseconds isKindOfClass:[NSNumber class]]) return nil;
-  return [NSDate dateWithTimeIntervalSince1970:[milliseconds doubleValue] / 1000.0];
+  return self;
 }
 
 @end

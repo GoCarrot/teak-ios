@@ -2,28 +2,28 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-// Reads the fields Teak reports from a StoreKit 2 transaction's JWS payload. The JWS
-// signature is not verified here.
+// A StoreKit 2 transaction read from its JWS. Plain Foundation, no StoreKit 2 API, so it
+// works from Objective-C. The JWS signature is not verified here.
 @interface TeakStoreKit2Transaction : NSObject
 
-// The decoded payload segment of a JWS, or nil if it isn't a three-part JWS with a JSON
-// object payload.
-+ (nullable NSDictionary*)payloadFromJWS:(nullable NSString*)jws;
+// nil unless the JWS decodes to a payload with a transactionId and productId.
+- (nullable instancetype)initWithJWS:(nullable NSString*)jws;
+- (instancetype)init NS_UNAVAILABLE;
 
-// nil when the transaction should be reported, otherwise a short reason for skipping it:
-// no ids, revoked, a Family Sharing copy, or a transactionReason other than PURCHASE.
+@property (strong, nonatomic, readonly) NSString* jwsRepresentation;
+@property (strong, nonatomic, readonly) NSString* transactionId;
+@property (strong, nonatomic, readonly) NSString* productId;
+@property (strong, nonatomic, readonly, nullable) NSDate* purchaseDate;
+
+// In currency units; StoreKit 2 reports thousandths. Both nil unless the JWS has both.
+@property (strong, nonatomic, readonly, nullable) NSDecimalNumber* price;
+@property (strong, nonatomic, readonly, nullable) NSString* currency;
+
+// nil when the transaction should be reported, otherwise a short reason for skipping it.
 // A missing transactionReason is reported: it may be absent on older OS versions (the
 // Swift Transaction.reason property is iOS 17+).
-+ (nullable NSString*)skipReasonForTransaction:(NSDictionary*)transaction;
-
-// The transaction id as a decimal string, matching SKPaymentTransaction.transactionIdentifier.
-+ (nullable NSString*)transactionIdForTransaction:(NSDictionary*)transaction;
-
-// price_currency_code and price_float for /me/purchase. StoreKit 2 reports price in
-// thousandths of the currency unit.
-+ (nullable NSDictionary*)priceForTransaction:(NSDictionary*)transaction;
-
-+ (nullable NSDate*)purchaseDateForTransaction:(NSDictionary*)transaction;
+@property (strong, nonatomic, readonly, nullable) NSString* skipReason;
+@property (nonatomic, readonly) BOOL hasTransactionReason;
 
 @end
 

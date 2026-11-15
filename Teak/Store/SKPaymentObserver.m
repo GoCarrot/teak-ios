@@ -83,44 +83,40 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
 
 + (void)reportStoreKit2TransactionJWS:(NSString*)jwsRepresentation {
   teak_try {
-    NSDictionary* transaction = [TeakStoreKit2Transaction payloadFromJWS:jwsRepresentation];
+    TeakStoreKit2Transaction* transaction = [[TeakStoreKit2Transaction alloc] initWithJWS:jwsRepresentation];
     if (transaction == nil) {
-      TeakLog_e(@"purchase.report_storekit2.invalid_jws", @"reportStoreKit2Transaction: needs the transaction's jwsRepresentation; this isn't a decodable JWS.");
+      TeakLog_e(@"purchase.report_storekit2.invalid_jws", @"reportStoreKit2Transaction: needs the transaction's jwsRepresentation; this isn't a decodable StoreKit 2 transaction.");
       return;
     }
-
-    NSString* transactionId = [TeakStoreKit2Transaction transactionIdForTransaction:transaction];
-    NSString* skipReason = [TeakStoreKit2Transaction skipReasonForTransaction:transaction];
-    if (skipReason != nil) {
-      TeakLog_i(@"purchase.report_storekit2.skipped", @{@"reason" : skipReason, @"transaction_identifier" : _(transactionId)});
+    if (transaction.skipReason != nil) {
+      TeakLog_i(@"purchase.report_storekit2.skipped", @{@"reason" : transaction.skipReason, @"transaction_identifier" : transaction.transactionId});
       return;
     }
-    if (transaction[@"transactionReason"] == nil) {
-      TeakLog_i(@"purchase.report_storekit2.reason_missing", @{@"transaction_identifier" : transactionId});
+    if (!transaction.hasTransactionReason) {
+      TeakLog_i(@"purchase.report_storekit2.reason_missing", @{@"transaction_identifier" : transaction.transactionId});
     }
 
-    NSString* productId = transaction[@"productId"];
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
     NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
     NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
-      @"purchase_time" : _([[SKPaymentObserver transactionDateFormatter] stringFromDate:[TeakStoreKit2Transaction purchaseDateForTransaction:transaction]]),
-      @"product_id" : productId,
-      @"transaction_identifier" : transactionId,
+      @"purchase_time" : _([[SKPaymentObserver transactionDateFormatter] stringFromDate:transaction.purchaseDate]),
+      @"product_id" : transaction.productId,
+      @"transaction_identifier" : transaction.transactionId,
       // The server requires the key.
       @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
-      @"jws_representation" : jwsRepresentation
+      @"jws_representation" : transaction.jwsRepresentation
     }];
-    TeakLog_i(@"purchase.report_storekit2", @{@"product_id" : productId, @"transaction_identifier" : transactionId});
+    TeakLog_i(@"purchase.report_storekit2", @{@"product_id" : transaction.productId, @"transaction_identifier" : transaction.transactionId});
 
     // The JWS price is what this transaction cost; the product lookup only gives today's
     // list price, so it's used only when the JWS has none.
-    NSDictionary* price = [TeakStoreKit2Transaction priceForTransaction:transaction];
-    if (price != nil) {
-      [payload addEntriesFromDictionary:price];
+    if (transaction.price != nil) {
+      payload[@"price_currency_code"] = transaction.currency;
+      payload[@"price_float"] = transaction.price;
       [PurchaseEvent purchaseSucceeded:payload];
       return;
     }
-    [ProductRequest productRequestForSku:productId
+    [ProductRequest productRequestForSku:transaction.productId
                                 callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
                                   [payload addEntriesFromDictionary:priceInfo ?: @{}];
                                   [PurchaseEvent purchaseSucceeded:payload];

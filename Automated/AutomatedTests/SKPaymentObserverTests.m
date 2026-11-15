@@ -88,6 +88,28 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
   XCTAssertEqual(ProductLookups, 0u, @"the JWS price is what this transaction cost; no lookup");
 }
 
+// Pins the whole /me/purchase payload for the real device transaction.
+- (void)testReportedStoreKit2TransactionPayloadIsExactly {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  NSString* jws = SandboxJWSWith(@{}, @[]);
+  [self withReportStandIns:^{
+    [teak reportStoreKit2Transaction:jws];
+  }];
+
+  NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
+  NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
+  NSDictionary* expected = @{
+    @"purchase_time" : @"2026-11-13T00:58:36+0000",
+    @"product_id" : @"io.teak.app.unity.dev.dollar",
+    @"transaction_identifier" : @"2000001265157858",
+    @"purchase_token" : receipt == nil ? [NSNull null] : [receipt base64EncodedStringWithOptions:0],
+    @"jws_representation" : jws,
+    @"price_currency_code" : @"USD",
+    @"price_float" : [NSDecimalNumber decimalNumberWithString:@"0.99"]
+  };
+  XCTAssertEqualObjects(ReportedPayloads, @[ expected ]);
+}
+
 // The server dedupes by transaction id, so every report is sent.
 - (void)testReportingATransactionAgainSendsItAgain {
   id<TeakStoreKit2Reporting> teak = BareTeak();

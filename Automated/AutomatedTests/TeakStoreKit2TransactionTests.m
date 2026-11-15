@@ -8,34 +8,65 @@
 
 @implementation TeakStoreKit2TransactionTests
 
+static TeakStoreKit2Transaction* TransactionWith(NSDictionary* changes, NSArray* removing) {
+  return [[TeakStoreKit2Transaction alloc] initWithJWS:SandboxJWSWith(changes, removing)];
+}
+
+- (void)testSandboxTransactionReadsEveryField {
+  NSString* jws = SandboxJWSWith(@{}, @[]);
+  TeakStoreKit2Transaction* transaction = [[TeakStoreKit2Transaction alloc] initWithJWS:jws];
+  XCTAssertEqualObjects(transaction.jwsRepresentation, jws);
+  XCTAssertEqualObjects(transaction.transactionId, @"2000001265157858");
+  XCTAssertEqualObjects(transaction.productId, @"io.teak.app.unity.dev.dollar");
+  XCTAssertEqualObjects(transaction.price, [NSDecimalNumber decimalNumberWithString:@"0.99"]);
+  XCTAssertEqualObjects(transaction.currency, @"USD");
+  XCTAssertEqualObjects(transaction.purchaseDate, [NSDate dateWithTimeIntervalSince1970:1794531516]);
+  XCTAssertTrue(transaction.hasTransactionReason);
+  XCTAssertNil(transaction.skipReason);
+}
+
 // base64url drops padding and uses '-' and '_'; NSData's decoder needs both undone.
 - (void)testJWSPayloadNeedingPaddingAndURLSafeCharactersDecodes {
   NSString* jws = @"eyJhbGciOiJFUzI1NiJ9.eyJ0cmFuc2FjdGlvbklkIjoiMTIiLCJwcm9kdWN0SWQiOiJhPz8-fngifQ.c2ln";
-  NSDictionary* payload = [TeakStoreKit2Transaction payloadFromJWS:jws];
-  XCTAssertEqualObjects(payload[@"transactionId"], @"12");
-  XCTAssertEqualObjects(payload[@"productId"], @"a??>~x");
+  TeakStoreKit2Transaction* transaction = [[TeakStoreKit2Transaction alloc] initWithJWS:jws];
+  XCTAssertEqualObjects(transaction.transactionId, @"12");
+  XCTAssertEqualObjects(transaction.productId, @"a??>~x");
 }
 
-- (void)testMalformedJWSDecodesToNil {
-  XCTAssertNil([TeakStoreKit2Transaction payloadFromJWS:nil]);
-  XCTAssertNil([TeakStoreKit2Transaction payloadFromJWS:@""]);
-  XCTAssertNil([TeakStoreKit2Transaction payloadFromJWS:@"not-a-jws"]);
-  XCTAssertNil([TeakStoreKit2Transaction payloadFromJWS:@"a.b"], @"two segments");
-  XCTAssertNil([TeakStoreKit2Transaction payloadFromJWS:@"a.!!!.c"], @"payload isn't base64url");
-  XCTAssertNil([TeakStoreKit2Transaction payloadFromJWS:@"a.bm90IGpzb24.c"], @"payload isn't JSON");
-  XCTAssertNil([TeakStoreKit2Transaction payloadFromJWS:@"a.WzFd.c"], @"payload is a JSON array, not an object");
+- (void)testMalformedJWSIsNil {
+  XCTAssertNil([[TeakStoreKit2Transaction alloc] initWithJWS:nil]);
+  XCTAssertNil([[TeakStoreKit2Transaction alloc] initWithJWS:@""]);
+  XCTAssertNil([[TeakStoreKit2Transaction alloc] initWithJWS:@"not-a-jws"]);
+  XCTAssertNil([[TeakStoreKit2Transaction alloc] initWithJWS:@"a.b"], @"two segments");
+  XCTAssertNil([[TeakStoreKit2Transaction alloc] initWithJWS:@"a.!!!.c"], @"payload isn't base64url");
+  XCTAssertNil([[TeakStoreKit2Transaction alloc] initWithJWS:@"a.bm90IGpzb24.c"], @"payload isn't JSON");
+  XCTAssertNil([[TeakStoreKit2Transaction alloc] initWithJWS:@"a.WzFd.c"], @"payload is a JSON array, not an object");
 }
 
-- (void)testTransactionWithoutIdsIsSkipped {
-  NSDictionary* noProduct = SandboxTransactionWith(@{}, @[ @"productId" ]);
-  NSDictionary* noTransaction = SandboxTransactionWith(@{}, @[ @"transactionId" ]);
-  XCTAssertEqualObjects([TeakStoreKit2Transaction skipReasonForTransaction:noProduct], @"missing_product_id");
-  XCTAssertEqualObjects([TeakStoreKit2Transaction skipReasonForTransaction:noTransaction], @"missing_transaction_id");
+- (void)testTransactionWithoutIdsIsNil {
+  XCTAssertNil(TransactionWith(@{}, @[ @"productId" ]));
+  XCTAssertNil(TransactionWith(@{}, @[ @"transactionId" ]));
+  XCTAssertNil(TransactionWith(@{@"transactionId" : @2000001265157858}, @[]), @"a numeric id isn't read as a string");
 }
 
 - (void)testPriceWithoutCurrencyOrAmountIsNil {
-  XCTAssertNil([TeakStoreKit2Transaction priceForTransaction:SandboxTransactionWith(@{}, @[ @"currency" ])]);
-  XCTAssertNil([TeakStoreKit2Transaction priceForTransaction:SandboxTransactionWith(@{}, @[ @"price" ])]);
+  TeakStoreKit2Transaction* noCurrency = TransactionWith(@{}, @[ @"currency" ]);
+  TeakStoreKit2Transaction* noAmount = TransactionWith(@{}, @[ @"price" ]);
+  XCTAssertNil(noCurrency.price);
+  XCTAssertNil(noCurrency.currency);
+  XCTAssertNil(noAmount.price);
+  XCTAssertNil(noAmount.currency);
+}
+
+- (void)testSkipReasons {
+  XCTAssertEqualObjects(TransactionWith(@{@"transactionReason" : @"RENEWAL"}, @[]).skipReason, @"reason_RENEWAL");
+  XCTAssertEqualObjects(TransactionWith(@{@"revocationDate" : @1794531600000}, @[]).skipReason, @"revoked");
+  XCTAssertEqualObjects(TransactionWith(@{@"inAppOwnershipType" : @"FAMILY_SHARED"}, @[]).skipReason, @"family_shared");
+  XCTAssertNil(TransactionWith(@{@"revocationDate" : [NSNull null]}, @[]).skipReason);
+
+  TeakStoreKit2Transaction* noReason = TransactionWith(@{}, @[ @"transactionReason" ]);
+  XCTAssertNil(noReason.skipReason);
+  XCTAssertFalse(noReason.hasTransactionReason);
 }
 
 @end
