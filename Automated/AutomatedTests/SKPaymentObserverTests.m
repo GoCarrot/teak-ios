@@ -174,16 +174,19 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
 - (void)testReportedStoreKit2TransactionSendsOncePricedFromTheJWS {
   id<TeakStoreKit2Reporting> teak = BareTeak();
   NSString* jws = SandboxJWSWith(@{}, @[]);
+  __block NSUInteger manualLookups = 0;
   [self withReportStandIns:^{
     [teak reportStoreKit2Transaction:jws];
     [teak reportStoreKit2Transaction:jws];
+    manualLookups = ProductLookups;
     [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
                                  transactionId:@"2000001265157858"
                                   purchaseDate:[NSDate date]
                               purchaseDuration:nil
                                         source:@"storekit1_observer"
                                          price:nil
-                                      jwsToken:nil];
+                                      jwsToken:nil
+                        rememberAcrossLaunches:YES];
   }];
 
   XCTAssertEqual(ReportedPayloads.count, 1u);
@@ -194,7 +197,7 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
   XCTAssertEqualObjects(payload[@"price_currency_code"], @"USD");
   XCTAssertEqualObjects(payload[@"price_float"], [NSDecimalNumber decimalNumberWithString:@"0.99"]);
   XCTAssertEqualObjects(payload[@"purchase_time"], @"2026-11-13T00:58:36+0000");
-  XCTAssertEqual(ProductLookups, 0u, @"the JWS price is what this transaction cost; no lookup");
+  XCTAssertEqual(manualLookups, 0u, @"the JWS price is what this transaction cost; no lookup");
 }
 
 - (void)testReportedStoreKit2TransactionsThatAreNotPurchasesAreNotSent {
@@ -228,7 +231,8 @@ static void ReportFromStoreKit1(void) {
                             purchaseDuration:nil
                                       source:@"storekit1_observer"
                                        price:nil
-                                    jwsToken:nil];
+                                    jwsToken:nil
+                      rememberAcrossLaunches:YES];
 }
 
 // A successful reply marks the id reported, so it isn't sent again on a later launch.

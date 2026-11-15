@@ -58,7 +58,8 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
                             purchaseDuration:purchaseDuration
                                       source:@"storekit1_observer"
                                        price:nil
-                                    jwsToken:nil];
+                                    jwsToken:nil
+                      rememberAcrossLaunches:YES];
 }
 
 #pragma mark - Reported transaction tracking
@@ -76,24 +77,20 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
   return set;
 }
 
-+ (NSUserDefaults*)reportedTransactionDefaults {
-  return [NSUserDefaults standardUserDefaults];
-}
-
-// Claims a transaction id for reporting. Returns NO if this id is already being
-// reported in this launch, or was reported (and acknowledged by the server) in
-// a previous launch. Claims are in-memory only, so a send that never lands is
-// retried when the transaction is redelivered on a later launch.
 + (void)clearClaimedTransactionIds {
   @synchronized(ReportedTransactionsMutex) {
     [[SKPaymentObserver claimedTransactionIds] removeAllObjects];
   }
 }
 
+// Claims a transaction id for reporting. Returns NO if this id is already being
+// reported in this launch, or was reported (and acknowledged by the server) in
+// a previous launch. Claims are in-memory only, so a send that never lands is
+// retried when the transaction is redelivered on a later launch.
 + (BOOL)claimTransactionId:(NSString*)transactionId {
   @synchronized(ReportedTransactionsMutex) {
     if ([[SKPaymentObserver claimedTransactionIds] containsObject:transactionId]) return NO;
-    NSArray* persisted = [[SKPaymentObserver reportedTransactionDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
+    NSArray* persisted = [[NSUserDefaults standardUserDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
     if ([persisted containsObject:transactionId]) return NO;
     [[SKPaymentObserver claimedTransactionIds] addObject:transactionId];
     return YES;
@@ -108,7 +105,7 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
 
 + (void)persistReportedTransactionId:(NSString*)transactionId {
   @synchronized(ReportedTransactionsMutex) {
-    NSUserDefaults* defaults = [SKPaymentObserver reportedTransactionDefaults];
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
     NSMutableArray* persisted = [NSMutableArray arrayWithArray:[defaults arrayForKey:ReportedTransactionsDefaultsKey] ?: @[]];
     if ([persisted containsObject:transactionId]) return;
     [persisted addObject:transactionId];
@@ -120,10 +117,11 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
 }
 
 + (BOOL)isSuccessfulPurchaseReply:(NSDictionary*)reply {
-  // Transport failures and unparseable bodies produce an empty reply.
-  if (reply == nil || reply.count == 0) return NO;
+  // Transport failures and unparseable bodies produce an empty reply, and the server's
+  // error bodies carry a code other than 200.
   if (reply[@"error"] != nil && reply[@"error"] != [NSNull null]) return NO;
-  return YES;
+  id code = reply[@"code"];
+  return [code isKindOfClass:[NSNumber class]] && [code integerValue] == 200;
 }
 
 #pragma mark - Reporting
@@ -134,17 +132,11 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
                purchaseDuration:(NSNumber*)purchaseDuration
                          source:(NSString*)source
                           price:(NSDictionary*)price
-                       jwsToken:(NSString*)jwsToken {
+                       jwsToken:(NSString*)jwsToken
+         rememberAcrossLaunches:(BOOL)rememberAcrossLaunches {
   if (productId == nil) return;
 
   teak_try {
-    // Claim synchronously, ahead of the async price lookup, so two paths
-    // reporting the same transaction can't both pass the check.
-    if (transactionId != nil && ![SKPaymentObserver claimTransactionId:transactionId]) {
-      TeakLog_i(@"purchase.report.duplicate", @{@"source" : source, @"transaction_identifier" : transactionId});
-      return;
-    }
-
     teak_log_breadcrumb(@"Getting info from App Store receipt");
     NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
     NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
@@ -159,29 +151,47 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
 
     NSDateFormatter* formatter = [SKPaymentObserver transactionDateFormatter];
     void (^send)(NSDictionary*, NSString*) = ^(NSDictionary* priceInfo, NSString* priceSource) {
-      teak_log_breadcrumb(@"Building payload");
-      NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
-        @"purchase_time" : _([formatter stringFromDate:purchaseDate]),
-        @"product_id" : productId,
-        @"transaction_identifier" : _(transactionId),
-        @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
-        @"purchase_duration" : _(purchaseDuration)
-      }];
-      if (jwsToken != nil) {
-        fullPayload[@"jws_representation"] = jwsToken;
+      // Claimed only now, at the send: a lookup that never returns then holds nothing, and
+      // another path can still report the transaction.
+      if (transactionId != nil && ![SKPaymentObserver claimTransactionId:transactionId]) {
+        TeakLog_i(@"purchase.report.duplicate", @{@"source" : source, @"transaction_identifier" : transactionId});
+        return;
       }
-      [fullPayload addEntriesFromDictionary:priceInfo ?: @{}];
-      TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : priceSource});
 
-      [PurchaseEvent purchaseSucceeded:fullPayload
-                               onReply:^(NSDictionary* reply) {
-                                 if (transactionId == nil) return;
-                                 if ([SKPaymentObserver isSuccessfulPurchaseReply:reply]) {
-                                   [SKPaymentObserver persistReportedTransactionId:transactionId];
-                                 } else {
-                                   [SKPaymentObserver releaseTransactionId:transactionId];
-                                 }
-                               }];
+      BOOL sent = NO;
+      teak_try {
+        teak_log_breadcrumb(@"Building payload");
+        NSMutableDictionary* fullPayload = [NSMutableDictionary dictionaryWithDictionary:@{
+          @"purchase_time" : _([formatter stringFromDate:purchaseDate]),
+          @"product_id" : productId,
+          @"transaction_identifier" : _(transactionId),
+          @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
+          @"purchase_duration" : _(purchaseDuration)
+        }];
+        if (jwsToken != nil) {
+          fullPayload[@"jws_representation"] = jwsToken;
+        }
+        [fullPayload addEntriesFromDictionary:priceInfo ?: @{}];
+        TeakLog_i(@"purchase.report.price", @{@"source" : source, @"price_source" : priceSource});
+
+        // The server accepts a purchase without a price but doesn't track it, so only a
+        // priced send marks the transaction reported.
+        BOOL priced = priceInfo.count > 0;
+        [PurchaseEvent purchaseSucceeded:fullPayload
+                                 onReply:^(NSDictionary* reply) {
+                                   if (transactionId == nil) return;
+                                   if (![SKPaymentObserver isSuccessfulPurchaseReply:reply] || !priced) {
+                                     [SKPaymentObserver releaseTransactionId:transactionId];
+                                   } else if (rememberAcrossLaunches) {
+                                     [SKPaymentObserver persistReportedTransactionId:transactionId];
+                                   }
+                                 }];
+        sent = YES;
+      }
+      teak_catch_report;
+      if (!sent && transactionId != nil) {
+        [SKPaymentObserver releaseTransactionId:transactionId];
+      }
     };
 
     // A price from the caller is what this transaction cost; the product lookup would only
@@ -217,13 +227,16 @@ static const NSUInteger ReportedTransactionsMaxPersisted = 64;
       TeakLog_i(@"purchase.report_storekit2.reason_missing", @{@"transaction_identifier" : transactionId});
     }
 
+    // Xcode's StoreKit Testing restarts transaction ids at 0 when the tester clears them.
+    BOOL isXcodeTesting = [transaction[@"environment"] isEqual:@"Xcode"];
     [SKPaymentObserver reportPurchaseOfProduct:transaction[@"productId"]
                                  transactionId:transactionId
                                   purchaseDate:[TeakStoreKit2Transaction purchaseDateForTransaction:transaction]
                               purchaseDuration:nil
                                         source:@"report_storekit2_transaction"
                                          price:[TeakStoreKit2Transaction priceForTransaction:transaction]
-                                      jwsToken:jwsRepresentation];
+                                      jwsToken:jwsRepresentation
+                        rememberAcrossLaunches:!isXcodeTesting];
   }
   teak_catch_report;
 }
