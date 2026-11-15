@@ -304,23 +304,24 @@ static void DiscoverSceneDelegateClass(Class sceneDelegateClass) {
   [verifyCount(_teak, times(3)) application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()];
 }
 
-// The host's willConnect runs before Teak sees the launch URLs, so they aren't marked there.
-- (void)testTeakHandledIsNotSetForLaunchURLs {
+// Teak handles launch URLs before the host's willConnect, so the host can tell them apart.
+- (void)testLaunchURLsAreMarkedBeforeTheHostSeesThem {
   NSURL* teakURL = [NSURL URLWithString:@"teak1234://launch"];
+  NSURL* hostURL = [NSURL URLWithString:@"teak1234://host-launch"];
   [given([_teak application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()]) willReturnBool:YES];
-  NSMutableArray<NSNumber*>* hostSaw = [[NSMutableArray alloc] init];
+  NSMutableDictionary<NSURL*, NSNumber*>* hostSaw = [[NSMutableDictionary alloc] init];
   Class klass = MakeClass(@"LaunchFlagSceneDelegate", [UIResponder class]);
   IMP willConnect = imp_implementationWithBlock(^(id _self, UIScene* scene, UISceneSession* session, UISceneConnectionOptions* options) {
-    for (UIOpenURLContext* context in options.URLContexts) [hostSaw addObject:@(TeakHandledFlag(context))];
+    for (UIOpenURLContext* context in options.URLContexts) hostSaw[context.URL] = @(TeakHandledFlag(context));
   });
   class_addMethod(klass, @selector(scene:willConnectToSession:options:), willConnect, "v@:@@@");
   DiscoverSceneDelegateClass(klass);
 
   UISceneConnectionOptions* options = mock([UISceneConnectionOptions class]);
-  [given(options.URLContexts) willReturn:[self contextsForURLs:@[ teakURL ]]];
+  [given(options.URLContexts) willReturn:[self contextsForURLs:@[ teakURL, hostURL ]]];
   [[[klass alloc] init] scene:mock([UIScene class]) willConnectToSession:mock([UISceneSession class]) options:options];
 
-  XCTAssertEqualObjects(hostSaw, @[ @NO ]);
+  XCTAssertEqualObjects(hostSaw, (@{teakURL : @YES, hostURL : @NO}));
   [verifyCount(_teak, times(1)) application:anything() openURL:teakURL sourceApplication:anything() annotation:anything()];
 }
 

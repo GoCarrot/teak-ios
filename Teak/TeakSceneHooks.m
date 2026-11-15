@@ -62,8 +62,10 @@ static void TeakSceneHookExit(SEL sel) {
 #pragma mark - Teak handling
 
 API_AVAILABLE(ios(13.0))
-static BOOL TeakSceneOpenURLContext(UIOpenURLContext* context) {
-  return [[Teak sharedInstance] application:[UIApplication sharedApplication] openURL:context.URL sourceApplication:context.options.sourceApplication annotation:context.options.annotation];
+static void TeakSceneOpenURLContext(UIOpenURLContext* context) {
+  if ([[Teak sharedInstance] application:[UIApplication sharedApplication] openURL:context.URL sourceApplication:context.options.sourceApplication annotation:context.options.annotation]) {
+    objc_setAssociatedObject(context, &sTeakHandledKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+  }
 }
 
 static void TeakSceneContinueUserActivity(NSUserActivity* activity) {
@@ -103,11 +105,12 @@ static IMP TeakWillConnectHook(SEL sel, IMP original, BOOL unused) {
   return imp_implementationWithBlock(^(id self, UIScene* scene, UISceneSession* session, UISceneConnectionOptions* connectionOptions) {
     BOOL outermost = TeakSceneHookEnter(sel);
     @try {
-      if (host) {
-        host(self, sel, scene, session, connectionOptions);
-      }
+      // Teak first, as the app delegate hook does at launch, so the host sees teakHandled.
       if (outermost) {
         TeakSceneHandleConnectionOptions(connectionOptions);
+      }
+      if (host) {
+        host(self, sel, scene, session, connectionOptions);
       }
     } @finally {
       TeakSceneHookExit(sel);
@@ -123,9 +126,7 @@ static IMP TeakOpenURLContextsHook(SEL sel, IMP original, BOOL unused) {
     @try {
       if (outermost) {
         for (UIOpenURLContext* context in URLContexts) {
-          if (TeakSceneOpenURLContext(context)) {
-            objc_setAssociatedObject(context, &sTeakHandledKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-          }
+          TeakSceneOpenURLContext(context);
         }
       }
       if (host) {

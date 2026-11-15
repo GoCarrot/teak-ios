@@ -20,11 +20,10 @@ API_AVAILABLE(ios(13))
 
 /**
  * YES if Teak handled this URL before passing it to your scene delegate's
- * @c scene:openURLContexts:.
+ * @c scene:openURLContexts: or @c scene:willConnectToSession:options:.
  *
  * Scene delegates get every URL context, including Teak's. Check this to skip the
- * links Teak already handled. It's always NO for the URL contexts in the
- * connection options passed to @c scene:willConnectToSession:options:.
+ * links Teak already handled.
  */
 @property (nonatomic, readonly) BOOL teakHandled;
 
