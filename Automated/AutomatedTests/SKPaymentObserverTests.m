@@ -30,6 +30,9 @@ static NSString* const ReportedTransactionsDefaultsKey = @"TeakReportedTransacti
 // can be counted without StoreKit or the network.
 static NSMutableArray<NSDictionary*>* ReportedPayloads;
 static NSUInteger ProductLookups;
+static BOOL LookupCallsBack;           // NO models a lookup that never returns
+static NSDictionary* LookupPriceInfo;  // what a returning lookup hands back
+static NSDictionary* PurchaseReply;    // nil: the send never gets a reply
 
 @interface SKPaymentObserverTestDoubles : NSObject
 @end
@@ -37,12 +40,13 @@ static NSUInteger ProductLookups;
 @implementation SKPaymentObserverTestDoubles
 + (ProductRequest*)productRequestForSku:(NSString*)sku callback:(ProductRequestCallback)callback {
   ProductLookups++;
-  callback(@{}, nil);
+  if (LookupCallsBack) callback(LookupPriceInfo, nil);
   return nil;
 }
 
 + (void)purchaseSucceeded:(NSDictionary*)payload onReply:(PurchaseEventReply)onReply {
   [ReportedPayloads addObject:payload];
+  if (PurchaseReply != nil) onReply(PurchaseReply);
 }
 @end
 
@@ -50,9 +54,6 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
   method_exchangeImplementations(class_getClassMethod(original, selector), class_getClassMethod(replacement, selector));
 }
 
-// The transaction JSON from a sandbox consumable bought with Unity IAP 5 on an iOS 18.7 device,
-// as a JWS with a placeholder header and signature (not a captured JWS: only the payload
-// segment is read, and the signature isn't verified).
 // Teak's public method, reached without importing Teak.h next to these internal headers
 // (the framework and source copies of its headers clash in this target).
 @protocol TeakStoreKit2Reporting <NSObject>
@@ -64,6 +65,9 @@ static id<TeakStoreKit2Reporting> BareTeak(void) {
   return [[NSClassFromString(@"Teak") alloc] init];
 }
 
+// The transaction JSON from a sandbox consumable bought with Unity IAP 5 on an iOS 18.7 device,
+// as a JWS with a placeholder header and signature (not a captured JWS: only the payload
+// segment is read, and the signature isn't verified).
 static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
   NSMutableDictionary* transaction = [@{
     @"transactionId" : @"2000001265157858",
@@ -104,8 +108,7 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
   [[NSUserDefaults standardUserDefaults] removeObjectForKey:ReportedTransactionsDefaultsKey];
 }
 
-// The StoreKit 1 observer and the report-purchase hook both see an SK1 purchase;
-// only the first claim may report it.
+// Only the first claim of a transaction id in a launch may report it.
 - (void)testSecondClaimInSameLaunchIsRejected {
   XCTAssertTrue([SKPaymentObserver claimTransactionId:@"2000000123"]);
   XCTAssertFalse([SKPaymentObserver claimTransactionId:@"2000000123"]);
@@ -149,44 +152,16 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
   XCTAssertTrue([SKPaymentObserver isSuccessfulPurchaseReply:@{@"code" : @200}]);
   XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{}], @"transport failure yields an empty reply");
   XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:@{@"error" : @{@"code" : @404}}]);
-}
-
-// IAP 5 finishes each StoreKit 2 transaction twice, and a purchase can reach Teak from
-// more than one path; every report of one transaction id after the first must be dropped.
-- (void)testRepeatedReportsOfOneTransactionSendOnce {
-  ReportedPayloads = [NSMutableArray array];
-  SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
-  SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
-
-  for (NSString* source in @[ @"storekit2", @"storekit2", @"storekit1_observer" ]) {
-    [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
-                                 transactionId:@"2000001265157858"
-                                  purchaseDate:[NSDate date]
-                              purchaseDuration:nil
-                                        source:source
-                                         price:@{@"price_currency_code" : @"USD", @"price_float" : [NSDecimalNumber decimalNumberWithString:@"0.99"]}
-                                      jwsToken:@"header.payload.signature"];
-  }
-  [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
-                               transactionId:@"2000001265157768"
-                                purchaseDate:[NSDate date]
-                            purchaseDuration:nil
-                                      source:@"storekit2"
-                                       price:nil
-                                    jwsToken:nil];
-
-  SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
-  SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
-
-  NSArray* ids = [ReportedPayloads valueForKey:@"transaction_identifier"];
-  XCTAssertEqualObjects(ids, (@[ @"2000001265157858", @"2000001265157768" ]));
-  XCTAssertEqualObjects(ReportedPayloads.firstObject[@"jws_representation"], @"header.payload.signature");
-  XCTAssertEqualObjects(ReportedPayloads.firstObject[@"price_currency_code"], @"USD", @"caller price is used when StoreKit returns none");
+  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"invalid_user", @"code" : @404})]);
+  XCTAssertFalse([SKPaymentObserver isSuccessfulPurchaseReply:(@{@"status" : @"Posting too frequent", @"code" : @403})]);
 }
 
 - (void)withReportStandIns:(void (^)(void))block {
   ReportedPayloads = [NSMutableArray array];
   ProductLookups = 0;
+  LookupCallsBack = YES;
+  LookupPriceInfo = @{};
+  PurchaseReply = nil;
   SwapClassMethods([ProductRequest class], [SKPaymentObserverTestDoubles class], @selector(productRequestForSku:callback:));
   SwapClassMethods([PurchaseEvent class], [SKPaymentObserverTestDoubles class], @selector(purchaseSucceeded:onReply:));
   block();
@@ -240,6 +215,89 @@ static NSString* SandboxJWSWith(NSDictionary* changes, NSArray* removing) {
     [teak reportStoreKit2Transaction:SandboxJWSWith(@{}, @[ @"transactionReason" ])];
   }];
   XCTAssertEqual(ReportedPayloads.count, 1u);
+}
+
+static NSArray* PersistedTransactionIds(void) {
+  return [[NSUserDefaults standardUserDefaults] arrayForKey:ReportedTransactionsDefaultsKey];
+}
+
+static void ReportFromStoreKit1(void) {
+  [SKPaymentObserver reportPurchaseOfProduct:@"io.teak.app.unity.dev.dollar"
+                               transactionId:@"2000001265157858"
+                                purchaseDate:[NSDate date]
+                            purchaseDuration:nil
+                                      source:@"storekit1_observer"
+                                       price:nil
+                                    jwsToken:nil];
+}
+
+// A successful reply marks the id reported, so it isn't sent again on a later launch.
+- (void)testSuccessfulReplyMarksTheTransactionReported {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  NSString* jws = SandboxJWSWith(@{}, @[]);
+  [self withReportStandIns:^{
+    PurchaseReply = @{@"code" : @200};
+    [teak reportStoreKit2Transaction:jws];
+    [SKPaymentObserver clearClaimedTransactionIds]; // models a relaunch
+    [teak reportStoreKit2Transaction:jws];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 1u);
+  XCTAssertEqualObjects(PersistedTransactionIds(), @[ @"2000001265157858" ]);
+}
+
+// A failed send frees the id, so the next report of it is sent.
+- (void)testFailedReplyLetsTheTransactionBeSentAgain {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  NSString* jws = SandboxJWSWith(@{}, @[]);
+  [self withReportStandIns:^{
+    PurchaseReply = @{};
+    [teak reportStoreKit2Transaction:jws];
+    PurchaseReply = @{@"status" : @"invalid_user", @"code" : @404};
+    [teak reportStoreKit2Transaction:jws];
+    [teak reportStoreKit2Transaction:jws];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 3u);
+  XCTAssertNil(PersistedTransactionIds());
+}
+
+// The server accepts a purchase without a price but doesn't track it, so a send without one
+// mustn't mark the id reported: a later report with a price still goes out.
+- (void)testStoreKit1SendWithoutAPriceDoesNotMarkTheTransactionReported {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  [self withReportStandIns:^{
+    PurchaseReply = @{@"code" : @200};
+    ReportFromStoreKit1();
+    [teak reportStoreKit2Transaction:SandboxJWSWith(@{}, @[])];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 2u);
+  XCTAssertNil(ReportedPayloads.firstObject[@"price_float"]);
+  XCTAssertEqualObjects(ReportedPayloads.lastObject[@"price_currency_code"], @"USD");
+  XCTAssertEqualObjects(PersistedTransactionIds(), @[ @"2000001265157858" ]);
+}
+
+// A StoreKit 1 product lookup that never returns mustn't hold the transaction id.
+- (void)testHungStoreKit1LookupDoesNotBlockTheGamesReport {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  NSString* jws = SandboxJWSWith(@{}, @[]);
+  [self withReportStandIns:^{
+    LookupCallsBack = NO;
+    ReportFromStoreKit1();
+    [teak reportStoreKit2Transaction:jws];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 1u);
+  XCTAssertEqualObjects(ReportedPayloads.firstObject[@"jws_representation"], jws);
+}
+
+// Xcode's StoreKit Testing restarts transaction ids at 0 when the tester clears transactions,
+// so its ids aren't remembered across launches.
+- (void)testXcodeTestingTransactionsAreNotMarkedReported {
+  id<TeakStoreKit2Reporting> teak = BareTeak();
+  [self withReportStandIns:^{
+    PurchaseReply = @{@"code" : @200};
+    [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"environment" : @"Xcode", @"transactionId" : @0}, @[])];
+  }];
+  XCTAssertEqual(ReportedPayloads.count, 1u);
+  XCTAssertNil(PersistedTransactionIds());
 }
 
 // Verifies purchase_time uses en_US_POSIX so Arabic-locale devices don't produce
