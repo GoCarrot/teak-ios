@@ -83,14 +83,26 @@ void TeakLifecycleWillResignActive(UIApplication* application) {
   [[Teak sharedInstance] applicationWillResignActive:application];
 }
 
+// Teak may be planted after the app is already active. When it's planted before UIApplicationMain, as
+// documented, there is no shared application yet and the flag stays NO. The flag and applicationState
+// are main-thread only, so an off-main plant seeds on the main queue. The notifications also arrive on
+// main, so whichever runs first, the flag ends up matching the app.
+void TeakLifecycleSeed(void) {
+  void (^seed)(void) = ^{
+    UIApplication* application = [UIApplication sharedApplication];
+    sTeakLifecycleActive = application != nil && application.applicationState == UIApplicationStateActive;
+  };
+  if ([NSThread isMainThread]) {
+    seed();
+  } else {
+    dispatch_async(dispatch_get_main_queue(), seed);
+  }
+}
+
 void TeakLifecycleInstall(void) {
   static dispatch_once_t onceToken;
   dispatch_once(&onceToken, ^{
-    // Teak may be planted after the app is already active.
-    if ([NSThread isMainThread]) {
-      UIApplication* application = [UIApplication sharedApplication];
-      sTeakLifecycleActive = application != nil && application.applicationState == UIApplicationStateActive;
-    }
+    TeakLifecycleSeed();
 
     [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidBecomeActiveNotification
                                                       object:nil

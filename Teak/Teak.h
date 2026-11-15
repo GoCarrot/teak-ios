@@ -191,7 +191,8 @@ typedef void (^TeakLogListener)(NSString* _Nonnull event,
  * 	}
  *
  *
- * This functionality is also accessable from the C API:
+ * This functionality is also accessable from the C API, with the same requirement: call it on the
+ * main thread, before UIApplicationMain() is called.
  *
  * 	extern void Teak_Plant(Class appDelegateClass,
  * 	                       NSString* appId,
