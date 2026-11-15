@@ -155,6 +155,10 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
                                    headerFields:@{}];
 }
 
+- (NSError*)urlError:(NSInteger)code {
+  return [NSError errorWithDomain:NSURLErrorDomain code:code userInfo:nil];
+}
+
 - (TeakRequest*)makePlainRequest {
   return [TeakRequest requestWithSession:[self makeMockSession]
                              forEndpoint:@"/me/other"
@@ -306,6 +310,44 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
 
 #pragma mark - No-response failures
 
+- (void)testProfileRetriesAfterNoResponseFailures {
+  for (NSNumber* code in @[ @(NSURLErrorTimedOut), @(NSURLErrorNetworkConnectionLost) ]) {
+    TeakUserProfile* profile = [self makeProfile];
+    [self sendProfile:profile value:@"a" expectingTransmits:1];
+
+    [self deliver:profile status:0 error:[self urlError:code.integerValue]];
+
+    XCTAssertEqual([self waitForTransmits:2 of:profile timeout:4.0], 2u, @"no retry after error %@", code);
+    NSArray* ids = [self wireRequestIdsOf:profile];
+    XCTAssertEqualObjects(ids[0], ids[1]);
+  }
+}
+
+- (void)testPlainRequestRetriesNoResponseOnceThenStops {
+  TeakRequest* request = [self makePlainRequest];
+  [request send];
+  XCTAssertEqual([self waitForTransmits:1 of:request timeout:3.0], 1u);
+
+  [self deliver:request status:0 error:[self urlError:NSURLErrorTimedOut]];
+  XCTAssertEqual([self waitForTransmits:2 of:request timeout:4.0], 2u);
+
+  // Settle past the 1.5s retry delay: a retry the stop policy should have blocked would land here.
+  [self deliver:request status:0 error:[self urlError:NSURLErrorTimedOut]];
+  [self waitForTransmits:NSUIntegerMax of:request timeout:2.0];
+  XCTAssertEqual([self transmitsFor:request].count, 2u, @"retried past the cap");
+}
+
+- (void)testCancelledRequestIsNotRetried {
+  TeakRequest* request = [self makePlainRequest];
+  [request send];
+  XCTAssertEqual([self waitForTransmits:1 of:request timeout:3.0], 1u);
+
+  [self deliver:request status:0 error:[self urlError:NSURLErrorCancelled]];
+
+  [self waitForTransmits:NSUIntegerMax of:request timeout:2.0];
+  XCTAssertEqual([self transmitsFor:request].count, 1u, @"retried a cancelled request");
+}
+
 // A reply with a status is an answer, not a transport failure.
 - (void)testHttpErrorWithoutLadderIsNotRetried {
   TeakRequest* request = [self makePlainRequest];
@@ -336,6 +378,21 @@ static NSMutableArray<NSDictionary*>* retryTest_transmits;
   [self deliver:batch status:500 error:nil];
 
   XCTAssertEqual([self waitForTransmits:2 of:batch timeout:3.0], 2u, @"retry hit the batch's no-op -send instead of resending");
+}
+
+// With the server deduping /me/events on request_id, a batch is retried like any request,
+// and the resend carries the same id.
+- (void)testBatchedRequestRetriesNoResponseWithTheSameRequestId {
+  for (NSNumber* code in @[ @(NSURLErrorNetworkConnectionLost), @(NSURLErrorTimedOut) ]) {
+    TeakBatchedRequest* batch = [self sendBatchedEvent];
+    XCTAssertEqual([self waitForTransmits:1 of:batch timeout:3.0], 1u);
+
+    [self deliver:batch status:0 error:[self urlError:code.integerValue]];
+
+    XCTAssertEqual([self waitForTransmits:2 of:batch timeout:4.0], 2u, @"no retry after error %@", code);
+    NSArray* ids = [self wireRequestIdsOf:batch];
+    XCTAssertEqualObjects(ids[0], ids[1], @"the batch resend carried a different request_id");
+  }
 }
 
 @end
