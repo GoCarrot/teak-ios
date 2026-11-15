@@ -111,7 +111,7 @@ static void* swizzleMethod(Class klass, SEL sel) {
   if(sHostSceneWRA) {
     sHostSceneWRA(self, sceneWRA, scene);
   }
-  [[Teak sharedInstance] applicationWillResignActive:[UIApplication sharedApplication]];
+  TeakLifecycleWillResignActive([UIApplication sharedApplication]);
 }
 
 - (void)sceneDidBecomeActive:(UIScene *)scene;
@@ -119,7 +119,7 @@ static void* swizzleMethod(Class klass, SEL sel) {
   if(sHostSceneDBA) {
     sHostSceneDBA(self, sceneDBA, scene);
   }
-  [[Teak sharedInstance] applicationDidBecomeActive:[UIApplication sharedApplication]];
+  TeakLifecycleDidBecomeActive([UIApplication sharedApplication]);
 }
 
 @end
