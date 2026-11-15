@@ -448,6 +448,15 @@ Deep links are passed to an application as part of the launch. The Teak SDK hold
 onto the deep link information and waits until your app has finished launching,
 and initializing. Deep links will be processed when your game calls `Teak.login()`.
 
+=== Teak Links and Your Own URL Handlers
+
+When a custom-scheme URL opens your app while it's running, whether your own handler also sees it depends on where your app receives URLs:
+
+* `application:openURL:options:` on your app delegate, or `scene:openURLContexts:` on a UIKit scene delegate: you only get URLs that Teak didn't handle.
+* SwiftUI `onOpenURL`: you get every URL, including the ones Teak handled.
+
+Universal links and URLs that launch the app are always passed on to your handlers.
+
 === Using Deep Links
 
 A Deep Link route may be added to any notification or email in the xref:ROOT:user-guide:page$notifications.adoc#_link_destination["Advanced", window=_blank] section when setting up a Message or Link. We recommend documenting what routes are implemented and how to use them, with examples, for your marketing team to add to notifications, emails, and links.
