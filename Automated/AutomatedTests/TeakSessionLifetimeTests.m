@@ -12,6 +12,8 @@
 
 extern TeakSession* currentSession;
 extern NSDictionary* TeakVersionDict;
+extern NSMutableSet* TeakEventHandlerSet;
+extern NSString* TeakEventHandlersMutex;
 
 @interface Teak (LifetimeTesting)
 + (dispatch_queue_t)operationQueue;
@@ -140,6 +142,20 @@ extern NSDictionary* TeakVersionDict;
   }
 
   AssertFreed(weakSession, 5.0, @"an expired session replaced on the next currentSession access is still alive");
+}
+
+#pragma mark - Expired transition
+
+// The cleanup belongs to the Expired transition itself, not to whichever path replaces the session.
+- (void)testExpiredTransitionDetachesWithoutReplacement {
+  TeakSession* session = [TeakSession currentSession];
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+  XCTAssertTrue([session setState:[TeakSession Expired]]);
+  XCTAssertEqual([TeakSession currentSessionOrNil], session);
+  XCTAssertTrue(session.deviceConfigurationObserversDetached);
+  @synchronized(TeakEventHandlersMutex) {
+    XCTAssertFalse([TeakEventHandlerSet containsObject:session]);
+  }
 }
 
 #pragma mark - Duration report

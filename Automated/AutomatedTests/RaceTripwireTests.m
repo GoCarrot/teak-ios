@@ -775,7 +775,7 @@ static NSMutableArray* keepAliveBareSessions;
 // Replacement detaches the outgoing session deterministically, under currentSessionMutex, where its
 // removeObserver can't race a new session's addObserver. After a logout swaps the current session,
 // the outgoing one must be flagged detached. Revert (drop the detach calls in
-// logoutReusingCurrentSession and -detachAfterReplacement) → the flag stays NO → red.
+// logoutReusingCurrentSession and -didExpire) → the flag stays NO → red.
 - (void)testReplacementDetachesOutgoingSession {
   TeakSession* outgoing = [[TeakSession alloc] init];
   [self.createdSessions addObject:outgoing];

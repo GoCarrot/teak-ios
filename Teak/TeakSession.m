@@ -127,9 +127,6 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // -detachDeviceConfigurationObservers.
 @property (nonatomic) BOOL deviceConfigurationObserversDetached;
 
-// Set under @synchronized(self) by -detachAfterReplacement, and read under the same lock where an
-// identify reply attaches a user profile, so a reply that lands after replacement can't attach one.
-@property (nonatomic) BOOL replaced;
 @end
 
 @implementation TeakSession
@@ -438,11 +435,12 @@ DefineTeakState(Expired, (@[]));
 }
 
 // The /users.json request holds this session until its reply runs, so a reply can arrive after the
-// session was replaced. Attaching a profile then would retain the session again (the profile holds
-// it) after -detachAfterReplacement already released the last one, so a replaced session gets none.
+// session expired and was replaced. An expired session gets no profile: the profile holds the session,
+// so attaching one would keep alive a session that expiry means to release. Expired is set under this
+// same lock, so a reply can't slip in between the check and the transition.
 - (void)userProfileReceived:(nullable NSDictionary*)userProfile {
   @synchronized(self) {
-    if (self.replaced) return;
+    if (self.currentState == [TeakSession Expired]) return;
     self.userProfile = [[TeakUserProfile alloc] initForSession:self withDictionary:userProfile];
   }
 }
@@ -533,7 +531,7 @@ DefineTeakState(Expired, (@[]));
   if ([self currentState] == [TeakSession Created]) {
     UnRegisterKeyValueObserverFor(self.remoteConfiguration, hostname);
   }
-  // A session frees only after replacement, which has already detached its deviceConfiguration
+  // A session frees only after expiring, which has already detached its deviceConfiguration
   // observers and removed it from the event-handler set.
   UnRegisterKeyValueObserverFor(self, currentState);
 }
@@ -559,20 +557,24 @@ DefineTeakState(Expired, (@[]));
   }
 }
 
-// Releases what keeps a replaced session alive. The shared event-handler set holds its handlers strongly,
-// and the userProfile holds the session back (a TeakUserProfile is a TeakRequest, which retains its
-// session), so either one alone keeps the session from ever freeing. Called at each replacement once the
-// outgoing session is Expired, after the Expiring transition has captured the profile for its final send.
+// End-of-life cleanup, run once from the Expired transition. Expired is terminal, and every path into
+// it replaces the session, so nothing routes new work here afterwards.
+//
+// Releases what keeps the session alive. The shared event-handler set holds its handlers strongly, and
+// the userProfile holds the session back (a TeakUserProfile is a TeakRequest, which retains its
+// session), so either one alone keeps the session from ever freeing. The Expiring transition has
+// already captured the profile for its final send.
 //
 // The profile is released on the operation queue, behind any attribute write or send already queued
 // there. Work that captured the profile itself — a pending send, a scheduled retry — keeps it, and the
 // session, alive until that work runs.
-- (void)detachAfterReplacement {
-  @synchronized(self) {
-    self.replaced = YES;
-  }
+//
+// Runs inside the currentState handler's @synchronized(self), with currentSessionMutex held by every
+// caller of the Expired transition. What it takes under those must stay a leaf lock or an async hop.
+// currentSession still holds the session here, so removing it from the handler set can't free it
+// mid-call.
+- (void)didExpire {
   // Idempotent, and a no-op where the replacement site already detached before expiring the session.
-  // Doing it here too means no replacement path can leave a freed session observing.
   [self detachDeviceConfigurationObservers];
   [TeakEvent removeEventHandler:self];
   dispatch_async([Teak operationQueue], ^{
@@ -686,7 +688,6 @@ DefineTeakState(Expired, (@[]));
 
       [currentSession setState:[TeakSession Expiring]];
       [currentSession setState:[TeakSession Expired]];
-      [currentSession detachAfterReplacement];
 
       currentSession = newSession;
     }
@@ -782,7 +783,6 @@ DefineTeakState(Expired, (@[]));
         [oldSession detachDeviceConfigurationObservers];
         [oldSession setState:[TeakSession Expiring]];
         [oldSession setState:[TeakSession Expired]];
-        [oldSession detachAfterReplacement];
       }
     }
 
@@ -803,7 +803,6 @@ DefineTeakState(Expired, (@[]));
     if (currentSession == nil || [currentSession hasExpired]) {
       TeakSession* oldSession = currentSession;
       currentSession = [[TeakSession alloc] initWithSession:oldSession];
-      [oldSession detachAfterReplacement];
     }
     return currentSession;
   }
@@ -1043,6 +1042,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         });
       }
     } else if (newValue == [TeakSession Expired]) {
+      [self didExpire];
     }
   }
 }
