@@ -4,7 +4,10 @@
 
 #import "PurchaseEvent.h"
 #import "SKPaymentObserver.h"
+#import "TeakCore.h"
 #import "TeakRaven.h"
+#import "TeakRequest.h"
+#import "TeakSession.h"
 
 // SKPaymentObserver.transactionDateFormatter is private — re-declare for test access.
 @interface SKPaymentObserver (Testing)
@@ -47,6 +50,24 @@ static NSDictionary* PurchaseReply;    // nil: the send never gets a reply
 + (void)purchaseSucceeded:(NSDictionary*)payload onReply:(PurchaseEventReply)onReply {
   [ReportedPayloads addObject:payload];
   if (PurchaseReply != nil) onReply(PurchaseReply);
+}
+@end
+
+// Stand-ins for the session wait and the request, so TeakCore's handling of a purchase
+// event can be run without a session or the network.
+static TeakRequestResponse CapturedRequestCallback;
+
+@interface TeakCoreTestDoubles : NSObject
+@end
+
+@implementation TeakCoreTestDoubles
++ (void)whenUserIdIsReadyRun:(UserIdReadyBlock)block {
+  block((TeakSession*)[NSNull null]);
+}
+
++ (TeakRequest*)requestWithSession:(TeakSession*)session forEndpoint:(NSString*)endpoint withPayload:(NSDictionary*)payload method:(NSString*)method callback:(TeakRequestResponse)callback {
+  CapturedRequestCallback = callback;
+  return nil;
 }
 @end
 
@@ -302,6 +323,30 @@ static void ReportFromStoreKit1(void) {
   }];
   XCTAssertEqual(ReportedPayloads.count, 1u);
   XCTAssertNil(PersistedTransactionIds());
+}
+
+// The server's reply to /me/purchase reaches the reporter's onReply.
+- (void)testPurchaseReplyReachesTheReporter {
+  PurchaseEvent* event = [[PurchaseEvent alloc] initWithType:PurchaseSucceeded];
+  [event setValue:@{@"product_id" : @"io.teak.app.unity.dev.dollar"} forKey:@"payload"];
+  __block NSDictionary* received = nil;
+  [event setValue:^(NSDictionary* reply) {
+    received = reply;
+  }
+           forKey:@"onReply"];
+
+  CapturedRequestCallback = nil;
+  SEL wait = @selector(whenUserIdIsReadyRun:);
+  SEL request = @selector(requestWithSession:forEndpoint:withPayload:method:callback:);
+  SwapClassMethods([TeakSession class], [TeakCoreTestDoubles class], wait);
+  SwapClassMethods([TeakRequest class], [TeakCoreTestDoubles class], request);
+  [[TeakCore alloc] handleEvent:event]; // not init: that would register it for every event
+  SwapClassMethods([TeakSession class], [TeakCoreTestDoubles class], wait);
+  SwapClassMethods([TeakRequest class], [TeakCoreTestDoubles class], request);
+
+  XCTAssertNotNil(CapturedRequestCallback);
+  if (CapturedRequestCallback != nil) CapturedRequestCallback(@{@"code" : @200});
+  XCTAssertEqualObjects(received, @{@"code" : @200});
 }
 
 // Verifies purchase_time uses en_US_POSIX so Arabic-locale devices don't produce
