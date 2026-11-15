@@ -773,6 +773,10 @@ static NSString* _Nullable LiveActivitySerializeJSONField(NSDictionary* _Nonnull
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
+- (void)reportStoreKit2Transaction:(NSString*)jwsRepresentation {
+  [SKPaymentObserver reportStoreKit2TransactionJWS:jwsRepresentation];
+}
+
 - (void)processDeepLinks {
   [self.waitForDeepLink addToQueue:self.operationQueue];
 }

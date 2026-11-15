@@ -2,6 +2,7 @@
 #import "PurchaseEvent.h"
 #import "Teak+Internal.h"
 #import "TeakHelpers.h"
+#import "TeakStoreKit2Transaction.h"
 
 #define _(_id) TeakValueOrNSNull(_id)
 
@@ -75,6 +76,47 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
                                   }
 
                                   [PurchaseEvent purchaseSucceeded:fullPayload];
+                                }];
+  }
+  teak_catch_report;
+}
+
++ (void)reportStoreKit2TransactionJWS:(NSString*)jwsRepresentation {
+  teak_try {
+    TeakStoreKit2Transaction* transaction = [[TeakStoreKit2Transaction alloc] initWithJWS:jwsRepresentation];
+    if (transaction == nil) {
+      TeakLog_e(@"purchase.report_storekit2.invalid_jws", @"reportStoreKit2Transaction: needs the transaction's jwsRepresentation; this isn't a decodable StoreKit 2 transaction.");
+      return;
+    }
+    if (transaction.skipReason != nil) {
+      TeakLog_i(@"purchase.report_storekit2.skipped", @{@"reason" : transaction.skipReason, @"transaction_identifier" : transaction.transactionId});
+      return;
+    }
+
+    NSURL* receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
+    NSData* receipt = receiptURL == nil ? nil : [NSData dataWithContentsOfURL:receiptURL];
+    NSMutableDictionary* payload = [NSMutableDictionary dictionaryWithDictionary:@{
+      @"purchase_time" : _([[SKPaymentObserver transactionDateFormatter] stringFromDate:transaction.purchaseDate]),
+      @"product_id" : transaction.productId,
+      @"transaction_identifier" : transaction.transactionId,
+      // The server requires the key.
+      @"purchase_token" : _([receipt base64EncodedStringWithOptions:0]),
+      @"jws_representation" : transaction.jwsRepresentation
+    }];
+    TeakLog_i(@"purchase.report_storekit2", @{@"product_id" : transaction.productId, @"transaction_identifier" : transaction.transactionId});
+
+    // The JWS price is what this transaction cost; the product lookup only gives today's
+    // list price, so it's used only when the JWS has none.
+    if (transaction.price != nil) {
+      payload[@"price_currency_code"] = transaction.currency;
+      payload[@"price_float"] = transaction.price;
+      [PurchaseEvent purchaseSucceeded:payload];
+      return;
+    }
+    [ProductRequest productRequestForSku:transaction.productId
+                                callback:^(NSDictionary* priceInfo, SKProductsResponse* unused) {
+                                  [payload addEntriesFromDictionary:priceInfo ?: @{}];
+                                  [PurchaseEvent purchaseSucceeded:payload];
                                 }];
   }
   teak_catch_report;

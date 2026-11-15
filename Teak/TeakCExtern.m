@@ -54,6 +54,14 @@ void TeakIncrementEvent(const char* actionId, const char* objectTypeId, const ch
                                               count:count];
 }
 
+void TeakReportStoreKit2Transaction(const char* jwsRepresentation) {
+  if (jwsRepresentation == NULL) {
+    TeakLog_e(@"purchase.report_storekit2.invalid_jws", @"TeakReportStoreKit2Transaction was passed NULL.");
+    return;
+  }
+  [[Teak sharedInstance] reportStoreKit2Transaction:[NSString stringWithUTF8String:jwsRepresentation]];
+}
+
 void TeakProcessDeepLinks(void) {
   [[Teak sharedInstance] processDeepLinks];
 }
