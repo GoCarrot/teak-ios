@@ -21,7 +21,7 @@
 @end
 
 // Not in the manifest. Picked at runtime by the app delegate when launched with
-// -SceneSampleRuntimeDelegate YES.
+// -SceneSampleRuntimeDelegate YES, which the "SceneSample (runtime delegate)" scheme passes.
 @interface RuntimeSceneDelegate : UIResponder <UIWindowSceneDelegate>
 @property (strong, nonatomic) UIWindow* window;
 @end
