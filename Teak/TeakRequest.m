@@ -150,7 +150,7 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
     NSMutableURLRequest* urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", request.hostname, request.endpoint]]];
     TeakAssignPayloadToRequest(request.method, urlRequest, payload);
     [urlRequest setValue:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", _signature] forHTTPHeaderField:@"Authorization"];
-    _urlRequest = [urlRequest copy];
+    _urlRequest = urlRequest;
   }
   return self;
 }
