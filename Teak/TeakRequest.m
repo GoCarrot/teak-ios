@@ -13,12 +13,13 @@
 #include <CommonCrypto/CommonHMAC.h>
 #include <sys/errno.h>
 
-// Delay before retrying a request that failed with a socket-closed transport
-// error. Matches TeakLog.m's TeakLogSender delayInSeconds, which retries the
-// same underlying OS behavior on its own NSURLSession — tune both together.
+// Delay before retrying a request that got no HTTP reply. Matches TeakLog.m's
+// TeakLogSender delayInSeconds, which retries the same underlying OS behavior
+// (a pooled socket closed while backgrounded) on its own NSURLSession — tune
+// both together.
 static const NSTimeInterval TeakRequestSocketErrorRetryDelay = 1.5;
 
-// How many times a socket-closed transport error gets retried. The stop
+// How many times a request that got no HTTP reply gets retried. The stop
 // policy lives here so the call site doesn't need to know the limit —
 // raising it later is a one-line change.
 const NSUInteger TeakRequestMaxSocketRetries = 1;
@@ -231,8 +232,13 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return NO;
 }
 
-+ (BOOL)shouldRetrySocketError:(NSError*)error retryCount:(NSUInteger)retryCount {
-  return [TeakRequest isRetryableSocketError:error] && retryCount < TeakRequestMaxSocketRetries;
++ (BOOL)isNoResponseFailure:(NSHTTPURLResponse*)response error:(NSError*)error {
+  if (response != nil || error == nil) return NO;
+  return !([error.domain isEqualToString:NSURLErrorDomain] && error.code == NSURLErrorCancelled);
+}
+
++ (BOOL)shouldRetryResponse:(NSHTTPURLResponse*)response error:(NSError*)error retryCount:(NSUInteger)retryCount {
+  return [TeakRequest isNoResponseFailure:response error:error] && retryCount < TeakRequestMaxSocketRetries;
 }
 
 + (NSString*)generateRequestId {
@@ -409,16 +415,18 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
+        BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error];
 
-        if ([TeakRequest shouldRetrySocketError:error retryCount:send.socketErrorRetries]) {
-          // The OS can close a pooled connection's socket while the app is
-          // backgrounded and fail to reopen it on the next request; retry
-          // once after a short delay rather than surfacing an empty reply.
-          // Checked ahead of the server-configured retry ladder below since
-          // it's a distinct failure class (transport, not HTTP) — a request
-          // with configured retry times still gets this one stacked on top.
+        if ([TeakRequest shouldRetryResponse:response error:error retryCount:send.socketErrorRetries]) {
+          // A request that got no HTTP reply (the OS closed a pooled socket while
+          // the app was backgrounded, a timeout, a dropped connection) is retried
+          // once after a short delay with the same request id, so a server that
+          // dedupes on it can tell a resend from a new request. Checked ahead of
+          // the server-configured retry ladder below since it's a distinct failure
+          // class (transport, not HTTP) — a request with configured retry times
+          // still gets this one stacked on top.
           send.socketErrorRetries++;
-          TeakLog_i(@"request.retry.socket_error", [send to_h]);
+          TeakLog_i(isSocketError ? @"request.retry.socket_error" : @"request.retry.no_response", [send to_h]);
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
@@ -439,8 +447,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
             [self transmitSend:send];
           });
         } else {
-          if (isSocketError) {
-            TeakLog_e(@"request.retry.socket_error.exhausted", [send to_h]);
+          if (isSocketError || isNoResponse) {
+            TeakLog_e(isSocketError ? @"request.retry.socket_error.exhausted" : @"request.retry.no_response.exhausted", [send to_h]);
           }
 
           // Check to see if the response has a 'report_client_error' key
