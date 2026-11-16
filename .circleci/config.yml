@@ -87,7 +87,7 @@ jobs:
       - run:
           name: Require a rolled changelog on promote commits
           command: |
-            version=$(git log -1 --format=%B | sed -n 's/^Promote to: *\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' | head -1)
+            version=$(git log -1 --format=%B | sed -n 's/^Promote to: *\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\(\.rc[0-9]*\)\{0,1\}\([[:space:]].*\)\{0,1\}$/\1/p' | head -1)
             [ -n "$version" ] || exit 0
             file="docs/modules/changelog/versions/$version.yaml"
             [ -s "$file" ] || { echo "Promote to $version but $file is missing or empty. Run: yarn changelog roll $version"; exit 1; }
