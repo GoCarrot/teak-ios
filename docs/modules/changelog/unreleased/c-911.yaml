@@ -1,0 +1,2 @@
+bug:
+  - "Fixed ``launchLink`` being missing from reward link launch data when the link was resolved by the Teak server."

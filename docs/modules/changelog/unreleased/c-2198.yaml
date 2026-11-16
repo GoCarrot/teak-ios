@@ -1,0 +1,2 @@
+bug:
+  - "``openSettingsAppToThisAppsSettings`` now opens Settings.app in apps built with the iOS 18 SDK and later. It previously did nothing in those apps."

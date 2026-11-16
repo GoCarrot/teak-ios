@@ -1,0 +1,3 @@
+bug:
+  - "Fixed a memory leak where every Teak session stayed in memory for the life of the app, including after logout."
+  - "Fixed a memory leak where every batch of tracked events stayed in memory after it was sent."

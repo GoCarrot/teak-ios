@@ -1,0 +1,2 @@
+bug:
+  - "Fixed the session being reported as ended, with no resume, when the app returned to the foreground immediately after backgrounding."

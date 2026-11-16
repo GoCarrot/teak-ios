@@ -1,0 +1,2 @@
+bug:
+  - "``startedLiveActivity`` now skips a push token that matches the last one sent for that activity, so repeated ``pushTokenUpdates`` values are not sent to Teak again. A repeat returns the original call's operation, so it reports that send's result."

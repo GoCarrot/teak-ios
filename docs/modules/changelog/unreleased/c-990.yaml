@@ -1,0 +1,2 @@
+enhancement:
+  - "Network requests, including profile updates and event batches, are now retried once when they fail without a server response, such as when the OS drops an idle connection."
