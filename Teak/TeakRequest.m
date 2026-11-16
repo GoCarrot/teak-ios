@@ -131,6 +131,11 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 
 ///// TeakRequestSend impl
 
+@interface TeakRequestSend ()
+// Set by -supersede while an attempt awaits its reply: that attempt finishes, nothing more goes out.
+@property (atomic, readonly) BOOL superseded;
+@end
+
 @implementation TeakRequestSend
 
 - (instancetype)initWithRequest:(TeakRequest*)request {
@@ -165,6 +170,31 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
   }
   if (firstCancel) {
     TeakLog_i(@"request.send.cancelled", [self to_h]);
+  }
+}
+
+- (BOOL)beginAttempt {
+  @synchronized(self) {
+    if (_cancelled || _superseded) return NO;
+    _awaitingReply = YES;
+    return YES;
+  }
+}
+
+- (void)endAttempt {
+  @synchronized(self) {
+    _awaitingReply = NO;
+  }
+}
+
+- (BOOL)supersede {
+  @synchronized(self) {
+    if (_awaitingReply) {
+      _superseded = YES;
+      return YES;
+    }
+    [self cancel];
+    return NO;
   }
 }
 
@@ -372,6 +402,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     self.currentSend = send;
 
     teak_log_breadcrumb(@"request.send.constructed");
+    [send beginAttempt];
     [self transmitSend:send];
   }
   teak_catch_report;
@@ -413,6 +444,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error forSend:(TeakRequestSend*)send {
+  [send endAttempt];
   teak_try {
     NSMutableDictionary* h = [NSMutableDictionary dictionaryWithDictionary:[send to_h]];
 
@@ -441,8 +473,8 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
         BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error];
-        // A reply to a send that was cancelled doesn't get a retry.
-        BOOL isCancelled = send.cancelled;
+        // A reply to a send that was cancelled or superseded doesn't get a retry.
+        BOOL isCancelled = send.cancelled || send.superseded;
 
         if (!isCancelled && [TeakRequest shouldRetryResponse:response error:error retryCount:send.socketErrorRetries]) {
           // A request that got no HTTP reply (the OS closed a pooled socket while
@@ -457,7 +489,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            if (!send.cancelled) [self transmitSend:send];
+            if ([send beginAttempt]) [self transmitSend:send];
           });
         } else if (!isCancelled && response.statusCode >= 500 && send.serverErrorRetries < [self.retry.times count]) {
           // Only a 5xx reply climbs the server-configured ladder, as on Android.
@@ -471,7 +503,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            if (!send.cancelled) [self transmitSend:send];
+            if ([send beginAttempt]) [self transmitSend:send];
           });
         } else {
           if (!isCancelled && (isSocketError || isNoResponse)) {

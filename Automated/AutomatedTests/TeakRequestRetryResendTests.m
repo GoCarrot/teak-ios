@@ -244,12 +244,13 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   XCTAssertEqualObjects(retry.payload[@"string_attributes"], original.payload[@"string_attributes"]);
 }
 
-#pragma mark - A new profile send cancels the last one
+#pragma mark - A new profile send supersedes the last one
 
-// Both sends are in flight when the second starts; the first is cancelled, the second isn't.
+// Once A's reply is in, nothing of A is on the wire, so B goes out at once and A is cancelled.
 - (void)testNewProfileSendCancelsTheLastSend {
   TeakUserProfile* profile = [self makeProfile];
   [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self deliver:profile status:200 error:nil];
   [self sendProfile:profile value:@"b" expectingTransmits:2];
 
   NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
@@ -257,16 +258,55 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   XCTAssertFalse(sends[1].cancelled);
 }
 
-// The attempt A has in flight is cancelled when B starts, rather than left to land after B.
-- (void)testNewProfileSendCancelsTheLastSendsTask {
+// A is on the wire when B is ready. Cancelling A can't recall bytes the server already has, so
+// B waits for A's reply; the server then sees A before B, and B's values are applied last.
+- (void)testNewProfileSendWaitsForTheReplyToTheSendOnTheWire {
   TeakUserProfile* profile = [self makeProfile];
   [self sendProfile:profile value:@"a" expectingTransmits:1];
-  NSURLSessionDataTask* inFlight = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:@"https://localhost.invalid"]];
-  [self transmitsFor:profile].firstObject.task = inFlight;
 
-  [self sendProfile:profile value:@"b" expectingTransmits:2];
+  [profile setStringAttribute:@"b" forKey:@"k"];
+  XCTAssertEqual([self settledTransmitsOf:profile], 1u, @"B went out while A was still on the wire");
+  TeakRequestSend* sendA = [self transmitsFor:profile].firstObject;
+  XCTAssertFalse(sendA.cancelled, @"A's attempt on the wire was cancelled");
 
-  XCTAssertNotEqual(inFlight.state, NSURLSessionTaskStateSuspended, @"the earlier send's task was left running");
+  // A changes again while B waits: B carries the latest value.
+  [profile setStringAttribute:@"c" forKey:@"k"];
+  XCTAssertEqual([self settledTransmitsOf:profile], 1u);
+
+  [self deliver:profile status:200 error:nil forSend:sendA];
+  XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u, @"B never went out after A's reply");
+  XCTAssertEqual([self settledTransmitsOf:profile], 2u, @"more than one send followed A's reply");
+
+  // In the order the server receives them, the last attributes are B's.
+  NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
+  XCTAssertEqualObjects(sends[0].payload[@"string_attributes"][@"k"], @"a");
+  XCTAssertEqualObjects(sends.lastObject.payload[@"string_attributes"][@"k"], @"c");
+}
+
+// A's attempt on the wire fails while B waits. A isn't retried (B carries everything A did, and
+// a retry would land after B); B goes out instead.
+- (void)testFailedReplyToASupersededSendIsNotRetried {
+  TeakUserProfile* profile = [self makeProfile];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  TeakRequestSend* sendA = [self transmitsFor:profile].firstObject;
+  [profile setStringAttribute:@"b" forKey:@"k"];
+  XCTAssertEqual([self settledTransmitsOf:profile], 1u);
+
+  [self deliver:profile status:503 error:nil forSend:sendA];
+
+  XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u);
+  XCTAssertEqual([self settledTransmitsOf:profile], 2u, @"the superseded send was retried");
+  XCTAssertNotEqual([self transmitsFor:profile].lastObject, sendA);
+  XCTAssertEqual(sendA.serverErrorRetries, 0u);
+
+  // Same for a reply that never came.
+  TeakRequestSend* sendB = [self transmitsFor:profile].lastObject;
+  [profile setStringAttribute:@"c" forKey:@"k"];
+  XCTAssertEqual([self settledTransmitsOf:profile], 2u);
+  [self deliver:profile status:0 error:[self socketError] forSend:sendB];
+  XCTAssertEqual([self waitForTransmits:3 of:profile timeout:3.0], 3u);
+  XCTAssertEqual([self settledTransmitsOf:profile], 3u, @"the superseded send was retried after a socket error");
+  XCTAssertEqual(sendB.socketErrorRetries, 0u);
 }
 
 // A retry waiting to fire when the next send starts must not fire: it would put the older
@@ -307,6 +347,7 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 - (void)testLateFailedReplyToACancelledSendIsNotRetried {
   TeakUserProfile* profile = [self makeProfile];
   [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self deliver:profile status:200 error:nil];
   [self sendProfile:profile value:@"b" expectingTransmits:2];
   NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
 
@@ -391,6 +432,7 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 - (void)testEachProfileSendGetsAFreshRequestId {
   TeakUserProfile* profile = [self makeProfile];
   [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self deliver:profile status:200 error:nil];
   [self sendProfile:profile value:@"b" expectingTransmits:2];
 
   NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
