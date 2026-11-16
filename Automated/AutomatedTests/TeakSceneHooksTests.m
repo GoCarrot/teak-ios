@@ -11,11 +11,13 @@
 extern Teak* _teakSharedInstance;
 
 @interface TeakSceneHooks (Discovery)
++ (void)hookSceneDelegatesInManifest:(NSDictionary*)manifest;
 + (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity;
 @end
 
 @interface Teak (SceneHooksTesting)
 - (BOOL)application:(UIApplication*)application openURL:(NSURL*)url sourceApplication:(NSString*)sourceApplication annotation:(id)annotation;
+- (BOOL)application:(UIApplication*)application continueUserActivity:(NSUserActivity*)userActivity restorationHandler:(void (^)(NSArray*))restorationHandler;
 @end
 
 extern void TeakLifecycleDidBecomeActive(UIApplication* application);
@@ -273,6 +275,62 @@ static void DiscoverSceneDelegateClass(Class sceneDelegateClass) {
 
   XCTAssertFalse([sceneDelegateClass instancesRespondToSelector:@selector(scene:continueUserActivity:)]);
   XCTAssertTrue([sceneDelegateClass instancesRespondToSelector:@selector(scene:openURLContexts:)]);
+}
+
+// Unity 6 names UnityScene in the manifest and implements all three link methods itself.
+- (void)testManifestSceneDelegateGetsLaunchURLsOpensAndActivities {
+  NSURL* launchURL = [NSURL URLWithString:@"teak1234://launch"];
+  NSURL* openURL = [NSURL URLWithString:@"teak1234://open"];
+  NSMutableArray<NSString*>* order = [[NSMutableArray alloc] init];
+  Class klass = MakeClass(@"ManifestUnityScene", [UIResponder class]);
+  class_addMethod(klass, @selector(scene:willConnectToSession:options:), imp_implementationWithBlock(^(id _self, UIScene* scene, UISceneSession* session, UISceneConnectionOptions* options) {
+                    [order addObject:@"host.willConnect"];
+                  }),
+                  "v@:@@@");
+  class_addMethod(klass, @selector(scene:openURLContexts:), imp_implementationWithBlock(^(id _self, UIScene* scene, NSSet* contexts) {
+                    [order addObject:@"host.open"];
+                  }),
+                  "v@:@@");
+  class_addMethod(klass, @selector(scene:continueUserActivity:), imp_implementationWithBlock(^(id _self, UIScene* scene, NSUserActivity* activity) {
+                    [order addObject:@"host.activity"];
+                  }),
+                  "v@:@@");
+  [given([_teak application:anything() openURL:anything() sourceApplication:anything() annotation:anything()]) willDo:^id(NSInvocation* invocation) {
+    [order addObject:@"teak.open"];
+    return @YES;
+  }];
+  [given([_teak application:anything() continueUserActivity:anything() restorationHandler:anything()]) willDo:^id(NSInvocation* invocation) {
+    [order addObject:@"teak.activity"];
+    return @YES;
+  }];
+
+  // Malformed and unknown entries don't stop the real one from being hooked.
+  NSDictionary* manifest = @{
+    @"UISceneConfigurations" : @{
+      @"UIWindowSceneSessionRoleApplication" : @[
+        @{@"UISceneDelegateClassName" : @"NoSuchSceneDelegate"},
+        @{@"UISceneConfigurationName" : @"No Delegate"},
+        @{@"UISceneDelegateClassName" : NSStringFromClass(klass)},
+      ],
+      @"UIBrokenRole" : @"not an array",
+    }
+  };
+  [TeakSceneHooks hookSceneDelegatesInManifest:manifest];
+  [TeakSceneHooks hookSceneDelegatesInManifest:@"not a manifest"];
+  [TeakSceneHooks hookSceneDelegatesInManifest:nil];
+
+  id sceneDelegate = [[klass alloc] init];
+  UISceneConnectionOptions* options = mock([UISceneConnectionOptions class]);
+  [given(options.URLContexts) willReturn:[self contextsForURLs:@[ launchURL ]]];
+  [sceneDelegate scene:mock([UIScene class]) willConnectToSession:mock([UISceneSession class]) options:options];
+  [self openURL:openURL on:sceneDelegate];
+  NSUserActivity* activity = [[NSUserActivity alloc] initWithActivityType:NSUserActivityTypeBrowsingWeb];
+  [sceneDelegate scene:mock([UIScene class]) continueUserActivity:activity];
+
+  XCTAssertEqualObjects(order, (@[ @"teak.open", @"host.willConnect", @"teak.open", @"host.open", @"host.activity", @"teak.activity" ]));
+  [verifyCount(_teak, times(1)) application:anything() openURL:launchURL sourceApplication:anything() annotation:anything()];
+  [verifyCount(_teak, times(1)) application:anything() openURL:openURL sourceApplication:anything() annotation:anything()];
+  [verifyCount(_teak, times(1)) application:anything() continueUserActivity:activity restorationHandler:anything()];
 }
 
 #pragma mark - Routing

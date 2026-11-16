@@ -1,0 +1,2 @@
+bug:
+  - "Unity 6 iOS exports, which use the UIScene lifecycle, now deliver custom-scheme opens, launch URLs and universal links to Teak, so link attribution works there. Unity's own open-URL callbacks also fire for the links Teak handles."
