@@ -91,7 +91,7 @@ jobs:
             [ -n "$version" ] || exit 0
             file="docs/modules/changelog/versions/$version.yaml"
             [ -s "$file" ] || { echo "Promote to $version but $file is missing or empty. Run: yarn changelog roll $version"; exit 1; }
-            if ls docs/modules/changelog/unreleased/*.yaml >/dev/null 2>&1; then
+            if find docs/modules/changelog/unreleased \( -name '*.yaml' -o -name '*.yml' \) | grep -q .; then
               echo "Promote to $version but unreleased fragments remain. Run: yarn changelog roll $version"; exit 1
             fi
 
