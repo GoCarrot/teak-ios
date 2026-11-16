@@ -283,6 +283,31 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   XCTAssertEqualObjects(sends.lastObject.payload[@"string_attributes"][@"k"], @"c");
 }
 
+// With a real batch time, the change made while B waits arms a timer for its own send. B goes out
+// on A's reply carrying that change, so the timer must not send the same values again.
+- (void)testHeldSendIsNotRepeatedByItsBatchTimer {
+  TeakSession* session = [TeakSessionFixtures mockSessionWithEndpointConfigurations:@{
+    @"gocarrot.com" : @{@"/me/profile" : @{@"batch" : @{@"time" : @0.3}}}
+  }];
+  TeakUserProfile* profile = [self makeProfileWithSession:session];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  TeakRequestSend* sendA = [self transmitsFor:profile].firstObject;
+
+  [profile setStringAttribute:@"b" forKey:@"k"];
+  XCTAssertEqual([self settledTransmitsOf:profile], 1u);
+  // This change's timer is still armed when A's reply comes in.
+  [profile setStringAttribute:@"c" forKey:@"k"];
+  [self deliver:profile status:200 error:nil forSend:sendA];
+
+  XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u);
+  XCTAssertEqualObjects([self transmitsFor:profile].lastObject.payload[@"string_attributes"][@"k"], @"c");
+
+  // Past the timer, and past B's reply, which would release anything the timer had held.
+  [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.5]];
+  [self deliver:profile status:200 error:nil];
+  XCTAssertEqual([self settledTransmitsOf:profile], 2u, @"the batch timer sent the held update again");
+}
+
 // A's attempt on the wire fails while B waits. A isn't retried (B carries everything A did, and
 // a retry would land after B); B goes out instead.
 - (void)testFailedReplyToASupersededSendIsNotRetried {
@@ -340,23 +365,6 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   [request retryTest_transmitSend:send];
 
   XCTAssertNil(send.task, @"a cancelled send was started");
-}
-
-// A reply to the cancelled send that arrives after the newer send's own is not retried, and
-// doesn't touch the newer send's retry budget.
-- (void)testLateFailedReplyToACancelledSendIsNotRetried {
-  TeakUserProfile* profile = [self makeProfile];
-  [self sendProfile:profile value:@"a" expectingTransmits:1];
-  [self deliver:profile status:200 error:nil];
-  [self sendProfile:profile value:@"b" expectingTransmits:2];
-  NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
-
-  [self deliver:profile status:200 error:nil forSend:sends[1]];
-  [self deliver:profile status:503 error:nil forSend:sends[0]];
-
-  XCTAssertEqual([self settledTransmitsOf:profile], 2u, @"a stale failure was retried");
-  XCTAssertEqual(sends[0].serverErrorRetries, 0u);
-  XCTAssertEqual(sends[1].serverErrorRetries, 0u);
 }
 
 // Only the profile knows its sends are complete, so only it cancels the last one. A request

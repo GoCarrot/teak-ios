@@ -175,7 +175,7 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 
 - (BOOL)beginAttempt {
   @synchronized(self) {
-    if (_cancelled || _superseded) return NO;
+    if (_cancelled) return NO;
     _awaitingReply = YES;
     return YES;
   }
@@ -409,9 +409,9 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (void)transmitSend:(TeakRequestSend*)send {
+  BOOL transmitted = NO;
   teak_try {
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:send.urlRequest];
-    BOOL transmitted = NO;
     // Under the send's lock so that cancelling it either finds this task to cancel or comes
     // first, in which case nothing is transmitted.
     @synchronized(send) {
@@ -432,6 +432,9 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     }
   }
   teak_catch_report;
+
+  // Nothing went out, so no reply will come to end the attempt.
+  if (!transmitted) [send endAttempt];
 }
 
 - (NSString*)description {

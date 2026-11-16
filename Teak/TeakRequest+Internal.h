@@ -30,7 +30,8 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // alone wouldn't reach those: a retry is a block on a timer, not a task.
 - (void)cancel;
 // Starts an attempt: marks the send awaiting its reply. NO, and nothing is marked, when the send
-// was cancelled or superseded, so the attempt must not go out.
+// was cancelled, so the attempt must not go out. A superseded send is never retried, so it never
+// gets here.
 - (BOOL)beginAttempt;
 // Clears awaitingReply. Called when the reply to an attempt is handled.
 - (void)endAttempt;

@@ -86,6 +86,9 @@
 // waits for that reply instead. Runs on operationQueue.
 - (void)sendOrWaitForReply {
   if ([self.currentSend supersede]) {
+    if (!self.sendWaitingForReply) {
+      TeakLog_i(@"user_profile.send.held", [self.currentSend to_h]);
+    }
     self.sendWaitingForReply = YES;
     return;
   }
@@ -109,10 +112,16 @@
   [super response:response payload:payload withError:error forSend:send];
 
   dispatch_async([Teak operationQueue], ^{
-    // The reply may be a late one to an older, cancelled send; -sendOrWaitForReply waits again
-    // if the current send is still out.
-    if (self.sendWaitingForReply) {
+    if (self.sendWaitingForReply && send == self.currentSend) {
+      // The held update goes out now, so a timer still armed for it would only repeat it.
+      if (self.scheduledBlock != nil) {
+        dispatch_block_cancel(self.scheduledBlock);
+        self.scheduledBlock = nil;
+      }
+      // The send that was out is finished; there's nothing of it left to cancel.
+      self.currentSend = nil;
       self.sendWaitingForReply = NO;
+      TeakLog_i(@"user_profile.send.released", [send to_h]);
       [self sendOrWaitForReply];
     }
   });

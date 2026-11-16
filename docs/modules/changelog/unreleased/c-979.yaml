@@ -1,2 +1,2 @@
 bug:
-  - "A profile update no longer goes out while the previous one is still waiting for the server's reply, so an older update can't be applied after a newer one."
+  - "A profile update now waits for the server's reply to the previous update before it's sent, so the server receives them in order."
