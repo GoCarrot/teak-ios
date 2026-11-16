@@ -1,0 +1,2 @@
+bug:
+  - "When StoreKit can't look up a product's price, the error is now logged and the purchase is still sent to Teak, without price information."

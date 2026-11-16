@@ -250,7 +250,7 @@ static NSString* const ProductRequestActiveRequestsMutex = @"io.teak.sdk.product
 
 - (void)request:(SKRequest*)request didFailWithError:(NSError*)error {
   // Without this the callback never runs and the purchase is never reported.
-  TeakLog_e(@"purchase.product_request.error", @{@"error" : _(error.localizedDescription)});
+  TeakLog_e(@"purchase.product_request.error", @{@"error_domain" : _(error.domain), @"error_code" : @(error.code), @"error" : _(error.localizedDescription)});
   self.callback(@{}, nil);
   [ProductRequest removeActiveProductRequest:self];
 }

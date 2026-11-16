@@ -17,6 +17,13 @@
 + (NSDateFormatter*)dateFormatter;
 @end
 
+// ProductRequest keeps its callback and active-request list private — re-declare for test access.
+@interface ProductRequest (Testing)
+@property (copy, nonatomic) ProductRequestCallback callback;
++ (NSMutableArray*)activeProductRequests;
++ (void)addActiveProductRequest:(ProductRequest*)request;
+@end
+
 // Teak's public method, reached without importing Teak.h next to these internal headers
 // (the framework and source copies of its headers clash in this target).
 @protocol TeakStoreKit2Reporting <NSObject>
@@ -110,6 +117,30 @@ static void SwapClassMethods(Class original, Class replacement, SEL selector) {
     [teak reportStoreKit2Transaction:SandboxJWSWith(@{@"inAppOwnershipType" : @"FAMILY_SHARED"}, @[])];
   }];
   XCTAssertEqual(ReportedPayloads.count, 0u);
+}
+
+#pragma mark - ProductRequest failure
+
+// A failed SKProductsRequest must still call back, or the purchase is never reported.
+- (void)testFailedProductRequestStillCallsBackWithoutPriceInfo {
+  ProductRequest* request = [[ProductRequest alloc] init];
+  __block NSUInteger calls = 0;
+  __block NSDictionary* receivedInfo = nil;
+  __block SKProductsResponse* receivedResponse = nil;
+  request.callback = ^(NSDictionary* priceInfo, SKProductsResponse* response) {
+    calls++;
+    receivedInfo = priceInfo;
+    receivedResponse = response;
+  };
+  [ProductRequest addActiveProductRequest:request];
+
+  NSError* error = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorNotConnectedToInternet userInfo:nil];
+  [(id<SKRequestDelegate>)request request:nil didFailWithError:error];
+
+  XCTAssertEqual(calls, 1u);
+  XCTAssertEqualObjects(receivedInfo, @{});
+  XCTAssertNil(receivedResponse);
+  XCTAssertFalse([[ProductRequest activeProductRequests] containsObject:request]);
 }
 
 #pragma mark - Date formatting
