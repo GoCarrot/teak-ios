@@ -1,0 +1,2 @@
+bug:
+  - "Fixed a memory leak where launch data was never freed after a deep link updated it."

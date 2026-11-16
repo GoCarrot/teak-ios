@@ -1,0 +1,3 @@
+bug:
+  - "Fixed a memory leak where operations returned by live activity, channel and category state, and local notification scheduling calls were never freed."
+  - "Reading ``result`` on a canceled ``TeakOperation`` now returns an error result instead of throwing."

@@ -124,7 +124,7 @@ Git tags are the single source of truth for versioning. There are no version-bea
 ### Release Flow
 
 ```
-# Optionally create docs/modules/changelog/versions/X.Y.Z.yaml with release notes
+# yarn changelog roll X.Y.Z   (merges docs/modules/changelog/unreleased/* into versions/X.Y.Z.yaml), then curate it
 git commit -m "Promote to: X.Y.Z"
 git push
 # CI: orb detects commit message → tags → tagged-build workflow
@@ -133,6 +133,8 @@ git push
 # deploy_latest: uploads "latest" to S3
 # publish_pod: pod trunk push to CocoaPods registry
 ```
+
+**Changelog entries:** a user-facing change adds a fragment named for its issue, e.g. `docs/modules/changelog/unreleased/c-834.yaml`, using the `versions/*.yaml` categories (`new`, `bug`, `enhancement`, `breaking`, `deprecation`, `upgrade_note`, `known_issue`). One file per change, so parallel PRs don't conflict. `yarn changelog check` validates them (CI runs it before tagging).
 
 **Version numbers are immutable.** Once a promote commit is pushed and CI tags it, that version is permanently consumed. Tags cannot be moved or reused. When promoting, always check recent commit messages (e.g., `git log --oneline`) to determine the next available version number. Tags are created remotely by CI, so `git tag --list` requires a fetch first and is less reliable than checking the log.
 

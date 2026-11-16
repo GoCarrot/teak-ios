@@ -1,0 +1,2 @@
+enhancement:
+  - "Added ``reportStoreKit2Transaction:`` for reporting StoreKit 2 purchases. Pass each purchase's ``jwsRepresentation``."
