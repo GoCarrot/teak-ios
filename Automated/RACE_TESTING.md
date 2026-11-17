@@ -145,9 +145,9 @@ pool, and the pool doesn't drain until the loop ends, so nothing frees during th
 is a false green. Measured on the `test_race` lane (TSan) for `launchDataOperation`: a writer
 assigning `[TeakLaunchDataOperation unattributed]` stayed green with the property nonatomic, and 999
 of 1000 replaced operations were still alive after reassignment; with `alloc`/`init` it was 0 of
-1000 and the repro crashes. `additionalData`'s repro had the same false green with a dictionary
-literal. Allocate directly in the writer, and if a shape stays green under a revert, check with a
-`__weak` reference that the replaced value is actually gone.
+1000 and the repro crashes. `additionalData`'s and `stateChain`'s repros had the same false green
+with a dictionary and an array literal. Allocate directly in the writer, and if a shape stays green
+under a revert, check with a `__weak` reference that the replaced value is actually gone.
 
 Minimal skeleton (drop into an XCTest case; `raceBlockA:blockB:` is the spin-barrier helper in
 `RaceTripwireTests.m`):

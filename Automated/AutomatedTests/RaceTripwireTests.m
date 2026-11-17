@@ -656,13 +656,13 @@ static NSMutableArray* keepAliveBareSessions;
 // isa-touch via NSStringFromClass plus .count, at userProfile's higher iteration count, reproduces
 // reliably. Uses a bare `[TeakPushState alloc]` (no -init) since the test only drives the
 // stateChain accessor — -init would register a TeakEvent handler and spin up an operation queue
-// neither of which this repro needs.
+// neither of which this repro needs. alloc/init, not a literal: see launchDataOperation above.
 - (void)testStateChainIsAtomicUnderConcurrency {
   TeakPushState* pushState = [TeakPushState alloc];
   const int N = 2000000;
   [self raceBlockA:^{
     for (int i = 0; i < N; i++) {
-      pushState.stateChain = @[ [[NSString alloc] initWithFormat:@"race-statechain-value-%d", i] ];
+      pushState.stateChain = [[NSArray alloc] initWithObjects:[[NSString alloc] initWithFormat:@"race-statechain-value-%d", i], nil];
     }
   }
             blockB:^{
