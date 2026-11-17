@@ -6,6 +6,7 @@
 #import "TeakChannelStatus.h"
 #import "TeakConfiguration.h"
 #import "TeakDeviceConfiguration.h"
+#import "TeakLaunchData.h"
 #import "TeakLink.h"
 #import "TeakLog.h"
 #import "TeakPushState.h"
@@ -87,6 +88,7 @@ extern NSString* const currentSessionMutex;
 @property (strong, atomic) NSString* countryCode;
 @property (strong, atomic) NSString* serverSessionId;
 @property (strong, atomic) NSString* facebookAccessToken;
+@property (strong, atomic) TeakLaunchDataOperation* launchDataOperation;
 @property (strong, atomic, readwrite) TeakUserProfile* userProfile;
 @property (strong, atomic, readwrite) NSDictionary* additionalData;
 @property (strong, atomic, readwrite) TeakChannelStatus* _Nonnull emailStatus;
@@ -366,11 +368,27 @@ static NSMutableArray* keepAliveBareSessions;
             }];
 }
 
-// launchDataOperation has no dynamic crash repro here. Its pointee frees, but a repro in the same
-// shape as the ones in this file (2M iterations, writer assigning fresh operations, reader touching
-// either the isa or a CFURL reached through the operation's result) stayed green with the property
-// reverted to nonatomic. Why isn't established. It's pinned as a static atomic-declaration
-// assertion in TeakSessionLockingTests.m instead.
+// launchDataOperation's pointee is an NSOperation, a plain object, so this uses userProfile's isa
+// touch. The writer must use alloc/init, not +unattributed: under TSan the factory's return value
+// lands in the writer thread's autorelease pool, so every replaced operation stays alive until the
+// loop ends and the race never reaches freed memory (a green that guards nothing). Confirmed both
+// ways at this N under TSan: crashes 10/10 with launchDataOperation reverted to nonatomic, clean
+// 10/10 with atomic restored.
+- (void)testLaunchDataOperationIsAtomicUnderConcurrency {
+  TeakSession* session = [self bareSessionKeptAlive];
+  const int N = 2000000;
+  [self raceBlockA:^{
+    for (int i = 0; i < N; i++) {
+      session.launchDataOperation = [[TeakLaunchDataOperation alloc] init];
+    }
+  }
+            blockB:^{
+              for (int i = 0; i < N; i++) {
+                TeakLaunchDataOperation* op = session.launchDataOperation;
+                (void)NSStringFromClass([op class]).length;
+              }
+            }];
+}
 
 // additionalData's pointee is an NSDictionary, not a CFString. A single non-empty entry forces a
 // real heap-allocated dictionary — an empty dictionary literal returns a shared singleton that
