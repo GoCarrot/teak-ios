@@ -240,17 +240,16 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
     return;
   }
 
-  TeakOperationWork* work = self.invocation.target;
-  NSDictionary* requestParams = [self requestParams];
   // Weak while waiting for a user: a cancelled operation is finished and nothing needs it, so the
-  // waiting block mustn't keep it alive. Strong once sending, until the reply finishes it.
+  // waiting block mustn't keep it, or its work, alive. Strong once sending, until the reply finishes it.
   __weak TeakOperation* weakSelf = self;
   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
     TeakOperation* op = weakSelf;
     if (op == nil || op.isFinished || op.isCancelled) {
       return;
     }
-    [work sendRequest:requestParams
+    TeakOperationWork* work = op.invocation.target;
+    [work sendRequest:[op requestParams]
           withSession:session
            completion:^(id _Nullable result) {
              [op finishWithResult:result];
