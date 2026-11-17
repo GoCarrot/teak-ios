@@ -21,11 +21,25 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (atomic, readonly) BOOL cancelled;
 // The most recent attempt, so cancelling the send can cancel it.
 @property (atomic, strong) NSURLSessionDataTask* _Nullable task;
+// YES from the start of an attempt until its reply (or failure) is handled. The bytes of an
+// attempt in this state may already have reached the server.
+@property (atomic, readonly) BOOL awaitingReply;
 
 - (nonnull instancetype)initWithRequest:(nonnull TeakRequest*)request;
 // Cancels the attempt in flight and stops any retry still waiting to fire. Cancelling the task
 // alone wouldn't reach those: a retry is a block on a timer, not a task.
 - (void)cancel;
+// Starts an attempt: marks the send awaiting its reply. NO, and nothing is marked, when the send
+// was cancelled, so the attempt must not go out. A superseded send is never retried, so it never
+// gets here.
+- (BOOL)beginAttempt;
+// Clears awaitingReply. Called when the reply to an attempt is handled.
+- (void)endAttempt;
+// Stops this send in favor of a newer one. With no attempt awaiting a reply this is -cancel and
+// returns NO. With one, that attempt is left to finish, since cancelling it can't recall bytes
+// already sent, and only its retries are dropped; returns YES, and the newer send has to wait
+// for the reply so the server sees the two in order.
+- (BOOL)supersede;
 - (nonnull NSDictionary*)to_h;
 @end
 

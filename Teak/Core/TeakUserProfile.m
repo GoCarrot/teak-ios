@@ -9,6 +9,8 @@
 @property (strong, nonatomic) NSString* context;
 @property (strong, nonatomic) dispatch_block_t scheduledBlock;
 @property (strong, nonatomic) NSDate* firstSetTime;
+// An update is waiting for the last send's reply. Only touched on operationQueue.
+@property (nonatomic) BOOL sendWaitingForReply;
 @end
 
 @implementation TeakUserProfile
@@ -73,23 +75,55 @@
     if (self.scheduledBlock != nil) {
       dispatch_block_cancel(self.scheduledBlock);
       self.scheduledBlock = nil;
+      [self sendOrWaitForReply];
+    }
+  });
+}
 
-      NSMutableDictionary* payload = [self.payload mutableCopy];
-      [payload addEntriesFromDictionary:@{
-        @"string_attributes" : [self.stringAttributes copy],
-        @"number_attributes" : [self.numberAttributes copy],
-        @"context" : [self.context copy],
-        @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
-      }];
-      self.payload = payload;
+// Every send carries the full attribute dictionaries, not just what changed, so a new send covers
+// everything the last one did, and the last one's retries can go. But if the last one is on the
+// wire, cancelling it can't stop the server from applying it after the new one. Then the new send
+// waits for that reply instead. Runs on operationQueue.
+- (void)sendOrWaitForReply {
+  if ([self.currentSend supersede]) {
+    if (!self.sendWaitingForReply) {
+      TeakLog_i(@"user_profile.send.held", [self.currentSend to_h]);
+    }
+    self.sendWaitingForReply = YES;
+    return;
+  }
 
-      // Every send carries the full attribute dictionaries, not just what changed, so this send
-      // covers everything the last one did. Cancel the last one rather than let its retries or
-      // its attempt in flight land after this one with older values.
-      [self.currentSend cancel];
-      [super send];
+  // Built here, not when the update was scheduled, so a send that waited carries the latest values.
+  NSMutableDictionary* payload = [self.payload mutableCopy];
+  [payload addEntriesFromDictionary:@{
+    @"string_attributes" : [self.stringAttributes copy],
+    @"number_attributes" : [self.numberAttributes copy],
+    @"context" : [self.context copy],
+    @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
+  }];
+  self.payload = payload;
 
-      self.firstSetTime = nil;
+  // Whatever was held goes out with this send.
+  self.sendWaitingForReply = NO;
+  [super send];
+
+  self.firstSetTime = nil;
+}
+
+- (void)response:(NSHTTPURLResponse*)response payload:(NSDictionary*)payload withError:(NSError*)error forSend:(TeakRequestSend*)send {
+  [super response:response payload:payload withError:error forSend:send];
+
+  dispatch_async([Teak operationQueue], ^{
+    if (self.sendWaitingForReply && send == self.currentSend) {
+      // The held update goes out now, so a timer still armed for it would only repeat it.
+      if (self.scheduledBlock != nil) {
+        dispatch_block_cancel(self.scheduledBlock);
+        self.scheduledBlock = nil;
+      }
+      // The send that was out is finished; there's nothing of it left to cancel.
+      self.currentSend = nil;
+      TeakLog_i(@"user_profile.send.released", [send to_h]);
+      [self sendOrWaitForReply];
     }
   });
 }
