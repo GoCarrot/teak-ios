@@ -1,0 +1,3 @@
+bug:
+  - "Channel state, live activity, and local notification ``TeakOperation`` objects no longer hold a thread while they wait for ``identifyUser``. Before, enough of them made before identifying could stall the operation queue."
+  - "Canceling a ``TeakOperation`` that is waiting for ``identifyUser`` or for a reply now finishes it with an error result. A request canceled before the user is identified is no longer sent."
