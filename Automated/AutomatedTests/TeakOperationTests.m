@@ -175,7 +175,7 @@ static NSUInteger TeakTestThreadCount(void) {
     }
 
     [self runWaitingBlocks];
-    [queue waitUntilAllOperationsAreFinished];
+    [queue cancelAllOperations];
   }
 }
 
@@ -204,8 +204,9 @@ static NSUInteger TeakTestThreadCount(void) {
   XCTestExpectation* executing = [[XCTKVOExpectation alloc] initWithKeyPath:@"isExecuting" object:op expectedValue:@YES];
   [queue addOperation:op];
   [self waitForExpectations:@[ executing ] timeout:2.0];
+  XCTestExpectation* finished = [[XCTKVOExpectation alloc] initWithKeyPath:@"isFinished" object:op expectedValue:@YES];
   [op cancel];
-  [queue waitUntilAllOperationsAreFinished];
+  [self waitForExpectations:@[ finished ] timeout:2.0];
 
   [self runWaitingBlocks];
 
