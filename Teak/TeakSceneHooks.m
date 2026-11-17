@@ -200,29 +200,33 @@ static void TeakSceneHookClass(Class klass, NSString* source, BOOL addContinueUs
   TeakSceneHookClass(klass, @"swizzleInto", NO);
 }
 
+// Scene delegate classes named in the Info.plist manifest, for every session role. Unity's UnityScene
+// is one of these.
++ (void)hookSceneDelegatesInManifest:(NSDictionary*)manifest {
+  NSDictionary* configurations = [manifest isKindOfClass:[NSDictionary class]] ? manifest[@"UISceneConfigurations"] : nil;
+  if (![configurations isKindOfClass:[NSDictionary class]]) return;
+
+  for (id role in configurations) {
+    NSArray* roleConfigurations = configurations[role];
+    if (![roleConfigurations isKindOfClass:[NSArray class]]) continue;
+    for (NSDictionary* config in roleConfigurations) {
+      if (![config isKindOfClass:[NSDictionary class]]) continue;
+      NSString* className = config[@"UISceneDelegateClassName"];
+      if (![className isKindOfClass:[NSString class]]) continue;
+      Class klass = NSClassFromString(className);
+      if (klass == nil) {
+        TeakLog_e(@"sdk.init", @{@"scene_hooks" : className, @"error" : @"class not found"});
+        continue;
+      }
+      TeakSceneHookClass(klass, @"manifest", sAddContinueUserActivity);
+    }
+  }
+}
+
 + (void)installForAppDelegateClass:(Class)appDelegateClass hostHandlesUserActivity:(BOOL)hostHandlesUserActivity {
   sAddContinueUserActivity = !hostHandlesUserActivity;
 
-  // Scene delegate classes named in the Info.plist manifest, for every session role.
-  NSDictionary* manifest = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UIApplicationSceneManifest"];
-  NSDictionary* configurations = [manifest isKindOfClass:[NSDictionary class]] ? manifest[@"UISceneConfigurations"] : nil;
-  if ([configurations isKindOfClass:[NSDictionary class]]) {
-    for (id role in configurations) {
-      NSArray* roleConfigurations = configurations[role];
-      if (![roleConfigurations isKindOfClass:[NSArray class]]) continue;
-      for (NSDictionary* config in roleConfigurations) {
-        if (![config isKindOfClass:[NSDictionary class]]) continue;
-        NSString* className = config[@"UISceneDelegateClassName"];
-        if (![className isKindOfClass:[NSString class]]) continue;
-        Class klass = NSClassFromString(className);
-        if (klass == nil) {
-          TeakLog_e(@"sdk.init", @{@"scene_hooks" : className, @"error" : @"class not found"});
-          continue;
-        }
-        TeakSceneHookClass(klass, @"manifest", sAddContinueUserActivity);
-      }
-    }
-  }
+  [self hookSceneDelegatesInManifest:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"UIApplicationSceneManifest"]];
 
   // SwiftUI's App lifecycle scene delegate.
   TeakSceneHookClass(objc_getClass("SwiftUI.AppSceneDelegate"), @"swiftui", sAddContinueUserActivity);
