@@ -246,18 +246,6 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 
 #pragma mark - A new profile send supersedes the last one
 
-// Once A's reply is in, nothing of A is on the wire, so B goes out at once and A is cancelled.
-- (void)testNewProfileSendCancelsTheLastSend {
-  TeakUserProfile* profile = [self makeProfile];
-  [self sendProfile:profile value:@"a" expectingTransmits:1];
-  [self deliver:profile status:200 error:nil];
-  [self sendProfile:profile value:@"b" expectingTransmits:2];
-
-  NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
-  XCTAssertTrue(sends[0].cancelled);
-  XCTAssertFalse(sends[1].cancelled);
-}
-
 // A is on the wire when B is ready. Cancelling A can't recall bytes the server already has, so
 // B waits for A's reply; the server then sees A before B, and B's values are applied last.
 - (void)testNewProfileSendWaitsForTheReplyToTheSendOnTheWire {

@@ -103,6 +103,8 @@
   }];
   self.payload = payload;
 
+  // Whatever was held goes out with this send.
+  self.sendWaitingForReply = NO;
   [super send];
 
   self.firstSetTime = nil;
@@ -120,7 +122,6 @@
       }
       // The send that was out is finished; there's nothing of it left to cancel.
       self.currentSend = nil;
-      self.sendWaitingForReply = NO;
       TeakLog_i(@"user_profile.send.released", [send to_h]);
       [self sendOrWaitForReply];
     }
