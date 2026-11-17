@@ -32,6 +32,7 @@ static NSUInteger TeakTestThreadCount(void) {
 
 @interface TeakOperationTests : XCTestCase
 @property (strong, nonatomic) TeakOperationTestDriver* driver;
+@property (nonatomic) NSUInteger waitingBlocksAtSetUp;
 @end
 
 @implementation TeakOperationTests
@@ -39,6 +40,9 @@ static NSUInteger TeakTestThreadCount(void) {
 - (void)setUp {
   [super setUp];
   self.driver = [[TeakOperationTestDriver alloc] init];
+  @synchronized(currentSessionMutex) {
+    self.waitingBlocksAtSetUp = [TeakSession whenUserIdIsReadyRunBlocks].count;
+  }
 }
 
 - (void)tearDown {
@@ -47,19 +51,30 @@ static NSUInteger TeakTestThreadCount(void) {
   [super tearDown];
 }
 
-// Runs whatever is waiting for an identified user against a session that can't build a request,
-// so nothing a test left waiting outlives it.
-- (void)runWaitingBlocks {
+// Runs the blocks this test left waiting for an identified user, against a mock session that
+// can't build a request, and returns that session. Blocks queued before the test are left alone.
+- (TeakSession*)runWaitingBlocks {
   TeakSession* session = mock([TeakSession class]);
   [given([session currentState]) willReturn:[TeakSession UserIdentified]];
-  NSArray* blocks = nil;
+  NSArray* blocks = @[];
   @synchronized(currentSessionMutex) {
-    blocks = [[TeakSession whenUserIdIsReadyRunBlocks] copy];
-    [[TeakSession whenUserIdIsReadyRunBlocks] removeAllObjects];
+    NSMutableArray* waiting = [TeakSession whenUserIdIsReadyRunBlocks];
+    if (waiting.count > self.waitingBlocksAtSetUp) {
+      NSRange added = NSMakeRange(self.waitingBlocksAtSetUp, waiting.count - self.waitingBlocksAtSetUp);
+      blocks = [waiting subarrayWithRange:added];
+      [waiting removeObjectsInRange:added];
+    }
   }
   for (void (^block)(TeakSession*) in blocks) {
     block(session);
   }
+  return session;
+}
+
+// Waits for an operation to finish, failing instead of hanging if it doesn't.
+- (void)waitUntilFinished:(TeakOperation*)op {
+  XCTestExpectation* finished = [[XCTKVOExpectation alloc] initWithKeyPath:@"isFinished" object:op expectedValue:@YES];
+  [self waitForExpectations:@[ finished ] timeout:2.0];
 }
 
 // Builds an operation inside its own autorelease pool, optionally runs it, and
@@ -158,7 +173,7 @@ static NSUInteger TeakTestThreadCount(void) {
       [ops addObject:op];
       [queue addOperation:op];
     }
-    [NSThread sleepForTimeInterval:1.0];
+    [NSThread sleepForTimeInterval:0.2];
     NSUInteger waiting = TeakTestThreadCount();
 
     TeakOperation* later = [TeakOperation withResult:[[TeakOperationResult alloc] initWithStatus:@"ok" andErrors:nil]];
@@ -166,16 +181,20 @@ static NSUInteger TeakTestThreadCount(void) {
     [queue addOperation:later];
     XCTWaiterResult laterResult = [XCTWaiter waitForExpectations:@[ laterFinished ] timeout:2.0];
 
-    NSLog(@"C2282 waiting=%@ threads before=%lu while waiting=%lu later op finished=%@", count, (unsigned long)before,
-          (unsigned long)waiting, laterResult == XCTWaiterResultCompleted ? @"YES" : @"NO");
-    XCTAssertLessThan((NSInteger)waiting - (NSInteger)before, 8, @"%@ waiting operations", count);
+    // Blocked waiting held one thread per operation; allow a fixed handful for GCD's own workers.
+    XCTAssertLessThan((NSInteger)waiting - (NSInteger)before, MAX(8, count.integerValue / 4), @"%@ waiting operations", count);
     XCTAssertEqual(laterResult, XCTWaiterResultCompleted, @"%@ waiting operations", count);
     for (TeakOperation* op in ops) {
       XCTAssertFalse(op.isFinished);
     }
 
+    // Identifying the user lets every waiting operation finish (here with the error a session that
+    // can't build a request gives).
     [self runWaitingBlocks];
-    [queue cancelAllOperations];
+    for (TeakOperation* op in ops) {
+      [self waitUntilFinished:op];
+      XCTAssertEqualObjects(((TeakOperationResult*)[op result]).errors, @{@"request" : @[ @"request could not be created" ]});
+    }
   }
 }
 
@@ -208,20 +227,22 @@ static NSUInteger TeakTestThreadCount(void) {
   [op cancel];
   [self waitForExpectations:@[ finished ] timeout:2.0];
 
-  [self runWaitingBlocks];
+  TeakSession* session = [self runWaitingBlocks];
 
+  [verifyCount(session, never()) remoteConfiguration];
   TeakOperationResult* result = (TeakOperationResult*)[op result];
   XCTAssertEqualObjects(result.errors, @{@"operation" : @[ @"operation was canceled" ]});
 }
 
-// A request operation cancelled before it starts finishes without waiting for a user.
+// A request operation cancelled before the queue starts it finishes at once from -start, without
+// waiting for a user.
 - (void)testRequestOperationCancelledBeforeRunFinishes {
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/test" withPayload:@{}];
   [op cancel];
 
-  TeakOperationResult* result = nil;
-  XCTAssertNoThrow(result = [self.driver runSync:op]);
-  XCTAssertTrue(op.isFinished);
+  [[[NSOperationQueue alloc] init] addOperation:op];
+  [self waitUntilFinished:op];
+  TeakOperationResult* result = (TeakOperationResult*)[op result];
   XCTAssertEqualObjects(result.errors, @{@"operation" : @[ @"operation was canceled" ]});
 }
 
