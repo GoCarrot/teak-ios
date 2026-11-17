@@ -29,7 +29,8 @@ extern NSString* const currentSessionMutex;
 // Race-detection regression guard. Drives a real Teak type under concurrency and pins an invariant a
 // detector can observe, so a red run means a real regression — the fix it guards was reverted. Three
 // kinds of guard live here: deterministic CF-over-release crash repros (serverSessionId/countryCode/
-// userProfile/stateChain/facebookAccessToken/additionalData/emailStatus/pushStatus/smsStatus, and
+// userProfile/stateChain/facebookAccessToken/additionalData/launchDataOperation/emailStatus/
+// pushStatus/smsStatus, and
 // TeakDeviceConfiguration's pushToken/liveActivityPushToStartToken/advertisingIdentifier/
 // notificationDisplayEnabled) that carry signal on their own, ThreadSanitizer-only serialization
 // guards (the attribute-dict test and the ProductRequest active-requests test) that need the
@@ -369,11 +370,9 @@ static NSMutableArray* keepAliveBareSessions;
 }
 
 // launchDataOperation's pointee is an NSOperation, a plain object, so this uses userProfile's isa
-// touch. The writer must use alloc/init, not +unattributed: under TSan the factory's return value
-// lands in the writer thread's autorelease pool, so every replaced operation stays alive until the
-// loop ends and the race never reaches freed memory (a green that guards nothing). Confirmed both
-// ways at this N under TSan: crashes 10/10 with launchDataOperation reverted to nonatomic, clean
-// 10/10 with atomic restored.
+// touch. The writer uses alloc/init, not +unattributed, so each replaced operation frees inside the
+// loop (see Automated/RACE_TESTING.md §3). Confirmed both ways at this N under TSan: crashes 10/10
+// with launchDataOperation reverted to nonatomic, clean 10/10 with atomic restored.
 - (void)testLaunchDataOperationIsAtomicUnderConcurrency {
   TeakSession* session = [self bareSessionKeptAlive];
   const int N = 2000000;
@@ -391,14 +390,15 @@ static NSMutableArray* keepAliveBareSessions;
 }
 
 // additionalData's pointee is an NSDictionary, not a CFString. A single non-empty entry forces a
-// real heap-allocated dictionary — an empty dictionary literal returns a shared singleton that
-// never deallocates and would false-green this test.
+// real heap-allocated dictionary — an empty dictionary returns a shared singleton that never
+// deallocates and would false-green this test. alloc/init, not a literal: see launchDataOperation
+// above.
 - (void)testAdditionalDataIsAtomicUnderConcurrency {
   TeakSession* session = [self bareSessionKeptAlive];
   const int N = 2000000;
   [self raceBlockA:^{
     for (int i = 0; i < N; i++) {
-      session.additionalData = @{@"seed" : [[NSString alloc] initWithFormat:@"race-additionaldata-value-%d", i]};
+      session.additionalData = [[NSDictionary alloc] initWithObjectsAndKeys:[[NSString alloc] initWithFormat:@"race-additionaldata-value-%d", i], @"seed", nil];
     }
   }
             blockB:^{

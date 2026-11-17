@@ -140,13 +140,14 @@ traps on freed/reused memory, and expect to need a higher iteration count — ro
 reproduce as deterministically as the CFString case.
 
 Make sure the writer's old values actually free inside the loop. A value that comes back from a
-factory method can sit in the writer thread's autorelease pool, and the pool doesn't drain until
-the loop ends, so nothing frees during the race and the test is a false green. Measured on the
-`test_race` lane (TSan) for `launchDataOperation`: a writer assigning
-`[TeakLaunchDataOperation unattributed]` stayed green with the property nonatomic, and 999 of 1000
-replaced operations were still alive after reassignment; with `alloc`/`init` it was 0 of 1000 and
-the repro crashes. Allocate directly in the writer, and if a shape stays green under a revert,
-check with a `__weak` reference that the replaced value is actually gone.
+factory method or a collection literal (`@{…}`, `@[…]`) can sit in the writer thread's autorelease
+pool, and the pool doesn't drain until the loop ends, so nothing frees during the race and the test
+is a false green. Measured on the `test_race` lane (TSan) for `launchDataOperation`: a writer
+assigning `[TeakLaunchDataOperation unattributed]` stayed green with the property nonatomic, and 999
+of 1000 replaced operations were still alive after reassignment; with `alloc`/`init` it was 0 of
+1000 and the repro crashes. `additionalData`'s repro had the same false green with a dictionary
+literal. Allocate directly in the writer, and if a shape stays green under a revert, check with a
+`__weak` reference that the replaced value is actually gone.
 
 Minimal skeleton (drop into an XCTest case; `raceBlockA:blockB:` is the spin-barrier helper in
 `RaceTripwireTests.m`):
