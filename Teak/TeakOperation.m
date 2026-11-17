@@ -105,7 +105,7 @@ static TeakOperationResult* TeakOperationResultForException(NSString* _Nullable 
   return nil;
 }
 
-// Calls completion exactly once, on another queue, with the result the operation finishes with.
+// Calls completion on another queue with the result the operation finishes with.
 - (void)sendRequest:(NSDictionary*)requestParams withSession:(TeakSession*)session completion:(void (^)(id _Nullable))completion {
   NSString* endpoint = requestParams[kEndpoint];
   NSDictionary* payload = requestParams[kPayload];

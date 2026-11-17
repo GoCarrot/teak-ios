@@ -71,7 +71,7 @@ static NSUInteger TeakTestThreadCount(void) {
   return session;
 }
 
-// Waits for an operation to finish, failing instead of hanging if it doesn't.
+// Fails if the operation doesn't finish in time.
 - (void)waitUntilFinished:(TeakOperation*)op {
   XCTestExpectation* finished = [[XCTKVOExpectation alloc] initWithKeyPath:@"isFinished" object:op expectedValue:@YES];
   [self waitForExpectations:@[ finished ] timeout:2.0];
@@ -181,7 +181,7 @@ static NSUInteger TeakTestThreadCount(void) {
     [queue addOperation:later];
     XCTWaiterResult laterResult = [XCTWaiter waitForExpectations:@[ laterFinished ] timeout:2.0];
 
-    // Blocked waiting held one thread per operation; allow a fixed handful for GCD's own workers.
+    // Slack for GCD's own worker threads; a blocking wait would add one thread per operation.
     XCTAssertLessThan((NSInteger)waiting - (NSInteger)before, MAX(8, count.integerValue / 4), @"%@ waiting operations", count);
     XCTAssertEqual(laterResult, XCTWaiterResultCompleted, @"%@ waiting operations", count);
     for (TeakOperation* op in ops) {
@@ -198,25 +198,8 @@ static NSUInteger TeakTestThreadCount(void) {
   }
 }
 
-- (void)testCancelWaitingRequestOperationFinishes {
-  TeakOperation* op = [TeakOperation forEndpoint:@"/me/test" withPayload:@{}];
-  NSOperationQueue* queue = [[NSOperationQueue alloc] init];
-  XCTestExpectation* executing = [[XCTKVOExpectation alloc] initWithKeyPath:@"isExecuting" object:op expectedValue:@YES];
-  [queue addOperation:op];
-  [self waitForExpectations:@[ executing ] timeout:2.0];
-
-  XCTestExpectation* finished = [[XCTKVOExpectation alloc] initWithKeyPath:@"isFinished" object:op expectedValue:@YES];
-  [op cancel];
-  [self waitForExpectations:@[ finished ] timeout:2.0];
-
-  TeakOperationResult* result = (TeakOperationResult*)[op result];
-  XCTAssertTrue([result isKindOfClass:[TeakOperationResult class]]);
-  XCTAssertTrue(result.error);
-  XCTAssertEqualObjects(result.errors, @{@"operation" : @[ @"operation was canceled" ]});
-}
-
-// Once a user is identified, an operation cancelled while it waited sends nothing and keeps its
-// cancelled result.
+// Cancelling a waiting operation finishes it. Once a user is identified, it sends nothing and
+// keeps its cancelled result.
 - (void)testCancelledWaitingRequestOperationIgnoresIdentify {
   TeakOperation* op = [TeakOperation forEndpoint:@"/me/test" withPayload:@{}];
   NSOperationQueue* queue = [[NSOperationQueue alloc] init];
@@ -231,6 +214,8 @@ static NSUInteger TeakTestThreadCount(void) {
 
   [verifyCount(session, never()) remoteConfiguration];
   TeakOperationResult* result = (TeakOperationResult*)[op result];
+  XCTAssertTrue([result isKindOfClass:[TeakOperationResult class]]);
+  XCTAssertTrue(result.error);
   XCTAssertEqualObjects(result.errors, @{@"operation" : @[ @"operation was canceled" ]});
 }
 
