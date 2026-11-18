@@ -490,8 +490,9 @@ DefineTeakState(Expired, (@[]));
     _reportDurationMutex = [[NSObject alloc] init];
 
     // Assign unattributed launch at init
-    self.launchDataOperation = [TeakLaunchDataOperation unattributed];
-    [[Teak sharedInstance].operationQueue addOperation:self.launchDataOperation];
+    TeakLaunchDataOperation* launchDataOperation = [TeakLaunchDataOperation unattributed];
+    self.launchDataOperation = launchDataOperation;
+    [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
 
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
     CFStringRef string = CFUUIDCreateString(NULL, theUUID);

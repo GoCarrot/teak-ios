@@ -59,7 +59,7 @@ jobs:
       - ios_setup:
           xcode-version: << parameters.xcode-version >>
       - run:
-          name: Ensure IPHONEOS_DEPLOYMENT_TARGET is 9.0
+          name: Ensure IPHONEOS_DEPLOYMENT_TARGET matches MIN_VERSIONS.yml
           command: ./deployment_target_check.rb
       - run:
           name: Build Teak SDK
