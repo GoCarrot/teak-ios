@@ -18,7 +18,6 @@ extern NSString* _Nonnull const TeakDeviceConfiguration_NotificationDisplayState
 @property (nonatomic, readonly) BOOL limitAdTracking;
 @property (nonatomic, readonly) unsigned long long phyiscalMemoryInBytes;
 @property (nonatomic, readonly) NSUInteger numberOfCores;
-@property (nonatomic, readonly) NSDictionary* _Nonnull displayMetrics;
 
 - (nullable id)init;
 - (nonnull NSDictionary*)to_h;
