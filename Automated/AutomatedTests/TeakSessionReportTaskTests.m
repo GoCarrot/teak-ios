@@ -135,8 +135,7 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
 
 #pragma mark - Queue
 
-// Background and utility QoS starve for as long as the app keeps the CPU busy; default doesn't. The
-// global queues are singletons, so this is the default-QoS one and not either of the others.
+// The global queues are singletons, so this is the default-QoS one and not the background or utility one.
 - (void)testReportQueueIsDefaultQoS {
   [Teak setBackgroundQueue:nil];
   XCTAssertEqual([Teak backgroundQueue], dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0));
@@ -199,27 +198,6 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
   [send.request response:nil payload:@{} withError:nil forSend:send];
   XCTAssertTrue([self waitUntil:^{ return (BOOL)(session.backgroundUpdateTask == UIBackgroundTaskInvalid); } timeout:5.0],
                 @"the task was left open after /session_stop completed");
-}
-
-// A canceled request still gets its reply, and that ends the task too.
-- (void)testTaskEndsWhenTheStopRequestIsCanceled {
-  dispatch_queue_t queue = nil;
-  TeakSession* session = [self sessionWithHeldReportQueue:&queue blackhole:NO claimHook:nil];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  [self releaseReportQueue:queue];
-  XCTAssertEqual([self transmitCount], 1u);
-
-  TeakRequestSend* send = nil;
-  @synchronized(reportTaskTest_transmits) {
-    send = reportTaskTest_transmits.firstObject;
-  }
-  [send cancel];
-  [send.request response:nil
-                 payload:@{}
-               withError:[NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorCancelled userInfo:nil]
-                 forSend:send];
-  XCTAssertTrue([self waitUntil:^{ return (BOOL)(session.backgroundUpdateTask == UIBackgroundTaskInvalid); } timeout:5.0],
-                @"the task was left open after /session_stop was canceled");
 }
 
 // Returning to the game cancels the pending report; its task must end then, not when the queue

@@ -1,2 +1,2 @@
 bug:
-  - "Fixed the session duration report being lost when the game goes to the background while the app is keeping the CPU busy. Teak now sends it at normal priority and keeps the app awake until the report has been delivered."
+  - "Fixed the session duration report being lost when the game goes to the background while the app is keeping the CPU busy. Teak now sends it at normal priority and asks iOS for background time to finish sending it."

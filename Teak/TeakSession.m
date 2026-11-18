@@ -1040,9 +1040,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         dispatch_block_t reportDurationBlock = dispatch_block_create(0, ^{
         });
         self.reportDurationBlock = reportDurationBlock;
-        // Hold the app awake from here, not from when the report starts: the background queue can sit
-        // behind other work long enough for the app to suspend with the stop unsent. The reset above
-        // ended any earlier report's task, so this is the only one open.
+        // The reset above ended any earlier report's task, so this is the only one open.
         UIBackgroundTaskIdentifier reportTask = [self beginReportBackgroundTask];
         dispatch_async([Teak backgroundQueue], ^{
           // A canceled report's task was ended by the reset that canceled it.
@@ -1134,28 +1132,37 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 // the server a /session_resume). Shares reportDurationMutex with -claimReportDuration: so a report
 // can't be claimed between reading reportDurationSent and canceling.
 - (BOOL)resetReportDurationBlock {
+  BOOL lastReportDurationSent;
+  UIBackgroundTaskIdentifier task;
   @synchronized(self.reportDurationMutex) {
-    BOOL lastReportDurationSent = self.reportDurationSent;
+    lastReportDurationSent = self.reportDurationSent;
     dispatch_block_t block = self.reportDurationBlock;
     if (block != nil) {
       dispatch_block_cancel(block);
       self.reportDurationBlock = nil;
     }
     self.reportDurationSent = NO;
-    // The report this reset cancels, or has already sent, has no use for its task.
-    [self endReportBackgroundTask:self.backgroundUpdateTask];
-    return lastReportDurationSent;
+    task = self.backgroundUpdateTask;
   }
+  // The report this reset cancels, or has already sent, has no use for its task.
+  [self endReportBackgroundTask:task];
+  return lastReportDurationSent;
 }
 
 // Starts the background task for the report being scheduled and records it as the current one.
 // Returns the identifier so the report can end its own task. A task that's no longer the recorded one
-// has already been ended, so a stale identifier can't end a newer report's task.
+// has already been ended, so a stale identifier can't end a newer report's task. When iOS expires the
+// task the handler ends it whatever is recorded.
 - (UIBackgroundTaskIdentifier)beginReportBackgroundTask {
   __block UIBackgroundTaskIdentifier task = UIBackgroundTaskInvalid;
   task = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"io.teak.sdk.sessionStop"
                                                       expirationHandler:^{
-                                                        [self endReportBackgroundTask:task];
+                                                        @synchronized(self.reportDurationMutex) {
+                                                          if (task == self.backgroundUpdateTask) {
+                                                            self.backgroundUpdateTask = UIBackgroundTaskInvalid;
+                                                          }
+                                                        }
+                                                        [[UIApplication sharedApplication] endBackgroundTask:task];
                                                       }];
   @synchronized(self.reportDurationMutex) {
     self.backgroundUpdateTask = task;
@@ -1164,13 +1171,18 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 }
 
 // Ends `task` if it's still the recorded one. Safe to call more than once, from any queue. The
-// expiration handler calls this on the main queue, so it must take no lock but reportDurationMutex.
+// expiration handler runs on the main queue and takes no lock but reportDurationMutex, which is only
+// ever held briefly and never across a UIKit call.
 - (void)endReportBackgroundTask:(UIBackgroundTaskIdentifier)task {
+  BOOL owned = NO;
   @synchronized(self.reportDurationMutex) {
     if (task != UIBackgroundTaskInvalid && task == self.backgroundUpdateTask) {
-      [[UIApplication sharedApplication] endBackgroundTask:task];
       self.backgroundUpdateTask = UIBackgroundTaskInvalid;
+      owned = YES;
     }
+  }
+  if (owned) {
+    [[UIApplication sharedApplication] endBackgroundTask:task];
   }
 }
 
