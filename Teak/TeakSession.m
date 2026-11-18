@@ -1081,10 +1081,11 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
                                                   }];
 
     // The callback runs when the request is done, whether it succeeded, failed for good or was
-    // canceled. A request that isn't built, or is blackholed, never calls it.
-    BOOL inFlight = request != nil && !request.blackhole;
+    // canceled. A request that isn't built, is blackholed, or whose send failed before reaching the
+    // network never calls it. A send is only handed to the network once it holds a task; without one
+    // there is nothing to wait for. A request that already finished has ended the task itself.
     [request send];
-    if (inFlight) return;
+    if (request.currentSend.task != nil) return;
   }
   [self endReportBackgroundTask:task];
 }

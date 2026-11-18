@@ -33,14 +33,20 @@ extern TeakSession* currentSession;
 - (void)reportTaskTest_transmitSend:(TeakRequestSend*)send;
 @end
 
-// Test-only swizzle on the real -transmitSend: records the send instead of hitting the network.
-// The request, its callback and -response:payload:withError:forSend: are production code.
+// Test-only swizzle on the real -transmitSend: records the send instead of hitting the network. Like
+// the real one it gives the send a task once it's handed to the network, unless a test says the
+// transmit failed first (the real one reports such a failure and returns). The request, its callback
+// and -response:payload:withError:forSend: are production code.
 static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
+static BOOL reportTaskTest_transmitReachesNetwork;
 
 @implementation TeakRequest (ReportTaskTesting)
 - (void)reportTaskTest_transmitSend:(TeakRequestSend*)send {
   @synchronized(reportTaskTest_transmits) {
     [reportTaskTest_transmits addObject:send];
+  }
+  if (reportTaskTest_transmitReachesNetwork) {
+    send.task = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:@"https://example.invalid"]];
   }
 }
 @end
@@ -74,6 +80,7 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
   [super setUp];
   currentSession = nil;
   reportTaskTest_transmits = [NSMutableArray array];
+  reportTaskTest_transmitReachesNetwork = YES;
   [TeakSessionReportTaskTests swapTransmit];
 }
 
@@ -198,6 +205,21 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
   [send.request response:nil payload:@{} withError:nil forSend:send];
   XCTAssertTrue([self waitUntil:^{ return (BOOL)(session.backgroundUpdateTask == UIBackgroundTaskInvalid); } timeout:5.0],
                 @"the task was left open after /session_stop completed");
+}
+
+// A send that fails before reaching the network is reported and returns, so the request never
+// calls back. The task can't wait for a reply that isn't coming.
+- (void)testTaskEndsWhenTheSendNeverReachesTheNetwork {
+  dispatch_queue_t queue = nil;
+  TeakSession* session = [self sessionWithHeldReportQueue:&queue blackhole:NO claimHook:nil];
+  reportTaskTest_transmitReachesNetwork = NO;
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+
+  [self releaseReportQueue:queue];
+
+  XCTAssertEqual([self transmitCount], 1u, @"/session_stop was not attempted");
+  XCTAssertEqual(session.backgroundUpdateTask, UIBackgroundTaskInvalid,
+                 @"the task was left open for a send that never reached the network");
 }
 
 // Returning to the game cancels the pending report; its task must end then, not when the queue
