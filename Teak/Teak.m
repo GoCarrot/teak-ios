@@ -118,21 +118,21 @@ void TeakOpenURLInApplication(UIApplication* _Nonnull application, NSURL* _Nonnu
   return operationQueue;
 }
 
-static NSString* const TeakBackgroundQueueMutex = @"io.teak.sdk.backgroundQueueMutex";
-static dispatch_queue_t TeakBackgroundQueueOverride = nil;
+static NSString* const TeakSessionReportQueueMutex = @"io.teak.sdk.sessionReportQueueMutex";
+static dispatch_queue_t TeakSessionReportQueueOverride = nil;
 
-+ (dispatch_queue_t _Nonnull)backgroundQueue {
-  @synchronized(TeakBackgroundQueueMutex) {
-    if (TeakBackgroundQueueOverride != nil) {
-      return TeakBackgroundQueueOverride;
++ (dispatch_queue_t _Nonnull)sessionReportQueue {
+  @synchronized(TeakSessionReportQueueMutex) {
+    if (TeakSessionReportQueueOverride != nil) {
+      return TeakSessionReportQueueOverride;
     }
   }
-  return dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+  return dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0);
 }
 
-+ (void)setBackgroundQueue:(dispatch_queue_t _Nullable)queue {
-  @synchronized(TeakBackgroundQueueMutex) {
-    TeakBackgroundQueueOverride = queue;
++ (void)setSessionReportQueue:(dispatch_queue_t _Nullable)queue {
+  @synchronized(TeakSessionReportQueueMutex) {
+    TeakSessionReportQueueOverride = queue;
   }
 }
 
