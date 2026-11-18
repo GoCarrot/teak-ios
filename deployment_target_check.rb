@@ -3,8 +3,8 @@ require 'bundler/setup'
 require 'xcodeproj'
 require 'yaml'
 
-expected = YAML.load_file('MIN_VERSIONS.yml').fetch('min-ios')
-project = Xcodeproj::Project.open('Teak.xcodeproj')
+expected = YAML.load_file(File.join(__dir__, 'MIN_VERSIONS.yml')).fetch('min-ios')
+project = Xcodeproj::Project.open(File.join(__dir__, 'Teak.xcodeproj'))
 
 project.targets.each do |target|
   target.build_configurations.each do |config|
