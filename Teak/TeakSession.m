@@ -1042,7 +1042,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         self.reportDurationBlock = reportDurationBlock;
         // The reset above ended any earlier report's task, so this is the only one open.
         UIBackgroundTaskIdentifier reportTask = [self beginReportBackgroundTask];
-        dispatch_async([Teak backgroundQueue], ^{
+        dispatch_async([Teak sessionReportQueue], ^{
           // A canceled report's task was ended by the reset that canceled it.
           if (!dispatch_block_testcancel(reportDurationBlock)) {
             [self reportDurationHoldingTask:reportTask];

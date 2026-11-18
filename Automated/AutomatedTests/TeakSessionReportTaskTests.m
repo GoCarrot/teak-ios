@@ -12,8 +12,8 @@
 extern TeakSession* currentSession;
 
 @interface Teak (ReportTaskTesting)
-+ (dispatch_queue_t)backgroundQueue;
-+ (void)setBackgroundQueue:(dispatch_queue_t)queue;
++ (dispatch_queue_t)sessionReportQueue;
++ (void)setSessionReportQueue:(dispatch_queue_t)queue;
 @end
 
 @interface TeakSession (ReportTaskTesting)
@@ -79,7 +79,7 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
 
 - (void)tearDown {
   [TeakSessionReportTaskTests swapTransmit];
-  [Teak setBackgroundQueue:nil];
+  [Teak setSessionReportQueue:nil];
   [currentSession detachDeviceConfigurationObservers];
   if (currentSession != nil) [TeakEvent removeEventHandler:currentSession];
   currentSession = nil;
@@ -95,7 +95,7 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
                                  claimHook:(void (^)(TeakSession*))claimHook {
   dispatch_queue_t reportQueue = dispatch_queue_create("io.teak.test.reportTask", DISPATCH_QUEUE_SERIAL);
   dispatch_suspend(reportQueue);
-  [Teak setBackgroundQueue:reportQueue];
+  [Teak setSessionReportQueue:reportQueue];
 
   TeakSession* session = [TeakSession currentSession];
   session.serverSessionId = @"test-server-session";
@@ -137,8 +137,8 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
 
 // The global queues are singletons, so this is the default-QoS one and not the background or utility one.
 - (void)testReportQueueIsDefaultQoS {
-  [Teak setBackgroundQueue:nil];
-  XCTAssertEqual([Teak backgroundQueue], dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0));
+  [Teak setSessionReportQueue:nil];
+  XCTAssertEqual([Teak sessionReportQueue], dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0));
 }
 
 #pragma mark - Task lifetime

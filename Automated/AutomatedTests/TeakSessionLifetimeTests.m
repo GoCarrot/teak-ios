@@ -17,7 +17,7 @@ extern NSString* TeakEventHandlersMutex;
 
 @interface Teak (LifetimeTesting)
 + (dispatch_queue_t)operationQueue;
-+ (void)setBackgroundQueue:(dispatch_queue_t)queue;
++ (void)setSessionReportQueue:(dispatch_queue_t)queue;
 @end
 
 @interface TeakSession (LifetimeTesting)
@@ -69,7 +69,7 @@ extern NSString* TeakEventHandlersMutex;
 }
 
 - (void)tearDown {
-  [Teak setBackgroundQueue:nil];
+  [Teak setSessionReportQueue:nil];
   // A real session stays a live deviceConfiguration KVO observer and event handler until detached.
   [currentSession detachDeviceConfigurationObservers];
   if (currentSession != nil) [TeakEvent removeEventHandler:currentSession];
@@ -172,7 +172,7 @@ extern NSString* TeakEventHandlersMutex;
   @autoreleasepool {
     TeakSession* session = [TeakSession currentSession];
     session.serverSessionId = @"test-server-session";
-    [Teak setBackgroundQueue:reportQueue];
+    [Teak setSessionReportQueue:reportQueue];
     session.reportDurationClaimHook = ^{
       dispatch_semaphore_signal(claimed);
     };
