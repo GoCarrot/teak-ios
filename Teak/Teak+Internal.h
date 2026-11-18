@@ -42,8 +42,9 @@ extern NSDictionary* _Nonnull TeakNotificationCategories;
 
 + (NSURLSession* _Nonnull)URLSessionWithoutDelegate;
 + (dispatch_queue_t _Nonnull)operationQueue;
-// Where Teak runs low-priority background work. The background-priority global queue unless a test
-// has swapped in its own with +setBackgroundQueue:.
+// Where Teak runs its background work: the default-QoS global queue unless a test has swapped in its
+// own with +setBackgroundQueue:. Background and utility QoS can both starve for as long as the app
+// keeps the CPU busy, which leaves /session_stop unsent when the app suspends.
 + (dispatch_queue_t _Nonnull)backgroundQueue;
 // Test-only: replaces the queue +backgroundQueue returns. Pass nil to restore the default.
 + (void)setBackgroundQueue:(dispatch_queue_t _Nullable)queue;

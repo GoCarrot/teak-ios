@@ -127,7 +127,7 @@ static dispatch_queue_t TeakBackgroundQueueOverride = nil;
       return TeakBackgroundQueueOverride;
     }
   }
-  return dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+  return dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0);
 }
 
 + (void)setBackgroundQueue:(dispatch_queue_t _Nullable)queue {
