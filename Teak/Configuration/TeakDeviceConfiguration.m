@@ -31,7 +31,6 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
 @property (nonatomic, readwrite) BOOL limitAdTracking;
 @property (nonatomic, readwrite) unsigned long long phyiscalMemoryInBytes;
 @property (nonatomic, readwrite) NSUInteger numberOfCores;
-@property (nonatomic, readwrite) NSDictionary* displayMetrics;
 
 @property (strong, nonatomic) NSUserDefaults* userDefaults;
 @property (nonatomic) NSUInteger rerunGetAdvertisingInformation;
@@ -83,15 +82,6 @@ NSString* const TeakDeviceConfiguration_NotificationDisplayState_NotDetermined =
     // Hardware info
     self.phyiscalMemoryInBytes = [NSProcessInfo processInfo].physicalMemory;
     self.numberOfCores = [[NSProcessInfo processInfo] processorCount];
-
-    // This is disabled, for now, because there are Xcode 12 and/or iOS 15 issues
-    //    UIScreen* mainScreen = [UIScreen mainScreen];
-    //    CGRect screenRect = [mainScreen bounds];
-    self.displayMetrics = @{
-        //      @"width" : [NSNumber numberWithDouble:screenRect.size.width],
-        //      @"height" : [NSNumber numberWithDouble:screenRect.size.height],
-        //      @"dpi" : [NSNumber numberWithFloat:[mainScreen scale]]
-    };
 
     // Make sure these are not nil
     self.advertisingIdentifier = @"";
