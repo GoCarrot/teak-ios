@@ -1,0 +1,2 @@
+upgrade_note:
+  - "The minimum iOS version is now 11.0, matching the CocoaPods spec and the docs. The prebuilt ``Teak.xcframework`` was previously stamped for iOS 9.0."

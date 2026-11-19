@@ -139,6 +139,16 @@ instead (e.g. `NSStringFromClass([obj class]).length`) to force a class-table lo
 traps on freed/reused memory, and expect to need a higher iteration count — roughly 10x — to
 reproduce as deterministically as the CFString case.
 
+Make sure the writer's old values actually free inside the loop. A value that comes back from a
+factory method or a collection literal (`@{…}`, `@[…]`) can sit in the writer thread's autorelease
+pool, and the pool doesn't drain until the loop ends, so nothing frees during the race and the test
+is a false green. Measured on the `test_race` lane (TSan) for `launchDataOperation`: a writer
+assigning `[TeakLaunchDataOperation unattributed]` stayed green with the property nonatomic, and 999
+of 1000 replaced operations were still alive after reassignment; with `alloc`/`init` it was 0 of
+1000 and the repro crashes. `additionalData`'s and `stateChain`'s repros had the same false green
+with a dictionary and an array literal. Allocate directly in the writer, and if a shape stays green
+under a revert, check with a `__weak` reference that the replaced value is actually gone.
+
 Minimal skeleton (drop into an XCTest case; `raceBlockA:blockB:` is the spin-barrier helper in
 `RaceTripwireTests.m`):
 
@@ -202,12 +212,14 @@ free the object out from under it — the load→retain gap is closed.
 
 This is a different mechanism from aligned-load atomicity. On arm64 the pointer read already doesn't
 *tear*; that was never the problem. The problem is *free-during-use*, and only a retained snapshot
-(or a lock held across both the read and the use) prevents it. So the fix has two requirements:
+(or a lock held across both the read and the use) prevents it. So every read has to go **through
+the accessor**: a direct ivar read bypasses the spinlock and reopens the gap.
 
-- every read goes **through the accessor** — a direct ivar read bypasses the spinlock and reopens
-  the gap, and
-- multi-read sites **capture to a local** once, then use the local — re-reading the property for
-  each use reopens the window between reads.
+Multi-read sites still **capture to a local** once and use the local, but that's for consistency,
+not memory safety. Each atomic read hands back its own retained snapshot, so reading twice gives two
+live objects, but possibly two *different* ones (e.g. `.isFinished` checked on one operation and
+`.result` read from its replacement). No crash detector sees that; it's a logic bug, enforced in
+review.
 
 ## 5. Harness limitation and the standing workflow
 
@@ -239,8 +251,7 @@ check still applies: drop the flag or the detach call and watch the structural a
 | Shared state | Detector | Signal | Example source |
 |---|---|---|---|
 | Mutable container (dict/array) | ThreadSanitizer | `race on NSMutableDictionary` | `userProfile` string-attributes dict |
-| nonatomic-strong, freeable pointee | Dynamic crash repro (CF over-release trap) | `SIGTRAP` in `_CFRelease` | `TeakSession.serverSessionId` |
-| nonatomic-strong, freeable pointee, no repro goes red | Static atomic-declaration assertion | assertion red | `TeakSession.launchDataOperation` |
+| nonatomic-strong, freeable pointee | Dynamic crash repro (CF over-release trap; isa touch for plain objects) | `SIGTRAP` in `_CFRelease`, or SEGV in `objc_release` | `TeakSession.serverSessionId`, `TeakSession.launchDataOperation` |
 | static/ivar strong pointer, return outside lock | ThreadSanitizer (partial) + measured rounds multiplier | race report **or** crash, rate ≈ crash rate | `TeakTrackEventBatchedRequest.currentBatch` |
 | Immortal scalar/pointer | Static atomic-declaration assertion | assertion red | state-machine fields |
 | Cross-object KVO add/remove (shared observee) | Structural assertion (idempotent removal + detached-at-replacement) | assertion red | `TeakSession` deviceConfiguration observers |

@@ -29,6 +29,12 @@ bundle exec fastlane test
 ```
 Runs from the repo root. Uses the `Automated/Automated.xcworkspace` with `scan`. Results output to `test_output/automated/results.xml` (JUnit format).
 
+**Xcode 27 local builds:** Xcode 27 can't build below iOS 15.0, so the shipped floor (11.0, from `MIN_VERSIONS.yml`) fails locally. Override it on the command line for tests:
+```bash
+SCAN_XCARGS=IPHONEOS_DEPLOYMENT_TARGET=15.0 bundle exec fastlane test
+```
+Don't change the project setting to 15.0. `compile_xc_framework` has no override hook yet, so it won't build locally on Xcode 27.
+
 ### Adding Tests
 
 Tests live in `Automated/AutomatedTests/` and use XCTest with OCMockito (~> 5.0) and OCHamcrest for mocking/assertions.

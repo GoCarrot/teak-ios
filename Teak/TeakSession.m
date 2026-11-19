@@ -8,6 +8,7 @@
 #import "TeakLaunchData.h"
 #import "TeakLiveActivityTokenCache.h"
 #import "TeakRemoteConfiguration.h"
+#import "TeakRequest+Internal.h"
 #import "TeakRequest.h"
 #import "TeakReward.h"
 #import "TeakUserProfile.h"
@@ -117,6 +118,10 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 // use atomic_fetch_add. reportDurationSent never participates in a read-modify-write of its own
 // prior value, so plain atomic load/store fully covers it.
 @property (nonatomic) atomic_bool reportDurationSent;
+// The background task holding the app awake for the pending /session_stop, or UIBackgroundTaskInvalid.
+// Begun when the session goes Expiring and ended once the report's request has completed, or the
+// report is canceled or sends nothing. Only read or written under reportDurationMutex: the expiration
+// handler runs on the main queue, the report on the background queue.
 @property (nonatomic) UIBackgroundTaskIdentifier backgroundUpdateTask;
 // Same cross-thread reassignment race as countryCode above.
 @property (strong, atomic) NSString* serverSessionId;
@@ -307,7 +312,6 @@ DefineTeakState(Expired, (@[]));
     // Additional device information
     payload[@"device_num_cores"] = [NSNumber numberWithUnsignedInteger:self.deviceConfiguration.numberOfCores];
     payload[@"device_device_memory_in_bytes"] = [NSNumber numberWithUnsignedLongLong:self.deviceConfiguration.phyiscalMemoryInBytes];
-    payload[@"device_display_metrics"] = self.deviceConfiguration.displayMetrics;
 
     if (self.userIdentificationSent) {
       payload[@"do_not_track_event"] = @YES;
@@ -485,8 +489,9 @@ DefineTeakState(Expired, (@[]));
     _reportDurationMutex = [[NSObject alloc] init];
 
     // Assign unattributed launch at init
-    self.launchDataOperation = [TeakLaunchDataOperation unattributed];
-    [[Teak sharedInstance].operationQueue addOperation:self.launchDataOperation];
+    TeakLaunchDataOperation* launchDataOperation = [TeakLaunchDataOperation unattributed];
+    self.launchDataOperation = launchDataOperation;
+    [[Teak sharedInstance].operationQueue addOperation:launchDataOperation];
 
     CFUUIDRef theUUID = CFUUIDCreate(NULL);
     CFStringRef string = CFUUIDCreateString(NULL, theUUID);
@@ -1035,9 +1040,12 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
         dispatch_block_t reportDurationBlock = dispatch_block_create(0, ^{
         });
         self.reportDurationBlock = reportDurationBlock;
-        dispatch_async([Teak backgroundQueue], ^{
+        // The reset above ended any earlier report's task, so this is the only one open.
+        UIBackgroundTaskIdentifier reportTask = [self beginReportBackgroundTask];
+        dispatch_async([Teak sessionReportQueue], ^{
+          // A canceled report's task was ended by the reset that canceled it.
           if (!dispatch_block_testcancel(reportDurationBlock)) {
-            [self reportDuration];
+            [self reportDurationHoldingTask:reportTask];
           }
         });
       }
@@ -1048,10 +1056,11 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 }
 
 // Sends /session_stop, the "if you don't hear back from me, this session ended now" report, unless
-// the pending report has been canceled or claimed in the meantime.
-- (void)reportDuration {
-  [self beginBackgroundUpdateTask];
-
+// the pending report has been canceled or claimed in the meantime. `task` is the background task
+// begun when the session went Expiring. It stays open until the request completes, since the app can
+// suspend with the request still in flight once `-send` returns. When nothing went in flight it ends
+// here instead.
+- (void)reportDurationHoldingTask:(UIBackgroundTaskIdentifier)task {
   // serverSessionId can be reassigned by the identify-reply callback on another queue at any
   // moment, so the nil-check and the later use below must see the same value — single-read it.
   NSString* serverSessionId = self.serverSessionId;
@@ -1067,12 +1076,18 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
                                                forEndpoint:@"/session_stop"
                                                withPayload:payload
                                                     method:TeakRequest_POST
-                                                  callback:nil];
+                                                  callback:^(NSDictionary* reply) {
+                                                    [self endReportBackgroundTask:task];
+                                                  }];
 
+    // The callback runs when the request is done, whether it succeeded, failed for good or was
+    // canceled. A request that isn't built, is blackholed, or whose send failed before reaching the
+    // network never calls it. A send is only handed to the network once it holds a task; without one
+    // there is nothing to wait for. A request that already finished has ended the task itself.
     [request send];
+    if (request.currentSend.task != nil) return;
   }
-
-  [self endBackgroundUpdateTask];
+  [self endReportBackgroundTask:task];
 }
 
 // sessionVectorClock++ is a read-modify-write; the KVO observer's resume-path increment and the
@@ -1094,7 +1109,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
   return [self incrementSessionVectorClock];
 }
 
-// Called from -reportDuration. Returns YES (and the post-increment vector clock) if the current
+// Called from -reportDurationHoldingTask:. Returns YES (and the post-increment vector clock) if the current
 // reportDurationBlock hasn't been canceled, marking the report sent. This tests whatever
 // reportDurationBlock holds now — under a rapid Expiring re-transition that may be a newer token than
 // the one the caller checked. Read once into a strong local: it
@@ -1118,27 +1133,58 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
 // the server a /session_resume). Shares reportDurationMutex with -claimReportDuration: so a report
 // can't be claimed between reading reportDurationSent and canceling.
 - (BOOL)resetReportDurationBlock {
+  BOOL lastReportDurationSent;
+  UIBackgroundTaskIdentifier task;
   @synchronized(self.reportDurationMutex) {
-    BOOL lastReportDurationSent = self.reportDurationSent;
+    lastReportDurationSent = self.reportDurationSent;
     dispatch_block_t block = self.reportDurationBlock;
     if (block != nil) {
       dispatch_block_cancel(block);
       self.reportDurationBlock = nil;
     }
     self.reportDurationSent = NO;
-    return lastReportDurationSent;
+    task = self.backgroundUpdateTask;
   }
+  // The report this reset cancels, or has already sent, has no use for its task.
+  [self endReportBackgroundTask:task];
+  return lastReportDurationSent;
 }
 
-- (void)beginBackgroundUpdateTask {
-  self.backgroundUpdateTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
-    [self endBackgroundUpdateTask];
-  }];
+// Starts the background task for the report being scheduled and records it as the current one.
+// Returns the identifier so the report can end its own task. A task that's no longer the recorded one
+// has already been ended, so a stale identifier can't end a newer report's task. When iOS expires the
+// task the handler ends it whatever is recorded.
+- (UIBackgroundTaskIdentifier)beginReportBackgroundTask {
+  __block UIBackgroundTaskIdentifier task = UIBackgroundTaskInvalid;
+  task = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"io.teak.sdk.sessionStop"
+                                                      expirationHandler:^{
+                                                        @synchronized(self.reportDurationMutex) {
+                                                          if (task == self.backgroundUpdateTask) {
+                                                            self.backgroundUpdateTask = UIBackgroundTaskInvalid;
+                                                          }
+                                                        }
+                                                        [[UIApplication sharedApplication] endBackgroundTask:task];
+                                                      }];
+  @synchronized(self.reportDurationMutex) {
+    self.backgroundUpdateTask = task;
+  }
+  return task;
 }
 
-- (void)endBackgroundUpdateTask {
-  [[UIApplication sharedApplication] endBackgroundTask:self.backgroundUpdateTask];
-  self.backgroundUpdateTask = UIBackgroundTaskInvalid;
+// Ends `task` if it's still the recorded one. Safe to call more than once, from any queue. The
+// expiration handler runs on the main queue and takes no lock but reportDurationMutex, which is only
+// ever held briefly and never across a UIKit call.
+- (void)endReportBackgroundTask:(UIBackgroundTaskIdentifier)task {
+  BOOL owned = NO;
+  @synchronized(self.reportDurationMutex) {
+    if (task != UIBackgroundTaskInvalid && task == self.backgroundUpdateTask) {
+      self.backgroundUpdateTask = UIBackgroundTaskInvalid;
+      owned = YES;
+    }
+  }
+  if (owned) {
+    [[UIApplication sharedApplication] endBackgroundTask:task];
+  }
 }
 
 - (void)dispatchUserDataEvent {

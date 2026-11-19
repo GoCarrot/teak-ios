@@ -1,0 +1,2 @@
+enhancement:
+  - "Removed an unused, always-empty field from the session payload."
