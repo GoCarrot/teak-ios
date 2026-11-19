@@ -100,7 +100,7 @@ static TeakOperationResult* TeakOperationResultForException(NSString* _Nullable 
 }
 
 // The invocation's selector for request operations. Request operations never run their invocation:
-// -[TeakOperation start] sends the request instead. The invocation only carries the parameters.
+// -[TeakRequestOperation start] sends the request instead. The invocation only carries the parameters.
 - (id)performRequest:(id)requestParams {
   return nil;
 }
@@ -141,15 +141,19 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
   return [[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"operation" : @[ @"operation was canceled" ]}];
 }
 
-// Request operations are asynchronous: while they wait for an identified user and for the reply,
-// they hold no thread. They report their own executing/finished state.
-@interface TeakOperation () {
-  BOOL _sendsRequest;
+@interface TeakOperation ()
+- (id)initWithResult:(nonnull id)result;
+@end
+
+// Built by the forEndpoint: factories. Asynchronous: while it waits for an identified user and for
+// the reply, it holds no thread. It reports its own executing/finished state.
+@interface TeakRequestOperation : TeakOperation {
   BOOL _requestExecuting;
   BOOL _requestFinished;
   BOOL _requestFinishing;
   id _requestResult;
 }
+- (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser;
 - (void)finishWithResult:(nullable id)result;
 @end
 
@@ -172,53 +176,60 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
 }
 
 + (nonnull TeakOperation*)forEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
-  return [[TeakOperation alloc] initForEndpoint:endpoint withPayload:payload replyParser:replyParser];
+  return [[TeakRequestOperation alloc] initForEndpoint:endpoint withPayload:payload replyParser:replyParser];
 }
 
 - (id)initWithResult:(nonnull id)result {
   return [self initWithTarget:[[TeakOperationWork alloc] initWithReplyParser:nil] selector:@selector(returnResult:) object:result];
 }
 
+// Read by tests to exercise reply parsing without sending a request.
+- (id (^)(NSDictionary* _Nonnull))replyParser {
+  return ((TeakOperationWork*)self.invocation.target).replyParser;
+}
+
+// NSInvocationOperation raises from -result if the operation was cancelled, and re-raises anything
+// the invocation raised. Callers read -result without a @try, so report those as an error result.
+- (id)result {
+  @try {
+    return [super result];
+  } @catch (NSException* exception) {
+    if (self.isCancelled) {
+      return TeakOperationCanceledResult();
+    }
+    return TeakOperationResultForException(nil, exception);
+  }
+}
+
+@end
+
+@implementation TeakRequestOperation
+
 - (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
 
   // TODO: Put any pre-send validation here
 
   TeakOperationWork* work = [[TeakOperationWork alloc] initWithReplyParser:replyParser];
-  self = [self initWithTarget:work selector:@selector(performRequest:) object:@{kEndpoint : endpoint, kPayload : payload}];
-  if (self) {
-    _sendsRequest = YES;
-  }
-  return self;
+  return [self initWithTarget:work selector:@selector(performRequest:) object:@{kEndpoint : endpoint, kPayload : payload}];
 }
 
 - (BOOL)isAsynchronous {
-  return _sendsRequest ? YES : [super isAsynchronous];
+  return YES;
 }
 
 - (BOOL)isExecuting {
-  if (!_sendsRequest) {
-    return [super isExecuting];
-  }
   @synchronized(self) {
     return _requestExecuting;
   }
 }
 
 - (BOOL)isFinished {
-  if (!_sendsRequest) {
-    return [super isFinished];
-  }
   @synchronized(self) {
     return _requestFinished;
   }
 }
 
 - (void)start {
-  if (!_sendsRequest) {
-    [super start];
-    return;
-  }
-
   @synchronized(self) {
     if (_requestExecuting || _requestFinishing) {
       return;
@@ -242,9 +253,9 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
 
   // Weak while waiting for a user: a cancelled operation is finished and nothing needs it, so the
   // waiting block mustn't keep it, or its work, alive. Strong once sending, until the reply finishes it.
-  __weak TeakOperation* weakSelf = self;
+  __weak TeakRequestOperation* weakSelf = self;
   [TeakSession whenUserIdIsOrWasReadyRun:^(TeakSession* session) {
-    TeakOperation* op = weakSelf;
+    TeakRequestOperation* op = weakSelf;
     if (op == nil || op.isFinished || op.isCancelled) {
       return;
     }
@@ -265,9 +276,6 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
 
 - (void)cancel {
   [super cancel];
-  if (!_sendsRequest) {
-    return;
-  }
   BOOL executing = NO;
   @synchronized(self) {
     executing = _requestExecuting;
@@ -298,30 +306,14 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
   [self didChangeValueForKey:@"isExecuting"];
 }
 
-// Read by tests to exercise reply parsing without sending a request.
-- (id (^)(NSDictionary* _Nonnull))replyParser {
-  return ((TeakOperationWork*)self.invocation.target).replyParser;
-}
-
-// NSInvocationOperation raises from -result if the operation was cancelled, and re-raises anything
-// the invocation raised. Callers read -result without a @try, so report those as an error result.
+// The invocation never runs, so NSInvocationOperation has no result; report the one it finished with.
 - (id)result {
-  if (_sendsRequest) {
-    @synchronized(self) {
-      if (_requestFinishing) {
-        return _requestResult;
-      }
+  @synchronized(self) {
+    if (_requestFinishing) {
+      return _requestResult;
     }
-    return self.isCancelled ? TeakOperationCanceledResult() : nil;
   }
-  @try {
-    return [super result];
-  } @catch (NSException* exception) {
-    if (self.isCancelled) {
-      return TeakOperationCanceledResult();
-    }
-    return TeakOperationResultForException(nil, exception);
-  }
+  return self.isCancelled ? TeakOperationCanceledResult() : nil;
 }
 
 @end
