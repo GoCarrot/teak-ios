@@ -148,11 +148,14 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
 // Built by the forEndpoint: factories. Asynchronous: while it waits for an identified user and for
 // the reply, it holds no thread. It reports its own executing/finished state.
 @interface TeakRequestOperation : TeakOperation {
-  BOOL _requestExecuting;
-  BOOL _requestFinished;
+  // Both under @synchronized(self). Finishing claims the one finish and stores the result, before
+  // isFinished changes; isFinished is what observers see, and only changes between its will/did.
   BOOL _requestFinishing;
   id _requestResult;
 }
+@property (atomic, readwrite, getter=isExecuting) BOOL executing;
+@property (atomic, readwrite, getter=isFinished) BOOL finished;
+@property (nonatomic, copy, readonly) NSDictionary* requestParams;
 - (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser;
 - (void)finishWithResult:(nullable id)result;
 @end
@@ -205,33 +208,29 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
 
 @implementation TeakRequestOperation
 
+@synthesize executing = _executing;
+@synthesize finished = _finished;
+
 - (id)initForEndpoint:(nonnull NSString*)endpoint withPayload:(nullable NSDictionary*)payload replyParser:(nullable id _Nullable (^)(NSDictionary* _Nonnull))replyParser {
 
   // TODO: Put any pre-send validation here
 
   TeakOperationWork* work = [[TeakOperationWork alloc] initWithReplyParser:replyParser];
-  return [self initWithTarget:work selector:@selector(performRequest:) object:@{kEndpoint : endpoint, kPayload : payload}];
+  NSDictionary* requestParams = @{kEndpoint : endpoint, kPayload : payload};
+  self = [self initWithTarget:work selector:@selector(performRequest:) object:requestParams];
+  if (self) {
+    _requestParams = requestParams;
+  }
+  return self;
 }
 
 - (BOOL)isAsynchronous {
   return YES;
 }
 
-- (BOOL)isExecuting {
-  @synchronized(self) {
-    return _requestExecuting;
-  }
-}
-
-- (BOOL)isFinished {
-  @synchronized(self) {
-    return _requestFinished;
-  }
-}
-
 - (void)start {
   @synchronized(self) {
-    if (_requestExecuting || _requestFinishing) {
+    if (self.isExecuting || _requestFinishing) {
       return;
     }
   }
@@ -241,9 +240,7 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
   }
 
   [self willChangeValueForKey:@"isExecuting"];
-  @synchronized(self) {
-    _requestExecuting = YES;
-  }
+  self.executing = YES;
   [self didChangeValueForKey:@"isExecuting"];
   // A cancel that landed before isExecuting went up found nothing to finish.
   if (self.isCancelled) {
@@ -260,7 +257,7 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
       return;
     }
     TeakOperationWork* work = op.invocation.target;
-    [work sendRequest:[op requestParams]
+    [work sendRequest:op.requestParams
           withSession:session
            completion:^(id _Nullable result) {
              [op finishWithResult:result];
@@ -268,20 +265,10 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
   }];
 }
 
-- (NSDictionary*)requestParams {
-  __unsafe_unretained NSDictionary* requestParams = nil;
-  [self.invocation getArgument:&requestParams atIndex:2];
-  return requestParams;
-}
-
 - (void)cancel {
   [super cancel];
-  BOOL executing = NO;
-  @synchronized(self) {
-    executing = _requestExecuting;
-  }
   // Not started yet: -start sees the cancel and finishes.
-  if (executing) {
+  if (self.isExecuting) {
     [self finishWithResult:TeakOperationCanceledResult()];
   }
 }
@@ -298,10 +285,8 @@ static TeakOperationResult* TeakOperationCanceledResult(void) {
   }
   [self willChangeValueForKey:@"isExecuting"];
   [self willChangeValueForKey:@"isFinished"];
-  @synchronized(self) {
-    _requestExecuting = NO;
-    _requestFinished = YES;
-  }
+  self.executing = NO;
+  self.finished = YES;
   [self didChangeValueForKey:@"isFinished"];
   [self didChangeValueForKey:@"isExecuting"];
 }
