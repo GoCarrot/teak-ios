@@ -34,5 +34,8 @@ typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 + (nullable TeakRequest*)requestWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback;
 - (nullable TeakRequest*)initWithSession:(nonnull TeakSession*)session forHostname:(nonnull NSString*)hostname withEndpoint:(nonnull NSString*)endpoint withPayload:(nonnull NSDictionary*)payload method:(nonnull NSString*)method callback:(nullable TeakRequestResponse)callback addCommonPayload:(BOOL)addCommonToPayload;
 
-- (void)send;
+// YES if a send was handed to the network, so the callback will run when it is done. NO if nothing
+// was sent (the endpoint is blackholed, or building or transmitting the send raised); the callback
+// will not run.
+- (BOOL)send;
 @end

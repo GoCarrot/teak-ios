@@ -101,7 +101,7 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 @property (nonatomic) BOOL observingSessionState;
 @property (strong, nonatomic) NSDate* _Nonnull firstAddTime;
 
-- (void)send;               // No-op
+- (BOOL)send;               // No-op
 - (void)reallyActuallySend; // Actually send
 
 - (void)sendNow;
@@ -362,9 +362,13 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
   return self;
 }
 
-- (void)send {
-  if (self.blackhole) return;
+- (BOOL)send {
+  if (self.blackhole) {
+    TeakLog_i(@"request.blackholed", @{@"endpoint" : _(self.endpoint)});
+    return NO;
+  }
 
+  BOOL transmitted = NO;
   teak_try {
     // Each send is a new logical request: its own request_id, and its own copy of
     // the payload as it stands now.
@@ -372,15 +376,16 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     self.currentSend = send;
 
     teak_log_breadcrumb(@"request.send.constructed");
-    [self transmitSend:send];
+    transmitted = [self transmitSend:send];
   }
   teak_catch_report;
+  return transmitted;
 }
 
-- (void)transmitSend:(TeakRequestSend*)send {
+- (BOOL)transmitSend:(TeakRequestSend*)send {
+  BOOL transmitted = NO;
   teak_try {
     NSURLSessionDataTask* dataTask = [[TeakRequest sharedURLSession] dataTaskWithRequest:send.urlRequest];
-    BOOL transmitted = NO;
     // Under the send's lock so that cancelling it either finds this task to cancel or comes
     // first, in which case nothing is transmitted.
     @synchronized(send) {
@@ -391,6 +396,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         }
         send.sendDate = [NSDate date];
         [dataTask resume];
+        // Set before anything else can raise: once the task is resumed, the reply reaches the callback.
         transmitted = YES;
       }
     }
@@ -401,6 +407,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     }
   }
   teak_catch_report;
+  return transmitted;
 }
 
 - (NSString*)description {
@@ -754,8 +761,9 @@ KeyValueObserverFor(TeakBatchedRequest, TeakSession, currentState) {
   return batchedRequest;
 }
 
-- (void)send {
-  // No-op
+- (BOOL)send {
+  // No-op. The batch is sent later, and the reply goes to its callbacks.
+  return YES;
 }
 
 - (void)prepareAndSend {
