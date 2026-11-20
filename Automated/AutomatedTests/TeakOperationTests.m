@@ -269,6 +269,10 @@ static NSUInteger TeakTestThreadCount(void) {
 // A blackholed endpoint never sends, so its request never calls back; the operation must still finish.
 - (void)testBlackholedRequestFinishesWithErrorResult {
   TeakSession* session = [TeakSession currentSession];
+  NSDictionary* configurations = [session.remoteConfiguration valueForKey:@"endpointConfigurations"];
+  [self addTeardownBlock:^{
+    [session.remoteConfiguration setValue:configurations forKey:@"endpointConfigurations"];
+  }];
   [session.remoteConfiguration setValue:@{kTeakHostname : @{@"/me/test" : @{@"blackhole" : @YES}}}
                                  forKey:@"endpointConfigurations"];
 

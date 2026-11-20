@@ -36,6 +36,7 @@ typedef void (^TeakRequestResponse)(NSDictionary* _Nonnull reply);
 
 // YES if a send was handed to the network, so the callback will run when it is done. NO if nothing
 // was sent (the endpoint is blackholed, or building or transmitting the send raised); the callback
-// will not run.
+// will not run. Subclasses that send later (a batch, the user profile) return YES without
+// promising a callback.
 - (BOOL)send;
 @end
