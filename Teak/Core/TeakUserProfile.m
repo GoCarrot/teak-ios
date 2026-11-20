@@ -64,8 +64,9 @@
   });
 }
 
-// Starts a send only when an attribute change is pending.
-- (void)send {
+// Starts a send only when an attribute change is pending. The send happens on the operation queue,
+// so this always returns YES, and a callback runs only if an update was pending.
+- (BOOL)send {
   // Hop onto the serial operationQueue that setAttribute:forKey:inDictionary: mutates the
   // attribute dictionaries on, so these reads are never concurrent with those writes.
   dispatch_async([Teak operationQueue], ^{
@@ -92,6 +93,7 @@
       self.firstSetTime = nil;
     }
   });
+  return YES;
 }
 
 @end

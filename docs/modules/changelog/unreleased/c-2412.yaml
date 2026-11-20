@@ -1,0 +1,2 @@
+bug:
+  - "A ``TeakOperation`` for a request that is never sent now finishes with an error result instead of staying unfinished. This covers an endpoint that remote configuration blackholes and a request that fails while it is being built, such as a payload that can't be serialized."

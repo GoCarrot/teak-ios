@@ -129,7 +129,11 @@ static TeakOperationResult* TeakOperationResultForException(NSString* _Nullable 
       completion([[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"request" : @[ @"request could not be created" ]}]);
       return;
     }
-    [request send];
+    if (![request send]) {
+      // Blackholed, or the send raised and was reported: nothing is in flight, so the callback
+      // will never run.
+      completion([[TeakOperationResult alloc] initWithStatus:@"error" andErrors:@{@"request" : @[ @"request could not be sent" ]}]);
+    }
   } @catch (NSException* exception) {
     completion(TeakOperationResultForException(endpoint, exception));
   }

@@ -47,8 +47,9 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 
 // Puts one send on the wire. -send builds a new send and transmits it; a retry transmits
 // the same send again without going back through -send, so the gates subclasses put in
-// -send (the profile's pending-update check, a batch's no-op) can't swallow it.
-- (void)transmitSend:(TeakRequestSend* _Nonnull)send;
+// -send (the profile's pending-update check, a batch's no-op) can't swallow it. Returns YES if
+// the send was handed to the network, as -send does.
+- (BOOL)transmitSend:(TeakRequestSend* _Nonnull)send;
 
 // The reply to one transmission of `send`: retries it, or hands the reply to the callback.
 - (void)response:(NSHTTPURLResponse* _Nullable)response payload:(NSDictionary* _Nullable)payload withError:(NSError* _Nullable)error forSend:(TeakRequestSend* _Nonnull)send;

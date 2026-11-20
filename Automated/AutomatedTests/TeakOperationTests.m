@@ -1,7 +1,10 @@
 #import <XCTest/XCTest.h>
 #import <mach/mach.h>
 
+#import "TeakConfiguration.h"
+#import "TeakHelpers.h"
 #import "TeakOperationTestDriver.h"
+#import "TeakRemoteConfiguration.h"
 #import "TeakSession.h"
 #import <Teak/Teak.h>
 
@@ -15,6 +18,8 @@ extern NSString* const currentSessionMutex;
 
 @interface TeakSession (TeakOperationTests)
 + (NSMutableArray*)whenUserIdIsReadyRunBlocks;
++ (TeakSession*)currentSession;
+@property (strong, nonatomic, readwrite) TeakRemoteConfiguration* remoteConfiguration;
 @end
 
 static NSUInteger TeakTestThreadCount(void) {
@@ -37,6 +42,16 @@ static NSUInteger TeakTestThreadCount(void) {
 
 @implementation TeakOperationTests
 
+// A real session reads TeakConfiguration.configuration; seed it once (another test class may have
+// configured it already).
++ (void)setUp {
+  [super setUp];
+  @try {
+    [TeakConfiguration configureForAppId:@"test-app" andSecret:@"test-secret"];
+  } @catch (NSException* exception) {
+  }
+}
+
 - (void)setUp {
   [super setUp];
   self.driver = [[TeakOperationTestDriver alloc] init];
@@ -56,6 +71,12 @@ static NSUInteger TeakTestThreadCount(void) {
 - (TeakSession*)runWaitingBlocks {
   TeakSession* session = mock([TeakSession class]);
   [given([session currentState]) willReturn:[TeakSession UserIdentified]];
+  [self runWaitingBlocksWithSession:session];
+  return session;
+}
+
+// Runs the blocks this test left waiting for an identified user against the given session.
+- (void)runWaitingBlocksWithSession:(TeakSession*)session {
   NSArray* blocks = @[];
   @synchronized(currentSessionMutex) {
     NSMutableArray* waiting = [TeakSession whenUserIdIsReadyRunBlocks];
@@ -68,7 +89,6 @@ static NSUInteger TeakTestThreadCount(void) {
   for (void (^block)(TeakSession*) in blocks) {
     block(session);
   }
-  return session;
 }
 
 // Fails if the operation doesn't finish in time.
@@ -229,6 +249,50 @@ static NSUInteger TeakTestThreadCount(void) {
   [self waitUntilFinished:op];
   TeakOperationResult* result = (TeakOperationResult*)[op result];
   XCTAssertEqualObjects(result.errors, @{@"operation" : @[ @"operation was canceled" ]});
+}
+
+// Runs an operation against a real session, with the identify wait satisfied, and waits for it to
+// finish. The real session builds a real TeakRequest, so the operation's -send is production code.
+- (TeakOperationResult*)finishedResultOfOperation:(TeakOperation*)op onSession:(TeakSession*)session {
+  NSOperationQueue* queue = [[NSOperationQueue alloc] init];
+  XCTestExpectation* executing = [[XCTKVOExpectation alloc] initWithKeyPath:@"isExecuting" object:op expectedValue:@YES];
+  [queue addOperation:op];
+  [self waitForExpectations:@[ executing ] timeout:2.0];
+
+  [self runWaitingBlocksWithSession:session];
+  [self waitUntilFinished:op];
+  TeakOperationResult* result = (TeakOperationResult*)[op result];
+  XCTAssertTrue([result isKindOfClass:[TeakOperationResult class]]);
+  return result;
+}
+
+// A blackholed endpoint never sends, so its request never calls back; the operation must still finish.
+- (void)testBlackholedRequestFinishesWithErrorResult {
+  TeakSession* session = [TeakSession currentSession];
+  NSDictionary* configurations = [session.remoteConfiguration valueForKey:@"endpointConfigurations"];
+  [self addTeardownBlock:^{
+    [session.remoteConfiguration setValue:configurations forKey:@"endpointConfigurations"];
+  }];
+  [session.remoteConfiguration setValue:@{kTeakHostname : @{@"/me/test" : @{@"blackhole" : @YES}}}
+                                 forKey:@"endpointConfigurations"];
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/test" withPayload:@{@"key" : @"value"}];
+  TeakOperationResult* result = [self finishedResultOfOperation:op onSession:session];
+
+  XCTAssertTrue(result.error);
+  XCTAssertEqualObjects(result.errors, @{@"request" : @[ @"request could not be sent" ]});
+}
+
+// A payload that can't be serialized makes building the send raise. -send reports and swallows it,
+// so the request never calls back; the operation must still finish.
+- (void)testRequestWhoseSendRaisesFinishesWithErrorResult {
+  TeakSession* session = [TeakSession currentSession];
+
+  TeakOperation* op = [TeakOperation forEndpoint:@"/me/test" withPayload:@{@"key" : [[NSObject alloc] init]}];
+  TeakOperationResult* result = [self finishedResultOfOperation:op onSession:session];
+
+  XCTAssertTrue(result.error);
+  XCTAssertEqualObjects(result.errors, @{@"request" : @[ @"request could not be sent" ]});
 }
 
 @end
