@@ -244,6 +244,76 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   XCTAssertEqualObjects(retry.payload[@"string_attributes"], original.payload[@"string_attributes"]);
 }
 
+#pragma mark - Profile send order
+
+- (NSString*)wireBodyOf:(TeakRequestSend*)send {
+  return [[NSString alloc] initWithData:send.urlRequest.HTTPBody encoding:NSUTF8StringEncoding];
+}
+
+- (NSDictionary*)wireJSONOf:(TeakRequestSend*)send {
+  return [NSJSONSerialization JSONObjectWithData:send.urlRequest.HTTPBody options:0 error:nil];
+}
+
+// The server orders writes by profile_seq, so two sends that overlap on the wire have to carry
+// increasing numbers, as JSON integers.
+- (void)testOverlappingSendsCarryIncreasingProfileSeq {
+  TeakUserProfile* profile = [self makeProfile];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self sendProfile:profile value:@"b" expectingTransmits:2];
+
+  NSArray<TeakRequestSend*>* sends = [self transmitsFor:profile];
+  XCTAssertEqualObjects([self wireJSONOf:sends[0]][@"profile_seq"], @1);
+  XCTAssertEqualObjects([self wireJSONOf:sends[1]][@"profile_seq"], @2);
+  XCTAssertTrue([[self wireBodyOf:sends[0]] containsString:@"\"profile_seq\":1"], @"profile_seq was not an integer on the wire");
+}
+
+// The number belongs to the payload, not the attempt: a retry resends the same one.
+- (void)testRetryKeepsItsProfileSeq {
+  TeakUserProfile* profile = [self makeProfile];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self deliver:profile status:503 error:nil];
+  XCTAssertEqual([self waitForTransmits:2 of:profile timeout:3.0], 2u);
+  [self deliver:profile status:0 error:[self socketError]];
+  XCTAssertEqual([self waitForTransmits:3 of:profile timeout:4.0], 3u);
+
+  for (TeakRequestSend* attempt in [self transmitsFor:profile]) {
+    XCTAssertEqualObjects([self wireJSONOf:attempt][@"profile_seq"], @1);
+  }
+
+  // The next payload is the next number, whatever the retries did.
+  [self sendProfile:profile value:@"b" expectingTransmits:4];
+  XCTAssertEqualObjects([self wireJSONOf:[self transmitsFor:profile].lastObject][@"profile_seq"], @2);
+}
+
+// A send that finished before the next one starts doesn't restart the count.
+- (void)testProfileSeqKeepsCountingAfterAReply {
+  TeakUserProfile* profile = [self makeProfile];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+  [self deliver:profile status:200 error:nil];
+  [self sendProfile:profile value:@"b" expectingTransmits:2];
+  [self deliver:profile status:200 error:nil];
+  [self sendProfile:profile value:@"c" expectingTransmits:3];
+
+  XCTAssertEqualObjects([self wireJSONOf:[self transmitsFor:profile].lastObject][@"profile_seq"], @3);
+}
+
+// The server verifies a signature over the context, so it goes back exactly as users.json sent it:
+// same string, same key order, no re-escaping.
+- (void)testContextGoesOutAsTheExactStringItArrivedAs {
+  NSString* context = @"{\"write_epoch\":7,\"b\":\"x/y\",\"a\":1,\"sig\":\"Ab+/=\"}";
+  TeakUserProfile* profile = [[TeakUserProfile alloc] initForSession:[self makeMockSession]
+                                                      withDictionary:@{
+                                                        @"string_attributes" : @{@"k" : [NSNull null]},
+                                                        @"number_attributes" : @{},
+                                                        @"context" : context
+                                                      }];
+  [self sendProfile:profile value:@"a" expectingTransmits:1];
+
+  id sent = [self wireJSONOf:[self transmitsFor:profile].firstObject][@"context"];
+  XCTAssertTrue([sent isKindOfClass:[NSString class]], @"context was not sent as a string");
+  XCTAssertEqualObjects(sent, context);
+}
+
 #pragma mark - A new profile send cancels the last one
 
 // Both sends are in flight when the second starts; the first is cancelled, the second isn't.
