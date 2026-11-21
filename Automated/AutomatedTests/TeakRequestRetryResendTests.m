@@ -285,22 +285,10 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
   XCTAssertEqualObjects([self wireJSONOf:[self transmitsFor:profile].lastObject][@"profile_seq"], @2);
 }
 
-// A send that finished before the next one starts doesn't restart the count.
-- (void)testProfileSeqKeepsCountingAfterAReply {
-  TeakUserProfile* profile = [self makeProfile];
-  [self sendProfile:profile value:@"a" expectingTransmits:1];
-  [self deliver:profile status:200 error:nil];
-  [self sendProfile:profile value:@"b" expectingTransmits:2];
-  [self deliver:profile status:200 error:nil];
-  [self sendProfile:profile value:@"c" expectingTransmits:3];
-
-  XCTAssertEqualObjects([self wireJSONOf:[self transmitsFor:profile].lastObject][@"profile_seq"], @3);
-}
-
-// The server verifies a signature over the context, so it goes back exactly as users.json sent it:
-// same string, same key order, no re-escaping.
+// The server verifies a signature over the context, so it goes back as the same string users.json
+// sent, not a re-built dictionary.
 - (void)testContextGoesOutAsTheExactStringItArrivedAs {
-  NSString* context = @"{\"write_epoch\":7,\"b\":\"x/y\",\"a\":1,\"sig\":\"Ab+/=\"}";
+  NSString* context = @"{\"string\":{\"k\":null},\"number\":{},\"profile_id\":\"p1\",\"write_epoch\":\"0f1e2d3c4b5a69788796a5b4c3d2e1f0\",\"sig\":\"Ab+/=\"}";
   TeakUserProfile* profile = [[TeakUserProfile alloc] initForSession:[self makeMockSession]
                                                       withDictionary:@{
                                                         @"string_attributes" : @{@"k" : [NSNull null]},

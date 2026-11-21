@@ -9,8 +9,8 @@
 @property (strong, nonatomic) NSString* context;
 @property (strong, nonatomic) dispatch_block_t scheduledBlock;
 @property (strong, nonatomic) NSDate* firstSetTime;
-// Orders this profile's sends for the server: 1 for the first payload, +1 for each after. Only
-// touched on operationQueue.
+// Lets the server tell which of two overlapping sends is newer: 1 for the first payload, +1 for each
+// after. A retry resends the frozen send, so it keeps its number. Only touched on operationQueue.
 @property (nonatomic) NSUInteger profileSeq;
 @end
 
@@ -83,9 +83,6 @@
         @"string_attributes" : [self.stringAttributes copy],
         @"number_attributes" : [self.numberAttributes copy],
         @"context" : [self.context copy],
-        // Cancelling the last send can't recall bytes already on the wire, so the server uses
-        // this to tell which of two overlapping sends is newer. A retry resends the frozen
-        // send, so it keeps its number.
         @"profile_seq" : @(++self.profileSeq),
         @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
       }];

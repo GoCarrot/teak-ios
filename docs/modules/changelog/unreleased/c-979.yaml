@@ -1,2 +1,0 @@
-enhancement:
-  - "Profile updates now carry a sequence number, so Teak's server can ignore an update that arrives after a newer one."
