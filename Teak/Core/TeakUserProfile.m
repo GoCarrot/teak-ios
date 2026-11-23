@@ -9,6 +9,9 @@
 @property (strong, nonatomic) NSString* context;
 @property (strong, nonatomic) dispatch_block_t scheduledBlock;
 @property (strong, nonatomic) NSDate* firstSetTime;
+// Lets the server tell which of two overlapping sends is newer: 1 for the first payload, +1 for each
+// after. A retry resends the frozen send, so it keeps its number. Only touched on operationQueue.
+@property (nonatomic) NSUInteger profileSeq;
 @end
 
 @implementation TeakUserProfile
@@ -80,6 +83,7 @@
         @"string_attributes" : [self.stringAttributes copy],
         @"number_attributes" : [self.numberAttributes copy],
         @"context" : [self.context copy],
+        @"profile_seq" : @(++self.profileSeq),
         @"ms_since_first_event" : [NSNumber numberWithDouble:[self.firstSetTime timeIntervalSinceNow] * -1000.0]
       }];
       self.payload = payload;
