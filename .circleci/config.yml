@@ -9,8 +9,8 @@ setup: true
 orbs:
   path-filtering: circleci/path-filtering@3.0.0
 
-# Declared because the nightly scheduled pipeline sends it; the continued config tells scheduled
-# runs apart by pipeline.trigger_source instead.
+# Declared because the nightly scheduled pipeline sends it. continue_config.yml declares it too; the
+# continued config tells scheduled runs apart by pipeline.trigger_source instead.
 parameters:
   scheduled_run:
     type: boolean

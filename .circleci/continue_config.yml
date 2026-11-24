@@ -10,6 +10,11 @@ parameters:
   code-changed:
     type: boolean
     default: false
+  # The scheduled pipeline sends this, and the continuation is rejected unless this config declares
+  # it too. Unused: scheduled runs are told apart by pipeline.trigger_source.
+  scheduled_run:
+    type: boolean
+    default: false
 
 jobs:
   test:
