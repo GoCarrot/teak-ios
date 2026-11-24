@@ -190,6 +190,29 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   [send.request response:nil payload:@{} withError:nil forSend:send];
 }
 
+// Flushes a pending update on Expiring, then fails the attempt with no reply, which schedules a
+// retry. Returns once the retry is scheduled.
+- (TeakRequestSend*)flushSendWaitingToRetry {
+  TeakSession* session = [TeakSession currentSession];
+  TeakUserProfile* profile = [self profileForSession:session blackhole:NO];
+  [self setPendingUpdate:profile value:@"5"];
+
+  [self holdOperationQueue];
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+  XCTAssertEqual([self openTaskCount], 1u);
+  [self releaseOperationQueue];
+
+  TeakRequestSend* send = [self lastTransmit];
+  NSError* timedOut = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorTimedOut userInfo:nil];
+  [send.request response:nil payload:@{} withError:timedOut forSend:send];
+  NSDate* deadline = [NSDate dateWithTimeIntervalSinceNow:5.0];
+  while (send.socketErrorRetries == 0 && [deadline timeIntervalSinceNow] > 0) {
+    [[NSRunLoop currentRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+  }
+  XCTAssertEqual(send.socketErrorRetries, 1u, @"the failed attempt wasn't scheduled for a retry");
+  return send;
+}
+
 - (BOOL)waitForNoOpenTasks {
   NSDate* deadline = [NSDate dateWithTimeIntervalSinceNow:5.0];
   while ([deadline timeIntervalSinceNow] > 0) {
@@ -274,26 +297,27 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   XCTAssertTrue(flush.cancelled);
   XCTAssertEqual([self openTaskCount], 1u, @"the task ended when its send was superseded");
 
-  [self replyTo:flush];
-  XCTAssertEqual([self openTaskCount], 1u);
   [self replyTo:[self lastTransmit]];
   XCTAssertTrue([self waitForNoOpenTasks], @"the task was left open after the superseding send completed");
 }
 
-// A send cancelled while waiting to retry never gets another reply.
-- (void)testCancelledSendEndsTask {
-  TeakSession* session = [TeakSession currentSession];
-  TeakUserProfile* profile = [self profileForSession:session blackhole:NO];
-  [self setPendingUpdate:profile value:@"5"];
+// A failed attempt that gets retried isn't the end of the send, so the task stays open while the
+// retry waits. Cancelling the send then means no reply will come.
+- (void)testTaskStaysOpenAcrossRetryWaitAndEndsOnCancel {
+  TeakRequestSend* send = [self flushSendWaitingToRetry];
+  XCTAssertEqual([self openTaskCount], 1u, @"the task ended while the send waited to retry");
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u);
-  [self releaseOperationQueue];
-  XCTAssertEqual([self openTaskCount], 1u);
+  [send cancel];
+  XCTAssertEqual([self openTaskCount], 0u, @"cancelling the send while it waited to retry left its task open");
+}
 
-  [[self lastTransmit] cancel];
-  XCTAssertEqual([self openTaskCount], 0u, @"cancelling the send left its task open");
+// A retry that never reaches the network has nothing left to wait for.
+- (void)testRetryThatNeverReachesTheNetworkEndsTask {
+  [self flushSendWaitingToRetry];
+  flushTaskTest_transmitReachesNetwork = NO;
+
+  XCTAssertTrue([self waitForNoOpenTasks], @"the task was left open after the retry failed to send");
+  XCTAssertEqual([self transmitCount], 2u, @"the retry didn't run");
 }
 
 - (void)testBlackholedSendEndsTask {
