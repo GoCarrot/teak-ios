@@ -258,12 +258,6 @@ workflows:
           filters:
             tags:
               ignore: /.*/
-      - tag_build:
-          requires:
-            - changelog_check
-          filters:
-            tags:
-              ignore: /.*/
 
   tagged-build:
     jobs:
