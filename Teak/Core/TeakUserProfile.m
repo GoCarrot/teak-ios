@@ -68,8 +68,10 @@
 }
 
 // Starts a send only when an attribute change is pending. The send happens on the operation queue,
-// so this always returns YES, and a callback runs only if an update was pending.
-- (BOOL)send {
+// so this always returns YES. `completion` runs once the send carrying the update is done. With no
+// update pending it waits on the send still in flight or waiting to retry, which carries the last
+// update, or runs right away if there's none.
+- (BOOL)sendWithCompletion:(dispatch_block_t)completion {
   // Hop onto the serial operationQueue that setAttribute:forKey:inDictionary: mutates the
   // attribute dictionaries on, so these reads are never concurrent with those writes.
   dispatch_async([Teak operationQueue], ^{
@@ -90,11 +92,28 @@
 
       // Every send carries the full attribute dictionaries, not just what changed, so this send
       // covers everything the last one did. Cancel the last one rather than let its retries or
-      // its attempt in flight land after this one with older values.
-      [self.currentSend cancel];
-      [super send];
+      // its attempt in flight land after this one with older values. Whatever was waiting on the
+      // last one now waits on this one.
+      TeakRequestSend* lastSend = self.currentSend;
+      dispatch_block_t waiting = [lastSend takeCompletion];
+      [lastSend cancel];
+      dispatch_block_t both = completion;
+      if (waiting != nil) {
+        both = completion == nil ? waiting : ^{
+          waiting();
+          completion();
+        };
+      }
+      [super sendWithCompletion:both];
 
       self.firstSetTime = nil;
+    } else {
+      TeakRequestSend* lastSend = self.currentSend;
+      if (lastSend != nil) {
+        [lastSend addCompletion:completion];
+      } else if (completion != nil) {
+        completion();
+      }
     }
   });
   return YES;
