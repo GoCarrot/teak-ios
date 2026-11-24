@@ -1,2 +1,2 @@
 bug:
-  - "Fixed a player profile change made just before the game goes to the background not being sent until the next launch, or being lost if the app was closed. Teak now asks iOS for background time to finish sending it."
+  - "Fixed a player profile change made shortly before the game goes to the background not being sent until the next launch, or being lost if the app was closed. Teak now asks iOS for background time to finish sending it."
