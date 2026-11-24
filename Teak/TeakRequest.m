@@ -133,6 +133,9 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 
 @interface TeakRequestSend () {
   dispatch_block_t _completion;
+  // YES once the send is done: its last reply has been handled, it was cancelled, or it never
+  // reached the network. Guarded by @synchronized(self).
+  BOOL _finished;
 }
 @end
 

@@ -21,9 +21,6 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (atomic, readonly) BOOL cancelled;
 // The most recent attempt, so cancelling the send can cancel it.
 @property (atomic, strong) NSURLSessionDataTask* _Nullable task;
-// YES once the send is done: its last reply has been handled, it was cancelled, or it never reached
-// the network.
-@property (atomic, readonly) BOOL finished;
 
 - (nonnull instancetype)initWithRequest:(nonnull TeakRequest*)request;
 // Cancels the attempt in flight and stops any retry still waiting to fire. Cancelling the task
@@ -57,12 +54,14 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
 // -send, plus a completion that runs once the send is done: after its last reply, when it's
-// cancelled, or right away if nothing was handed to the network. -send calls this with nil.
+// cancelled, or right away if nothing was handed to the network. -send calls this with nil. A batch
+// gates only in -send, so don't call this on one.
 - (BOOL)sendWithCompletion:(nullable dispatch_block_t)completion;
 
 // Puts one send on the wire. -send builds a new send and transmits it; a retry transmits
 // the same send again without going back through -send, so the gates subclasses put in
-// -send (the profile's pending-update check, a batch's no-op) can't swallow it. Returns YES if
+// -send or -sendWithCompletion: (the profile's pending-update check, a batch's no-op) can't
+// swallow it. Returns YES if
 // the send was handed to the network, as -send does.
 - (BOOL)transmitSend:(TeakRequestSend* _Nonnull)send;
 
