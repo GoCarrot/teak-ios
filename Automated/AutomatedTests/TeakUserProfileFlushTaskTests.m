@@ -148,8 +148,21 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
 
 - (void)setPendingUpdate:(TeakUserProfile*)profile value:(NSString*)value {
   [profile setStringAttribute:value forKey:@"level"];
+  [self drainOperationQueue];
+}
+
+- (void)drainOperationQueue {
   dispatch_sync([Teak operationQueue], ^{
                 });
+}
+
+// Takes the session Expiring with operationQueue held, checks the flush's task is open while it
+// waits there, then lets the flush run.
+- (void)flushOnExpiring:(TeakSession*)session {
+  [self holdOperationQueue];
+  XCTAssertTrue([session setState:[TeakSession Expiring]]);
+  XCTAssertEqual([self openTaskCount], 1u, @"no background task was open while the flush waited on operationQueue");
+  [self releaseOperationQueue];
 }
 
 - (void)holdOperationQueue {
@@ -164,8 +177,7 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
 - (void)releaseOperationQueue {
   dispatch_semaphore_signal(self.operationQueueHold);
   self.operationQueueHold = nil;
-  dispatch_sync([Teak operationQueue], ^{
-                });
+  [self drainOperationQueue];
 }
 
 - (NSUInteger)openTaskCount {
@@ -197,10 +209,7 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   TeakUserProfile* profile = [self profileForSession:session blackhole:NO];
   [self setPendingUpdate:profile value:@"5"];
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u);
-  [self releaseOperationQueue];
+  [self flushOnExpiring:session];
 
   TeakRequestSend* send = [self lastTransmit];
   NSError* timedOut = [NSError errorWithDomain:NSURLErrorDomain code:NSURLErrorTimedOut userInfo:nil];
@@ -231,11 +240,7 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   TeakUserProfile* profile = [self profileForSession:session blackhole:NO];
   [self setPendingUpdate:profile value:@"5"];
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u, @"no background task was open while the flush waited on operationQueue");
-
-  [self releaseOperationQueue];
+  [self flushOnExpiring:session];
   XCTAssertEqual([self transmitCount], 1u, @"the pending update was not sent");
   XCTAssertEqual([self openTaskCount], 1u, @"the task ended while the profile send was in flight");
 
@@ -247,11 +252,7 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   TeakSession* session = [TeakSession currentSession];
   [self profileForSession:session blackhole:NO];
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u);
-
-  [self releaseOperationQueue];
+  [self flushOnExpiring:session];
   XCTAssertEqual([self transmitCount], 0u);
   XCTAssertEqual([self openTaskCount], 0u, @"the task was left open with nothing to send");
 }
@@ -262,14 +263,10 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   TeakUserProfile* profile = [self profileForSession:session blackhole:NO];
   [self setPendingUpdate:profile value:@"5"];
   [profile send];
-  dispatch_sync([Teak operationQueue], ^{
-                });
+  [self drainOperationQueue];
   XCTAssertEqual([self transmitCount], 1u);
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u);
-  [self releaseOperationQueue];
+  [self flushOnExpiring:session];
   XCTAssertEqual([self transmitCount], 1u);
   XCTAssertEqual([self openTaskCount], 1u, @"the task ended while the earlier send was still in flight");
 
@@ -283,16 +280,12 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   TeakUserProfile* profile = [self profileForSession:session blackhole:NO];
   [self setPendingUpdate:profile value:@"5"];
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u);
-  [self releaseOperationQueue];
+  [self flushOnExpiring:session];
   TeakRequestSend* flush = [self lastTransmit];
 
   [self setPendingUpdate:profile value:@"6"];
   [profile send];
-  dispatch_sync([Teak operationQueue], ^{
-                });
+  [self drainOperationQueue];
   XCTAssertEqual([self transmitCount], 2u);
   XCTAssertTrue(flush.cancelled);
   XCTAssertEqual([self openTaskCount], 1u, @"the task ended when its send was superseded");
@@ -325,10 +318,7 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   TeakUserProfile* profile = [self profileForSession:session blackhole:YES];
   [self setPendingUpdate:profile value:@"5"];
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u);
-  [self releaseOperationQueue];
+  [self flushOnExpiring:session];
 
   XCTAssertEqual([self transmitCount], 0u);
   XCTAssertEqual([self openTaskCount], 0u, @"the task was left open for a blackholed send");
@@ -340,10 +330,7 @@ static NSMutableSet<NSNumber*>* flushTaskTest_openTasks;
   [self setPendingUpdate:profile value:@"5"];
   flushTaskTest_transmitReachesNetwork = NO;
 
-  [self holdOperationQueue];
-  XCTAssertTrue([session setState:[TeakSession Expiring]]);
-  XCTAssertEqual([self openTaskCount], 1u);
-  [self releaseOperationQueue];
+  [self flushOnExpiring:session];
 
   XCTAssertEqual([self transmitCount], 1u);
   XCTAssertEqual([self openTaskCount], 0u, @"the task was left open for a send that never reached the network");
