@@ -21,11 +21,22 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (atomic, readonly) BOOL cancelled;
 // The most recent attempt, so cancelling the send can cancel it.
 @property (atomic, strong) NSURLSessionDataTask* _Nullable task;
+// YES once the send is done: its last reply has been handled, it was cancelled, or it never reached
+// the network.
+@property (atomic, readonly) BOOL finished;
 
 - (nonnull instancetype)initWithRequest:(nonnull TeakRequest*)request;
 // Cancels the attempt in flight and stops any retry still waiting to fire. Cancelling the task
 // alone wouldn't reach those: a retry is a block on a timer, not a task.
 - (void)cancel;
+// Runs `completion` once the send is done, or right away if it already is. Runs once per send
+// whatever ends it, unlike the request's callback, which only runs for a reply.
+- (void)addCompletion:(nullable dispatch_block_t)completion;
+// Removes and returns the completions not yet run, so a send that replaces this one can run them
+// instead.
+- (nullable dispatch_block_t)takeCompletion;
+// Marks the send done and runs its completions.
+- (void)finish;
 - (nonnull NSDictionary*)to_h;
 @end
 
@@ -44,6 +55,10 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 @property (nonatomic, readwrite) BOOL blackhole;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
+
+// -send, plus a completion that runs once the send is done: after its last reply, when it's
+// cancelled, or right away if nothing was handed to the network. -send calls this with nil.
+- (BOOL)sendWithCompletion:(nullable dispatch_block_t)completion;
 
 // Puts one send on the wire. -send builds a new send and transmits it; a retry transmits
 // the same send again without going back through -send, so the gates subclasses put in
