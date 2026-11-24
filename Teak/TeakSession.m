@@ -153,8 +153,14 @@ static dispatch_block_t TeakBeginBackgroundTask(NSString* name) {
     }
   };
   UIBackgroundTaskIdentifier begun = [[UIApplication sharedApplication] beginBackgroundTaskWithName:name expirationHandler:end];
+  BOOL endedBeforeStored;
   @synchronized(lock) {
     task = begun;
+    endedBeforeStored = ended;
+  }
+  // An end that ran before the id was stored had nothing to end, so end it here.
+  if (endedBeforeStored && begun != UIBackgroundTaskInvalid) {
+    [[UIApplication sharedApplication] endBackgroundTask:begun];
   }
   return end;
 }
