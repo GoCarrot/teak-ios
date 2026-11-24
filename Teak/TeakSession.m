@@ -1054,8 +1054,7 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       // Send user profile out now, holding the app awake until that send is done: the app can
       // suspend while the flush waits on operationQueue or is in flight. Whether an update is
       // pending can only be read on operationQueue, so the task is begun for any profile and ends
-      // there when there's nothing to send. Each flush has its own task, so Expiring->Expiring
-      // can't end an earlier flush's task early.
+      // there when there's nothing to send.
       TeakUserProfile* userProfile = self.userProfile;
       if (userProfile != nil) {
         [userProfile sendWithCompletion:TeakBeginBackgroundTask(@"io.teak.sdk.profileFlush")];

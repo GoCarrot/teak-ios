@@ -137,6 +137,8 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
   // reached the network. Guarded by @synchronized(self).
   BOOL _finished;
 }
+// Marks the send done and runs its completions.
+- (void)finish;
 @end
 
 @implementation TeakRequestSend
