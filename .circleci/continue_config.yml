@@ -1,0 +1,438 @@
+version: 2.1
+
+orbs:
+  teak: teak/sdk-utils@1
+  buildomat: teak/buildomat@0.1
+  aws-cli: circleci/aws-cli@5
+
+parameters:
+  # Set by the setup config: true unless the branch changed only docs.
+  code-changed:
+    type: boolean
+    default: false
+
+jobs:
+  test:
+    parameters:
+      xcode-version:
+        type: string
+        default: "16.4.0"
+    macos:
+      xcode: << parameters.xcode-version >>
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios_setup:
+          xcode-version: << parameters.xcode-version >>
+      - run:
+          name: Run Tests
+          command: bundle exec fastlane test
+      - store_test_results:
+          path: test_output/automated
+  test_race:
+    parameters:
+      xcode-version:
+        type: string
+        default: "16.4.0"
+    macos:
+      xcode: << parameters.xcode-version >>
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios_setup:
+          xcode-version: << parameters.xcode-version >>
+      # A red run means a guarded defect is still open: the lane exits nonzero and fails the job.
+      # store_* run `when: always` so the results and artifacts still upload on that red.
+      - run:
+          name: Run Race Tripwires (ThreadSanitizer)
+          command: bundle exec fastlane test_race
+      - store_test_results:
+          path: test_output/race
+          when: always
+      - store_artifacts:
+          path: test_output/race
+          when: always
+  build:
+    parameters:
+      xcode-version:
+        type: string
+        default: "16.4.0"
+    macos:
+      xcode: << parameters.xcode-version >>
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - ios_setup:
+          xcode-version: << parameters.xcode-version >>
+      - run:
+          name: Ensure IPHONEOS_DEPLOYMENT_TARGET matches MIN_VERSIONS.yml
+          command: ./deployment_target_check.rb
+      - run:
+          name: Build Teak SDK
+          command: ./compile_xc_framework
+      - persist_to_workspace:
+          root: .
+          paths:
+            - TeakFramework/Teak.xcframework.zip
+            - TeakFramework/Teak.xcframework.zip.sha512
+            - TeakFramework/TeakExtension.xcframework.zip
+            - TeakFramework/TeakExtension.xcframework.zip.sha512
+            - TeakFramework/TeakResources.bundle.zip
+            - TeakFramework/TeakResources.bundle.zip.sha512
+            - TeakFramework/Info.plist
+  changelog_check:
+    docker:
+      - image: cimg/node:lts
+    steps:
+      - checkout
+      - run:
+          name: Check changelog fragments
+          command: |
+            yarn install --frozen-lockfile
+            yarn changelog check
+      - run:
+          name: Require a rolled changelog on promote commits
+          command: |
+            version=$(git log -1 --format=%B | sed -n 's/^Promote to: *\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\(\.rc[0-9]*\)\{0,1\}\([[:space:]].*\)\{0,1\}$/\1/p' | head -1)
+            [ -n "$version" ] || exit 0
+            file="docs/modules/changelog/versions/$version.yaml"
+            [ -s "$file" ] || { echo "Promote to $version but $file is missing or empty. Run: yarn changelog roll $version"; exit 1; }
+            if find docs/modules/changelog/unreleased \( -name '*.yaml' -o -name '*.yml' \) | grep -q .; then
+              echo "Promote to $version but unreleased fragments remain. Run: yarn changelog roll $version"; exit 1
+            fi
+
+  tag_build:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - teak/tag-promote
+
+  deploy_versioned:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run: git fetch --tags
+      - aws-cli/install
+      - attach_workspace:
+          at: workspace/
+      - buildomat/aws-oidc-assume
+      - run:
+          name: Upload SDK to S3
+          command: |
+            VERSION=$(git describe --tags --always)
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip s3://teak-build-artifacts/ios/Teak-${VERSION}.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip.sha512 s3://teak-build-artifacts/ios/Teak-${VERSION}.xcframework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip s3://teak-build-artifacts/ios/TeakExtension-${VERSION}.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip.sha512 s3://teak-build-artifacts/ios/TeakExtension-${VERSION}.xcframework.zip.sha512 --acl public-read
+            # Localized strings for notification action buttons (consumed by teak-unity)
+            aws s3 cp workspace/TeakFramework/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources-${VERSION}.bundle.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakResources.bundle.zip.sha512 s3://teak-build-artifacts/ios/TeakResources-${VERSION}.bundle.zip.sha512 --acl public-read
+            # Notification content extension category config, generated by
+            # import_notification_categories (consumed by teak-unity)
+            aws s3 cp workspace/TeakFramework/Info.plist s3://teak-build-artifacts/ios/Info-${VERSION}.plist --acl public-read
+      - run:
+          name: Update teak-ios-framework
+          command: |
+            VERSION=$(git describe --tags --always)
+            git clone git@github.com:GoCarrot/teak-ios-framework.git teak-ios-framework
+            cd teak-ios-framework
+            git config user.email "team@teak.io"
+            git config user.name "Teak CI"
+            rm -rf Teak.xcframework TeakExtension.xcframework
+            unzip -o ../workspace/TeakFramework/Teak.xcframework.zip -d .
+            unzip -o ../workspace/TeakFramework/TeakExtension.xcframework.zip -d .
+            cp ../workspace/TeakFramework/Teak.xcframework.zip .
+            cp ../workspace/TeakFramework/Teak.xcframework.zip.sha512 .
+            cp ../workspace/TeakFramework/TeakExtension.xcframework.zip .
+            cp ../workspace/TeakFramework/TeakExtension.xcframework.zip.sha512 .
+            cp ../workspace/TeakFramework/Info.plist .
+            sed -i "s/spec.version      = \".*\"/spec.version      = \"${VERSION}\"/" Teak.podspec
+            git add -A
+            git commit -m "${VERSION}"
+            git tag "${VERSION}"
+            git push origin main
+            git push --tags
+
+  deploy_latest:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run: git fetch --tags
+      - aws-cli/install
+      - attach_workspace:
+          at: workspace/
+      - buildomat/aws-oidc-assume
+      - run:
+          name: Upload SDK to S3
+          command: |
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip s3://teak-build-artifacts/ios/Teak.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/Teak.xcframework.zip.sha512 s3://teak-build-artifacts/ios/Teak.xcframework.zip.sha512 --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip s3://teak-build-artifacts/ios/TeakExtension.xcframework.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakExtension.xcframework.zip.sha512 s3://teak-build-artifacts/ios/TeakExtension.xcframework.zip.sha512 --acl public-read
+            # Localized strings for notification action buttons (consumed by teak-unity)
+            aws s3 cp workspace/TeakFramework/TeakResources.bundle.zip s3://teak-build-artifacts/ios/TeakResources.bundle.zip --acl public-read
+            aws s3 cp workspace/TeakFramework/TeakResources.bundle.zip.sha512 s3://teak-build-artifacts/ios/TeakResources.bundle.zip.sha512 --acl public-read
+            # Notification content extension category config, generated by
+            # import_notification_categories (consumed by teak-unity)
+            aws s3 cp workspace/TeakFramework/Info.plist s3://teak-build-artifacts/ios/Info.plist --acl public-read
+
+  publish_pod:
+    macos:
+      xcode: "16.4.0"
+    resource_class: m4pro.medium
+    shell: /bin/bash --login -eo pipefail
+    steps:
+      - checkout
+      - ruby_setup
+      - run: git fetch --tags
+      - run:
+          name: Publish to CocoaPods trunk
+          command: |
+            gem install cocoapods
+            VERSION=$(git describe --tags --always)
+            git clone --branch "${VERSION}" --depth 1 git@github.com:GoCarrot/teak-ios-framework.git teak-ios-framework
+            cd teak-ios-framework
+            pod trunk push Teak.podspec --allow-warnings
+
+workflows:
+  version: 2
+
+  # Runs when SDK code changed, and always on the long-lived branch so a merge or promote commit
+  # is never skipped.
+  un-tagged-build:
+    when:
+      or:
+        - << pipeline.parameters.code-changed >>
+        - equal: [4.3-stable, << pipeline.git.branch >>]
+    jobs:
+      - test:
+          context:
+            - iOS-Build
+          filters:
+            tags:
+              ignore: /.*/
+      # TSan race guard, on long-lived branches only (it's the costliest macOS job). Non-gating here;
+      # the tagged-build gate below blocks deploys on a red. Run `bundle exec fastlane test_race` to
+      # check a branch.
+      - test_race:
+          context:
+            - iOS-Build
+          filters:
+            branches:
+              only:
+                - 4.3-stable
+                - develop
+            tags:
+              ignore: /.*/
+      - build:
+          context:
+            - iOS-Build
+          filters:
+            tags:
+              ignore: /.*/
+      - changelog_check:
+          filters:
+            tags:
+              ignore: /.*/
+      - tag_build:
+          requires:
+            - test
+            - build
+            - changelog_check
+          filters:
+            tags:
+              ignore: /.*/
+
+  # Docs-only branches: no macOS jobs.
+  un-tagged-docs-only:
+    when:
+      not:
+        or:
+          - << pipeline.parameters.code-changed >>
+          - equal: [4.3-stable, << pipeline.git.branch >>]
+    jobs:
+      - changelog_check:
+          filters:
+            tags:
+              ignore: /.*/
+      - tag_build:
+          requires:
+            - changelog_check
+          filters:
+            tags:
+              ignore: /.*/
+
+  tagged-build:
+    jobs:
+      - test:
+          context:
+            - iOS-Build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      - build:
+          context:
+            - iOS-Build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      # Release gate: the race guard must be green before a version deploys. A red run — a reverted
+      # fix or a new race — blocks deploy_versioned (and the whole deploy chain below), so a version
+      # can't ship while a guarded race is open.
+      - test_race:
+          context:
+            - iOS-Build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      - deploy_versioned:
+          context:
+            - AWS-OIDC-Role
+          requires:
+            - test
+            - build
+            - test_race
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      - hold:
+          type: approval
+          requires:
+            - test
+            - build
+            - test_race
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      - deploy_latest:
+          context:
+            - AWS-OIDC-Role
+          requires:
+            - hold
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      - publish_pod:
+          context:
+            - CocoaPods
+          requires:
+            - deploy_latest
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+
+commands:
+  # Runs the Ruby named in .ruby-version. The image's rbenv doesn't have it, so it is built
+  # once per image and cached; the job fails unless that is the Ruby actually running.
+  ruby_setup:
+    description: "Run the Ruby pinned in .ruby-version"
+    parameters:
+      xcode-version:
+        type: string
+        default: "16.4.0"
+    steps:
+      - restore_cache:
+          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
+      - run:
+          name: Ruby Setup
+          command: |
+            want=$(sed 's/^ruby-//' .ruby-version)
+            versions="$(rbenv root)/versions"
+            cache="$HOME/ruby-cache"
+            if [ -d "${cache}/${want}" ]; then
+              mkdir -p "${versions}"
+              cp -R "${cache}/${want}" "${versions}/${want}"
+            else
+              brew update --quiet || true
+              brew upgrade ruby-build || true
+              # Link the image's own openssl: ruby-build would otherwise link the newest
+              # brew openssl, which a cache-restored Ruby won't find on a fresh image.
+              brew list openssl@3 >/dev/null 2>&1 || brew install openssl@3
+              RUBY_CONFIGURE_OPTS="--with-openssl-dir=$(brew --prefix openssl@3)" rbenv install -s "${want}"
+              mkdir -p "${cache}"
+              cp -R "${versions}/${want}" "${cache}/${want}"
+            fi
+            # Later steps pick this Ruby up through BASH_ENV.
+            shims="$(rbenv root)/shims"
+            echo "export RBENV_VERSION=${want}; export PATH=${shims}:\$PATH" >> "$BASH_ENV"
+            export RBENV_VERSION="${want}" PATH="${shims}:${PATH}"
+            rbenv rehash
+            ruby -v
+            ruby -v | grep -q "^ruby ${want} "
+            ruby -ropenssl -ryaml -e 1
+      - save_cache:
+          paths:
+            - ~/ruby-cache
+          key: v2-ruby-<< parameters.xcode-version >>-{{ checksum ".ruby-version" }}
+  #
+  # Common setup
+  #
+  ios_setup:
+    description: "iOS Common Setup"
+    parameters:
+      xcode-version:
+        type: string
+        default: "16.4.0"
+    steps:
+      - checkout
+      - ruby_setup:
+          xcode-version: << parameters.xcode-version >>
+      - run:
+          name: Fetch Tags
+          command: git fetch --tags
+      - restore_cache:
+          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+      - run:
+          name: Ruby Gems
+          command: |
+            bundle config set --local path vendor/bundle
+            bundle check || bundle install
+      - save_cache:
+          paths:
+            - /usr/local/Homebrew/
+            - ~/Library/Caches/Homebrew
+            - vendor/bundle
+            - Sample/vendor/bundle
+          key: v3-{{ checksum "setup" }}-{{ checksum ".ruby-version" }}-{{ checksum "Gemfile.lock" }}-{{ .Environment.HOMEBREW_VERSION }}
+      - run:
+          name: Import Teak Notification Category Data
+          command: ./import_notification_categories notification_categories.csv
+  #
+  # Trigger a playbook build
+  #
+  build_antora_playbook:
+    description: "Build Teak Docs"
+    parameters:
+      build_type:
+        type: enum
+        default: "development"
+        enum: ["development", "production"]
+    steps:
+      - run:
+          name: Trigger Antora Playbook Build
+          command: |
+            curl --location --request POST 'https://circleci.com/api/v2/project/github/GoCarrot/antora-ui-teak/pipeline' \
+            --header 'Content-Type: application/json' \
+            -u "${CIRCLE_API_TOKEN}" \
+            -d '{
+              "parameters": {
+                "build_type": "<< parameters.build_type >>"
+              }
+            }'
