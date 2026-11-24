@@ -117,7 +117,7 @@ CircleCI 2.1 with dynamic config: `.circleci/config.yml` is a small setup config
 - **un-tagged-build**: test → build → auto-tag, on every non-tag commit to `develop` and on branches that change anything besides `docs/`, `.claude/` and root-level `.md` files. `test_race` runs only on `develop`.
 - **un-tagged-docs-only**: `changelog_check` and the docs build, on branches that changed only those paths. No macOS job.
 - **tagged-build**: test → build → deploy to S3 (versioned) + update teak-ios-framework repo, then hold for latest S3 deploy + CocoaPods trunk publish
-- **nightly**: test, build and docs, fired by a scheduled pipeline on `develop` (create it with `ci-o-mat schedule create`)
+- **nightly**: test, build and docs, fired by a scheduled pipeline on `develop` at 00:00 UTC Mon–Fri. The schedule lives in CircleCI, not in config; it was created with `ci-o-mat schedule create` when the setup config merged.
 
 Artifacts deployed to `s3://teak-build-artifacts/ios/` with SHA512 checksums.
 
