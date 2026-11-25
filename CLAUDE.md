@@ -112,10 +112,10 @@ Platform minimum: iOS 11.0. Required frameworks include AdSupport, StoreKit, Use
 
 ## CI/CD
 
-CircleCI 2.1 with workflows:
-- **un-tagged-build**: test → build → auto-tag (on every non-tag commit)
+CircleCI 2.1 with dynamic config: `.circleci/config.yml` is a small setup config that runs the path-filtering orb and continues with `.circleci/continue_config.yml`, which holds the jobs and workflows:
+- **un-tagged-build**: test → build → auto-tag, on every non-tag commit to `4.3-stable` and on branches that change anything besides `docs/`, `.claude/` and root-level `.md` files. `test_race` runs only on `4.3-stable`.
+- **un-tagged-docs-only**: `changelog_check`, on branches that changed only those paths. No macOS job.
 - **tagged-build**: test → build → deploy to S3 (versioned) + update teak-ios-framework repo, then hold for latest S3 deploy + CocoaPods trunk publish
-- **nightly**: scheduled on `develop` and `master`
 
 Artifacts deployed to `s3://teak-build-artifacts/ios/` with SHA512 checksums.
 
