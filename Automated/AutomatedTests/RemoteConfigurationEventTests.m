@@ -19,7 +19,7 @@
 
 #pragma mark - request_timeout_ms
 
-// Runs the same code the settings.json callback runs on its reply.
+// Runs the settings.json callback's request-timeout handling.
 - (NSTimeInterval)timeoutAfterSettingsReply:(NSDictionary*)reply {
   TeakRemoteConfiguration* config = [[TeakRemoteConfiguration alloc] init];
   [config applyRequestTimeoutFromReply:reply];

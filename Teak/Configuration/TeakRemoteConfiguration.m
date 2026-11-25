@@ -35,10 +35,6 @@ static const NSTimeInterval kDefaultRequestTimeoutInterval = 60.0;
   return ms / 1000.0;
 }
 
-+ (NSTimeInterval)defaultRequestTimeoutInterval {
-  return kDefaultRequestTimeoutInterval;
-}
-
 - (void)applyRequestTimeoutFromReply:(NSDictionary*)reply {
   self.requestTimeoutInterval = [TeakRemoteConfiguration requestTimeoutIntervalFromSettingsValue:reply[@"request_timeout_ms"]];
 }
@@ -220,7 +216,8 @@ static const NSTimeInterval kDefaultRequestTimeoutInterval = 60.0;
     @"hostname" : self.hostname,
     @"sdkSentryDsn" : self.sdkSentryDsn,
     @"appSentryDsn" : self.appSentryDsn,
-    @"enhancedIntegrationChecks" : self.enhancedIntegrationChecks ? @"YES" : @"NO"
+    @"enhancedIntegrationChecks" : self.enhancedIntegrationChecks ? @"YES" : @"NO",
+    @"requestTimeoutInterval" : @(self.requestTimeoutInterval)
   };
 }
 

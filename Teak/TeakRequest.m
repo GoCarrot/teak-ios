@@ -149,9 +149,9 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
     _signature = Teak_SignString(_stringToSign, apiKey);
 
     NSMutableURLRequest* urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://%@%@", request.hostname, request.endpoint]]];
-    // Read per send, so a request built before settings.json arrives keeps the default.
+    // Read per send, so retries pick up the latest settings. Unset keeps the 60s URLRequest default.
     NSTimeInterval timeout = request.session.remoteConfiguration.requestTimeoutInterval;
-    urlRequest.timeoutInterval = timeout > 0 ? timeout : [TeakRemoteConfiguration defaultRequestTimeoutInterval];
+    if (timeout > 0) urlRequest.timeoutInterval = timeout;
     TeakAssignPayloadToRequest(request.method, urlRequest, payload);
     [urlRequest setValue:[NSString stringWithFormat:@"TeakV2-HMAC-SHA256 Signature=%@", _signature] forHTTPHeaderField:@"Authorization"];
     _urlRequest = urlRequest;

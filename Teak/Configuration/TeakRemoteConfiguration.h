@@ -15,7 +15,6 @@
 @property (nonatomic, readonly) NSTimeInterval requestTimeoutInterval;
 @property (strong, nonatomic, readonly) NSArray* _Nonnull channelCategories;
 
-+ (NSTimeInterval)defaultRequestTimeoutInterval;
 - (TeakRemoteConfiguration* _Nullable)initForSession:(TeakSession* _Nonnull)session;
 - (nonnull NSDictionary*)to_h;
 @end
