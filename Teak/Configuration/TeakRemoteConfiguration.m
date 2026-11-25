@@ -17,10 +17,31 @@
 @property (strong, nonatomic, readwrite) NSDictionary* dynamicParameters;
 @property (nonatomic, readwrite) BOOL enhancedIntegrationChecks;
 @property (nonatomic, readwrite) int heartbeatInterval;
+@property (nonatomic, readwrite) NSTimeInterval requestTimeoutInterval;
 @property (strong, nonatomic, readwrite) NSArray* _Nonnull channelCategories;
 @end
 
 @implementation TeakRemoteConfiguration
+
+static const NSTimeInterval kDefaultRequestTimeoutInterval = 60.0;
+
+// A positive, finite number of milliseconds becomes seconds. Anything else keeps the default.
++ (NSTimeInterval)requestTimeoutIntervalFromSettingsValue:(id)value {
+  if (![value isKindOfClass:[NSNumber class]] || CFGetTypeID((__bridge CFTypeRef)value) == CFBooleanGetTypeID()) {
+    return kDefaultRequestTimeoutInterval;
+  }
+  double ms = [value doubleValue];
+  if (!isfinite(ms) || ms <= 0) return kDefaultRequestTimeoutInterval;
+  return ms / 1000.0;
+}
+
++ (NSTimeInterval)defaultRequestTimeoutInterval {
+  return kDefaultRequestTimeoutInterval;
+}
+
+- (void)applyRequestTimeoutFromReply:(NSDictionary*)reply {
+  self.requestTimeoutInterval = [TeakRemoteConfiguration requestTimeoutIntervalFromSettingsValue:reply[@"request_timeout_ms"]];
+}
 
 + (NSDictionary*)defaultEndpointConfiguration {
 #define QUOTE(...) #__VA_ARGS__
@@ -97,6 +118,7 @@
     self.endpointConfigurations = [TeakRemoteConfiguration defaultEndpointConfiguration];
     self.dynamicParameters = @{};
     self.heartbeatInterval = 60;
+    self.requestTimeoutInterval = kDefaultRequestTimeoutInterval;
     self.channelCategories = @[];
     __weak typeof(self) weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -153,6 +175,8 @@
                                                       }
                                                       teak_catch_report;
                                                     }
+
+                                                    [self applyRequestTimeoutFromReply:reply];
 
                                                     // Batching/endpoint configuration
                                                     self.endpointConfigurations = reply[@"endpoint_configurations"];

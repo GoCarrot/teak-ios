@@ -8,10 +8,36 @@
 @import OCHamcrest;
 @import OCMockito;
 
+@interface TeakRemoteConfiguration (RequestTimeoutTest)
+- (void)applyRequestTimeoutFromReply:(NSDictionary*)reply;
+@end
+
 @interface RemoteConfigurationEventTests : XCTestCase
 @end
 
 @implementation RemoteConfigurationEventTests
+
+#pragma mark - request_timeout_ms
+
+// Runs the same code the settings.json callback runs on its reply.
+- (NSTimeInterval)timeoutAfterSettingsReply:(NSDictionary*)reply {
+  TeakRemoteConfiguration* config = [[TeakRemoteConfiguration alloc] init];
+  [config applyRequestTimeoutFromReply:reply];
+  return config.requestTimeoutInterval;
+}
+
+- (void)testRequestTimeoutMsIsAppliedInSeconds {
+  assertThatDouble([self timeoutAfterSettingsReply:@{@"request_timeout_ms" : @5000}], closeTo(5.0, 0.001));
+  assertThatDouble([self timeoutAfterSettingsReply:@{@"request_timeout_ms" : @300000}], closeTo(300.0, 0.001));
+}
+
+- (void)testRequestTimeoutKeepsDefaultForAbsentOrInvalidValues {
+  NSArray* invalid = @[ [NSNull null], @"5000", @0, @-1, @(NAN), @(INFINITY), @YES, @{}, @[] ];
+  for (id value in invalid) {
+    assertThatDouble([self timeoutAfterSettingsReply:@{@"request_timeout_ms" : value}], closeTo(60.0, 0.001));
+  }
+  assertThatDouble([self timeoutAfterSettingsReply:@{}], closeTo(60.0, 0.001));
+}
 
 - (void)testAppFacingConfigurationIncludesDeviceId {
   NSString* expectedDeviceId = @"test-device-id-67890";

@@ -1,0 +1,2 @@
+enhancement:
+  - "Requests now use the request timeout Teak serves for your game, 60 seconds by default. Requests sent before the game's settings arrive use 60 seconds."

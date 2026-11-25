@@ -188,6 +188,26 @@ static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
             forSend:send];
 }
 
+#pragma mark - Request timeout
+
+- (NSTimeInterval)wireTimeoutForSession:(TeakSession*)session {
+  TeakRequest* request = [TeakRequest requestWithSession:session
+                                             forEndpoint:@"/me/other"
+                                             withPayload:@{}
+                                                  method:TeakRequest_POST
+                                                callback:nil];
+  return [[TeakRequestSend alloc] initWithRequest:request].urlRequest.timeoutInterval;
+}
+
+- (void)testSendUsesTheRemoteConfigurationRequestTimeout {
+  TeakSession* session = [TeakSessionFixtures mockSessionWithEndpointConfigurations:@{} requestTimeoutInterval:5.0];
+  assertThatDouble([self wireTimeoutForSession:session], closeTo(5.0, 0.001));
+}
+
+- (void)testSendKeepsSixtySecondsWithoutAConfiguredTimeout {
+  assertThatDouble([self wireTimeoutForSession:[self makeMockSession]], closeTo(60.0, 0.001));
+}
+
 #pragma mark - TeakUserProfile
 
 - (void)testProfileRetriesAfterSocketError {
