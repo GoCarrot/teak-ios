@@ -134,6 +134,37 @@ extern BOOL TeakLink_WillHandleDeepLink(NSURL* deepLink);
 
 @end
 
+// Begins a background task and returns the block that ends it. The block ends the task at most
+// once however often it's called, and iOS expiring the task calls it too.
+static dispatch_block_t TeakBeginBackgroundTask(NSString* name) {
+  NSObject* lock = [[NSObject alloc] init];
+  __block UIBackgroundTaskIdentifier task = UIBackgroundTaskInvalid;
+  __block BOOL ended = NO;
+  dispatch_block_t end = ^{
+    UIBackgroundTaskIdentifier toEnd = UIBackgroundTaskInvalid;
+    @synchronized(lock) {
+      if (!ended) {
+        ended = YES;
+        toEnd = task;
+      }
+    }
+    if (toEnd != UIBackgroundTaskInvalid) {
+      [[UIApplication sharedApplication] endBackgroundTask:toEnd];
+    }
+  };
+  UIBackgroundTaskIdentifier begun = [[UIApplication sharedApplication] beginBackgroundTaskWithName:name expirationHandler:end];
+  BOOL endedBeforeStored;
+  @synchronized(lock) {
+    task = begun;
+    endedBeforeStored = ended;
+  }
+  // An end that ran before the id was stored had nothing to end, so end it here.
+  if (endedBeforeStored && begun != UIBackgroundTaskInvalid) {
+    [[UIApplication sharedApplication] endBackgroundTask:begun];
+  }
+  return end;
+}
+
 @implementation TeakSession
 
 DefineTeakState(Allocated, (@[ @"Created", @"Expiring" ]));
@@ -1020,15 +1051,13 @@ KeyValueObserverFor(TeakSession, TeakSession, currentState) {
       self.heartbeat = nil;
       self.heartbeatQueue = nil;
 
-      // Send user profile out now. Single read: capture the profile that's live now rather than
-      // re-reading self.userProfile when the async block runs, which could be a different (or nil)
-      // value by then. No weakSelf/blockSelf needed — userProfile.session strongly retains this
-      // session (TeakRequest+Internal), so self can't be deallocated while userProfile is live.
+      // Send user profile out now, holding the app awake until that send is done: the app can
+      // suspend while the flush waits on operationQueue or is in flight. Whether an update is
+      // pending can only be read on operationQueue, so the task is begun for any profile and ends
+      // there when there's nothing to send.
       TeakUserProfile* userProfile = self.userProfile;
       if (userProfile != nil) {
-        dispatch_async([Teak operationQueue], ^{
-          [userProfile send];
-        });
+        [userProfile sendWithCompletion:TeakBeginBackgroundTask(@"io.teak.sdk.profileFlush")];
       }
 
       // Reset duraation report and set it

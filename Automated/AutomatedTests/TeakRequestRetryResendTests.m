@@ -28,7 +28,7 @@ extern NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionar
 @end
 
 @interface TeakRequest (RetryResendTest)
-- (void)retryTest_transmitSend:(TeakRequestSend*)send;
+- (BOOL)retryTest_transmitSend:(TeakRequestSend*)send;
 @end
 
 // Test-only swizzle on the real -transmitSend:: records which send would have gone on the wire
@@ -37,10 +37,11 @@ extern NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionar
 static NSMutableArray<TeakRequestSend*>* retryTest_transmits;
 
 @implementation TeakRequest (RetryResendTest)
-- (void)retryTest_transmitSend:(TeakRequestSend*)send {
+- (BOOL)retryTest_transmitSend:(TeakRequestSend*)send {
   @synchronized(retryTest_transmits) {
     [retryTest_transmits addObject:send];
   }
+  return YES;
 }
 @end
 

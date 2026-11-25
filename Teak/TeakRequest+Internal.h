@@ -26,6 +26,12 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 // Cancels the attempt in flight and stops any retry still waiting to fire. Cancelling the task
 // alone wouldn't reach those: a retry is a block on a timer, not a task.
 - (void)cancel;
+// Runs `completion` once the send is done, or right away if it already is. Runs once per send
+// whatever ends it, unlike the request's callback, which only runs for a reply.
+- (void)addCompletion:(nullable dispatch_block_t)completion;
+// Removes and returns the completions not yet run, so a send that replaces this one can run them
+// instead.
+- (nullable dispatch_block_t)takeCompletion;
 - (nonnull NSDictionary*)to_h;
 @end
 
@@ -45,10 +51,15 @@ extern const NSUInteger TeakRequestMaxSocketRetries;
 
 @property (strong, nonatomic, readwrite) NSString* _Nonnull method;
 
+// -send, plus a completion that runs once the send is done: after its last reply, when it's
+// cancelled, or right away if nothing was handed to the network. A batch gates only in -send, so
+// don't call this on one.
+- (BOOL)sendWithCompletion:(nullable dispatch_block_t)completion;
+
 // Puts one send on the wire. -send builds a new send and transmits it; a retry transmits
 // the same send again without going back through -send, so the gates subclasses put in
-// -send (the profile's pending-update check, a batch's no-op) can't swallow it. Returns YES if
-// the send was handed to the network, as -send does.
+// -send or -sendWithCompletion: (the profile's pending-update check, a batch's no-op) can't
+// swallow it. Returns YES if the send was handed to the network, as -send does.
 - (BOOL)transmitSend:(TeakRequestSend* _Nonnull)send;
 
 // The reply to one transmission of `send`: retries it, or hands the reply to the callback.

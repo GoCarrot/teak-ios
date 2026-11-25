@@ -131,6 +131,16 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
 
 ///// TeakRequestSend impl
 
+@interface TeakRequestSend () {
+  dispatch_block_t _completion;
+  // YES once the send is done: its last reply has been handled, it was cancelled, or it never
+  // reached the network. Guarded by @synchronized(self).
+  BOOL _finished;
+}
+// Marks the send done and runs its completions.
+- (void)finish;
+@end
+
 @implementation TeakRequestSend
 
 - (instancetype)initWithRequest:(TeakRequest*)request {
@@ -169,6 +179,44 @@ NSString* Teak_StringToSign(NSString* method, NSString* path, NSDictionary* payl
   if (firstCancel) {
     TeakLog_i(@"request.send.cancelled", [self to_h]);
   }
+  // A send cancelled while waiting to retry never gets another reply, so it's done now.
+  [self finish];
+}
+
+- (void)addCompletion:(dispatch_block_t)completion {
+  if (completion == nil) return;
+  BOOL runNow = NO;
+  @synchronized(self) {
+    if (_finished) {
+      runNow = YES;
+    } else {
+      dispatch_block_t earlier = _completion;
+      _completion = earlier == nil ? [completion copy] : [^{
+        earlier();
+        completion();
+      } copy];
+    }
+  }
+  if (runNow) completion();
+}
+
+- (dispatch_block_t)takeCompletion {
+  @synchronized(self) {
+    dispatch_block_t completion = _completion;
+    _completion = nil;
+    return completion;
+  }
+}
+
+- (void)finish {
+  dispatch_block_t completion;
+  @synchronized(self) {
+    _finished = YES;
+    completion = _completion;
+    _completion = nil;
+  }
+  // Outside the lock: a completion may call into UIKit or take other locks.
+  if (completion != nil) completion();
 }
 
 - (NSDictionary*)to_h {
@@ -366,22 +414,38 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 }
 
 - (BOOL)send {
+  return [self sendWithCompletion:nil];
+}
+
+- (BOOL)sendWithCompletion:(dispatch_block_t)completion {
   if (self.blackhole) {
     TeakLog_i(@"request.blackholed", @{@"endpoint" : _(self.endpoint)});
+    if (completion != nil) completion();
     return NO;
   }
 
   BOOL transmitted = NO;
+  TeakRequestSend* send = nil;
   teak_try {
     // Each send is a new logical request: its own request_id, and its own copy of
     // the payload as it stands now.
-    TeakRequestSend* send = [[TeakRequestSend alloc] initWithRequest:self];
+    send = [[TeakRequestSend alloc] initWithRequest:self];
+    [send addCompletion:completion];
     self.currentSend = send;
 
     teak_log_breadcrumb(@"request.send.constructed");
     transmitted = [self transmitSend:send];
   }
   teak_catch_report;
+
+  // Nothing is in flight, so no reply will finish it.
+  if (!transmitted) {
+    if (send != nil) {
+      [send finish];
+    } else if (completion != nil) {
+      completion();
+    }
+  }
   return transmitted;
 }
 
@@ -448,6 +512,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
     }
 
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+      BOOL finished = NO;
       teak_try {
         BOOL isSocketError = [TeakRequest isRetryableSocketError:error];
         BOOL isNoResponse = [TeakRequest isNoResponseFailure:response error:error];
@@ -467,7 +532,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, TeakRequestSocketErrorRetryDelay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            if (!send.cancelled) [self transmitSend:send];
+            if (!send.cancelled && ![self transmitSend:send]) [send finish];
           });
         } else if (!isCancelled && response.statusCode >= 500 && send.serverErrorRetries < [self.retry.times count]) {
           // Only a 5xx reply climbs the server-configured ladder, as on Android.
@@ -481,9 +546,12 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
 
           dispatch_time_t delayTime = dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC);
           dispatch_after(delayTime, dispatch_get_main_queue(), ^{
-            if (!send.cancelled) [self transmitSend:send];
+            if (!send.cancelled && ![self transmitSend:send]) [send finish];
           });
         } else {
+          // No retry, so this is the send's last reply. Set first so a callback that raises
+          // still finishes it.
+          finished = YES;
           if (!isCancelled && (isSocketError || isNoResponse)) {
             TeakLog_e(isSocketError ? @"request.retry.socket_error.exhausted" : @"request.retry.no_response.exhausted", [send to_h]);
           }
@@ -509,6 +577,7 @@ NSString* TeakRequestsInFlightMutex = @"io.teak.sdk.requestsInFlightMutex";
         }
       }
       teak_catch_report;
+      if (finished) [send finish];
     });
   }
   teak_catch_report;

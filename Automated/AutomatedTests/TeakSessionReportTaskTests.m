@@ -30,7 +30,7 @@ extern TeakSession* currentSession;
 @end
 
 @interface TeakRequest (ReportTaskTesting)
-- (void)reportTaskTest_transmitSend:(TeakRequestSend*)send;
+- (BOOL)reportTaskTest_transmitSend:(TeakRequestSend*)send;
 @end
 
 // Test-only swizzle on the real -transmitSend: records the send instead of hitting the network. Like
@@ -41,13 +41,13 @@ static NSMutableArray<TeakRequestSend*>* reportTaskTest_transmits;
 static BOOL reportTaskTest_transmitReachesNetwork;
 
 @implementation TeakRequest (ReportTaskTesting)
-- (void)reportTaskTest_transmitSend:(TeakRequestSend*)send {
+- (BOOL)reportTaskTest_transmitSend:(TeakRequestSend*)send {
   @synchronized(reportTaskTest_transmits) {
     [reportTaskTest_transmits addObject:send];
   }
-  if (reportTaskTest_transmitReachesNetwork) {
-    send.task = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:@"https://example.invalid"]];
-  }
+  if (!reportTaskTest_transmitReachesNetwork) return NO;
+  send.task = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:@"https://example.invalid"]];
+  return YES;
 }
 @end
 
