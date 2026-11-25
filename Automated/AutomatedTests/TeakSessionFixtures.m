@@ -10,6 +10,10 @@
 @implementation TeakSessionFixtures
 
 + (TeakSession*)mockSessionWithEndpointConfigurations:(NSDictionary*)endpointConfigurations {
+  return [self mockSessionWithEndpointConfigurations:endpointConfigurations requestTimeoutInterval:60.0];
+}
+
++ (TeakSession*)mockSessionWithEndpointConfigurations:(NSDictionary*)endpointConfigurations requestTimeoutInterval:(NSTimeInterval)requestTimeoutInterval {
   TeakAppConfiguration* appConfig = mock([TeakAppConfiguration class]);
   [given([appConfig appId]) willReturn:@"test-app-id"];
   [given([appConfig appVersion]) willReturn:@"1"];
@@ -25,6 +29,7 @@
   TeakRemoteConfiguration* remoteConfig = mock([TeakRemoteConfiguration class]);
   [given([remoteConfig endpointConfigurations]) willReturn:endpointConfigurations];
   [given([remoteConfig dynamicParameters]) willReturn:@{}];
+  [given([remoteConfig requestTimeoutInterval]) willReturnDouble:requestTimeoutInterval];
 
   TeakSession* session = mock([TeakSession class]);
   [given([session appConfiguration]) willReturn:appConfig];

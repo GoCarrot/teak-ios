@@ -11,4 +11,7 @@
 /// Pass @{} for a request that sends immediately, doesn't batch and doesn't retry on a schedule.
 + (nonnull TeakSession*)mockSessionWithEndpointConfigurations:(nonnull NSDictionary*)endpointConfigurations;
 
+/// As above, with the remote configuration's request timeout (seconds) set.
++ (nonnull TeakSession*)mockSessionWithEndpointConfigurations:(nonnull NSDictionary*)endpointConfigurations requestTimeoutInterval:(NSTimeInterval)requestTimeoutInterval;
+
 @end
